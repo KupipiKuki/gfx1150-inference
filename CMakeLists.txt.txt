@@ -1,0 +1,41 @@
+cmake_minimum_required(VERSION 3.10)
+project(gfx1150-inference LANGUAGES CXX)
+
+# --- ROCm/HIP Configuration ---
+find_package(hip REQUIRED)
+find_package(hipblas REQUIRED)
+find_package(rocblas REQUIRED)
+
+# --- PyBind11 Configuration ---
+find_package(pybind11 REQUIRED)
+
+# --- Project Structure ---
+set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(KERNEL_DIR ${SOURCE_DIR}/kernels)
+set(BINDINGS_DIR ${SOURCE_DIR}/python_bindings)
+
+# --- HIP Matmul Kernel (Phase 1) ---
+add_library(hip_matmul SHARED
+    ${KERNEL_DIR}/matmul.hip
+    ${BINDINGS_DIR}/bindings.cpp
+)
+
+target_include_directories(hip_matmul PRIVATE ${KERNEL_DIR} ${BINDINGS_DIR})
+target_link_libraries(hip_matmul PRIVATE
+    hip::host
+    hip::device
+    hipblas::hipblas
+    rocblas::rocblas
+    pybind11::embed
+)
+
+# Enable C++17 for HIP compatibility
+target_compile_features(hip_matmul PRIVATE cxx_std_17)
+
+# HIP-specific flags
+if(AMDGPU_TARGETS)
+    target_compile_options(hip_matmul PRIVATE --amdgpu-target=gfx1150)
+endif()
+
+# --- Install ---
+install(TARGETS hip_matmul LIBRARY DESTINATION gfx1150_inference)
