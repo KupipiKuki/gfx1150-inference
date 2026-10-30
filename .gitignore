@@ -38,7 +38,7 @@ wheels/
 *.lib
 
 # HIP/ROCm
-*.hip
+#*.hip
 *.hip.o
 *.hsaco
 
