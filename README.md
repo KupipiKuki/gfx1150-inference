@@ -35,16 +35,26 @@ gfx1150-inference/
 │   ├── inference.py
 │   ├── gguf_parser.py
 │   ├── weight_loader.py
+│   ├── layer.py
 │   ├── kernels/
 │   │   ├── matmul.h
 │   │   ├── matmul.hip
 │   │   ├── dequantize.h
-│   │   └── dequantize.hip
+│   │   ├── dequantize.hip
+│   │   ├── rmsnorm.h
+│   │   ├── rmsnorm.hip
+│   │   ├── rope.h
+│   │   ├── rope.hip
+│   │   ├── attention.h
+│   │   ├── attention.hip
+│   │   ├── mlp.h
+│   │   └── mlp.hip
 │   └── python_bindings/
 │       └── bindings.cpp
 └── tests/
     ├── test_matmul.py
-    └── test_gguf_and_q4.py
+    ├── test_gguf_and_q4.py
+    └── test_layer.py
 ```
 
 ### 🛠️ Build & Test
@@ -53,4 +63,5 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 PYTHONPATH=build python3 tests/test_matmul.py
 PYTHONPATH=build:src python3 tests/test_gguf_and_q4.py
+PYTHONPATH=build:src python3 tests/test_layer.py
 ```

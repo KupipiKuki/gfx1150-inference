@@ -108,31 +108,31 @@ class WeightStreamer:
 
 ---
 
-### **🟡 Phase 3: Transformer Layer Kernels (Llama Architecture)**
+### **🟢 Phase 3: Transformer Layer Kernels (Llama Architecture)** *(COMPLETED)*
 **Goal**: Implement the complete forward pass for a single Llama-style transformer layer on `gfx1150` with SSD-streamed `Q4_0` weights.
 
 #### **Tasks**
 | # | Task | Owner | Status | Dependencies |
 |---|------|-------|--------|--------------|
-| 3.1 | Implement **RMSNorm** HIP kernel (`src/kernels/rmsnorm.hip`) | Argon / GLM5.3 | ⏳ | Phase 2 |
-| 3.2 | Implement **RoPE** (Rotary Positional Embeddings) HIP kernel (`src/kernels/rope.hip`) | Argon / GLM5.3 | ⏳ | Phase 2 |
-| 3.3 | Implement **Grouped-Query Attention (GQA)** HIP kernel with KV cache support (`src/kernels/attention.hip`) | Argon / GLM5.3 | ⏳ | 3.2 |
-| 3.4 | Implement **SwiGLU** activation HIP kernel (`SiLU(gate) * up`) (`src/kernels/mlp.hip`) | Argon / GLM5.3 | ⏳ | Phase 2 |
-| 3.5 | Assemble single-layer forward pass (`TransformerLayer`) with streamed weights | You / Argon | ⏳ | 3.1–3.4 |
-| 3.6 | Validate single-layer output against reference implementation (`tests/test_layer.py`) | QA/QC | ⏳ | 3.5 |
+| 3.1 | Implement **RMSNorm** HIP kernel (`src/kernels/rmsnorm.hip`) | Argon / GLM5.3 | ✅ | Phase 2 |
+| 3.2 | Implement **RoPE** (Rotary Positional Embeddings) HIP kernel (`src/kernels/rope.hip`) | Argon / GLM5.3 | ✅ | Phase 2 |
+| 3.3 | Implement **Grouped-Query Attention (GQA)** HIP kernel with KV cache support (`src/kernels/attention.hip`) | Argon / GLM5.3 | ✅ | 3.2 |
+| 3.4 | Implement **SwiGLU** activation HIP kernel (`SiLU(gate) * up`) (`src/kernels/mlp.hip`) | Argon / GLM5.3 | ✅ | Phase 2 |
+| 3.5 | Assemble single-layer forward pass (`TransformerLayer`) with streamed weights | You / Argon | ✅ | 3.1–3.4 |
+| 3.6 | Validate single-layer output against reference implementation (`tests/test_layer.py`) | QA/QC / Argon | ✅ | 3.5 |
 
 #### **Success Criteria**
-- [ ] `rmsnorm`, `rope`, `gqa_attention`, and `swiglu` HIP kernels compile and pass unit tests on `gfx1150`
-- [ ] Single transformer layer forward pass (prefill and single-token decode) matches CPU/PyTorch reference within FP16 tolerance
-- [ ] Layer weights are loaded, used in fused Q4 projections, and evicted cleanly
+- [x] `rmsnorm`, `rope`, `gqa_attention`, and `swiglu` HIP kernels compile and pass unit tests on `gfx1150`
+- [x] Single transformer layer forward pass (prefill and single-token decode) matches CPU/PyTorch reference within FP16 tolerance
+- [x] Layer weights are loaded, used in fused Q4 projections, and evicted cleanly
 
 #### **Deliverables**
-- `src/kernels/rmsnorm.hip` (Root Mean Square Layer Normalization)
-- `src/kernels/rope.hip` (Rotary Positional Embeddings)
-- `src/kernels/attention.hip` (Grouped-Query Attention with Flash/tiled online softmax)
-- `src/kernels/mlp.hip` (SwiGLU elementwise + fused Q4 projections)
-- `src/layer.py` (Single transformer layer execution pipeline)
-- `tests/test_layer.py` (Component and end-to-end single-layer tests)
+- ✅ [src/kernels/rmsnorm.h](src/kernels/rmsnorm.h) & [src/kernels/rmsnorm.hip](src/kernels/rmsnorm.hip) (Root Mean Square Layer Normalization)
+- ✅ [src/kernels/rope.h](src/kernels/rope.h) & [src/kernels/rope.hip](src/kernels/rope.hip) (Rotary Positional Embeddings)
+- ✅ [src/kernels/attention.h](src/kernels/attention.h) & [src/kernels/attention.hip](src/kernels/attention.hip) (Grouped-Query Attention with Wave32 online softmax)
+- ✅ [src/kernels/mlp.h](src/kernels/mlp.h) & [src/kernels/mlp.hip](src/kernels/mlp.hip) (SwiGLU elementwise activation)
+- ✅ [src/layer.py](src/layer.py) (Single transformer layer execution pipeline)
+- ✅ [tests/test_layer.py](tests/test_layer.py) (Component and end-to-end single-layer tests)
 
 ---
 
@@ -196,7 +196,7 @@ class WeightStreamer:
 | **Phase** | **Focus** | **Status** |
 |-----------|-----------|------------|
 | Phase 1   | Hello `gfx1150` (HIP FP16 Matmul + PyBind11) | ✅ Complete (1.12 TFLOPS) |
-| Phase 2   | GGUF Parser + `madvise` SSD Streaming + Fused `Q4_0` Kernels | 🔄 In Progress |
-| Phase 3   | Llama Layer Kernels (RMSNorm, RoPE, GQA, SwiGLU) | ⏳ Pending |
-| Phase 4   | End-to-End Model Inference + KV Cache + Tokenizer | ⏳ Pending |
+| Phase 2   | GGUF Parser + `madvise` SSD Streaming + Fused `Q4_0` Kernels | ✅ Complete |
+| Phase 3   | Llama Layer Kernels (RMSNorm, RoPE, GQA, SwiGLU) | ✅ Complete |
+| Phase 4   | End-to-End Model Inference + KV Cache + Tokenizer | 🔄 Next |
 | Phase 5   | K-Quants (`Q4_K_M`), 70B Scaling & Packaging | ⏳ Pending |
