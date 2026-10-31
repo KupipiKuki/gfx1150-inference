@@ -463,6 +463,8 @@ python3 -c "import pyhip; print(pyhip.hipRuntimeGetVersion())"
 | 2026-10-30 | FP32 dot-product accumulation for FP16 matmul | Phase 1 | KupipiKuki |
 | 2026-10-30 | Release memoryviews before closing Python mmap (BufferError) | Phase 2 | KupipiKuki |
 | 2026-10-30 | Wave32 intra-wavefront shuffle reduction for fused Q4_0 GEMV | Phase 2 | KupipiKuki |
+| 2026-10-31 | Wave32 online softmax in registers for zero-LDS GQA attention | Phase 3 | KupipiKuki |
+| 2026-10-31 | Support both GGUF-Llama (adjacent) and NeoX (half-dim) RoPE layouts | Phase 3 | KupipiKuki |
 
 ---
 

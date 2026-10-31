@@ -39,6 +39,10 @@ set(BINDINGS_DIR ${SOURCE_DIR}/python_bindings)
 add_library(matmul_module MODULE
     ${KERNEL_DIR}/matmul.hip
     ${KERNEL_DIR}/dequantize.hip
+    ${KERNEL_DIR}/rmsnorm.hip
+    ${KERNEL_DIR}/rope.hip
+    ${KERNEL_DIR}/attention.hip
+    ${KERNEL_DIR}/mlp.hip
     ${BINDINGS_DIR}/bindings.cpp
 )
 
