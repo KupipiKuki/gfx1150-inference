@@ -26,6 +26,7 @@ Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., R
 ```text
 gfx1150-inference/
 ├── CMakeLists.txt
+├── pyproject.toml
 ├── README.md
 ├── IMPLEMENTATION_PLAN.md
 ├── LESSONS_LEARNED.md
@@ -57,7 +58,8 @@ gfx1150-inference/
     ├── test_matmul.py
     ├── test_gguf_and_q4.py
     ├── test_layer.py
-    └── test_full_model.py
+    ├── test_full_model.py
+    └── test_phase5_scale.py
 ```
 
 ### 🛠️ Build & Test
@@ -68,4 +70,5 @@ PYTHONPATH=build python3 tests/test_matmul.py
 PYTHONPATH=build:src python3 tests/test_gguf_and_q4.py
 PYTHONPATH=build:src python3 tests/test_layer.py
 PYTHONPATH=build:src python3 tests/test_full_model.py
+PYTHONPATH=build:src python3 tests/test_phase5_scale.py
 ```

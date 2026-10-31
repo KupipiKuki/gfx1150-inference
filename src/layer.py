@@ -65,8 +65,8 @@ def linear_project(
     out_features: int,
 ) -> np.ndarray:
     """
-    Compute `x_fp16 (M, K) @ W^T (N, K)` on GPU using fused `matmul_q4_0` for Q4_0 weights
-    or FP16 `matmul` for F16 weights.
+    Compute `x_fp16 (M, K) @ W^T (N, K)` on GPU using fused quantized kernels
+    (`matmul_q4_0`, `matmul_q8_0`, `matmul_q4_k`) or FP16 `matmul`.
     """
     info, w_view = weight_entry
     M, K = x_fp16.shape
@@ -75,6 +75,10 @@ def linear_project(
 
     if info.ggml_type == GGMLType.Q4_0:
         matmul_module.matmul_q4_0(x_fp16, w_view, out, M, N, K)
+    elif info.ggml_type == GGMLType.Q8_0:
+        matmul_module.matmul_q8_0(x_fp16, w_view, out, M, N, K)
+    elif info.ggml_type == GGMLType.Q4_K:
+        matmul_module.matmul_q4_k(x_fp16, w_view, out, M, N, K)
     elif info.ggml_type == GGMLType.F16:
         w_t = np.ascontiguousarray(w_view.reshape(N, K).T)
         matmul_module.matmul(x_fp16, w_t, out, M, N, K)

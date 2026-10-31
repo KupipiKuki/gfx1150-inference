@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gfx1150-inference"
+version = "0.5.0"
+description = "SSD-offloaded GGUF LLM inference engine for AMD gfx1150 (Radeon 890M / Ryzen AI 370) with ROCm/HIP"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24.0",
+]
+
+[project.scripts]
+gfx1150-infer = "inference:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = [
+    "gguf_parser",
+    "weight_loader",
+    "layer",
+    "kv_cache",
+    "tokenizer",
+    "inference",
+]
+

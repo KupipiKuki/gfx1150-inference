@@ -258,6 +258,124 @@ def dequantize_q4_0_cpu(q4_bytes: np.ndarray, num_elements: int) -> np.ndarray:
     return weights.reshape(-1).astype(np.float16)
 
 
+def quantize_q8_0_cpu(weights_fp32: np.ndarray) -> np.ndarray:
+    """
+    Reference CPU quantizer: converts a float32/float16 array (multiple of 32 elements)
+    into GGML Q8_0 packed bytes (`uint8` array of length `n_elements // 32 * 34`).
+    """
+    flat = np.asarray(weights_fp32, dtype=np.float32).reshape(-1, 32)
+    num_blocks = flat.shape[0]
+
+    max_abs = np.max(np.abs(flat), axis=1)
+    d_fp16 = (max_abs / 127.0).astype(np.float16)
+    d_fp32 = d_fp16.astype(np.float32)
+
+    inv_d = np.where(d_fp32 > 0.0, 1.0 / d_fp32, 0.0)[:, None]
+    qs = np.clip(np.round(flat * inv_d), -127, 127).astype(np.int8)
+
+    out = np.empty((num_blocks, 34), dtype=np.uint8)
+    out[:, :2] = d_fp16.view(np.uint8).reshape(num_blocks, 2)
+    out[:, 2:] = qs.view(np.uint8)
+    return out.reshape(-1)
+
+
+def dequantize_q8_0_cpu(q8_bytes: np.ndarray, num_elements: int) -> np.ndarray:
+    """Reference CPU dequantizer for GGML Q8_0 blocks into `np.float16`."""
+    num_blocks = num_elements // 32
+    raw = np.frombuffer(q8_bytes, dtype=np.uint8, count=num_blocks * 34).reshape(num_blocks, 34)
+    d = raw[:, :2].copy().view(np.float16).astype(np.float32)  # (num_blocks, 1)
+    qs = raw[:, 2:].view(np.int8).astype(np.float32)           # (num_blocks, 32)
+    weights = qs * d
+    return weights.reshape(-1).astype(np.float16)
+
+
+def quantize_q4_k_cpu(weights_fp32: np.ndarray) -> np.ndarray:
+    """
+    Reference CPU quantizer: converts a float32/float16 array (multiple of 256 elements)
+    into GGML Q4_K (Q4_K_M / Q4_K_S) super-block bytes (`n_elements // 256 * 144` bytes).
+    """
+    flat = np.asarray(weights_fp32, dtype=np.float32).reshape(-1, 256)
+    num_sb = flat.shape[0]
+    sub = flat.reshape(num_sb, 8, 32)
+
+    # Sub-block mins (non-negative offset so x + m >= 0)
+    m_val = np.maximum(0.0, -np.min(sub, axis=2))  # (num_sb, 8)
+    shifted = sub + m_val[:, :, None]
+    sc_val = np.max(shifted, axis=2) / 15.0        # (num_sb, 8)
+
+    d_fp16 = (np.max(sc_val, axis=1) / 63.0).astype(np.float16)
+    dmin_fp16 = (np.max(m_val, axis=1) / 63.0).astype(np.float16)
+    d_fp32 = d_fp16.astype(np.float32)[:, None]
+    dmin_fp32 = dmin_fp16.astype(np.float32)[:, None]
+
+    inv_d = np.where(d_fp32 > 0.0, 1.0 / d_fp32, 0.0)
+    inv_dmin = np.where(dmin_fp32 > 0.0, 1.0 / dmin_fp32, 0.0)
+
+    sc_q = np.clip(np.round(sc_val * inv_d), 0, 63).astype(np.uint8)   # (num_sb, 8)
+    m_q = np.clip(np.round(m_val * inv_dmin), 0, 63).astype(np.uint8)  # (num_sb, 8)
+
+    eff_d = (d_fp32 * sc_q.astype(np.float32))[:, :, None]
+    eff_m = (dmin_fp32 * m_q.astype(np.float32))[:, :, None]
+    inv_eff_d = np.where(eff_d > 0.0, 1.0 / eff_d, 0.0)
+
+    q_sub = np.clip(np.round((sub + eff_m) * inv_eff_d), 0, 15).astype(np.uint8)  # (num_sb, 8, 32)
+
+    # Pack 6-bit scales[8] and mins[8] into 12 bytes per GGML get_scale_min_k4 layout
+    scales_packed = np.empty((num_sb, 12), dtype=np.uint8)
+    for j in range(4):
+        scales_packed[:, j]     = (sc_q[:, j] & 63) | ((sc_q[:, j + 4] >> 4) << 6)
+        scales_packed[:, j + 4] = (m_q[:, j]  & 63) | ((m_q[:, j + 4]  >> 4) << 6)
+        scales_packed[:, j + 8] = (sc_q[:, j + 4] & 0x0F) | ((m_q[:, j + 4] & 0x0F) << 4)
+
+    # Pack 256 nibbles into 128 bytes (4 chunks of 32 bytes; low nibble = sub 2*c, high = sub 2*c+1)
+    qs_packed = np.empty((num_sb, 128), dtype=np.uint8)
+    for chunk in range(4):
+        lo = q_sub[:, 2 * chunk, :]
+        hi = q_sub[:, 2 * chunk + 1, :]
+        qs_packed[:, chunk * 32 : (chunk + 1) * 32] = lo | (hi << 4)
+
+    out = np.empty((num_sb, 144), dtype=np.uint8)
+    out[:, 0:2] = d_fp16.view(np.uint8).reshape(num_sb, 2)
+    out[:, 2:4] = dmin_fp16.view(np.uint8).reshape(num_sb, 2)
+    out[:, 4:16] = scales_packed
+    out[:, 16:144] = qs_packed
+    return out.reshape(-1)
+
+
+def dequantize_q4_k_cpu(q4k_bytes: np.ndarray, num_elements: int) -> np.ndarray:
+    """Reference CPU dequantizer for GGML Q4_K super-blocks into `np.float16`."""
+    num_sb = num_elements // 256
+    raw = np.frombuffer(q4k_bytes, dtype=np.uint8, count=num_sb * 144).reshape(num_sb, 144)
+    d = raw[:, 0:2].copy().view(np.float16).astype(np.float32)     # (num_sb, 1)
+    dmin = raw[:, 2:4].copy().view(np.float16).astype(np.float32)  # (num_sb, 1)
+    scales = raw[:, 4:16]                                          # (num_sb, 12)
+    qs = raw[:, 16:144]                                            # (num_sb, 128)
+
+    sc_q = np.empty((num_sb, 8), dtype=np.float32)
+    m_q = np.empty((num_sb, 8), dtype=np.float32)
+    for j in range(4):
+        sc_q[:, j]     = (scales[:, j] & 63).astype(np.float32)
+        m_q[:, j]      = (scales[:, j + 4] & 63).astype(np.float32)
+        sc_q[:, j + 4] = ((scales[:, j + 8] & 0x0F) | ((scales[:, j] >> 6) << 4)).astype(np.float32)
+        m_q[:, j + 4]  = ((scales[:, j + 8] >> 4)   | ((scales[:, j + 4] >> 6) << 4)).astype(np.float32)
+
+    out = np.empty((num_sb, 256), dtype=np.float32)
+    for chunk in range(4):
+        q_chunk = qs[:, chunk * 32 : (chunk + 1) * 32]
+        q0 = (q_chunk & 0x0F).astype(np.float32)
+        q1 = (q_chunk >> 4).astype(np.float32)
+
+        d0 = (d[:, 0] * sc_q[:, 2 * chunk])[:, None]
+        dm0 = (dmin[:, 0] * m_q[:, 2 * chunk])[:, None]
+        d1 = (d[:, 0] * sc_q[:, 2 * chunk + 1])[:, None]
+        dm1 = (dmin[:, 0] * m_q[:, 2 * chunk + 1])[:, None]
+
+        out[:, chunk * 64 : chunk * 64 + 32] = d0 * q0 - dm0
+        out[:, chunk * 64 + 32 : (chunk + 1) * 64] = d1 * q1 - dm1
+
+    return out.reshape(-1).astype(np.float16)
+
+
 def write_synthetic_gguf(
     file_obj: BinaryIO,
     metadata: Dict[str, Tuple[GGUFValueType, Any]],

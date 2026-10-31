@@ -92,6 +92,26 @@ class WeightStreamer:
         if aligned_len > 0:
             self._mm.madvise(mmap.MADV_DONTNEED, aligned_offset, aligned_len)
 
+    def prefetch_tensor(self, name: str) -> None:
+        """Asynchronously prefetch a named tensor (`token_embd.weight`, `output.weight`) from SSD."""
+        if not hasattr(mmap, "MADV_WILLNEED") or name not in self.gguf.tensors:
+            return
+        info = self.gguf.tensors[name]
+        aligned_offset, aligned_len = _page_align_span(info.abs_offset, info.n_bytes)
+        aligned_len = min(aligned_len, len(self._mm) - aligned_offset)
+        if aligned_len > 0:
+            self._mm.madvise(mmap.MADV_WILLNEED, aligned_offset, aligned_len)
+
+    def release_tensor(self, name: str) -> None:
+        """Evict physical RAM pages for a named tensor (`MADV_DONTNEED`)."""
+        if not hasattr(mmap, "MADV_DONTNEED") or name not in self.gguf.tensors:
+            return
+        info = self.gguf.tensors[name]
+        aligned_offset, aligned_len = _page_align_span(info.abs_offset, info.n_bytes)
+        aligned_len = min(aligned_len, len(self._mm) - aligned_offset)
+        if aligned_len > 0:
+            self._mm.madvise(mmap.MADV_DONTNEED, aligned_offset, aligned_len)
+
     @contextlib.contextmanager
     def layer_context(
         self, layer_idx: int, prefetch_next: bool = True
