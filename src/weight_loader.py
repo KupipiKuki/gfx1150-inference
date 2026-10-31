@@ -8,8 +8,13 @@ from __future__ import annotations
 import contextlib
 import mmap
 import os
-from typing import Dict, Iterator, Optional
+import sys
+from typing import Dict, Iterator, Optional, Tuple
 import numpy as np
+
+_SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SRC_DIR not in sys.path:
+    sys.path.insert(0, _SRC_DIR)
 
 from gguf_parser import GGMLType, GGUFParser, GGUFTensorInfo
 

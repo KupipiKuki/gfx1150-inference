@@ -2,15 +2,18 @@ cmake_minimum_required(VERSION 3.21)
 
 # 1. CRITICAL: Paths must be set BEFORE the project() call so CMake 
 # can find the HIP compiler and internal language configurations.
-list(APPEND CMAKE_PREFIX_PATH "/opt/rocm")
-set(CMAKE_HIP_COMPILER "/opt/rocm/bin/amdclang++")
+# Override with -DROCM_ROOT=/path/to/rocm if your installation differs.
+set(ROCM_ROOT "/opt/rocm" CACHE PATH "ROCm installation root")
+list(APPEND CMAKE_PREFIX_PATH "${ROCM_ROOT}")
+set(CMAKE_HIP_COMPILER "${ROCM_ROOT}/bin/amdclang++" CACHE FILEPATH "HIP compiler")
 
 # 2. Define target GPU architecture natively (replaces --amdgpu-target)
 set(CMAKE_HIP_ARCHITECTURES "gfx1150")
 
 project(gfx1150-inference LANGUAGES CXX HIP)
 
-# 3. Find ROCm math libraries (hip package is omitted as it's built-in via LANGUAGES HIP)
+# 3. Find ROCm math libraries (hip package is omitted as it's built-in via LANGUAGES HIP).
+# Linked for upcoming Phase 3+ GEMM paths; no current kernel calls them yet.
 find_package(hipblas REQUIRED)
 find_package(rocblas REQUIRED)
 
@@ -55,5 +58,5 @@ set_target_properties(matmul_module PROPERTIES
     OUTPUT_NAME "matmul_module"
     HIP_STANDARD 17
     HIP_STANDARD_REQUIRED ON
-    BUILD_RPATH "/opt/rocm/lib;/opt/rocm/core-10.1/lib"
+    BUILD_RPATH "${ROCM_ROOT}/lib;${ROCM_ROOT}/core-10.1/lib"
 )

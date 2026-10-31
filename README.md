@@ -27,18 +27,24 @@ Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., R
 gfx1150-inference/
 ├── CMakeLists.txt
 ├── README.md
-├── implementation_plan.md
-├── Lessons_learned.md
+├── IMPLEMENTATION_PLAN.md
+├── LESSONS_LEARNED.md
 ├── remediation_plan.md
+├── HANDOFF_PHASE2.md
 ├── src/
 │   ├── inference.py
+│   ├── gguf_parser.py
+│   ├── weight_loader.py
 │   ├── kernels/
 │   │   ├── matmul.h
-│   │   └── matmul.hip
+│   │   ├── matmul.hip
+│   │   ├── dequantize.h
+│   │   └── dequantize.hip
 │   └── python_bindings/
 │       └── bindings.cpp
 └── tests/
-    └── test_matmul.py
+    ├── test_matmul.py
+    └── test_gguf_and_q4.py
 ```
 
 ### 🛠️ Build & Test
@@ -46,4 +52,5 @@ gfx1150-inference/
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 PYTHONPATH=build python3 tests/test_matmul.py
+PYTHONPATH=build:src python3 tests/test_gguf_and_q4.py
 ```
