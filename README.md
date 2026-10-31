@@ -36,6 +36,8 @@ gfx1150-inference/
 │   ├── gguf_parser.py
 │   ├── weight_loader.py
 │   ├── layer.py
+│   ├── kv_cache.py
+│   ├── tokenizer.py
 │   ├── kernels/
 │   │   ├── matmul.h
 │   │   ├── matmul.hip
@@ -54,7 +56,8 @@ gfx1150-inference/
 └── tests/
     ├── test_matmul.py
     ├── test_gguf_and_q4.py
-    └── test_layer.py
+    ├── test_layer.py
+    └── test_full_model.py
 ```
 
 ### 🛠️ Build & Test
@@ -64,4 +67,5 @@ cmake --build build -j
 PYTHONPATH=build python3 tests/test_matmul.py
 PYTHONPATH=build:src python3 tests/test_gguf_and_q4.py
 PYTHONPATH=build:src python3 tests/test_layer.py
+PYTHONPATH=build:src python3 tests/test_full_model.py
 ```

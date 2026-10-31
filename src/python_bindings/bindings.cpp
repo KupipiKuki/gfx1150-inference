@@ -192,6 +192,51 @@ void swiglu(
     launch_swiglu_fp16(h_gate, h_up, h_out, num_elements);
 }
 
+void kv_cache_init(int num_layers, int max_seq_len, int num_kv_heads, int head_dim) {
+    py::gil_scoped_release release;
+    init_device_kv_cache_fp16(num_layers, max_seq_len, num_kv_heads, head_dim);
+}
+
+void kv_cache_free() {
+    py::gil_scoped_release release;
+    free_device_kv_cache_fp16();
+}
+
+void gqa_attention_cached(
+    const py::array& Q,
+    const py::array& K_new,
+    const py::array& V_new,
+    py::array& Out,
+    int layer_idx,
+    int q_len,
+    int start_pos,
+    int num_heads,
+    int num_kv_heads,
+    int head_dim,
+    float scale,
+    bool causal
+) {
+    const py::ssize_t q_elems = static_cast<py::ssize_t>(q_len) * num_heads * head_dim;
+    const py::ssize_t kv_new_elems = static_cast<py::ssize_t>(q_len) * num_kv_heads * head_dim;
+    check_fp16_contiguous(Q, "Q", q_elems);
+    check_fp16_contiguous(K_new, "K_new", kv_new_elems);
+    check_fp16_contiguous(V_new, "V_new", kv_new_elems);
+    check_fp16_contiguous(Out, "Out", q_elems);
+
+    const void* h_Q = Q.data();
+    const void* h_K_new = K_new.data();
+    const void* h_V_new = V_new.data();
+    void* h_Out = Out.mutable_data();
+
+    py::gil_scoped_release release;
+    launch_gqa_attention_cached_fp16(
+        h_Q, h_K_new, h_V_new, h_Out,
+        layer_idx, q_len, start_pos,
+        num_heads, num_kv_heads, head_dim,
+        scale, causal
+    );
+}
+
 PYBIND11_MODULE(matmul_module, m) {
     m.doc() = "HIP FP16 & Q4_0 Transformer Kernels for AMD gfx1150";
     m.def(
@@ -273,5 +318,36 @@ PYBIND11_MODULE(matmul_module, m) {
         py::arg("up"),
         py::arg("out"),
         py::arg("num_elements")
+    );
+    m.def(
+        "kv_cache_init",
+        &kv_cache_init,
+        "Allocate GPU-resident GQA KV cache pool for all transformer layers",
+        py::arg("num_layers"),
+        py::arg("max_seq_len"),
+        py::arg("num_kv_heads"),
+        py::arg("head_dim")
+    );
+    m.def(
+        "kv_cache_free",
+        &kv_cache_free,
+        "Free GPU-resident GQA KV cache pool"
+    );
+    m.def(
+        "gqa_attention_cached",
+        &gqa_attention_cached,
+        "Update GPU-resident KV cache at start_pos and run GQA online-softmax attention",
+        py::arg("Q"),
+        py::arg("K_new"),
+        py::arg("V_new"),
+        py::arg("Out"),
+        py::arg("layer_idx"),
+        py::arg("q_len"),
+        py::arg("start_pos"),
+        py::arg("num_heads"),
+        py::arg("num_kv_heads"),
+        py::arg("head_dim"),
+        py::arg("scale") = 0.0f,
+        py::arg("causal") = true
     );
 }
