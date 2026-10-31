@@ -213,6 +213,15 @@ def test_q4km_chunked_batch_and_kv_offload() -> None:
             )
             assert len(batch_texts) == 2
 
+            # Verify singleton GPU KV pool guard prevents accidental concurrent GPU pool overwrite (O-3)
+            caught_singleton = False
+            try:
+                _ = LlamaInferenceEngine(gguf_path, max_seq_len=64, offload_kv_to_cpu=False)
+            except RuntimeError:
+                caught_singleton = True
+            assert caught_singleton, "Expected RuntimeError when creating second active GPU KVCacheManager"
+            print("  [Singleton Guard] Second active GPU KVCacheManager properly rejected")
+
         # 2. CPU-offloaded KV cache equivalence
         with LlamaInferenceEngine(gguf_path, max_seq_len=128, offload_kv_to_cpu=True) as engine_cpu:
             assert engine_cpu.kv_cache.device_bytes == 0

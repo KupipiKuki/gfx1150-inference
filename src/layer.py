@@ -24,7 +24,18 @@ for _p in (_SRC_DIR, _BUILD_DIR):
 from gguf_parser import GGMLType, GGUFTensorInfo
 from weight_loader import WeightStreamer
 from kv_cache import KVCacheManager
-import matmul_module
+
+try:
+    import matmul_module
+except ImportError as exc:
+    raise ImportError(
+        "Failed to import 'matmul_module' HIP extension. Build it first with:\n"
+        "  cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\n"
+        "or install the package via 'pip install -e . --no-build-isolation'."
+    ) from exc
+
+
+_NEOX_ROPE_ARCHS = frozenset({"qwen2", "stablelm", "falcon", "gptneox", "phi2", "phi3", "starcoder2"})
 
 
 @dataclass(frozen=True)
@@ -39,7 +50,11 @@ class LlamaLayerConfig:
     rope_neox: bool = False
 
     @classmethod
-    def from_gguf_metadata(cls, metadata: Dict[str, object]) -> "LlamaLayerConfig":
+    def from_gguf_metadata(
+        cls,
+        metadata: Dict[str, object],
+        rope_neox: Optional[bool] = None,
+    ) -> "LlamaLayerConfig":
         hidden_size = int(metadata["llama.embedding_length"])
         intermediate_size = int(metadata["llama.feed_forward_length"])
         num_heads = int(metadata["llama.attention.head_count"])
@@ -47,6 +62,14 @@ class LlamaLayerConfig:
         head_dim = int(metadata.get("llama.rope.dimension_count", hidden_size // num_heads))
         rms_norm_eps = float(metadata.get("llama.attention.layer_norm_rms_epsilon", 1e-5))
         rope_freq_base = float(metadata.get("llama.rope.freq_base", 10000.0))
+
+        if rope_neox is None:
+            if "llama.rope.neox" in metadata:
+                rope_neox = bool(metadata["llama.rope.neox"])
+            else:
+                arch = str(metadata.get("general.architecture", "llama")).lower()
+                rope_neox = arch in _NEOX_ROPE_ARCHS
+
         return cls(
             hidden_size=hidden_size,
             intermediate_size=intermediate_size,
@@ -55,7 +78,7 @@ class LlamaLayerConfig:
             head_dim=head_dim,
             rms_norm_eps=rms_norm_eps,
             rope_freq_base=rope_freq_base,
-            rope_neox=False,
+            rope_neox=bool(rope_neox),
         )
 
 

@@ -32,7 +32,15 @@ from weight_loader import WeightStreamer
 from kv_cache import KVCacheManager
 from layer import LlamaLayerConfig, TransformerLayer, linear_project, norm_weight_fp16
 from tokenizer import GGUFTokenizer, embed_tokens
-import matmul_module
+
+try:
+    import matmul_module
+except ImportError as exc:
+    raise ImportError(
+        "Failed to import 'matmul_module' HIP extension. Build it first with:\n"
+        "  cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\n"
+        "or install the package via 'pip install -e . --no-build-isolation'."
+    ) from exc
 
 
 def sample_next_token(
@@ -104,12 +112,13 @@ class LlamaInferenceEngine:
         max_seq_len: int = 2048,
         offload_kv_to_cpu: bool = False,
         kv_mmap_dir: Optional[str] = None,
+        rope_neox: Optional[bool] = None,
     ):
         self.model_path = model_path
         self.streamer = WeightStreamer(model_path)
         self.metadata = self.streamer.gguf.metadata
         self.num_layers = int(self.metadata["llama.block_count"])
-        self.layer_cfg = LlamaLayerConfig.from_gguf_metadata(self.metadata)
+        self.layer_cfg = LlamaLayerConfig.from_gguf_metadata(self.metadata, rope_neox=rope_neox)
         self.layer_runner = TransformerLayer(self.layer_cfg)
         self.max_seq_len = int(max_seq_len)
 
@@ -223,7 +232,8 @@ class LlamaInferenceEngine:
 
         if chunk_size is None or chunk_size <= 0 or chunk_size >= total:
             logits = self.forward_tokens(prompt_ids, pos_offset=0, compute_logits=True)
-            assert logits is not None
+            if logits is None:
+                raise RuntimeError("forward_tokens returned None despite compute_logits=True")
             return logits
 
         logits: Optional[np.ndarray] = None
@@ -235,7 +245,8 @@ class LlamaInferenceEngine:
                 pos_offset=start,
                 compute_logits=is_last_chunk,
             )
-        assert logits is not None
+        if logits is None:
+            raise RuntimeError("Chunked prefill completed without computing final chunk logits")
         return logits
 
     def generate_ids(
@@ -288,7 +299,8 @@ class LlamaInferenceEngine:
                 break
             pos = len(all_ids) - 1
             step_logits = self.forward_tokens([next_id], pos_offset=pos, compute_logits=True)
-            assert step_logits is not None
+            if step_logits is None:
+                raise RuntimeError("forward_tokens returned None during decode step")
             next_id = sample_next_token(
                 step_logits,
                 temperature=temperature,
@@ -448,6 +460,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--prefill-chunk-size", type=int, default=None, help="Chunk size for prompt prefill")
     parser.add_argument("--offload-kv-cpu", action="store_true", help="Offload KV cache to CPU RAM")
     parser.add_argument("--kv-mmap-dir", default=None, help="Directory for SSD mmap-backed KV cache")
+    parser.add_argument("--rope-neox", action="store_true", default=None, help="Use NeoX half-dim RoPE rotation")
     parser.add_argument("--seed", type=int, default=42, help="RNG seed")
     args = parser.parse_args(argv)
 
@@ -456,6 +469,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         max_seq_len=args.max_seq_len,
         offload_kv_to_cpu=args.offload_kv_cpu,
         kv_mmap_dir=args.kv_mmap_dir,
+        rope_neox=args.rope_neox,
     ) as engine:
         text, metrics = engine.generate(
             prompt=args.prompt,

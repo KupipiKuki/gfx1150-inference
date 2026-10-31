@@ -91,3 +91,19 @@ For the post-merge package audit, the highest-value areas in order:
 4. **Model-coverage matrix** — current code paths validated against Llama-1/2 archetypes; Q4_K_M models and NeoX-style models need an explicit compatibility note (O-4).
 
 Overall assessment: **the codebase is architecturally sound and internally consistent across all five phases; one packaging defect (G-1) and one robustness fix (G-2) remain before the v0.5.0 claim of "installable" is fully accurate.**
+
+---
+
+## 6. Coder Resolution Log (Phase 5 QA/QC Remediation Applied)
+
+All blocking gaps (`G-1`, `G-2`) and open concerns (`O-1`–`O-5`) have been resolved on `Argon_Phase_5`:
+
+| ID | Item | Resolution | Files Updated |
+|---|---|---|---|
+| **G-1** | `pip install` CMake extension build & import diagnostics | Added [setup.py](setup.py) with a custom `CMakeBuild(build_ext)` hook (`CMakeExtension("matmul_module")`) that automatically invokes `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release` and `cmake --build build -j` during `pip install`, copying `matmul_module*.so` into the target extension path. Added explicit `ImportError` diagnostics with build instructions when `matmul_module` is missing. | [setup.py](setup.py), [pyproject.toml](pyproject.toml), [src/inference.py](src/inference.py), [src/layer.py](src/layer.py), [src/kv_cache.py](src/kv_cache.py), [README.md](README.md) |
+| **G-2** | `assert` used for runtime control flow | Replaced all runtime `assert` checks (`logits is not None`, `step_logits is not None`, `_k_host is not None`) with explicit `if ... is None: raise RuntimeError(...)` checks so `python -O` execution is safe. | [src/inference.py](src/inference.py), [src/kv_cache.py](src/kv_cache.py) |
+| **O-1** | CPU/`mmap` KV-offload H2D bandwidth trade-off | Documented that `--offload-kv-cpu` and `--kv-mmap-dir` trade `O(context_len)` per-step H2D KV bandwidth to keep persistent GPU KV pool usage at `0` bytes for long-context 70B runs. | [README.md](README.md), [src/kv_cache.py](src/kv_cache.py) |
+| **O-2** | Sequential vs. continuous multi-prompt batching | Clarified in plan and README that `generate_batch` / `generate_batch_ids` executes sequential multi-prompt batching reusing `WeightStreamer` and `KVCacheManager`. | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), [README.md](README.md) |
+| **O-3** | Process-wide singleton `DeviceKVCachePool` guard | Added `KVCacheManager._active_gpu_instance` runtime guard that raises `RuntimeError` if a second GPU-resident `KVCacheManager` is instantiated before `.close()` is called on the active instance, verified by a dedicated test in `tests/test_phase5_scale.py`. | [src/kv_cache.py](src/kv_cache.py), [tests/test_phase5_scale.py](tests/test_phase5_scale.py), [README.md](README.md) |
+| **O-4** | `rope_neox` GGUF metadata & CLI support | Updated `LlamaLayerConfig.from_gguf_metadata` to inspect `llama.rope.neox` and `general.architecture` (`_NEOX_ROPE_ARCHS`) or accept an explicit `rope_neox` override, and added `--rope-neox` to the `gfx1150-infer` CLI. | [src/layer.py](src/layer.py), [src/inference.py](src/inference.py), [README.md](README.md) |
+| **O-5** | `WAVES_PER_BLOCK` literal duplication in `attention.hip` | Consolidated `WAVES_PER_BLOCK = 8` and `BLOCK_THREADS = WAVE_SIZE * WAVES_PER_BLOCK` across `__launch_bounds__`, wave indexing, and kernel launch grids. | [src/kernels/attention.hip](src/kernels/attention.hip) |

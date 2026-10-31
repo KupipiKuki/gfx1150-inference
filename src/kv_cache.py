@@ -4,10 +4,13 @@ Grouped-Query Attention (GQA) KV Cache Manager (`KVCacheManager`) for gfx1150-in
 Supports three storage backends for 7B–70B models:
 1. **GPU-resident pool (default)**: Pre-allocated device/GTT memory (`kv_cache_init` /
    `gqa_attention_cached`) addressed by `(layer_idx, start_pos)` with zero host copies.
+   Note: The device KV pool is a process-wide singleton (single active GPU-resident
+   `KVCacheManager` at a time, single-threaded execution).
 2. **CPU-offloaded pool (`offload_to_cpu=True`)**: Pre-allocated host `np.float16` buffers
-   updated in-place without slice allocations, keeping GPU pool memory at 0 bytes.
+   updated in-place without slice allocations, keeping persistent GPU pool memory at 0 bytes
+   (trades per-step H2D KV bandwidth for reduced GPU memory footprint on long contexts).
 3. **SSD `mmap`-offloaded pool (`mmap_dir=...`)**: Disk-backed `np.memmap` KV cache for
-   ultra-long context research runs on 70B models where even host RAM is constrained.
+   ultra-long context research runs on 70B models where both GPU and host RAM are constrained.
 """
 
 from __future__ import annotations
@@ -23,7 +26,14 @@ for _p in (_SRC_DIR, _BUILD_DIR):
     if _p not in sys.path and os.path.isdir(_p):
         sys.path.insert(0, _p)
 
-import matmul_module
+try:
+    import matmul_module
+except ImportError as exc:
+    raise ImportError(
+        "Failed to import 'matmul_module' HIP extension. Build it first with:\n"
+        "  cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\n"
+        "or install the package via 'pip install -e . --no-build-isolation'."
+    ) from exc
 
 
 class KVCacheManager:
@@ -31,6 +41,8 @@ class KVCacheManager:
     Manages the GQA KV cache across all transformer layers with GPU-resident,
     CPU-offloaded, or NVMe `mmap`-backed storage.
     """
+
+    _active_gpu_instance: bool = False
 
     def __init__(
         self,
@@ -66,6 +78,12 @@ class KVCacheManager:
             self._k_host = np.empty(shape, dtype=np.float16)
             self._v_host = np.empty(shape, dtype=np.float16)
         else:
+            if KVCacheManager._active_gpu_instance:
+                raise RuntimeError(
+                    "A GPU-resident KVCacheManager is already active in this process "
+                    "(DeviceKVCachePool is a singleton). Close the existing instance first "
+                    "or pass offload_to_cpu=True."
+                )
             matmul_module.kv_cache_init(
                 self.num_layers,
                 self.max_seq_len,
@@ -73,6 +91,7 @@ class KVCacheManager:
                 self.head_dim,
             )
             self._allocated = True
+            KVCacheManager._active_gpu_instance = True
 
     @property
     def nbytes(self) -> int:
@@ -109,7 +128,8 @@ class KVCacheManager:
             )
 
         if self.offload_to_cpu:
-            assert self._k_host is not None and self._v_host is not None
+            if self._k_host is None or self._v_host is None:
+                raise RuntimeError("CPU/mmap KV cache buffers are not allocated or have been closed.")
             k_layer = self._k_host[layer_idx]
             v_layer = self._v_host[layer_idx]
             k_layer[start_pos:total_kv_len] = k_new
@@ -129,6 +149,8 @@ class KVCacheManager:
                 causal,
             )
         else:
+            if not self._allocated:
+                raise RuntimeError("GPU KV cache pool is not allocated or has been closed.")
             matmul_module.gqa_attention_cached(
                 q_rot,
                 k_new,
@@ -155,6 +177,7 @@ class KVCacheManager:
         if self._allocated:
             matmul_module.kv_cache_free()
             self._allocated = False
+            KVCacheManager._active_gpu_instance = False
         self._k_host = None
         self._v_host = None
         for p in self._mmap_files:
@@ -164,6 +187,12 @@ class KVCacheManager:
             except OSError:
                 pass
         self._mmap_files.clear()
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            pass
 
     def __enter__(self) -> "KVCacheManager":
         return self

@@ -168,10 +168,10 @@ class WeightStreamer:
 | # | Task | Owner | Status | Dependencies |
 |---|------|-------|--------|--------------|
 | 5.1 | Add `Q4_K_M` (`Q4_K` 256-element super-block) and `Q8_0` HIP kernels | Argon / GLM5.3 | ✅ | Phase 4 |
-| 5.2 | Add chunked prompt prefill (`prefill_chunk_size`) & multi-batch processing (`generate_batch`) | You / Argon | ✅ | Phase 4 |
+| 5.2 | Add chunked prompt prefill (`prefill_chunk_size`) & sequential multi-prompt batch processing (`generate_batch`) | You / Argon | ✅ | Phase 4 |
 | 5.3 | Add CPU RAM & NVMe `mmap` offload options for large KV caches (long context research runs) | You / Argon | ✅ | Phase 4 |
 | 5.4 | Validate & benchmark `Q4_K` / `Q8_0` & 70B-dimension (`K=8192`) kernels (`tests/test_phase5_scale.py`) | QA/QC / Argon | ✅ | 5.1–5.3 |
-| 5.5 | Package as installable Python package (`pyproject.toml`) + `gfx1150-infer` CLI | You / Argon | ✅ | Phase 4 |
+| 5.5 | Package as installable Python package (`pyproject.toml` + `setup.py` CMake hook) + `gfx1150-infer` CLI | You / Argon | ✅ | Phase 4 |
 
 #### **Success Criteria**
 - [x] `dequantize_q8_0` and `dequantize_q4_k` match CPU reference with `max_error = 0.000000`
@@ -183,7 +183,7 @@ class WeightStreamer:
 - ✅ [src/kernels/dequantize.h](src/kernels/dequantize.h) & [src/kernels/dequantize.hip](src/kernels/dequantize.hip) (`Q8_0` and `Q4_K` super-block dequantization & Wave32 fused matmul kernels)
 - ✅ [src/kv_cache.py](src/kv_cache.py) (GPU pool, CPU RAM offload, and NVMe `mmap`-backed KV cache modes)
 - ✅ [src/inference.py](src/inference.py) (Chunked prefill, batch inference, global tensor page eviction, and `gfx1150-infer` CLI)
-- ✅ [pyproject.toml](pyproject.toml) (Python package & CLI entry point configuration)
+- ✅ [pyproject.toml](pyproject.toml) & [setup.py](setup.py) (Python package, CMake `build_ext` hook, & CLI entry point configuration)
 - ✅ [tests/test_phase5_scale.py](tests/test_phase5_scale.py) (Phase 5 k-quant, 70B-dimension, chunked prefill, and KV-offload validation suite)
 
 ---
