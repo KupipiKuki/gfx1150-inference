@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import math
 import os
 import sys
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 import numpy as np
 
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,6 +23,7 @@ for _p in (_SRC_DIR, _BUILD_DIR):
 
 from gguf_parser import GGMLType, GGUFTensorInfo
 from weight_loader import WeightStreamer
+from kv_cache import KVCacheManager
 import matmul_module
 
 
@@ -58,7 +59,7 @@ class LlamaLayerConfig:
         )
 
 
-def _linear_project(
+def linear_project(
     x_fp16: np.ndarray,
     weight_entry: Tuple[GGUFTensorInfo, np.ndarray],
     out_features: int,
@@ -75,7 +76,6 @@ def _linear_project(
     if info.ggml_type == GGMLType.Q4_0:
         matmul_module.matmul_q4_0(x_fp16, w_view, out, M, N, K)
     elif info.ggml_type == GGMLType.F16:
-        # w_view has row-major shape (N, K); transpose to C-contiguous (K, N) for matmul
         w_t = np.ascontiguousarray(w_view.reshape(N, K).T)
         matmul_module.matmul(x_fp16, w_t, out, M, N, K)
     elif info.ggml_type == GGMLType.F32:
@@ -86,13 +86,16 @@ def _linear_project(
     return out
 
 
-def _norm_weight_fp16(weight_entry: Tuple[GGUFTensorInfo, np.ndarray]) -> np.ndarray:
+def norm_weight_fp16(weight_entry: Tuple[GGUFTensorInfo, np.ndarray]) -> np.ndarray:
     info, w_view = weight_entry
     if info.ggml_type == GGMLType.F16:
         return np.ascontiguousarray(w_view.view(np.float16).reshape(-1))
     if info.ggml_type == GGMLType.F32:
         return np.ascontiguousarray(w_view.view(np.float32).reshape(-1).astype(np.float16))
     raise ValueError(f"Unsupported norm weight type: {info.ggml_type}")
+
+
+KVCacheType = Union[KVCacheManager, Tuple[np.ndarray, np.ndarray]]
 
 
 class TransformerLayer:
@@ -111,21 +114,17 @@ class TransformerLayer:
         layer_weights: Dict[str, Tuple[GGUFTensorInfo, np.ndarray]],
         layer_idx: int,
         pos_offset: int = 0,
-        kv_cache: Optional[Tuple[np.ndarray, np.ndarray]] = None,
-    ) -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        kv_cache: Optional[KVCacheType] = None,
+    ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, np.ndarray]]]:
         """
         Run one transformer layer given already-mapped `layer_weights` dict for `layer_idx`.
 
-        Args:
-            hidden_states: Input activations `(seq_len, hidden_size)` in `np.float16`.
-            layer_weights: Mapping of `blk.{layer_idx}.*` tensor names to `(info, view)`.
-            layer_idx: Layer index `0 .. num_layers - 1`.
-            pos_offset: Starting token position index (`0` for initial prompt prefill).
-            kv_cache: Optional tuple `(k_cache, v_cache)` where each array has shape
-                      `(max_seq_len, num_kv_heads, head_dim)` in `np.float16`.
-
-        Returns:
-            `(next_hidden_states, (k_present, v_present))`
+        Supports two KV cache modes:
+        1. `KVCacheManager` (recommended for Phase 4+): GPU-resident offset-addressed KV cache;
+           writes only the new `seq_len` K/V rows directly to device offset `pos_offset`
+           with zero host slicing or copies.
+        2. `Tuple[np.ndarray, np.ndarray]`: Host pre-allocated `(k_cache, v_cache)` arrays
+           passed directly by pointer + `total_kv_len` without `ascontiguousarray` copy.
         """
         x = np.ascontiguousarray(hidden_states, dtype=np.float16)
         seq_len, hidden_size = x.shape
@@ -136,14 +135,14 @@ class TransformerLayer:
         kv_dim = cfg.num_kv_heads * cfg.head_dim
 
         # 1. Pre-Attention RMSNorm
-        attn_norm_w = _norm_weight_fp16(layer_weights[prefix + "attn_norm.weight"])
+        attn_norm_w = norm_weight_fp16(layer_weights[prefix + "attn_norm.weight"])
         normed_x = np.empty_like(x)
         matmul_module.rmsnorm(x, attn_norm_w, normed_x, seq_len, hidden_size, cfg.rms_norm_eps)
 
         # 2. Q, K, V Projections (Fused Q4_0 or FP16)
-        q_proj = _linear_project(normed_x, layer_weights[prefix + "attn_q.weight"], q_dim)
-        k_proj = _linear_project(normed_x, layer_weights[prefix + "attn_k.weight"], kv_dim)
-        v_proj = _linear_project(normed_x, layer_weights[prefix + "attn_v.weight"], kv_dim)
+        q_proj = linear_project(normed_x, layer_weights[prefix + "attn_q.weight"], q_dim)
+        k_proj = linear_project(normed_x, layer_weights[prefix + "attn_k.weight"], kv_dim)
+        v_proj = linear_project(normed_x, layer_weights[prefix + "attn_v.weight"], kv_dim)
 
         q_heads = q_proj.reshape(seq_len, cfg.num_heads, cfg.head_dim)
         k_heads = k_proj.reshape(seq_len, cfg.num_kv_heads, cfg.head_dim)
@@ -161,55 +160,74 @@ class TransformerLayer:
             pos_offset, cfg.rope_freq_base, cfg.rope_neox
         )
 
-        # 4. Update or construct KV cache up to `total_kv_len = pos_offset + seq_len`
+        # 4 & 5. Update KV cache and execute Grouped-Query Attention (GQA)
         total_kv_len = pos_offset + seq_len
-        if kv_cache is not None:
-            k_cache, v_cache = kv_cache
-            k_cache[pos_offset:total_kv_len] = k_rot
-            v_cache[pos_offset:total_kv_len] = v_heads
-            k_present = np.ascontiguousarray(k_cache[:total_kv_len])
-            v_present = np.ascontiguousarray(v_cache[:total_kv_len])
-        else:
-            k_present = k_rot
-            v_present = v_heads
-
-        # 5. Grouped-Query Attention (GQA) with Online Softmax
         attn_out_heads = np.empty_like(q_rot)
-        matmul_module.gqa_attention(
-            q_rot, k_present, v_present, attn_out_heads,
-            seq_len, total_kv_len, cfg.num_heads, cfg.num_kv_heads, cfg.head_dim,
-            pos_offset, self.scale, True
-        )
+        kv_present: Optional[Tuple[np.ndarray, np.ndarray]] = None
+
+        if isinstance(kv_cache, KVCacheManager):
+            kv_cache.attend(
+                q_rot=q_rot,
+                k_new=k_rot,
+                v_new=v_heads,
+                out=attn_out_heads,
+                layer_idx=layer_idx,
+                q_len=seq_len,
+                start_pos=pos_offset,
+                num_heads=cfg.num_heads,
+                scale=self.scale,
+                causal=True,
+            )
+        elif kv_cache is not None:
+            # Zero-copy host buffer path: write in-place at pos_offset and pass full buffer
+            # with `total_kv_len` (no slice copy or np.ascontiguousarray allocation).
+            k_cache_arr, v_cache_arr = kv_cache
+            k_cache_arr[pos_offset:total_kv_len] = k_rot
+            v_cache_arr[pos_offset:total_kv_len] = v_heads
+            matmul_module.gqa_attention(
+                q_rot, k_cache_arr, v_cache_arr, attn_out_heads,
+                seq_len, total_kv_len, cfg.num_heads, cfg.num_kv_heads, cfg.head_dim,
+                pos_offset, self.scale, True
+            )
+            kv_present = (k_cache_arr[:total_kv_len], v_cache_arr[:total_kv_len])
+        else:
+            matmul_module.gqa_attention(
+                q_rot, k_rot, v_heads, attn_out_heads,
+                seq_len, total_kv_len, cfg.num_heads, cfg.num_kv_heads, cfg.head_dim,
+                pos_offset, self.scale, True
+            )
+            kv_present = (k_rot, v_heads)
+
         attn_out_flat = attn_out_heads.reshape(seq_len, q_dim)
 
         # 6. Output Projection + First Residual Connection
-        attn_proj = _linear_project(
+        attn_proj = linear_project(
             attn_out_flat, layer_weights[prefix + "attn_output.weight"], hidden_size
         )
         h = (x.astype(np.float32) + attn_proj.astype(np.float32)).astype(np.float16)
 
         # 7. Pre-FFN RMSNorm
-        ffn_norm_w = _norm_weight_fp16(layer_weights[prefix + "ffn_norm.weight"])
+        ffn_norm_w = norm_weight_fp16(layer_weights[prefix + "ffn_norm.weight"])
         normed_h = np.empty_like(h)
         matmul_module.rmsnorm(h, ffn_norm_w, normed_h, seq_len, hidden_size, cfg.rms_norm_eps)
 
         # 8. SwiGLU Feed-Forward Network (gate_proj, up_proj -> SwiGLU -> down_proj)
-        gate = _linear_project(
+        gate = linear_project(
             normed_h, layer_weights[prefix + "ffn_gate.weight"], cfg.intermediate_size
         )
-        up = _linear_project(
+        up = linear_project(
             normed_h, layer_weights[prefix + "ffn_up.weight"], cfg.intermediate_size
         )
         swiglu_out = np.empty_like(gate)
         matmul_module.swiglu(gate, up, swiglu_out, seq_len * cfg.intermediate_size)
 
-        down = _linear_project(
+        down = linear_project(
             swiglu_out, layer_weights[prefix + "ffn_down.weight"], hidden_size
         )
 
         # 9. Second Residual Connection
         out_hidden = (h.astype(np.float32) + down.astype(np.float32)).astype(np.float16)
-        return out_hidden, (k_present, v_present)
+        return out_hidden, kv_present
 
     def forward_streamed(
         self,
@@ -217,9 +235,9 @@ class TransformerLayer:
         streamer: WeightStreamer,
         layer_idx: int,
         pos_offset: int = 0,
-        kv_cache: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+        kv_cache: Optional[KVCacheType] = None,
         prefetch_next: bool = True,
-    ) -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, np.ndarray]]]:
         """
         Stream weights for `layer_idx` from SSD via `streamer.layer_context`, run the
         layer forward pass on GPU, prefetch `layer_idx + 1`, and evict `layer_idx` pages.
@@ -232,4 +250,3 @@ class TransformerLayer:
                 pos_offset=pos_offset,
                 kv_cache=kv_cache,
             )
-

@@ -465,6 +465,8 @@ python3 -c "import pyhip; print(pyhip.hipRuntimeGetVersion())"
 | 2026-10-30 | Wave32 intra-wavefront shuffle reduction for fused Q4_0 GEMV | Phase 2 | KupipiKuki |
 | 2026-10-31 | Wave32 online softmax in registers for zero-LDS GQA attention | Phase 3 | KupipiKuki |
 | 2026-10-31 | Support both GGUF-Llama (adjacent) and NeoX (half-dim) RoPE layouts | Phase 3 | KupipiKuki |
+| 2026-10-31 | GPU-resident offset KV cache eliminates per-step host slice copies & O(N) H2D transfers | Phase 4 | KupipiKuki |
+| 2026-10-31 | Row-wise Q4_0 token embedding lookup avoids full-vocab dequantization | Phase 4 | KupipiKuki |
 
 ---
 

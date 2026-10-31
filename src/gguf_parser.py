@@ -280,6 +280,12 @@ def write_synthetic_gguf(
             return struct.pack("<B", 1 if val else 0)
         if vtype == GGUFValueType.STRING:
             return _pack_str(val)
+        if vtype == GGUFValueType.ARRAY:
+            elem_type, items = val
+            out_arr = bytearray(struct.pack("<IQ", int(elem_type), len(items)))
+            for item in items:
+                out_arr.extend(_pack_val(elem_type, item))
+            return bytes(out_arr)
         raise ValueError(f"Unsupported synthetic metadata type: {vtype}")
 
     for k, (vtype, val) in metadata.items():
