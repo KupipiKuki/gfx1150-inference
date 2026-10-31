@@ -457,6 +457,12 @@ python3 -c "import pyhip; print(pyhip.hipRuntimeGetVersion())"
 | 2026-10-28 | hipblas target not found | Phase 1 | KupipiKuki |
 | 2026-10-28 | Workgroup size limits | Phase 1 | KupipiKuki |
 | 2026-10-28 | FP16 precision limits | Phase 1 | KupipiKuki |
+| 2026-10-30 | Host vs HIP compiler separation (.h vs .hip) | Phase 1 | KupipiKuki |
+| 2026-10-30 | pybind11::module vs pybind11::embed & target naming | Phase 1 | KupipiKuki |
+| 2026-10-30 | Avoid early return before __syncthreads() in tiled kernels | Phase 1 | KupipiKuki |
+| 2026-10-30 | FP32 dot-product accumulation for FP16 matmul | Phase 1 | KupipiKuki |
+| 2026-10-30 | Release memoryviews before closing Python mmap (BufferError) | Phase 2 | KupipiKuki |
+| 2026-10-30 | Wave32 intra-wavefront shuffle reduction for fused Q4_0 GEMV | Phase 2 | KupipiKuki |
 
 ---
 
