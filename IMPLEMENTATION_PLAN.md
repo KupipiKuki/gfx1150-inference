@@ -43,7 +43,7 @@ Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., R
 | 1.3 | Add PyBind11 module bindings | GLM5.3 / Argon | ✅ | `src/python_bindings/bindings.cpp` |
 | 1.4 | Configure CMake build system (`matmul_module`) | You / Argon | ✅ | `CMakeLists.txt` with `pybind11::module` & RPATH |
 | 1.5 | Write & validate test suite | Local 7B / Argon | ✅ | `tests/test_matmul.py` (1.12 TFLOPS, max error `6.1e-5`) |
-| 1.6 | Document remediation & lessons learned | You / Argon | ✅ | `remediation_plan.md`, `LESSONS_LEARNED.md` |
+| 1.6 | Document remediation & lessons learned | You / Argon | ✅ | `audit/remediation_plan.md`, `LESSONS_LEARNED.md` |
 
 #### **Success Criteria**
 - [x] ROCm detects `gfx1150`
@@ -57,7 +57,7 @@ Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., R
 - ✅ [src/kernels/matmul.h](src/kernels/matmul.h) & [src/kernels/matmul.hip](src/kernels/matmul.hip) (Register-blocked FP16 matmul + workspace cache)
 - ✅ [src/python_bindings/bindings.cpp](src/python_bindings/bindings.cpp) (PyBind11 wrapper with GIL release)
 - ✅ [tests/test_matmul.py](tests/test_matmul.py) (Validation & benchmark suite)
-- ✅ [remediation_plan.md](remediation_plan.md) & [LESSONS_LEARNED.md](LESSONS_LEARNED.md)
+- ✅ [remediation_plan.md](audit/remediation_plan.md) & [LESSONS_LEARNED.md](LESSONS_LEARNED.md)
 
 ---
 
@@ -189,7 +189,7 @@ class WeightStreamer:
 ---
 
 ### **🟢 Phase 6 (`v0.6.0`): Security Hardening, Device-Resident Layer Pipeline & CI** *(COMPLETED)*
-**Goal**: Remediate all findings from the v0.5.0 independent audits ([AUDIT_REPORT_v0.5.0.md](AUDIT_REPORT_v0.5.0.md) and [AUDIT_REMEDIATION_v0.6.0.md](AUDIT_REMEDIATION_v0.6.0.md)): harden GGUF parsing and `mmap` KV-cache lifecycle against malformed/truncated inputs, eliminate per-op host-device activation round-trips and host `.T` weight transposes, add `TILE_M = 4` multi-row quantized prefill kernels, optimize CPU tokenization/embeddings, and establish CPU-only CI.
+**Goal**: Remediate all findings from the v0.5.0 independent audits ([AUDIT_REPORT_v0.5.0.md](audit/AUDIT_REPORT_v0.5.0.md) and [AUDIT_REMEDIATION_v0.6.0.md](audit/AUDIT_REMEDIATION_v0.6.0.md)): harden GGUF parsing and `mmap` KV-cache lifecycle against malformed/truncated inputs, eliminate per-op host-device activation round-trips and host `.T` weight transposes, add `TILE_M = 4` multi-row quantized prefill kernels, optimize CPU tokenization/embeddings, and establish CPU-only CI.
 
 #### **Tasks**
 | # | Task | Owner | Status | Dependencies |
@@ -227,6 +227,39 @@ class WeightStreamer:
 
 ---
 
+### 🟣 Phase 7 (`v0.6.2` → v0.7.0): Testing Phase & Evidence Gates *(IN PROGRESS)*
+**Goal**: Convert the ad-hoc GPU test scripts into a gated, reproducible test phase with golden data, fuzzing, sdist-install CI, and a self-hosted gfx1150 hardware gate — per the finalized [audit/AUDIT_REMEDIATION_v0.6.2.md](audit/AUDIT_REMEDIATION_v0.6.2.md) §6 backlog and the independent review of `c75914b`.
+
+#### Stage 7A — Test infrastructure (CPU CI only, no hardware needed; do first)
+| # | Task | Notes |
+|---|------|-------|
+| 7A-1 | Convert all 5 GPU suites to pytest: `tests/conftest.py` with a `matmul_module` fixture (`pytest.importorskip` + `@pytest.mark.gpu`) | module-level `import matmul_module` currently aborts collection on non-GPU hosts |
+| 7A-2 | Add `[tool.pytest.ini_options]` markers (`gpu`, `slow`) in `pyproject.toml` | keep `tests/test_cpu_only.py` as the unittest CPU suite |
+| 7A-3 | Commit golden data: small real GGUF fixture or extracted Q6_K/Q4_K golden blocks + llama.cpp tokenizer golden vectors (plain text, multibyte, double spaces, special tokens like `<|im_start|>`, `add_bos` cases) | closes the "tests are self-referential" gap; gates P0-① |
+| 7A-4 | `hypothesis`-based GGUF header fuzz in the CPU suite | would have caught `alignment=0` / truncation / duplicate names |
+| 7A-5 | CI: add **sdist-install job** (`pip install dist/*.tar.gz` with `GFX1150_SKIP_CMAKE=1` into a venv → import all 6 modules + run CPU suite) and a **pytest CPU job** | `test_v8` currently only lists archive names; runner env needs `setuptools>=64 wheel` (fixed in `8038012`) |
+
+#### Stage 7B — Hardware gate (self-hosted gfx1150 runner)
+| # | Task | Notes |
+|---|------|-------|
+| 7B-1 | Register self-hosted runner with labels `gfx1150`, `rocm`; add `.github/workflows/ci-gpu.yml` running `pytest -m gpu` on those labels | `continue-on-error` until the runner exists, then required |
+| 7B-2 | On hardware: CMake build, full GPU suites, and **record artifacts** — generated token IDs + logits for a fixed prompt vs llama.cpp reference, and `hipEvent` medians over ≥20 iterations | replaces unevidenced 4.4× / 983 tok/s claims; fail on logit mismatch or perf regression vs checked-in baseline |
+| 7B-3 | Promote existing determinism checks (chunked-vs-full prefill, KV-mode equivalence, TILE_M=4 vs wave kernels) to hard assertions with recorded expected values | already designed in `test_phase5_scale.py` |
+
+#### Stage 7C — Remediation code gated by tests
+| # | Task | Gate |
+|---|------|------|
+| 7C-1 | P0-①: special-token trie on encode + read `tokenizer.ggml.add_bos_token` + GPT-2 spec regex | fails 7A-3 goldens before, passes after |
+| 7C-2 | P0-②: model-spec/tensor-name map + fused QKV (Phi-3) + Gemma scale/soft-cap/`key_length`; fix README compat matrix | per-arch synthetic GGUF fixtures (CPU) + llama.cpp logits (GPU) |
+| 7C-3 | P1-④: real stream topology (compute stream + events, double-buffered weights, pinned host, sync-before-free) | race test under per-thread default-stream semantics |
+| 7C-4 | P1-⑤: `block_count` vs `blk.N.*` cross-check, KV clamp to free RAM/cgroup, KV unlink-before-map + disk-space check, `close()`/ctor exception-masking fix | synthetic huge-`block_count` GGUF (CPU-only) |
+
+#### Stage 7D — Merge discipline
+- PR #7 merges once CPU CI + sdist-install job are green (CPU CI green since `8038012`).
+- Release notes carry the §7 verdict verbatim: **v0.6.1 scope = text-only llama-family Q4_0/Q4_K/Q8_0 GGUFs on gfx1150**; no Qwen2/Llama-3-chat, Phi-3, or Gemma claims until 7C gates pass.
+
+---
+
 ## 📅 Milestones
 
 | **Phase** | **Focus** | **Status** |
@@ -236,4 +269,5 @@ class WeightStreamer:
 | Phase 3   | Llama Layer Kernels (RMSNorm, RoPE, GQA, SwiGLU) | ✅ Complete |
 | Phase 4   | End-to-End Model Inference + KV Cache + Tokenizer | ✅ Complete |
 | Phase 5   | K-Quants (`Q4_K_M` / `Q8_0`), 70B Scaling, KV Offload & Packaging | ✅ Complete |
-| Phase 6 (`v0.6.0`) | Audit Remediation, Security Hardening, Device-Resident Pipeline & CPU CI | ✅ Complete (983.4 tok/s synthetic E2E) |
+| Phase 6 (`v0.6.0`) | Audit Remediation, Security Hardening, Device-Resident Pipeline & CPU CI | ✅ Complete (983.4 tok/s synthetic E2E, owner-verified) |
+| Phase 7 (`v0.6.2`→v0.7.0) | Testing phase: pytest conversion, golden data, fuzz, sdist-install CI, self-hosted gfx1150 gate, P0/P1 fixes gated by tests | 🟡 In progress |

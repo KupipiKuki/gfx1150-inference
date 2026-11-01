@@ -17,7 +17,7 @@
 
 ### 2. Broken local links fixed
 - `IMPLEMENTATION_PLAN.md`: all `file:///home/kupipi/Documents/git/gfx1150-inference/...` links → relative repo paths (e.g. `[src/kernels/matmul.hip](src/kernels/matmul.hip)`).
-- `remediation_plan.md`: same `file:///...` links → relative paths. Note: links to `build_error.log` and files under `build/` are not committed to the repo — those links now point at paths that do not exist in-repo (the log was local-only). Kept as-is for historical context.
+- `audit/remediation_plan.md`: same `file:///...` links → relative paths. Note: links to `build_error.log` and files under `build/` are not committed to the repo — those links now point at paths that do not exist in-repo (the log was local-only). Kept as-is for historical context.
 - Filename references updated to the canonical doc names (`IMPLEMENTATION_PLAN.md`, `LESSONS_LEARNED.md`).
 
 ### 3. Import path bug fixed (`src/weight_loader.py`)
@@ -26,7 +26,7 @@
 - Also added `Tuple` to the `typing` imports (the `layer_context` return annotation references it).
 
 ### 4. README updated
-- Structure tree now includes all Phase 2 files: `gguf_parser.py`, `weight_loader.py`, `dequantize.h`/`dequantize.hip`, `test_gguf_and_q4.py`, `HANDOFF_PHASE2.md`, and canonical doc names.
+- Structure tree now includes all Phase 2 files: `gguf_parser.py`, `weight_loader.py`, `dequantize.h`/`dequantize.hip`, `test_gguf_and_q4.py`, `audit/HANDOFF_PHASE2.md`, and canonical doc names.
 - Build & Test section now documents the Phase 2 test command: `PYTHONPATH=build:src python3 tests/test_gguf_and_q4.py`.
 
 ### 5. CMake hardcoding softened (`CMakeLists.txt`)
@@ -45,7 +45,7 @@
 - `src/python_bindings/bindings.cpp` — binding logic untouched.
 - `src/gguf_parser.py` — untouched.
 - `tests/test_matmul.py`, `tests/test_gguf_and_q4.py` — untouched.
-- `remediation_plan.md` — content unchanged (only link fixups).
+- `audit/remediation_plan.md` — content unchanged (only link fixups).
 
 ---
 

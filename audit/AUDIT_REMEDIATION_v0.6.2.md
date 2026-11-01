@@ -1,6 +1,6 @@
 # Third-Pass Audit & Remediation Package — gfx1150-inference v0.6.1 review
 
-> **Scope:** Review of the coder's second remediation commit `c75914b` ("Added additional code implementations per remediation comments") on branch `vibe/audit-remediation-220201`, audited against `AUDIT_REMEDIATION_v0.6.1.md` (which reconciles my S/P/D findings with the Deepseek B/C/S/R/T/L report).
+> **Scope:** Review of the coder's second remediation commit `c75914b` ("Added additional code implementations per remediation comments") on branch `vibe/audit-remediation-220201`, audited against `audit/AUDIT_REMEDIATION_v0.6.1.md` (which reconciles my S/P/D findings with the Deepseek B/C/S/R/T/L report).
 > **Method:** Full diff review of all 17 changed files + executable verification on a non-GPU host (Python 3.12, NumPy 2.5): `tests/test_cpu_only.py` (12/12 pass, also under `-O`), an independently rebuilt sdist, and fresh probes for the GPT-2 tokenizer, arch-prefixed metadata, Q6_K round trip, duplicate names, and sampler validation. GPU kernel execution remains owner-verified on gfx1150 hardware; kernel claims here are by inspection and marked.
 > **Status legend:** ✅ fixed & verified · ◐ partially fixed · ❌ open
 

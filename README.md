@@ -22,9 +22,14 @@ gfx1150-inference/
 ├── README.md
 ├── IMPLEMENTATION_PLAN.md
 ├── LESSONS_LEARNED.md
-├── remediation_plan.md
-├── HANDOFF_PHASE2.md
-├── QAQC_FINAL_REPORT_PHASE5.md
+├── audit/                     # audit & remediation reports
+│   ├── AUDIT_REPORT_v0.5.0.md
+│   ├── AUDIT_REMEDIATION_v0.6.0.md
+│   ├── AUDIT_REMEDIATION_v0.6.1.md
+│   ├── AUDIT_REMEDIATION_v0.6.2.md
+│   ├── remediation_plan.md
+│   ├── HANDOFF_PHASE2.md
+│   └── QAQC_FINAL_REPORT_PHASE5.md
 ├── src/
 │   ├── inference.py
 │   ├── gguf_parser.py

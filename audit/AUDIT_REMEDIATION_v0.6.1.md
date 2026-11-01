@@ -1,6 +1,6 @@
 # Second-Pass Audit & Remediation Package — gfx1150-inference v0.6.0 review
 
-> **Scope:** Review of the coder's remediation commit `64b8a8d` ("Added revisions per the project QAQC and audit report findings") on branch `vibe/audit-remediation-220201`, audited against **both** prior audits: `AUDIT_REMEDIATION_v0.6.0.md` (S-*/P-*/D-*) and the Deepseek report of 2026-10-31 (B-*/C-*/S-*/R-*/T-*/L-*).
+> **Scope:** Review of the coder's remediation commit `64b8a8d` ("Added revisions per the project QAQC and audit report findings") on branch `vibe/audit-remediation-220201`, audited against **both** prior audits: `audit/AUDIT_REMEDIATION_v0.6.0.md` (S-*/P-*/D-*) and the Deepseek report of 2026-10-31 (B-*/C-*/S-*/R-*/T-*/L-*).
 > **Method:** Full diff review of all 30 changed files + executable verification on a non-GPU host (Python 3.12, NumPy 2.5): `tests/test_cpu_only.py` (10/10 pass, also under `-O`), plus independent regression probes for truncation, alignment, BPE equivalence, embed bounds, and span splitting. GPU kernel execution remains owner-verified on gfx1150 hardware; kernel-side claims here are by inspection and marked as such.
 > **Status legend:** ✅ fixed & verified · ◐ partially fixed · ❌ open
 

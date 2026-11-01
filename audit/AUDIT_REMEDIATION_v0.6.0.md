@@ -73,7 +73,7 @@ Well-architected, internally consistent, numerically sound (FP32 accumulation th
 
 ## 7. v0.6.0 Resolution Log (`Argon_Phase_6`)
 
-All findings from [AUDIT_REMEDIATION_v0.6.0.md](AUDIT_REMEDIATION_v0.6.0.md) (`S-1`–`S-4`, `P-1`–`P-10`, `D-1`–`D-6`) and [AUDIT_REPORT_v0.5.0.md](AUDIT_REPORT_v0.5.0.md) (`A-1`–`A-8`) have been implemented and verified on `gfx1150`:
+All findings from [AUDIT_REMEDIATION_v0.6.0.md](audit/AUDIT_REMEDIATION_v0.6.0.md) (`S-1`–`S-4`, `P-1`–`P-10`, `D-1`–`D-6`) and [AUDIT_REPORT_v0.5.0.md](audit/AUDIT_REPORT_v0.5.0.md) (`A-1`–`A-8`) have been implemented and verified on `gfx1150`:
 
 | ID | Cross-Ref | Status | Resolution Summary |
 |---|---|---|---|
