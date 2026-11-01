@@ -47,4 +47,29 @@ For G0 the minimum set is:
 
 ## Result
 
-_(to be filled by QAQC)_
+**Executed 2026-11-01 — PASS WITH CONDITIONS.** All required re-runs reproduce from a clean
+clone at the candidate `04e47dc`: CPU suite 12/12 (normal and `-O`), pytest 30 passed,
+all five GPU suites exit 0, the README's `cmake -B build` command fails exactly as C-1
+records, the full clean-venv sdist install succeeds with all 7 modules and a working CLI,
+the CPU-only install exposes exactly 3 importable modules with 3 actionable ImportErrors,
+and the claims ledger's literals and evidence paths all verify. See `qaqc-report.md`.
+
+Conditions raised by QAQC (details in `qaqc-report.md`):
+
+- **QAQC-1 (before 7A-1 merges):** correct the corrupted parent SHA in
+  `baseline-report.md` / `notes.md` / `diffstat.txt` (`…db99…` → `…db29…`), resolve the
+  contradictory sdist sha256 records, fix the notes' commit-chain diagram, the
+  "nine rows/ten IDs" list, and the "two commits" wording — a documentation-only commit
+  inside the 7.0 allowed file set. **Status: landed — the erratum commit that added these
+  probes applies it (see the report's Erratum section); pending auditor acceptance.**
+- **QAQC-2 (7A-1, G1):** the G0 pytest record relied on the untracked in-tree
+  `build/matmul_module.so`; a clean clone fails collection without it. The harness must
+  collect without a pre-built extension.
+- **QAQC-3 (7F-3, G6):** throughput figures vary run-to-run on the same host (matmul
+  0.89/1.02/1.12 TFLOPS; E2E 818.6/849.3/852.0 tok/s); correctness is stable. Confirms
+  C-2's disposition: delete or re-record with a median/p95 harness, baseline neither.
+
+G0's status is upgraded per handoff §1 from *self-tested* to **self-tested, independently
+re-run**. QAQC-1's erratum landed in the same commit as these probes (pending auditor
+acceptance); 7A-1 / 7A-6 / 7A-7 may then proceed; 7B remains gated by G1.
+

@@ -4,9 +4,10 @@
 **Gate:** G0
 **Audit trace:** process prerequisite for all findings
 **Branch:** `wp/7.0-baseline`
-**Parent (tree under test):** `ea6dbeb1db990bc11d991f7f9940a113fd21efd1`
-**Candidate:** see `candidate-sha.txt` (content commit; a metadata follow-up commit adds
-`candidate-sha.txt` and `diffstat.txt`, since a commit cannot contain its own SHA)
+**Parent (tree under test):** `ea6dbeb1db290bc11d991f7f9940a113fd21efd1`
+**Candidate:** see `candidate-sha.txt` (content commit; follow-up commits add
+`candidate-sha.txt`/`diffstat.txt` and later record the commit structure, since a commit
+cannot contain its own SHA)
 **Host:** AMD Ryzen AI 9 HX 370 w/ Radeon 890M (`gfx1150`) · Linux Mint 22.3 · ROCm 10.1 (HIP 7.16.26385) · Python 3.14.10 · NumPy 2.5.3 · pybind11 3.1.0 · CMake 3.28.3
 **Date:** 2026-11-01
 
@@ -94,9 +95,10 @@ ratchet baseline — the correct outcome is deletion.
 ## Governance notes for 7A
 
 - **`audit/claims_baseline.txt` must gain entries at 7A-6** for the nine ledger rows whose
-  qualification flag is `no` (IDs 13, 14, 18, 19, 20, 26, 27, 28, 29, 30), plus the two
-  new candidates recorded in the ledger (ID 6 / README / `Q4_K_M`; ID 10 / README /
-  `qwen2`). Every entry targets G6.
+  qualification flag is `no` (IDs 14, 18, 19, 20, 26, 27, 28, 29, 30), plus ID 13's
+  unqualified instance at `IMPLEMENTATION_PLAN.md` L209 (its flag is `partial` because
+  L266 qualifies the same figure), plus the two new candidates recorded in the ledger
+  (ID 6 / README / `Q4_K_M`; ID 10 / README / `qwen2`). Every entry targets G6.
 - **The sdist-install CI job (7A-5) should import the three CPU modules**
   (`gguf_parser`, `tokenizer`, `weight_loader`) and assert that `kv_cache`, `layer`, and
   `inference` raise the actionable `ImportError` without `matmul_module` — that is the
@@ -126,7 +128,13 @@ Use these as the comparison basis for every later gate.
 | CLI single-prompt E2E | 90.03 tok/s (decode 107.26 tok/s), 4 tokens in 0.04 s |
 | `TILE_M=4` vs `M=1` prefill | bit-identical (Q4_0, Q8_0, Q4_K) |
 | `matmul_module.so` | 592,488 bytes, sha256 `c8f6b19b9baca6ee6c9f8da1ac5788dda1049d2311294b62fb46670a281b0a03` |
-| sdist | `gfx1150_inference-0.6.1.tar.gz`, sha256 `af75cb09d9ef9af62c0b05d20e2878e52794ba7cae1b4551b0c4855b075d6bc7` |
+| sdist | `gfx1150_inference-0.6.1.tar.gz` — sha256 `af75cb09d9ef9af62c0b05d20e2878e52794ba7cae1b4551b0c4855b075d6bc7` (113,199 bytes) is the artifact **tested in `sdist-install.log`**. sdists embed mtimes and are not reproducible — a later rebuild (`gate-commands.log` [11]) hashed `015bf7b4…` (113,231 bytes). Record only, not a comparison basis |
+
+*Reference-hash caveat (QAQC F-2/F-7): the two sha256 values above are build records, not
+clone-independent references. The `.so` hash is stable only when building from the same
+source path — the build embeds source paths (QAQC's clean-clone rebuilds produced
+`9c14fd09…` at the same 592,488 bytes). Later gates should compare sizes, behaviour, and
+correctness — not these hashes.*
 
 ---
 
@@ -156,3 +164,44 @@ targets and do not block the start of 7A.
 > under `-O`, and the full sdist install — before 7A-1 is merged, and record the result in
 > `audit/evidence/G0/7.0-baseline/qaqc-probes/`. The `--strict` claims check and the
 > ledger's own status values should also be spot-checked against the live documents.
+>
+> **Completed 2026-11-01** — see `qaqc-probes/qaqc-report.md`: **PASS WITH CONDITIONS**.
+> Every G0 result reproduced from a clean clone, so this baseline is now *self-tested,
+> independently re-run*. Conditions: **QAQC-1** (bundle erratum, landed with the QAQC
+> probes), **QAQC-2** (7A-1), **QAQC-3** (7F-3).
+
+---
+
+## Erratum — G0 bundle corrections (QAQC-1, 2026-11-01)
+
+Prepared by QAQC after the independent re-run and submitted to the auditor for review with
+this commit. All changes are documentation-only, inside the 7.0 allowed file set
+(`audit/evidence/G0/**`), and affect no runtime surface, ledger status, or recorded
+result:
+
+1. **Parent SHA corrected (QAQC F-1).** This report, `notes.md`, and `diffstat.txt`
+   originally recorded `ea6dbeb1db990bc11d991f7f9940a113fd21efd1` — a one-character
+   corruption at position 11 (`9` for `2`). The correct SHA is
+   `ea6dbeb1db290bc11d991f7f9940a113fd21efd1`, as `parent-sha.txt`, `env.txt`, and the
+   other captured logs already recorded. The short SHA `ea6dbeb` was correct everywhere.
+2. **Sdist sha256 disambiguated (QAQC F-2).** The reference-table hash is the artifact
+   tested in `sdist-install.log`; `gate-commands.log` [10]–[11] re-ran `setup.py sdist`,
+   rebuilding the tarball (different size and hash) after the installs. sdists are not
+   reproducible; the value is now labelled a record, not a comparison basis, and
+   `gate-commands.log` carries an explicit post-capture annotation.
+3. **Commit-chain diagram corrected (QAQC F-3).** In `notes.md` §1, `cca793e` is the head
+   of the PR merged by `089ed8e` (its second parent), not a commit after the merge;
+   `ea6dbeb`'s parent is `089ed8e`. The remediation-commit ordering in the diagram was
+   also inverted relative to the actual branch.
+4. **Baseline-entry row list corrected (QAQC F-4).** The `Qualified in place? = no` rows
+   are nine — IDs 14, 18–20, 26–30. ID 13's flag is `partial` (PLAN L266 qualifies the
+   figure; **L209 is unqualified**), so its L209 instance still needs a
+   `claims_baseline.txt` entry, but it is not a `no`-flag row.
+5. **"Two commits" wording generalized (QAQC F-5).** The package is a content commit plus
+   follow-up commits (metadata, documentation, and this correction); a fixed count would
+   be stale as soon as the next follow-up lands.
+
+The reference-hash caveat under the reference table is QAQC F-7 (the `.so` sha256 is
+source-path-dependent). The QAQC verdict, probes, and conditions are in
+`qaqc-probes/qaqc-report.md`; the QAQC-2/3 items (pytest collection without a pre-built
+extension; single-run performance figures) carry to 7A-1 and 7F-3 and are not fixed here.

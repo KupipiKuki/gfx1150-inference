@@ -3,12 +3,14 @@
 **Package:** 7.0 — Baseline freeze and governance
 **Audit trace:** process prerequisite for all findings (handoff §6, 7.0)
 **Branch:** `wp/7.0-baseline`
-**Parent (tree under test):** `ea6dbeb1db990bc11d991f7f9940a113fd21efd1`
+**Parent (tree under test):** `ea6dbeb1db290bc11d991f7f9940a113fd21efd1`
 **Candidate (this package):** recorded in `candidate-sha.txt`
-**Commit structure:** two commits. The **content commit** (`candidate-sha.txt`) holds the
-evidence bundle and the ledger corrections. A **metadata follow-up** adds
-`candidate-sha.txt` and `diffstat.txt`, because a commit cannot contain its own SHA.
-Both are inside the 7.0 allowed file set and neither touches `src/`.
+**Commit structure:** a content commit plus follow-up commits. The **content commit**
+(`candidate-sha.txt`) holds the evidence bundle and the ledger corrections. A **metadata
+follow-up** adds `candidate-sha.txt` and `diffstat.txt`, because a commit cannot contain
+its own SHA; a **documentation follow-up** records the structure here and in the report;
+the **QAQC-1 correction commit** applies the post-QAQC erratum. All are inside the 7.0
+allowed file set and none touches `src/`.
 **Host:** AMD Ryzen AI 9 HX 370 w/ Radeon 890M (gfx1150), Linux Mint 22.3, ROCm 10.1 (HIP 7.16.26385)
 
 ---
@@ -20,15 +22,22 @@ The baseline tree under test is `ea6dbeb`, which sits on top of the `9b2deb0` au
 baseline and contains the `setup.py` pybind11-discovery fix plus the documentation pass.
 
 ```
-9b2deb0  Deepseek Audit files added                    <- audit baseline named in handoff §header
-  └─ 7cd9519  Reorganize audit reports into audit/
-     └─ c75914b / 986d033 / f0b54e4  v0.6.2 remediation + QAQC passes
-        └─ 8038012  Fix CPU CI: install setuptools+wheel so test_v8 can build the sdist
-           └─ 089ed8e  Merge PR #7 (vibe/audit-remediation-220201)
+(vibe/audit-remediation-220201, oldest -> newest)
+adfb97c / 64b8a8d / 797076c / c75914b / 986d033 / f0b54e4  v0.6.x remediation + QAQC passes
+  └─ 8038012  Fix CPU CI: install setuptools+wheel so test_v8 can build the sdist
+     └─ 7cd9519  Reorganize audit reports into audit/
+        └─ 9b2deb0  Deepseek Audit files added             <- audit baseline named in handoff §header
+           └─ ead5f3f  DeepSeek review and phase7 implementation handoff
               └─ cca793e  revised documentation per QAQC comments   <- setup.py pybind11 fix
-                 └─ ea6dbeb  Scaffold audit/evidence/G0 baseline bundle  <- PARENT (tree under test)
-                    └─ <candidate>  7.0 G0 evidence bundle + ledger corrections
+                 └─ 089ed8e  Merge PR #7 (vibe/audit-remediation-220201; second parent = cca793e)
+                    └─ ea6dbeb  Scaffold audit/evidence/G0 baseline bundle  <- PARENT (tree under test)
+                       └─ 04e47dc  7.0 G0 evidence bundle + ledger corrections  <- candidate
+                          └─ aff43b2 / bbef1b6  metadata + documentation follow-ups
 ```
+
+`cca793e` is the head of the PR branch merged at `089ed8e` (the merge's second parent),
+and `ea6dbeb`'s parent is `089ed8e`. `ea6dbeb` was first created on `vibe/phase7-220201`
+(hence its commit message); `wp/7.0-baseline` continues from it.
 
 `git status --porcelain` was empty at the start of the package and is empty at the
 candidate (verified in `gate-commands.log`).
@@ -142,7 +151,7 @@ Full log in `sdist-install.log`.
 
 | Check | Result |
 |---|---|
-| `python3 setup.py sdist` | PASS — `gfx1150_inference-0.6.1.tar.gz` (sha256 `af75cb09…d6bc7`) |
+| `python3 setup.py sdist` | PASS — `gfx1150_inference-0.6.1.tar.gz` (sha256 `af75cb09…d6bc7` = the artifact tested below; sdists are not reproducible — see the report erratum) |
 | sdist completeness | PASS — contains `CMakeLists.txt`, `MANIFEST.in`, all 6 `*.hip` + 6 `*.h`, `bindings.cpp`, all 6 `src/*.py`, all 6 test files |
 | **Full** clean-venv `pip install --no-build-isolation` (real HIP/CMake build) | **PASS** — exit 0, real `matmul_module.so` built, all 7 modules import, CLI `gfx1150-infer --help` works |
 | Installed CPU suite from the sdist | PASS — 12/12 |
@@ -209,9 +218,10 @@ Both are cheap to fix in wording and should leave the baseline as soon as 7B/7C 
 those bullets.
 
 **Nine ledger rows have `Qualified in place? = no`** and therefore need either inline
-qualification or an exact baseline entry: IDs 13, 14, 18, 19, 20, 26, 27, 28, 29, 30.
-7A-6 must build `audit/claims_baseline.txt` from this list; QAQC must reject any entry
-that hides a claim which could be fixed cheaply.
+qualification or an exact baseline entry: IDs 14, 18, 19, 20, 26, 27, 28, 29, 30. ID 13's
+flag is `partial` (PLAN L266 qualifies the figure; **L209 is unqualified**), so its L209
+instance also needs a baseline entry. 7A-6 must build `audit/claims_baseline.txt` from
+this list; QAQC must reject any entry that hides a claim which could be fixed cheaply.
 
 ---
 

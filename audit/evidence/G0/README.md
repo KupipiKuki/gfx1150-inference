@@ -22,7 +22,7 @@ Work branch: `wp/7.0-baseline`.
 | `7.0-baseline/claims-check.log` | Manual claims-ledger review (the checker `scripts/qa/check_claims.py` lands in 7A-6) |
 | `7.0-baseline/notes.md` | Baseline provenance, environment delta, defects, ledger corrections, rollback |
 | `7.0-baseline/baseline-report.md` | Gate G0 exit-criteria table, conditions, baseline reference values, auditor decision |
-| `7.0-baseline/qaqc-probes/` | Reserved for QAQC's independent re-run. **Empty at G0** — the G0 execution was self-tested, not independently tested (see the independence note in the baseline report) |
+| `7.0-baseline/qaqc-probes/` | QAQC's independent re-run, **completed 2026-11-01**: `qaqc-report.md` (verdict **PASS WITH CONDITIONS**), `probe-commands.log`, `claims-spotcheck.log`. The G0 execution was performed and signed by the gate-owning role; per handoff §1 it is now *self-tested, independently re-run* (see the independence note and erratum in the baseline report) |
 
 ## Deviations from the generic §4 evidence list
 
@@ -36,3 +36,9 @@ the artifact (`cpu-suite.log`, `gpu-suite.log`).
 |---|---|---|---|
 | C-1 | README's documented `cmake -B build` fails on a clean tree (audit B-3) | 7A-5 | G1 |
 | C-2 | Four published performance figures do not reproduce (1.12 TFLOPS, 983.4 tok/s, 0.50 ms, 2.76 ms) | 7F-3 | G6 |
+
+QAQC conditions from the independent re-run (`7.0-baseline/qaqc-probes/qaqc-report.md`):
+**QAQC-1** — bundle erratum (SHA typo, sdist-hash ambiguity, diagram, row list, wording;
+landed as the correction commit that added the probes), **QAQC-2** → 7A-1 (G1): pytest
+must collect without a pre-built extension, **QAQC-3** → 7F-3 (G6): no single-run
+performance figure may serve as a baseline (correctness is stable; throughput is not).

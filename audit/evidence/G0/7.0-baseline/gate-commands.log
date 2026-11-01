@@ -104,6 +104,15 @@ total 112
 015bf7b4f61af0de03f4ba218ea4bc15e5d4dfb828423284d8d973062a1978de  dist/gfx1150_inference-0.6.1.tar.gz
 --- exit code: 0 ---
 
+--- QAQC annotation (2026-11-01, added after capture; not part of the original gate
+    transcript): command [10] re-ran `setup.py sdist`, REBUILDING the artifact after the
+    installs recorded in sdist-install.log. The tarball tested there (and cited by the
+    report's reference table) was 113,199 bytes, sha256
+    af75cb09d9ef9af62c0b05d20e2878e52794ba7cae1b4551b0c4855b075d6bc7; this listing is
+    the later 113,231-byte rebuild. sdists embed mtimes and are not reproducible; the
+    report's reference value is a record of the tested artifact, not a comparison basis.
+    See qaqc-probes/qaqc-report.md (F-2). ---
+
 ### [12] $ pip install --no-build-isolation dist/*.tar.gz   (clean venv, full HIP build)
 --- performed; see sdist-install.log ---
 --- exit code: 0 ---

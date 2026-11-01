@@ -1,11 +1,12 @@
 # G0 diffstat — verification changes included in the frozen baseline
-# parent (tree under test): ea6dbeb1db990bc11d991f7f9940a113fd21efd1
+# parent (tree under test): ea6dbeb1db290bc11d991f7f9940a113fd21efd1
 # candidate (G0 package):   04e47dc81a9d3b155ef6ca6700a220abec32a1c1
 
 NOTE: a commit cannot contain its own SHA. The candidate SHA above names the
-content commit; the metadata follow-up commit adds candidate-sha.txt and this
-file. The reviewed tree is 'git checkout 04e47dc81a9d3b155ef6ca6700a220abec32a1c1' followed by the metadata
-commit — both are within the allowed file set and neither touches src/.
+content commit; follow-up commits add candidate-sha.txt and this file and then
+record the structure in the notes/report. The reviewed tree is 'git checkout
+04e47dc81a9d3b155ef6ca6700a220abec32a1c1' followed by the follow-up commits —
+all are within the allowed file set and none touches src/.
 
 === git diff --stat 9b2deb0..ea6dbeb  (the 2026-11-01 verification changes being frozen) ===
  IMPLEMENTATION_PLAN.md           |  48 ++-
