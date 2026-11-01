@@ -84,14 +84,23 @@ class KVCacheManager:
                     "(DeviceKVCachePool is a singleton). Close the existing instance first "
                     "or pass offload_to_cpu=True."
                 )
-            matmul_module.kv_cache_init(
-                self.num_layers,
-                self.max_seq_len,
-                self.num_kv_heads,
-                self.head_dim,
-            )
-            self._allocated = True
             KVCacheManager._active_gpu_instance = True
+            try:
+                matmul_module.kv_cache_init(
+                    self.num_layers,
+                    self.max_seq_len,
+                    self.num_kv_heads,
+                    self.head_dim,
+                )
+                self._allocated = True
+            except BaseException:
+                KVCacheManager._active_gpu_instance = False
+                self._allocated = False
+                try:
+                    matmul_module.kv_cache_free()
+                except Exception:
+                    pass
+                raise
 
     @property
     def nbytes(self) -> int:

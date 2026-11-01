@@ -71,7 +71,8 @@ PYTHONPATH=build:src python3 tests/test_phase5_scale.py
 ```
 
 ### 2. Editable Python Package & CLI Installation
-`setup.py` invokes `cmake` automatically during `pip install` to compile the `matmul_module` HIP extension:
+`setup.py` invokes `cmake` automatically during `pip install` to compile the `matmul_module` HIP extension.
+Use `--no-build-isolation` so the build uses the host's installed `cmake`, `pybind11`, and `/opt/rocm` toolchain (full PEP 517 isolated builds require `cmake` and ROCm headers/compilers to be visible inside the isolated build environment):
 ```bash
 pip install -e . --no-build-isolation
 gfx1150-infer --model /path/to/model.gguf --prompt "Hello" --max-new-tokens 32

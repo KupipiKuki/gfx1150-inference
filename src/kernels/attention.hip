@@ -172,10 +172,14 @@ struct DeviceKVCachePool {
         const size_t needed =
             static_cast<size_t>(layers) * max_seq * kv_heads * dim * sizeof(half);
         if (needed > cap_bytes) {
-            if (d_K_pool) HIP_CHECK(hipFree(d_K_pool));
-            if (d_V_pool) HIP_CHECK(hipFree(d_V_pool));
+            release();
             HIP_CHECK(hipMalloc(&d_K_pool, needed));
-            HIP_CHECK(hipMalloc(&d_V_pool, needed));
+            hipError_t err = hipMalloc(&d_V_pool, needed);
+            if (err != hipSuccess) {
+                (void)hipFree(d_K_pool);
+                d_K_pool = nullptr;
+                HIP_CHECK(err);
+            }
             cap_bytes = needed;
         }
         num_layers = layers;

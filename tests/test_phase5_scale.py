@@ -222,6 +222,17 @@ def test_q4km_chunked_batch_and_kv_offload() -> None:
             assert caught_singleton, "Expected RuntimeError when creating second active GPU KVCacheManager"
             print("  [Singleton Guard] Second active GPU KVCacheManager properly rejected")
 
+        # Verify failed KVCacheManager.__init__ rolls back _active_gpu_instance cleanly
+        from kv_cache import KVCacheManager
+        caught_init_err = False
+        try:
+            _ = KVCacheManager(num_layers=0, max_seq_len=64, num_kv_heads=4, head_dim=32)
+        except ValueError:
+            caught_init_err = True
+        assert caught_init_err and not KVCacheManager._active_gpu_instance, (
+            "_active_gpu_instance was not rolled back after kv_cache_init exception"
+        )
+
         # 2. CPU-offloaded KV cache equivalence
         with LlamaInferenceEngine(gguf_path, max_seq_len=128, offload_kv_to_cpu=True) as engine_cpu:
             assert engine_cpu.kv_cache.device_bytes == 0
