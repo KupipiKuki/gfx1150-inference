@@ -1,2 +1,46 @@
-# G0 diffstat — placeholder; regenerated in the metadata follow-up commit
-# (the candidate SHA cannot be recorded inside the commit it names).
+# G0 diffstat — verification changes included in the frozen baseline
+# parent (tree under test): ea6dbeb1db990bc11d991f7f9940a113fd21efd1
+# candidate (G0 package):   04e47dc81a9d3b155ef6ca6700a220abec32a1c1
+
+NOTE: a commit cannot contain its own SHA. The candidate SHA above names the
+content commit; the metadata follow-up commit adds candidate-sha.txt and this
+file. The reviewed tree is 'git checkout 04e47dc81a9d3b155ef6ca6700a220abec32a1c1' followed by the metadata
+commit — both are within the allowed file set and neither touches src/.
+
+=== git diff --stat 9b2deb0..ea6dbeb  (the 2026-11-01 verification changes being frozen) ===
+ IMPLEMENTATION_PLAN.md           |  48 ++-
+ PHASE7_IMPLEMENTATION_HANDOFF.md | 730 +++++++++++++++++++++++++++++++++++++++
+ README.md                        |  14 +-
+ audit/CLAIMS_LEDGER.md           |  46 +++
+ audit/README.md                  |  11 +-
+ audit/VERIFICATION_2026-11-01.md |  94 +++++
+ audit/claims_baseline.txt        |   8 +
+ audit/evidence/G0/README.md      |  15 +
+ audit/evidence/README.md         |  43 +++
+ setup.py                         |  12 +
+ tests/fixtures/PROVENANCE.md     |  32 ++
+ 11 files changed, 1022 insertions(+), 31 deletions(-)
+
+=== git diff --stat ea6dbeb..04e47dc81a9d3b155ef6ca6700a220abec32a1c1  (the 7.0 G0 package) ===
+ audit/CLAIMS_LEDGER.md                             | 102 ++++++--
+ audit/evidence/G0/7.0-baseline/baseline-report.md  | 157 ++++++++++++
+ audit/evidence/G0/7.0-baseline/build.log           |  83 +++++++
+ audit/evidence/G0/7.0-baseline/claims-check.log    | 111 +++++++++
+ audit/evidence/G0/7.0-baseline/cpu-suite.log       |  94 ++++++++
+ audit/evidence/G0/7.0-baseline/diffstat.txt        |   2 +
+ audit/evidence/G0/7.0-baseline/env.txt             |  73 ++++++
+ audit/evidence/G0/7.0-baseline/gate-commands.log   | 126 ++++++++++
+ audit/evidence/G0/7.0-baseline/gpu-suite.log       | 166 +++++++++++++
+ audit/evidence/G0/7.0-baseline/notes.md            | 266 +++++++++++++++++++++
+ audit/evidence/G0/7.0-baseline/parent-sha.txt      |   1 +
+ .../evidence/G0/7.0-baseline/qaqc-probes/README.md |  50 ++++
+ audit/evidence/G0/7.0-baseline/sdist-install.log   | 186 ++++++++++++++
+ audit/evidence/G0/README.md                        |  49 +++-
+ 14 files changed, 1434 insertions(+), 32 deletions(-)
+
+=== files touched by the G0 package (allowed set per handoff §6, 7.0) ===
+  audit/CLAIMS_LEDGER.md
+  audit/evidence/G0/**
+
+=== source / test / workflow / packaging diff (must be EMPTY for 7.0) ===
+(end — empty above means no source/test/workflow/packaging changes)
