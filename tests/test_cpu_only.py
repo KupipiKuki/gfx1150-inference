@@ -32,7 +32,9 @@ import io
 import os
 import py_compile
 import struct
+import subprocess
 import sys
+import tarfile
 import tempfile
 import types
 import unittest
@@ -55,6 +57,8 @@ from gguf_parser import (
     dequantize_q8_0_cpu,
     quantize_q4_k_cpu,
     dequantize_q4_k_cpu,
+    quantize_q6_k_cpu,
+    dequantize_q6_k_cpu,
     write_synthetic_gguf,
 )
 from weight_loader import WeightStreamer
@@ -202,7 +206,7 @@ class TestCPUOnlySuite(unittest.TestCase):
             )
 
     def test_v5_cpu_quant_dequant_roundtrips(self) -> None:
-        """V-5: Q4_0, Q8_0, and Q4_K CPU quantize -> dequantize accuracy bounds."""
+        """V-5 & C-1: Q4_0, Q8_0, Q4_K, and Q6_K CPU quantize -> dequantize accuracy bounds."""
         rng = np.random.default_rng(42)
         x = (rng.standard_normal(512, dtype=np.float32) * 0.2).astype(np.float32)
 
@@ -218,8 +222,89 @@ class TestCPUOnlySuite(unittest.TestCase):
         d4k = dequantize_q4_k_cpu(q4k, 512).astype(np.float32)
         self.assertLess(float(np.max(np.abs(x - d4k))), 0.06)
 
-    def test_v6_p4_p5_tokenizer_and_vectorized_embeddings(self) -> None:
-        """V-6, P-4 & P-5: O(L log L) heap BPE merge, byte fallback, and bounds-checked embed_tokens."""
+        q6k = quantize_q6_k_cpu(x)
+        self.assertEqual(q6k.nbytes, (512 // 256) * 210)
+        d6k = dequantize_q6_k_cpu(q6k, 512).astype(np.float32)
+        self.assertLess(float(np.max(np.abs(x - d6k))), 0.02)
+
+    def test_c10_duplicate_tensor_and_zero_dim_rejection(self) -> None:
+        """C-10: Reject duplicate tensor names, zero-sized dimensions, and unmapped GGML types."""
+        raw32 = np.zeros(32, dtype=np.float16).tobytes()
+        buf = io.BytesIO()
+        write_synthetic_gguf(
+            buf,
+            metadata={},
+            tensors=[
+                ("blk.0.attn_norm.weight", (32,), GGMLType.F16, raw32),
+                ("blk.0.attn_norm.weight", (32,), GGMLType.F16, raw32),
+            ],
+        )
+        with self.assertRaises(ValueError) as ctx:
+            GGUFParser(buf.getvalue())
+        self.assertIn("Duplicate tensor name", str(ctx.exception))
+
+        # Zero-sized dimension must raise ValueError
+        buf_zero = io.BytesIO()
+        write_synthetic_gguf(
+            buf_zero,
+            metadata={},
+            tensors=[("zero_tensor", (0, 32), GGMLType.F16, b"")],
+        )
+        with self.assertRaises(ValueError):
+            GGUFParser(buf_zero.getvalue())
+
+        # Unmapped ggml_type ID (e.g. 999) must raise ValueError (not KeyError)
+        buf_type = bytearray(GGUF_MAGIC)
+        buf_type.extend(struct.pack("<IQQ", 3, 1, 0))
+        tname = b"unknown_type_tensor"
+        buf_type.extend(struct.pack("<Q", len(tname)) + tname)
+        buf_type.extend(struct.pack("<IQ", 1, 32))
+        buf_type.extend(struct.pack("<IQ", 999, 0))
+        with self.assertRaises(ValueError):
+            GGUFParser(bytes(buf_type))
+
+    def test_c1_r1_load_time_tensor_validation_and_close_safety(self) -> None:
+        """C-1 & R-1: WeightStreamer validates supported tensor types and closes file even with live view."""
+        # 1. Unsupported compute tensor type (Q2_K) rejected at WeightStreamer init
+        buf = io.BytesIO()
+        write_synthetic_gguf(
+            buf,
+            metadata={},
+            tensors=[("blk.0.attn_q.weight", (256,), GGMLType.Q2_K, bytes(84))],
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            gpath = os.path.join(tmpdir, "unsupported_q2k.gguf")
+            with open(gpath, "wb") as f:
+                f.write(buf.getvalue())
+            with self.assertRaises(ValueError) as ctx:
+                WeightStreamer(gpath)
+            self.assertIn("Q2_K", str(ctx.exception))
+
+            # 2. R-1: WeightStreamer.close() closes self._file even if a live view causes BufferError
+            buf_ok = io.BytesIO()
+            write_synthetic_gguf(
+                buf_ok,
+                metadata={},
+                tensors=[("blk.0.attn_norm.weight", (32,), GGMLType.F16, bytes(64))],
+            )
+            ok_path = os.path.join(tmpdir, "valid.gguf")
+            with open(ok_path, "wb") as f:
+                f.write(buf_ok.getvalue())
+            ws = WeightStreamer(ok_path)
+            raw_file = ws._file
+            live_view = ws.get_tensor_view("blk.0.attn_norm.weight")
+            try:
+                try:
+                    ws.close()
+                except BufferError:
+                    pass
+                self.assertTrue(raw_file.closed, "Underlying file must be closed in finally block")
+            finally:
+                del live_view
+                ws.close()
+
+    def test_v6_p4_p5_c2_tokenizer_and_vectorized_embeddings(self) -> None:
+        """V-6, P-4, P-5 & C-2: SentencePiece ('▁'), GPT-2 ('Ġ') BPE merges, unmappable error, and Q4_K/Q6_K embed_tokens."""
         tokens = [
             "<unk>", "<s>", "</s>", "\u2581",
             "h", "e", "l", "o", "w", "r", "d",
@@ -240,27 +325,65 @@ class TestCPUOnlySuite(unittest.TestCase):
         self.assertIn(tok.token_to_id["<0xA9>"], omega_ids)
         self.assertEqual(tok.decode(omega_ids), "Ω")
 
-        # P-5: Vectorized embed_tokens and negative/out-of-range ID rejection
+        # C-2: Unmappable character without <0xXX> fallback raises ValueError (no silent drop)
+        with self.assertRaises(ValueError):
+            tok.encode("hello!", add_bos=False)
+
+        # C-2: GPT-2 / Llama-3 / Qwen2 'Ġ' byte-level BPE with merges
+        gpt2_tokens = [
+            "<pad>", "<s>", "</s>",
+            "H", "e", "l", "o", "\u0120", "w", "r", "d",
+            "He", "ll", "llo", "Hello",
+            "\u0120w", "or", "orl", "orld", "\u0120world",
+        ]
+        gpt2_merges = [
+            "H e", "l l", "ll o", "He llo",
+            "\u0120 w", "o r", "or l", "orl d", "\u0120w orld",
+        ]
+        gpt2_tok = GGUFTokenizer(
+            tokens=gpt2_tokens,
+            merges=gpt2_merges,
+            bos_token_id=1,
+            eos_token_id=2,
+            tokenizer_model="gpt2",
+        )
+        gpt2_ids = gpt2_tok.encode("Hello world", add_bos=True)
+        self.assertEqual(
+            [gpt2_tok.id_to_token[i] for i in gpt2_ids],
+            ["<s>", "Hello", "\u0120world"],
+        )
+        self.assertEqual(gpt2_tok.decode(gpt2_ids), "Hello world")
+
+        # Minimal synthetic 'Ġ' vocab without single-char tokens also round-trips "Hello world"
+        min_gpt2_tok = GGUFTokenizer(
+            tokens=["<pad>", "<s>", "</s>", "Hello", "\u0120world"],
+            bos_token_id=1,
+            eos_token_id=2,
+        )
+        self.assertEqual(min_gpt2_tok.decode(min_gpt2_tok.encode("Hello world")), "Hello world")
+
+        # P-5 & C-1: Vectorized embed_tokens (Q4_K and Q6_K) and negative/out-of-range ID rejection
         hidden_size = 256
         vocab_size = 8
         rng = np.random.default_rng(7)
         w_f32 = rng.standard_normal((vocab_size, hidden_size), dtype=np.float32) * 0.1
-        q4k_raw = quantize_q4_k_cpu(w_f32)
-        buf = io.BytesIO()
-        write_synthetic_gguf(
-            buf,
-            metadata={},
-            tensors=[("token_embd.weight", (hidden_size, vocab_size), GGMLType.Q4_K, q4k_raw.tobytes())],
-        )
-        raw_bytes = buf.getvalue()
-        info = GGUFParser(raw_bytes).tensors["token_embd.weight"]
-        view = np.frombuffer(raw_bytes, dtype=np.uint8, count=info.n_bytes, offset=info.abs_offset)
+        for gtype, q_fn in ((GGMLType.Q4_K, quantize_q4_k_cpu), (GGMLType.Q6_K, quantize_q6_k_cpu)):
+            q_raw = q_fn(w_f32)
+            buf = io.BytesIO()
+            write_synthetic_gguf(
+                buf,
+                metadata={},
+                tensors=[("token_embd.weight", (hidden_size, vocab_size), gtype, q_raw.tobytes())],
+            )
+            raw_bytes = buf.getvalue()
+            info = GGUFParser(raw_bytes).tensors["token_embd.weight"]
+            view = np.frombuffer(raw_bytes, dtype=np.uint8, count=info.n_bytes, offset=info.abs_offset)
 
-        emb = embed_tokens([1, 3, 5], info, view, hidden_size)
-        self.assertEqual(emb.shape, (3, hidden_size))
-        for bad_ids in ([-1], [vocab_size], [0, 99]):
-            with self.assertRaises(ValueError):
-                embed_tokens(bad_ids, info, view, hidden_size)
+            emb = embed_tokens([1, 3, 5], info, view, hidden_size)
+            self.assertEqual(emb.shape, (3, hidden_size))
+            for bad_ids in ([-1], [vocab_size], [0, 99]):
+                with self.assertRaises(ValueError):
+                    embed_tokens(bad_ids, info, view, hidden_size)
 
     def test_v7_d5_s3_d4_sampler_and_kv_mmap_safety(self) -> None:
         """V-7, D-5, S-3 & D-4: Sampler edge cases and safe KVCacheManager mmap lifecycle."""
@@ -296,6 +419,32 @@ class TestCPUOnlySuite(unittest.TestCase):
             # Degenerate flat / NaN-safe fallback
             flat = np.zeros(8, dtype=np.float16)
             self.assertTrue(0 <= sample_next_token(flat, temperature=1.0, top_p=0.5) < 8)
+
+            # C-8: Reject invalid repetition_penalty (<= 0), top_p outside [0, 1], negative temperature, NaN logits
+            for bad_pen in (0.0, -1.0, float("nan")):
+                with self.assertRaises(ValueError):
+                    sample_next_token(logits, repetition_penalty=bad_pen)
+            for bad_top_p in (-0.1, 1.5, float("nan")):
+                with self.assertRaises(ValueError):
+                    sample_next_token(logits, temperature=0.8, top_p=bad_top_p)
+            with self.assertRaises(ValueError):
+                sample_next_token(logits, temperature=-0.5)
+            with self.assertRaises(ValueError):
+                sample_next_token(np.array([0.1, np.nan], dtype=np.float16))
+
+            # C-3: Architecture-prefixed metadata resolution (e.g. qwen2.*)
+            from layer import LlamaLayerConfig
+            qwen_cfg = LlamaLayerConfig.from_gguf_metadata({
+                "general.architecture": "qwen2",
+                "qwen2.embedding_length": 256,
+                "qwen2.feed_forward_length": 512,
+                "qwen2.attention.head_count": 4,
+                "qwen2.attention.head_count_kv": 2,
+                "qwen2.rope.freq_base": 1000000.0,
+            })
+            self.assertEqual(qwen_cfg.hidden_size, 256)
+            self.assertEqual(qwen_cfg.num_kv_heads, 2)
+            self.assertTrue(qwen_cfg.rope_neox)
 
             # S-3: Pre-existing files in mmap_dir must never be overwritten or deleted
             with tempfile.TemporaryDirectory() as tmpdir:
@@ -336,8 +485,8 @@ class TestCPUOnlySuite(unittest.TestCase):
             if stub_installed:
                 sys.modules.pop("matmul_module", None)
 
-    def test_v8_pyproject_metadata(self) -> None:
-        """V-8 & D-1: Verify pyproject.toml declares cmake>=3.21 and all 6 src modules."""
+    def test_v8_b1_pyproject_and_sdist_contents(self) -> None:
+        """V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness."""
         pyproject_path = os.path.join(_ROOT_DIR, "pyproject.toml")
         with open(pyproject_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -345,6 +494,43 @@ class TestCPUOnlySuite(unittest.TestCase):
         self.assertIn('gfx1150-infer = "inference:main"', content)
         for mod in ("gguf_parser", "weight_loader", "layer", "kv_cache", "tokenizer", "inference"):
             self.assertTrue(os.path.isfile(os.path.join(_SRC_DIR, f"{mod}.py")))
+
+        # B-1: Build sdist into a temp dir and verify CMakeLists.txt, .hip, .h, and bindings.cpp are packaged
+        with tempfile.TemporaryDirectory() as tmpdir:
+            res = subprocess.run(
+                [sys.executable, "setup.py", "sdist", "--dist-dir", tmpdir],
+                cwd=_ROOT_DIR,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(res.returncode, 0, f"setup.py sdist failed:\n{res.stderr}")
+            archives = [fn for fn in os.listdir(tmpdir) if fn.endswith(".tar.gz")]
+            self.assertEqual(len(archives), 1)
+            with tarfile.open(os.path.join(tmpdir, archives[0]), "r:gz") as tf:
+                names = tf.getnames()
+            expected_suffixes = [
+                "CMakeLists.txt",
+                "MANIFEST.in",
+                "src/python_bindings/bindings.cpp",
+                "src/kernels/matmul.h",
+                "src/kernels/matmul.hip",
+                "src/kernels/dequantize.h",
+                "src/kernels/dequantize.hip",
+                "src/kernels/rmsnorm.h",
+                "src/kernels/rmsnorm.hip",
+                "src/kernels/rope.h",
+                "src/kernels/rope.hip",
+                "src/kernels/attention.h",
+                "src/kernels/attention.hip",
+                "src/kernels/mlp.h",
+                "src/kernels/mlp.hip",
+            ]
+            for suffix in expected_suffixes:
+                self.assertTrue(
+                    any(n.endswith(suffix) for n in names),
+                    f"Missing '{suffix}' in sdist archive; found: {names}",
+                )
 
 
 if __name__ == "__main__":

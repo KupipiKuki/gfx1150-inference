@@ -32,6 +32,8 @@ from gguf_parser import (
     dequantize_q8_0_cpu,
     quantize_q4_k_cpu,
     dequantize_q4_k_cpu,
+    quantize_q6_k_cpu,
+    dequantize_q6_k_cpu,
     write_synthetic_gguf,
 )
 from inference import LlamaInferenceEngine, main as cli_main
@@ -331,11 +333,184 @@ def test_v060_prefill_tile_and_fused_residual_kernels() -> None:
     print("  [rmsnorm_residual & residual_add] Bit-identical to unfused reference")
 
 
+def test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards() -> None:
+    """
+    Verify v0.6.1 additions on GPU:
+    1. C-1: `dequantize_q6_k` and `matmul_q6_k` (single-row wave and `TILE_M=4` prefill wave).
+    2. C-1 / C-2 / C-3 / C-7: End-to-end mixed `Q4_K` + `Q6_K` (`Q4_K_M`) inference with
+       `qwen2.*` metadata keys, GPT-2 `Ġ` BPE tokenizer, optional QKV biases, `cache_weights=True`,
+       and `max_new_tokens=0` / `max_seq_len` overflow guards.
+    3. S-2 / N-4: PyBind11 `int16`, read-only output, strided quantized buffer, and `matmul_nt` shape guards.
+    """
+    print("--- Testing v0.6.1 Q6_K Kernels, Qwen2/GPT-2 BPE Mixed Q4_K_M & Bindings Guards ---")
+    rng = np.random.default_rng(611)
+    num_elements = 512 * 256
+    w_fp32 = rng.standard_normal(num_elements, dtype=np.float32) * 0.3
+    q6k_bytes = quantize_q6_k_cpu(w_fp32)
+
+    ref_fp16 = dequantize_q6_k_cpu(q6k_bytes, num_elements)
+    gpu_fp16 = np.empty(num_elements, dtype=np.float16)
+    matmul_module.dequantize_q6_k(q6k_bytes, gpu_fp16, num_elements)
+    deq_diff = float(np.max(np.abs(gpu_fp16.astype(np.float32) - ref_fp16.astype(np.float32))))
+    print(f"  [dequantize_q6_k] max_abs_diff={deq_diff:.6e}")
+    assert deq_diff < 1e-3, f"dequantize_q6_k mismatch: {deq_diff}"
+
+    N, K = 64, 512
+    w_mat_fp32 = rng.standard_normal((N, K), dtype=np.float32) * 0.2
+    w_mat_q6k = quantize_q6_k_cpu(w_mat_fp32)
+    w_mat_deq = dequantize_q6_k_cpu(w_mat_q6k, N * K).reshape(N, K).astype(np.float32)
+
+    for M in (1, 4, 7):
+        A = (rng.standard_normal((M, K), dtype=np.float32) * 0.2).astype(np.float16)
+        C_gpu = np.empty((M, N), dtype=np.float16)
+        matmul_module.matmul_q6_k(A, w_mat_q6k, C_gpu, M, N, K)
+        C_ref = A.astype(np.float32) @ w_mat_deq.T
+        mm_diff = float(np.max(np.abs(C_gpu.astype(np.float32) - C_ref)))
+        assert mm_diff < 5e-2, f"matmul_q6_k M={M} mismatch: {mm_diff}"
+
+        if M >= 4:
+            C_single = np.empty((M, N), dtype=np.float16)
+            for m in range(M):
+                row_in = np.ascontiguousarray(A[m : m + 1])
+                row_out = np.empty((1, N), dtype=np.float16)
+                matmul_module.matmul_q6_k(row_in, w_mat_q6k, row_out, 1, N, K)
+                C_single[m] = row_out[0]
+            wave_diff = float(np.max(np.abs(C_gpu.astype(np.float32) - C_single.astype(np.float32))))
+            assert wave_diff == 0.0, f"Q6_K prefill M={M} vs M=1 wave mismatch: {wave_diff}"
+    print("  [matmul_q6_k] M=1, 4, 7 verified (TILE_M=4 bit-identical to M=1 wave)")
+
+    # S-2 / N-4: Bindings validation guards
+    a_ok = np.zeros((2, 32), dtype=np.float16)
+    b_ok = np.zeros((4, 32), dtype=np.float16)
+    c_ok = np.zeros((2, 4), dtype=np.float16)
+
+    # 1. int16 array rejected as FP16
+    a_int16 = np.zeros((2, 32), dtype=np.int16)
+    try:
+        matmul_module.matmul_nt(a_int16, b_ok, c_ok, 2, 4, 32)
+        raise AssertionError("Expected ValueError for int16 input array")
+    except ValueError:
+        pass
+
+    # 2. Read-only output array rejected
+    c_ro = np.zeros((2, 4), dtype=np.float16)
+    c_ro.setflags(write=False)
+    try:
+        matmul_module.matmul_nt(a_ok, b_ok, c_ro, 2, 4, 32)
+        raise AssertionError("Expected ValueError for read-only output array")
+    except ValueError:
+        pass
+
+    # 3. Strided quantized weight buffer rejected
+    q4_strided = np.zeros((4, 36), dtype=np.uint8)[:, ::2]
+    try:
+        matmul_module.matmul_q4_0(a_ok, q4_strided, c_ok, 2, 4, 32)
+        raise AssertionError("Expected ValueError for non-contiguous quantized buffer")
+    except ValueError:
+        pass
+
+    # 4. 1D B_nt rejected by matmul_nt
+    try:
+        matmul_module.matmul_nt(a_ok, b_ok.reshape(-1), c_ok, 2, 4, 32)
+        raise AssertionError("Expected ValueError for 1D B_nt in matmul_nt")
+    except ValueError:
+        pass
+    print("  [S-2 / N-4 Bindings Guards] int16, read-only output, strided quant buffer, and 1D B_nt rejected")
+
+    # End-to-end mixed Q4_K + Q6_K ('Q4_K_M') model with qwen2.* metadata, GPT-2 'Ġ' BPE, and QKV biases
+    hidden = 256
+    inter = 512
+    n_heads = 4
+    n_kv = 2
+    head_dim = 64
+    q_dim = n_heads * head_dim
+    kv_dim = n_kv * head_dim
+
+    gpt2_tokens = [
+        "<pad>", "<s>", "</s>",
+        "H", "e", "l", "o", "\u0120", "w", "r", "d",
+        "He", "ll", "llo", "Hello",
+        "\u0120w", "or", "orl", "orld", "\u0120world",
+    ]
+    gpt2_merges = [
+        "H e", "l l", "ll o", "He llo",
+        "\u0120 w", "o r", "or l", "orl d", "\u0120w orld",
+    ]
+    vocab_size = len(gpt2_tokens)
+
+    def _q4k(rows: int, cols: int) -> Tuple[Tuple[int, int], GGMLType, bytes]:
+        arr = (rng.standard_normal((rows, cols), dtype=np.float32) * 0.05).astype(np.float32)
+        return (cols, rows), GGMLType.Q4_K, quantize_q4_k_cpu(arr).tobytes()
+
+    def _q6k(rows: int, cols: int) -> Tuple[Tuple[int, int], GGMLType, bytes]:
+        arr = (rng.standard_normal((rows, cols), dtype=np.float32) * 0.05).astype(np.float32)
+        return (cols, rows), GGMLType.Q6_K, quantize_q6_k_cpu(arr).tobytes()
+
+    norm_ones = np.ones(hidden, dtype=np.float32).tobytes()
+    q_bias = np.zeros(q_dim, dtype=np.float32).tobytes()
+    k_bias = np.zeros(kv_dim, dtype=np.float32).tobytes()
+    v_bias = np.zeros(kv_dim, dtype=np.float32).tobytes()
+
+    tensors = [
+        ("token_embd.weight", *_q6k(vocab_size, hidden)),
+        ("output_norm.weight", (hidden,), GGMLType.F32, norm_ones),
+        ("output.weight", *_q6k(vocab_size, hidden)),
+        ("blk.0.attn_norm.weight", (hidden,), GGMLType.F32, norm_ones),
+        ("blk.0.attn_q.weight", *_q4k(q_dim, hidden)),
+        ("blk.0.attn_q.bias", (q_dim,), GGMLType.F32, q_bias),
+        ("blk.0.attn_k.weight", *_q4k(kv_dim, hidden)),
+        ("blk.0.attn_k.bias", (kv_dim,), GGMLType.F32, k_bias),
+        ("blk.0.attn_v.weight", *_q6k(kv_dim, hidden)),
+        ("blk.0.attn_v.bias", (kv_dim,), GGMLType.F32, v_bias),
+        ("blk.0.attn_output.weight", *_q4k(hidden, q_dim)),
+        ("blk.0.ffn_norm.weight", (hidden,), GGMLType.F32, norm_ones),
+        ("blk.0.ffn_gate.weight", *_q4k(inter, hidden)),
+        ("blk.0.ffn_up.weight", *_q4k(inter, hidden)),
+        ("blk.0.ffn_down.weight", *_q6k(hidden, inter)),
+    ]
+    metadata = {
+        "general.architecture": (GGUFValueType.STRING, "qwen2"),
+        "qwen2.block_count": (GGUFValueType.UINT32, 1),
+        "qwen2.embedding_length": (GGUFValueType.UINT32, hidden),
+        "qwen2.feed_forward_length": (GGUFValueType.UINT32, inter),
+        "qwen2.attention.head_count": (GGUFValueType.UINT32, n_heads),
+        "qwen2.attention.head_count_kv": (GGUFValueType.UINT32, n_kv),
+        "qwen2.rope.dimension_count": (GGUFValueType.UINT32, head_dim),
+        "tokenizer.ggml.model": (GGUFValueType.STRING, "gpt2"),
+        "tokenizer.ggml.tokens": (GGUFValueType.ARRAY, (GGUFValueType.STRING, gpt2_tokens)),
+        "tokenizer.ggml.merges": (GGUFValueType.ARRAY, (GGUFValueType.STRING, gpt2_merges)),
+        "tokenizer.ggml.bos_token_id": (GGUFValueType.UINT32, 1),
+        "tokenizer.ggml.eos_token_id": (GGUFValueType.UINT32, 2),
+    }
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        qwen_gguf = os.path.join(tmpdir, "qwen2_q4km_q6k.gguf")
+        with open(qwen_gguf, "wb") as f:
+            write_synthetic_gguf(f, metadata, tensors)
+
+        with LlamaInferenceEngine(qwen_gguf, max_seq_len=16, cache_weights=True) as eng:
+            # C-7: max_new_tokens=0 returns empty list without running decode
+            zero_ids, zero_m = eng.generate_ids([1, 14, 19], max_new_tokens=0)
+            assert zero_ids == [] and zero_m["tokens_generated"] == 0.0
+
+            # C-7: Prompt + max_new_tokens > max_seq_len raises ValueError upfront
+            try:
+                eng.generate_ids([1, 14, 19], max_new_tokens=20)
+                raise AssertionError("Expected ValueError when prompt + max_new_tokens > max_seq_len")
+            except ValueError:
+                pass
+
+            out_text, metrics = eng.generate("Hello world", max_new_tokens=3, stop_on_eos=False)
+            assert metrics["tokens_generated"] == 3.0
+            print(f"  [Qwen2 + Q6_K/Q4_K_M + QKV Bias + GPT-2 BPE] generated {int(metrics['tokens_generated'])} tokens ({out_text!r})")
+
+
 if __name__ == "__main__":
-    print("=== Phase 5 & v0.6.0: K-Quants, 70B Scale, Prefill & KV Offload Test Suite ===")
+    print("=== Phase 5 & v0.6.1: K-Quants (Q4_K/Q6_K), 70B Scale, Prefill & KV Offload Test Suite ===")
     test_q8_0_kernels()
     test_q4_k_superblock_kernels_and_70b_scale()
     test_q4km_chunked_batch_and_kv_offload()
     test_v060_prefill_tile_and_fused_residual_kernels()
-    print("=== All Phase 5 & v0.6.0 Tests Passed! ===")
+    test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards()
+    print("=== All Phase 5 & v0.6.1 Tests Passed! ===")
 

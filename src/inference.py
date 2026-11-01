@@ -1,13 +1,14 @@
 """
-End-to-End SSD-Streamed Llama Inference Engine (`LlamaInferenceEngine`) for AMD gfx1150.
+End-to-End SSD-Streamed LLM Inference Engine (`LlamaInferenceEngine`) for AMD gfx1150.
 
 Coordinates:
-1. GGUF metadata, tokenizer (`GGUFTokenizer`), and memory-mapped weight streaming (`WeightStreamer`).
+1. GGUF metadata (`llama.*`, `qwen2.*`, `phi3.*`, `gemma.*`), tokenizer (`GGUFTokenizer`),
+   and memory-mapped weight streaming (`WeightStreamer`).
 2. GQA KV Cache (`KVCacheManager`) supporting GPU-resident offset pools, CPU RAM offload,
    and NVMe `mmap` offload for long-context 70B runs.
 3. Layer-wise ping-pong SSD prefetching (`MADV_WILLNEED` on Layer L+1 while GPU computes Layer L,
-   followed by `MADV_DONTNEED` page eviction on Layer L and global embedding/LM-head tensors)
-   so RAM usage stays strictly bounded.
+   followed by `MADV_DONTNEED` page-cache reclamation advice on Layer L and global embedding/LM-head
+   tensors when `cache_weights=False`) to minimize clean file-backed page residency.
 4. Chunked prompt prefill (`prefill_chunk_size`), multi-prompt batch processing (`generate_batch`),
    and configurable Top-K / Top-P / Temperature / Repetition-Penalty token sampling.
 """
@@ -23,9 +24,8 @@ import numpy as np
 
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 _BUILD_DIR = os.path.abspath(os.path.join(_SRC_DIR, "..", "build"))
-for _p in (_SRC_DIR, _BUILD_DIR):
-    if _p not in sys.path and os.path.isdir(_p):
-        sys.path.insert(0, _p)
+if _SRC_DIR not in sys.path:
+    sys.path.append(_SRC_DIR)
 
 from gguf_parser import GGUFTensorInfo
 from weight_loader import WeightStreamer
@@ -35,12 +35,17 @@ from tokenizer import GGUFTokenizer, embed_tokens
 
 try:
     import matmul_module
-except ImportError as exc:
-    raise ImportError(
-        "Failed to import 'matmul_module' HIP extension. Build it first with:\n"
-        "  cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\n"
-        "or install the package via 'pip install -e . --no-build-isolation'."
-    ) from exc
+except ImportError:
+    if _BUILD_DIR not in sys.path and os.path.isdir(_BUILD_DIR):
+        sys.path.append(_BUILD_DIR)
+    try:
+        import matmul_module
+    except ImportError as exc:
+        raise ImportError(
+            "Failed to import 'matmul_module' HIP extension. Build it first with:\n"
+            "  cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\n"
+            "or install the package via 'pip install -e . --no-build-isolation'."
+        ) from exc
 
 
 def sample_next_token(
@@ -54,9 +59,20 @@ def sample_next_token(
 ) -> int:
     """
     Sample the next token ID from 1D vocabulary `logits_fp16` (`(vocab_size,)`).
-    Uses greedy argmax when `temperature <= 0.0` or `top_k == 1`.
+    Uses greedy argmax when `temperature == 0.0` or `top_k == 1`.
     """
+    if repetition_penalty <= 0.0 or not np.isfinite(repetition_penalty):
+        raise ValueError(f"repetition_penalty must be finite and > 0.0 (got {repetition_penalty})")
+    if temperature < 0.0 or not np.isfinite(temperature):
+        raise ValueError(f"temperature must be finite and >= 0.0 (got {temperature})")
+    if top_p < 0.0 or top_p > 1.0 or not np.isfinite(top_p):
+        raise ValueError(f"top_p must be in [0.0, 1.0] (got {top_p})")
+
     logits = logits_fp16.astype(np.float32).reshape(-1).copy()
+    if logits.size == 0:
+        raise ValueError("logits_fp16 must not be empty")
+    if not np.all(np.isfinite(logits)):
+        raise ValueError("logits_fp16 contains NaN or Inf values")
 
     if repetition_penalty != 1.0 and generated_ids:
         for tid in set(generated_ids):
@@ -66,7 +82,7 @@ def sample_next_token(
                 else:
                     logits[tid] *= repetition_penalty
 
-    if temperature <= 0.0 or top_k == 1:
+    if temperature == 0.0 or top_k == 1:
         return int(np.argmax(logits))
 
     logits /= float(temperature)
@@ -116,43 +132,60 @@ class LlamaInferenceEngine:
         offload_kv_to_cpu: bool = False,
         kv_mmap_dir: Optional[str] = None,
         rope_neox: Optional[bool] = None,
+        cache_weights: bool = False,
     ):
         self.model_path = model_path
-        self.streamer = WeightStreamer(model_path)
-        self.metadata = self.streamer.gguf.metadata
-        self.num_layers = int(self.metadata["llama.block_count"])
-        self.layer_cfg = LlamaLayerConfig.from_gguf_metadata(self.metadata, rope_neox=rope_neox)
-        self.layer_runner = TransformerLayer(self.layer_cfg)
-        self.max_seq_len = int(max_seq_len)
+        self.streamer: Optional[WeightStreamer] = None
+        self.kv_cache: Optional[KVCacheManager] = None
+        self._out_norm_w: Optional[np.ndarray] = None
 
-        self.tokenizer: Optional[GGUFTokenizer] = None
-        if "tokenizer.ggml.tokens" in self.metadata:
-            self.tokenizer = GGUFTokenizer.from_gguf_metadata(self.metadata)
-            self.vocab_size = self.tokenizer.vocab_size
-        else:
-            emb_info = self.streamer.gguf.tensors["token_embd.weight"]
-            self.vocab_size = emb_info.shape_row_major[0]
+        self.streamer = WeightStreamer(model_path, cache_weights=cache_weights)
+        try:
+            self.metadata = self.streamer.gguf.metadata
+            arch = str(self.metadata.get("general.architecture", "llama")).lower()
+            block_key = f"{arch}.block_count"
+            if block_key in self.metadata:
+                self.num_layers = int(self.metadata[block_key])
+            elif "llama.block_count" in self.metadata:
+                self.num_layers = int(self.metadata["llama.block_count"])
+            else:
+                raise KeyError(f"Missing required GGUF metadata key '{block_key}' (or 'llama.block_count')")
 
-        # Cache the small 1D output_norm.weight in host FP16 once and release its mmap view
-        out_norm_info, out_norm_view = self._get_global_tensor("output_norm.weight")
-        self._out_norm_w: np.ndarray = norm_weight_fp16((out_norm_info, out_norm_view)).copy()
-        del out_norm_view
-        self.streamer.release_tensor("output_norm.weight")
+            self.layer_cfg = LlamaLayerConfig.from_gguf_metadata(self.metadata, rope_neox=rope_neox)
+            self.layer_runner = TransformerLayer(self.layer_cfg)
+            self.max_seq_len = int(max_seq_len)
 
-        self._head_name: str = (
-            "output.weight"
-            if "output.weight" in self.streamer.gguf.tensors
-            else "token_embd.weight"
-        )
+            self.tokenizer: Optional[GGUFTokenizer] = None
+            if "tokenizer.ggml.tokens" in self.metadata:
+                self.tokenizer = GGUFTokenizer.from_gguf_metadata(self.metadata)
+                self.vocab_size = self.tokenizer.vocab_size
+            else:
+                emb_info = self.streamer.gguf.tensors["token_embd.weight"]
+                self.vocab_size = emb_info.shape_row_major[0]
 
-        self.kv_cache = KVCacheManager(
-            num_layers=self.num_layers,
-            max_seq_len=self.max_seq_len,
-            num_kv_heads=self.layer_cfg.num_kv_heads,
-            head_dim=self.layer_cfg.head_dim,
-            offload_to_cpu=offload_kv_to_cpu,
-            mmap_dir=kv_mmap_dir,
-        )
+            # Cache the small 1D output_norm.weight in host FP16 once and release its mmap view
+            out_norm_info, out_norm_view = self._get_global_tensor("output_norm.weight")
+            self._out_norm_w = norm_weight_fp16((out_norm_info, out_norm_view)).copy()
+            del out_norm_view
+            self.streamer.release_tensor("output_norm.weight")
+
+            self._head_name: str = (
+                "output.weight"
+                if "output.weight" in self.streamer.gguf.tensors
+                else "token_embd.weight"
+            )
+
+            self.kv_cache = KVCacheManager(
+                num_layers=self.num_layers,
+                max_seq_len=self.max_seq_len,
+                num_kv_heads=self.layer_cfg.num_kv_heads,
+                head_dim=self.layer_cfg.head_dim,
+                offload_to_cpu=offload_kv_to_cpu,
+                mmap_dir=kv_mmap_dir,
+            )
+        except Exception:
+            self.close()
+            raise
 
     def _get_global_tensor(self, name: str) -> Tuple[GGUFTensorInfo, np.ndarray]:
         info = self.streamer.gguf.tensors[name]
@@ -270,16 +303,33 @@ class LlamaInferenceEngine:
         """
         if not prompt_ids:
             raise ValueError("prompt_ids must not be empty")
+        if max_new_tokens < 0:
+            raise ValueError(f"max_new_tokens must be >= 0 (got {max_new_tokens})")
+        if len(prompt_ids) + max_new_tokens > self.max_seq_len:
+            raise ValueError(
+                f"len(prompt_ids) ({len(prompt_ids)}) + max_new_tokens ({max_new_tokens}) "
+                f"exceeds max_seq_len ({self.max_seq_len})"
+            )
+
+        if max_new_tokens == 0:
+            return [], {
+                "prefill_time_s": 0.0,
+                "decode_time_s": 0.0,
+                "total_time_s": 0.0,
+                "tokens_generated": 0.0,
+                "tokens_per_sec": 0.0,
+                "decode_tokens_per_sec": 0.0,
+            }
 
         self.kv_cache.reset()
         rng = np.random.default_rng(seed)
         all_ids: List[int] = [int(t) for t in prompt_ids]
         new_ids: List[int] = []
 
-        t_start = time.time()
+        t_start = time.perf_counter()
         # 1. Prompt prefill (full or chunked)
         logits = self.prefill_tokens(all_ids, chunk_size=prefill_chunk_size)
-        t_prefill = time.time() - t_start
+        t_prefill = time.perf_counter() - t_start
 
         next_id = sample_next_token(
             logits,
@@ -294,8 +344,9 @@ class LlamaInferenceEngine:
         all_ids.append(next_id)
 
         # 2. Autoregressive single-token decode loop
-        t_decode_start = time.time()
+        t_decode_start = time.perf_counter()
         eos_id = self.tokenizer.eos_token_id if self.tokenizer is not None else -1
+        decode_steps = 0
 
         for _ in range(max_new_tokens - 1):
             if stop_on_eos and next_id == eos_id:
@@ -315,10 +366,10 @@ class LlamaInferenceEngine:
             )
             new_ids.append(next_id)
             all_ids.append(next_id)
+            decode_steps += 1
 
-        t_decode = time.time() - t_decode_start
-        t_total = time.time() - t_start
-        decode_steps = max(len(new_ids) - 1, 1)
+        t_decode = time.perf_counter() - t_decode_start
+        t_total = time.perf_counter() - t_start
 
         metrics = {
             "prefill_time_s": t_prefill,
@@ -326,7 +377,9 @@ class LlamaInferenceEngine:
             "total_time_s": t_total,
             "tokens_generated": float(len(new_ids)),
             "tokens_per_sec": len(new_ids) / max(t_total, 1e-9),
-            "decode_tokens_per_sec": decode_steps / max(t_decode, 1e-9),
+            "decode_tokens_per_sec": (
+                decode_steps / max(t_decode, 1e-9) if decode_steps > 0 else 0.0
+            ),
         }
         return new_ids, metrics
 
@@ -377,7 +430,7 @@ class LlamaInferenceEngine:
         """
         outputs: List[List[int]] = []
         total_tokens = 0.0
-        t_start = time.time()
+        t_start = time.perf_counter()
 
         for i, p_ids in enumerate(batch_prompt_ids):
             seq_seed = None if seed is None else seed + i
@@ -395,7 +448,7 @@ class LlamaInferenceEngine:
             outputs.append(gen_ids)
             total_tokens += m["tokens_generated"]
 
-        t_total = time.time() - t_start
+        t_total = time.perf_counter() - t_start
         batch_metrics = {
             "batch_size": float(len(batch_prompt_ids)),
             "total_tokens_generated": total_tokens,
@@ -435,9 +488,7 @@ class LlamaInferenceEngine:
         return texts, metrics
 
     def close(self) -> None:
-        self.token_embd_view = None
-        self.output_norm_w = None
-        self.output_weight_entry = None
+        self._out_norm_w = None
         if getattr(self, "kv_cache", None) is not None:
             self.kv_cache.close()
         if getattr(self, "streamer", None) is not None:
@@ -467,6 +518,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--offload-kv-cpu", action="store_true", help="Offload KV cache to CPU RAM")
     parser.add_argument("--kv-mmap-dir", default=None, help="Directory for SSD mmap-backed KV cache")
     parser.add_argument("--rope-neox", action="store_true", default=None, help="Use NeoX half-dim RoPE rotation")
+    parser.add_argument("--cache-weights", action="store_true", help="Keep streamed weight pages resident in OS page cache")
     parser.add_argument("--seed", type=int, default=42, help="RNG seed")
     args = parser.parse_args(argv)
 
@@ -476,6 +528,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         offload_kv_to_cpu=args.offload_kv_cpu,
         kv_mmap_dir=args.kv_mmap_dir,
         rope_neox=args.rope_neox,
+        cache_weights=args.cache_weights,
     ) as engine:
         text, metrics = engine.generate(
             prompt=args.prompt,

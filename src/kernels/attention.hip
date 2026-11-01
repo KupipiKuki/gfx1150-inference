@@ -445,6 +445,7 @@ struct DeviceLayerWorkspace {
     half* d_x = nullptr;
     half* d_h = nullptr;
     half* d_normed = nullptr;
+    half* d_normed_h = nullptr;
     half* d_norm_w = nullptr;
     half* d_q = nullptr;
     half* d_q_rot = nullptr;
@@ -456,6 +457,8 @@ struct DeviceLayerWorkspace {
     half* d_up = nullptr;
     half* d_swiglu = nullptr;
     void* d_w = nullptr;
+    hipStream_t stream = nullptr;
+    hipEvent_t copy_done_event = nullptr;
 
     size_t cap_hidden = 0;
     size_t cap_norm_w = 0;
@@ -476,10 +479,17 @@ struct DeviceLayerWorkspace {
         size_t kv_bytes,
         size_t ffn_bytes
     ) {
+        if (!stream) {
+            HIP_CHECK(hipStreamCreate(&stream));
+        }
+        if (!copy_done_event) {
+            HIP_CHECK(hipEventCreateWithFlags(&copy_done_event, hipEventDisableTiming));
+        }
         if (hidden_bytes > cap_hidden) {
             realloc_buf(&d_x, hidden_bytes);
             realloc_buf(&d_h, hidden_bytes);
             realloc_buf(&d_normed, hidden_bytes);
+            realloc_buf(&d_normed_h, hidden_bytes);
             cap_hidden = hidden_bytes;
         }
         if (norm_w_bytes > cap_norm_w) {
@@ -518,6 +528,7 @@ struct DeviceLayerWorkspace {
         if (d_x) (void)hipFree(d_x);
         if (d_h) (void)hipFree(d_h);
         if (d_normed) (void)hipFree(d_normed);
+        if (d_normed_h) (void)hipFree(d_normed_h);
         if (d_norm_w) (void)hipFree(d_norm_w);
         if (d_q) (void)hipFree(d_q);
         if (d_q_rot) (void)hipFree(d_q_rot);
@@ -529,6 +540,8 @@ struct DeviceLayerWorkspace {
         if (d_up) (void)hipFree(d_up);
         if (d_swiglu) (void)hipFree(d_swiglu);
         if (d_w) (void)hipFree(d_w);
+        if (copy_done_event) (void)hipEventDestroy(copy_done_event);
+        if (stream) (void)hipStreamDestroy(stream);
     }
 };
 
@@ -549,6 +562,9 @@ size_t weight_bytes_for_type(int w_type, int N, int K) {
     } else if (w_type == 12) { // GGMLType.Q4_K
         if (K % QK_K != 0) throw std::invalid_argument("K must be divisible by 256 for Q4_K.");
         return static_cast<size_t>(N) * (K / QK_K) * BLOCK_Q4_K_BYTES;
+    } else if (w_type == 14) { // GGMLType.Q6_K
+        if (K % QK_K != 0) throw std::invalid_argument("K must be divisible by 256 for Q6_K.");
+        return static_cast<size_t>(N) * (K / QK_K) * BLOCK_Q6_K_BYTES;
     }
     throw std::invalid_argument("Unsupported ggml_type in device layer pipeline.");
 }
@@ -565,7 +581,9 @@ void project_on_device(
 ) {
     const size_t w_bytes = weight_bytes_for_type(w_type, N, K);
     ws.ensure_weight(w_bytes);
-    HIP_CHECK(hipMemcpy(ws.d_w, h_w, w_bytes, hipMemcpyHostToDevice));
+    HIP_CHECK(hipMemcpyAsync(ws.d_w, h_w, w_bytes, hipMemcpyHostToDevice, ws.stream));
+    HIP_CHECK(hipEventRecord(ws.copy_done_event, ws.stream));
+    HIP_CHECK(hipStreamWaitEvent(0, ws.copy_done_event, 0));
 
     if (w_type == 1) {
         launch_matmul_fp16_nt_device(d_in, ws.d_w, d_out, M, N, K);
@@ -575,6 +593,8 @@ void project_on_device(
         launch_matmul_q8_0_device(d_in, ws.d_w, d_out, M, N, K);
     } else if (w_type == 12) {
         launch_matmul_q4_k_device(d_in, ws.d_w, d_out, M, N, K);
+    } else if (w_type == 14) {
+        launch_matmul_q6_k_device(d_in, ws.d_w, d_out, M, N, K);
     }
 }
 
@@ -618,10 +638,12 @@ void launch_forward_layer_cached_fp16(
     ws.ensure(hidden_bytes, norm_w_bytes, q_bytes, kv_bytes, ffn_bytes);
 
     // 1. Single H2D copy of input hidden states for this layer
-    HIP_CHECK(hipMemcpy(ws.d_x, h_x_in, hidden_bytes, hipMemcpyHostToDevice));
+    HIP_CHECK(hipMemcpyAsync(ws.d_x, h_x_in, hidden_bytes, hipMemcpyHostToDevice, ws.stream));
 
     // 2. Pre-Attention RMSNorm on device
-    HIP_CHECK(hipMemcpy(ws.d_norm_w, h_attn_norm_w, norm_w_bytes, hipMemcpyHostToDevice));
+    HIP_CHECK(hipMemcpyAsync(ws.d_norm_w, h_attn_norm_w, norm_w_bytes, hipMemcpyHostToDevice, ws.stream));
+    HIP_CHECK(hipEventRecord(ws.copy_done_event, ws.stream));
+    HIP_CHECK(hipStreamWaitEvent(0, ws.copy_done_event, 0));
     launch_rmsnorm_fp16_device(ws.d_x, ws.d_norm_w, ws.d_normed, seq_len, hidden_size, rms_norm_eps);
 
     // 3. Q, K, V projections on device
@@ -648,17 +670,19 @@ void launch_forward_layer_cached_fp16(
     // 6. Attention output projection on device (into ws.d_normed as scratch for attn_proj)
     project_on_device(ws.d_attn_out, h_wo, wo_type, ws.d_normed, seq_len, hidden_size, q_dim, ws);
 
-    // 7. Fused First Residual + Pre-FFN RMSNorm on device:
+    // 7. Fused First Residual + Pre-FFN RMSNorm on device (using distinct d_normed_h buffer, N-2):
     //    ws.d_h = half(float(ws.d_x) + float(ws.d_normed))
-    //    ws.d_x = rmsnorm(ws.d_h, ffn_norm_w)
-    HIP_CHECK(hipMemcpy(ws.d_norm_w, h_ffn_norm_w, norm_w_bytes, hipMemcpyHostToDevice));
+    //    ws.d_normed_h = rmsnorm(ws.d_h, ffn_norm_w)
+    HIP_CHECK(hipMemcpyAsync(ws.d_norm_w, h_ffn_norm_w, norm_w_bytes, hipMemcpyHostToDevice, ws.stream));
+    HIP_CHECK(hipEventRecord(ws.copy_done_event, ws.stream));
+    HIP_CHECK(hipStreamWaitEvent(0, ws.copy_done_event, 0));
     launch_rmsnorm_residual_fp16_device(
-        ws.d_x, ws.d_normed, ws.d_norm_w, ws.d_h, ws.d_x, seq_len, hidden_size, rms_norm_eps
+        ws.d_x, ws.d_normed, ws.d_norm_w, ws.d_h, ws.d_normed_h, seq_len, hidden_size, rms_norm_eps
     );
 
     // 8. SwiGLU FFN on device
-    project_on_device(ws.d_x, h_wgate, wgate_type, ws.d_gate, seq_len, intermediate_size, hidden_size, ws);
-    project_on_device(ws.d_x, h_wup, wup_type, ws.d_up, seq_len, intermediate_size, hidden_size, ws);
+    project_on_device(ws.d_normed_h, h_wgate, wgate_type, ws.d_gate, seq_len, intermediate_size, hidden_size, ws);
+    project_on_device(ws.d_normed_h, h_wup, wup_type, ws.d_up, seq_len, intermediate_size, hidden_size, ws);
     launch_swiglu_fp16_device(ws.d_gate, ws.d_up, ws.d_swiglu, seq_len * intermediate_size);
     project_on_device(ws.d_swiglu, h_wdown, wdown_type, ws.d_normed, seq_len, hidden_size, intermediate_size, ws);
 
@@ -666,5 +690,6 @@ void launch_forward_layer_cached_fp16(
     launch_residual_add_fp16_device(ws.d_h, ws.d_normed, ws.d_x, seq_len * hidden_size);
 
     // 10. Single D2H copy of output hidden states for this layer
-    HIP_CHECK(hipMemcpy(h_x_out, ws.d_x, hidden_bytes, hipMemcpyDeviceToHost));
+    HIP_CHECK(hipMemcpyAsync(h_x_out, ws.d_x, hidden_bytes, hipMemcpyDeviceToHost, ws.stream));
+    HIP_CHECK(hipStreamSynchronize(ws.stream));
 }

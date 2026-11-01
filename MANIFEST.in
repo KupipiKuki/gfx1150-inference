@@ -1,0 +1,6 @@
+include CMakeLists.txt
+include LICENSE
+include README.md
+recursive-include src/kernels *.h *.hip
+recursive-include src/python_bindings *.cpp
+

@@ -224,18 +224,33 @@ class GGUFParser:
             )
 
         raw_tensors = []
+        seen_names = set()
         for _ in range(self.tensor_count):
             name = self._read_string()
+            if name in seen_names:
+                raise ValueError(f"Duplicate tensor name in GGUF tensor table: {name!r}")
+            seen_names.add(name)
             (n_dims,) = self._read_fmt("<I")
-            if n_dims > self.MAX_TENSOR_DIMS:
+            if n_dims == 0 or n_dims > self.MAX_TENSOR_DIMS:
                 raise ValueError(
-                    f"Tensor '{name}' has n_dims={n_dims} exceeding maximum {self.MAX_TENSOR_DIMS}"
+                    f"Tensor '{name}' has invalid n_dims={n_dims} (must be in [1, {self.MAX_TENSOR_DIMS}])"
                 )
             dims = tuple(self._read_fmt(f"<{n_dims}Q"))
+            if any(d == 0 for d in dims):
+                raise ValueError(f"Tensor '{name}' has a zero dimension in {dims}")
             ggml_type_id, rel_offset = self._read_fmt("<IQ")
-            ggml_type = GGMLType(ggml_type_id)
+            try:
+                ggml_type = GGMLType(ggml_type_id)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Tensor '{name}' has unknown GGMLType id {ggml_type_id}"
+                ) from exc
+            if ggml_type not in GGML_BLOCK_INFO:
+                raise ValueError(
+                    f"Tensor '{name}' has unsupported GGMLType {ggml_type!r} (no block size info)"
+                )
 
-            n_elements = math.prod(dims) if dims else 0
+            n_elements = math.prod(dims)
             block_elems, block_bytes = GGML_BLOCK_INFO[ggml_type]
             if n_elements % block_elems != 0:
                 raise ValueError(
@@ -483,6 +498,93 @@ def dequantize_q4_k_cpu(q4k_bytes: np.ndarray, num_elements: int) -> np.ndarray:
 
         out[:, chunk * 64 : chunk * 64 + 32] = d0 * q0 - dm0
         out[:, chunk * 64 + 32 : (chunk + 1) * 64] = d1 * q1 - dm1
+
+    return out.reshape(-1).astype(np.float16)
+
+
+def quantize_q6_k_cpu(weights_fp32: np.ndarray) -> np.ndarray:
+    """
+    Reference CPU quantizer: converts a float32/float16 array (multiple of 256 elements)
+    into GGML Q6_K super-block bytes (`n_elements // 256 * 210` bytes).
+
+    Layout of `block_q6_K` (210 bytes per 256 elements):
+    - `ql[128]` (bytes 0..128): lower 4 bits of the 256 6-bit unsigned quants (offset by -32)
+    - `qh[64]`  (bytes 128..192): upper 2 bits of the 256 6-bit unsigned quants
+    - `scales[16]` (bytes 192..208): 16 signed `int8` sub-block scales (16 elements per sub-block)
+    - `d` (bytes 208..210): 2-byte FP16 super-block scale
+    """
+    flat = np.asarray(weights_fp32, dtype=np.float32).reshape(-1, 256)
+    num_sb = flat.shape[0]
+    sub = flat.reshape(num_sb, 16, 16)
+
+    # Sub-block scales for symmetric 6-bit signed range [-32, 31]
+    sub_max = np.max(np.abs(sub), axis=2)  # (num_sb, 16)
+    sc_float = sub_max / 31.0              # (num_sb, 16)
+    d_fp16 = (np.max(sc_float, axis=1) / 127.0).astype(np.float16)
+    d_fp32 = d_fp16.astype(np.float32)[:, None]
+
+    inv_d = np.where(d_fp32 > 0.0, 1.0 / d_fp32, 0.0)
+    sc_i8 = np.clip(np.round(sc_float * inv_d), -127, 127).astype(np.int8)  # (num_sb, 16)
+
+    eff_scale = (d_fp32 * sc_i8.astype(np.float32))[:, :, None]  # (num_sb, 16, 1)
+    inv_eff = np.where(np.abs(eff_scale) > 0.0, 1.0 / eff_scale, 0.0)
+    q_u6 = np.clip(np.round(sub * inv_eff) + 32.0, 0, 63).astype(np.uint8).reshape(num_sb, 256)
+
+    ql = np.empty((num_sb, 128), dtype=np.uint8)
+    qh = np.empty((num_sb, 64), dtype=np.uint8)
+
+    for n in range(2):
+        half_q = q_u6[:, n * 128 : (n + 1) * 128]
+        q1 = half_q[:, 0:32]
+        q2 = half_q[:, 32:64]
+        q3 = half_q[:, 64:96]
+        q4 = half_q[:, 96:128]
+
+        ql[:, n * 64 : n * 64 + 32] = (q1 & 0x0F) | ((q3 & 0x0F) << 4)
+        ql[:, n * 64 + 32 : (n + 1) * 64] = (q2 & 0x0F) | ((q4 & 0x0F) << 4)
+        qh[:, n * 32 : (n + 1) * 32] = (
+            ((q1 >> 4) & 0x03)
+            | (((q2 >> 4) & 0x03) << 2)
+            | (((q3 >> 4) & 0x03) << 4)
+            | (((q4 >> 4) & 0x03) << 6)
+        )
+
+    out = np.empty((num_sb, 210), dtype=np.uint8)
+    out[:, 0:128] = ql
+    out[:, 128:192] = qh
+    out[:, 192:208] = sc_i8.view(np.uint8)
+    out[:, 208:210] = d_fp16.view(np.uint8).reshape(num_sb, 2)
+    return out.reshape(-1)
+
+
+def dequantize_q6_k_cpu(q6k_bytes: np.ndarray, num_elements: int) -> np.ndarray:
+    """Reference CPU dequantizer for GGML Q6_K super-blocks into `np.float16`."""
+    num_sb = num_elements // 256
+    raw = np.frombuffer(q6k_bytes, dtype=np.uint8, count=num_sb * 210).reshape(num_sb, 210)
+    ql = raw[:, 0:128]
+    qh = raw[:, 128:192]
+    scales = raw[:, 192:208].view(np.int8).astype(np.float32)          # (num_sb, 16)
+    d = raw[:, 208:210].copy().view(np.float16).astype(np.float32)     # (num_sb, 1)
+
+    out = np.empty((num_sb, 256), dtype=np.float32)
+    for n in range(2):
+        ql_n = ql[:, n * 64 : (n + 1) * 64]
+        qh_n = qh[:, n * 32 : (n + 1) * 32]
+        sc_n = scales[:, n * 8 : (n + 1) * 8]
+
+        q1 = (((ql_n[:, 0:32]  & 0x0F) | (((qh_n >> 0) & 0x03) << 4)).astype(np.int8) - 32).astype(np.float32)
+        q2 = (((ql_n[:, 32:64] & 0x0F) | (((qh_n >> 2) & 0x03) << 4)).astype(np.int8) - 32).astype(np.float32)
+        q3 = (((ql_n[:, 0:32]  >> 4)   | (((qh_n >> 4) & 0x03) << 4)).astype(np.int8) - 32).astype(np.float32)
+        q4 = (((ql_n[:, 32:64] >> 4)   | (((qh_n >> 6) & 0x03) << 4)).astype(np.int8) - 32).astype(np.float32)
+
+        out[:, n * 128 + 0  : n * 128 + 16]  = d * sc_n[:, 0:1] * q1[:, 0:16]
+        out[:, n * 128 + 16 : n * 128 + 32]  = d * sc_n[:, 1:2] * q1[:, 16:32]
+        out[:, n * 128 + 32 : n * 128 + 48]  = d * sc_n[:, 2:3] * q2[:, 0:16]
+        out[:, n * 128 + 48 : n * 128 + 64]  = d * sc_n[:, 3:4] * q2[:, 16:32]
+        out[:, n * 128 + 64 : n * 128 + 80]  = d * sc_n[:, 4:5] * q3[:, 0:16]
+        out[:, n * 128 + 80 : n * 128 + 96]  = d * sc_n[:, 5:6] * q3[:, 16:32]
+        out[:, n * 128 + 96 : n * 128 + 112] = d * sc_n[:, 6:7] * q4[:, 0:16]
+        out[:, n * 128 + 112: n * 128 + 128] = d * sc_n[:, 7:8] * q4[:, 16:32]
 
     return out.reshape(-1).astype(np.float16)
 

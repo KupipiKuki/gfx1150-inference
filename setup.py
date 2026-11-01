@@ -13,6 +13,7 @@ import glob
 import os
 import shutil
 import subprocess
+import warnings
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
@@ -30,6 +31,12 @@ class CMakeBuild(build_ext):
             return
 
         if os.environ.get("GFX1150_SKIP_CMAKE", "0") == "1":
+            warnings.warn(
+                "GFX1150_SKIP_CMAKE=1 is set: skipping CMake compilation of 'matmul_module'. "
+                "The resulting installation will support CPU-only utilities until built with ROCm.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
             return
 
         if shutil.which("cmake") is None:
@@ -56,29 +63,37 @@ class CMakeBuild(build_ext):
         ext_dir = os.path.dirname(ext_fullpath)
         os.makedirs(ext_dir, exist_ok=True)
 
-        build_dir = os.path.join(ext.sourcedir, "build")
-        os.makedirs(build_dir, exist_ok=True)
+        build_temp = os.path.abspath(getattr(self, "build_temp", os.path.join(ext.sourcedir, "build")))
+        os.makedirs(build_temp, exist_ok=True)
 
         cmake_args = [
             "cmake",
             "-S",
             ext.sourcedir,
             "-B",
-            build_dir,
+            build_temp,
             "-DCMAKE_BUILD_TYPE=Release",
             f"-DROCM_ROOT={rocm_root}",
         ]
 
+        max_jobs = str(min(os.cpu_count() or 4, 8))
         subprocess.check_call(cmake_args)
-        subprocess.check_call(["cmake", "--build", build_dir, "-j"])
+        subprocess.check_call(["cmake", "--build", build_temp, "-j", max_jobs])
 
-        built_candidates = sorted(glob.glob(os.path.join(build_dir, "matmul_module*.so")))
+        built_candidates = sorted(glob.glob(os.path.join(build_temp, "matmul_module*.so")))
         if not built_candidates:
-            raise RuntimeError(f"CMake build succeeded but no matmul_module*.so found in {build_dir}")
+            raise RuntimeError(f"CMake build succeeded but no matmul_module*.so found in {build_temp}")
 
         src_so = built_candidates[0]
         if os.path.abspath(src_so) != ext_fullpath:
             shutil.copy2(src_so, ext_fullpath)
+
+        # Also copy to in-tree build/ directory if present or in editable mode
+        in_tree_build = os.path.join(ext.sourcedir, "build")
+        if os.path.isdir(in_tree_build):
+            dst_in_tree = os.path.join(in_tree_build, os.path.basename(src_so))
+            if os.path.abspath(src_so) != os.path.abspath(dst_in_tree):
+                shutil.copy2(src_so, dst_in_tree)
 
 
 setup(

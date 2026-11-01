@@ -7,7 +7,7 @@ Built with **ROCm, HIP, and memory-mapped I/O (`mmap` + `madvise`)** for overnig
 ---
 
 ## 🚀 **Project Goal**
-Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., Radeon 890M, Ryzen AI 370) by **streaming quantized weights (`Q4_0`, `Q4_K_M`, `Q8_0`) directly from NVMe SSD**, enabling inference on unified-memory hardware without OOM errors.
+Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., Radeon 890M, Ryzen AI 370) by **streaming quantized weights (`Q4_0`, `Q4_K_M` (`Q4_K` + `Q6_K`), `Q8_0`) directly from NVMe SSD**, enabling inference on unified-memory hardware without OOM errors.
 
 **Target Use Case**: Fact-checking and research tasks where **bounded memory footprint and 8-hour runtimes are prioritized**.
 
@@ -83,9 +83,14 @@ gfx1150-infer --model /path/to/model.gguf --prompt "Hello" --max-new-tokens 32
 ---
 
 ## ⚙️ Runtime Modes & Architecture Notes
+- **Weight Residency Policy (`WeightStreamer(cache_weights=...)` / `--cache-weights`)**:
+  - **Default (`cache_weights=False`)**: Issues `MADV_WILLNEED` ahead of layer execution and `MADV_DONTNEED` after layer completion to advise the Linux kernel to reclaim clean file-backed page-cache pages for 70B models that exceed physical RAM.
+  - **`--cache-weights` (`cache_weights=True`)**: Skips `MADV_DONTNEED` eviction so models that fit in unified RAM (e.g. 7B–30B on 32 GB+ APUs) stay warm in the OS page cache across decode tokens.
 - **KV Cache Storage Modes (`KVCacheManager`)**:
-  - **Default (GPU-resident pool)**: Pre-allocates the GQA KV cache in GPU/GTT memory (`kv_cache_init` / `gqa_attention_cached`); only the newly generated `q_len` K/V rows are copied H2D per step (`O(1)` per decode step).
-  - **`--offload-kv-cpu` / `--kv-mmap-dir <dir>`**: Memory-saving modes for ultra-long-context 70B runs. Keeps persistent GPU KV pool usage at `0` bytes by storing the KV cache in host RAM or a disk-backed `mmap` file, trading per-step H2D KV transfer bandwidth (`O(context_len)`) for a minimal GPU memory footprint.
+  - **Default (GPU-resident pool)**: Pre-allocates the GQA KV cache in GPU/GTT memory (`kv_cache_init` / `gqa_attention_cached`); `forward_layer_cached` keeps layer activations on-device and updates K/V via D2D `hipMemcpyAsync`.
+  - **`--offload-kv-cpu` / `--kv-mmap-dir <dir>`**: Memory-saving modes for ultra-long-context 70B runs. Keeps persistent GPU KV pool usage at `0` bytes by storing the KV cache in host RAM or a private (`0600`, `O_NOFOLLOW`) disk-backed `mmap` file, trading per-step H2D KV transfer bandwidth (`O(context_len)`) for a minimal GPU memory footprint.
+- **Tokenizer & Architecture Support**:
+  - Supports both SentencePiece (`▁`) and GPT-2 / Llama-3 / Qwen2 byte-level (`Ġ`, `tokenizer.ggml.merges`) BPE vocabularies, `{arch}.*` GGUF metadata keys (`llama`, `qwen2`, `phi3`, `gemma`), and optional QKV attention biases (`blk.{i}.attn_{q,k,v,output}.bias`).
 - **Sequential Multi-Prompt Batching (`generate_batch`)**: Processes multiple prompts sequentially while reusing the initialized `WeightStreamer` and `KVCacheManager` without re-allocating GPU/mmap resources.
-- **Single-Engine / Single-Threaded Scope**: Kernel device workspaces and `DeviceKVCachePool` use process-wide static buffers; only one active GPU-resident `LlamaInferenceEngine` / `KVCacheManager` instance is permitted per process at a time (enforced at runtime).
-- **RoPE Layout Compatibility**: Supports both GGUF-Llama adjacent-pair rotation (default for `llama`) and NeoX half-dimension rotation (auto-detected from GGUF metadata `llama.rope.neox` / architecture or enabled via `--rope-neox`).
+- **Single-Engine / Thread-Guarded Workspaces**: Kernel device workspaces and `DeviceKVCachePool` use process-wide static buffers guarded by a C++ mutex (`g_hip_workspace_mutex`); only one active GPU-resident `LlamaInferenceEngine` / `KVCacheManager` instance is permitted per process at a time (enforced at runtime).
+- **RoPE Layout Compatibility**: Supports both GGUF-Llama adjacent-pair rotation (default for `llama`) and NeoX half-dimension rotation (auto-detected from GGUF metadata `{arch}.rope.neox` / architecture or enabled via `--rope-neox`).
