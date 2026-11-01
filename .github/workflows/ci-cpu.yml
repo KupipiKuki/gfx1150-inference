@@ -19,8 +19,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install NumPy
-        run: python -m pip install --upgrade pip "numpy>=1.24.0"
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel
 
       - name: Run self-contained CPU test suite (standard mode)
         run: python tests/test_cpu_only.py
