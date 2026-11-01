@@ -1,0 +1,126 @@
+# G0 gate commands — every command run, with exit codes
+# Captured: 2026-11-01T22:36:57Z
+# Commit under test: ea6dbeb1db290bc11d991f7f9940a113fd21efd1
+# Build dir: /tmp/opencode/g0-build  (PYTHONPATH for GPU suites)
+
+### [1] $ git status --porcelain
+--- output (tail) ---
+?? audit/evidence/G0/7.0-baseline/
+--- exit code: 0 ---
+
+### [2] $ python3 tests/test_cpu_only.py
+--- output (tail) ---
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.655s
+
+OK
+--- exit code: 0 ---
+
+### [3] $ python3 -O tests/test_cpu_only.py
+--- output (tail) ---
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.508s
+
+OK
+--- exit code: 0 ---
+
+### [4] $ python3 -m pytest -m not gpu -q
+--- output (tail) ---
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+30 passed, 14 warnings in 2.08s
+--- exit code: 0 ---
+
+### [5] $ python3 tests/test_matmul.py
+--- output (tail) ---
+SUMMARY
+============================================================
+Correctness test: ✅ PASS
+Edge cases test:   ✅ PASS
+
+🎉 All tests passed! Phase 1 complete.
+--- exit code: 0 ---
+
+### [6] $ python3 tests/test_gguf_and_q4.py
+--- output (tail) ---
+  M=1   N=4096 K=4096 | max_err=0.000031 | time=0.48 ms | effective BW=19.9 GB/s | ✅ PASS
+  M=16  N=2048 K=2048 | max_err=0.000061 | time=0.63 ms | effective BW=4.0 GB/s | ✅ PASS
+  M=64  N=1024 K=1024 | max_err=0.000061 | time=0.54 ms | effective BW=1.6 GB/s | ✅ PASS
+
+=================================================================
+🎉 All Phase 2 tests passed!
+--- exit code: 0 ---
+
+### [7] $ python3 tests/test_layer.py
+--- output (tail) ---
+  Streamed Layer Prefill (4 tokens) max_err: 0.002930
+  Streamed Layer Decode  (1 token)  max_err: 0.001953
+✅ PASS: End-to-end streamed TransformerLayer matches CPU reference for both prefill and decode
+
+====================================================================
+🎉 All Phase 3 tests passed!
+--- exit code: 0 ---
+
+### [8] $ python3 tests/test_full_model.py
+--- output (tail) ---
+  Generated 10 tokens: 't ROCmt cr is gfx1150 ROCmD'
+  Throughput: 852.0 tok/s (decode: 864.1 tok/s)
+✅ PASS: Full-model prefill, cached decode, and token generation verified
+
+======================================================================
+🎉 All Phase 4 tests passed!
+--- exit code: 0 ---
+
+### [9] $ python3 tests/test_phase5_scale.py
+--- output (tail) ---
+--- Testing v0.6.1 Q6_K Kernels, Qwen2/GPT-2 BPE Mixed Q4_K_M & Bindings Guards ---
+  [dequantize_q6_k] max_abs_diff=0.000000e+00
+  [matmul_q6_k] M=1, 4, 7 verified (TILE_M=4 bit-identical to M=1 wave)
+  [S-2 / N-4 Bindings Guards] int16, read-only output, strided quant buffer, and 1D B_nt rejected
+  [Qwen2 + Q6_K/Q4_K_M + QKV Bias + GPT-2 BPE] generated 3 tokens (' orlr')
+=== All Phase 5 & v0.6.1 Tests Passed! ===
+--- exit code: 0 ---
+
+### [10] $ python3 setup.py sdist
+--- output (tail) ---
+copying tests/test_layer.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_matmul.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_phase5_scale.py -> gfx1150_inference-0.6.1/tests
+Writing gfx1150_inference-0.6.1/setup.cfg
+Creating tar archive
+removing 'gfx1150_inference-0.6.1' (and everything under it)
+--- exit code: 0 ---
+
+### [11] $ ls -l dist/ && sha256sum dist/*.tar.gz
+total 112
+-rw-rw-r-- 1 kupipi kupipi 113231 Nov  1 17:37 gfx1150_inference-0.6.1.tar.gz
+015bf7b4f61af0de03f4ba218ea4bc15e5d4dfb828423284d8d973062a1978de  dist/gfx1150_inference-0.6.1.tar.gz
+--- exit code: 0 ---
+
+### [12] $ pip install --no-build-isolation dist/*.tar.gz   (clean venv, full HIP build)
+--- performed; see sdist-install.log ---
+--- exit code: 0 ---
+
+### [13] $ GFX1150_SKIP_CMAKE=1 pip install --no-build-isolation dist/*.tar.gz   (clean venv)
+--- performed; see sdist-install.log ---
+--- exit code: 0 ---
+
+### [14] $ python scripts/qa/check_claims.py
+--- NOT RUN: scripts/qa/check_claims.py does not exist at baseline (lands in 7A-6) ---
+--- manual ledger review performed instead; see claims-check.log ---
+
+### [15] $ python -c 'import yaml; yaml.safe_load(open(".github/workflows/ci-gpu.yml"))'
+--- NOT RUN: ci-gpu.yml does not exist at baseline (lands in 7A-7) ---
+--- existing workflow is .github/workflows/ci-cpu.yml (CPU only) ---
+
+=== SUMMARY ===
+  commands run: 15   (of which 2 are N/A at baseline by phase design)
+  non-zero exits: 0
+  cpu-suite.log, gpu-suite.log, build.log, sdist-install.log hold the full logs.

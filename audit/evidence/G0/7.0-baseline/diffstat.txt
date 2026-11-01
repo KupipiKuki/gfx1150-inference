@@ -1,0 +1,2 @@
+# G0 diffstat — placeholder; regenerated in the metadata follow-up commit
+# (the candidate SHA cannot be recorded inside the commit it names).
