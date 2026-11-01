@@ -27,8 +27,8 @@ adfb97c / 64b8a8d / 797076c / c75914b / 986d033 / f0b54e4  v0.6.x remediation + 
   └─ 8038012  Fix CPU CI: install setuptools+wheel so test_v8 can build the sdist
      └─ 7cd9519  Reorganize audit reports into audit/
         └─ 9b2deb0  Deepseek Audit files added             <- audit baseline named in handoff §header
-           └─ ead5f3f  DeepSeek review and phase7 implementation handoff
-              └─ cca793e  revised documentation per QAQC comments   <- setup.py pybind11 fix
+           └─ ead5f3f  DeepSeek review and phase7 implementation handoff   <- setup.py pybind11 fix
+              └─ cca793e  revised documentation per QAQC comments
                  └─ 089ed8e  Merge PR #7 (vibe/audit-remediation-220201; second parent = cca793e)
                     └─ ea6dbeb  Scaffold audit/evidence/G0 baseline bundle  <- PARENT (tree under test)
                        └─ 04e47dc  7.0 G0 evidence bundle + ledger corrections  <- candidate
@@ -86,8 +86,9 @@ CMake Error at CMakeLists.txt:17 (find_package):
 ```
 
 `CMakeLists.txt:17` calls `find_package(pybind11 REQUIRED)` but never points CMake at
-pybind11's config directory. The `setup.py` path works only because `setup.py` (added in
-`cca793e`) explicitly passes `-Dpybind11_DIR=<site-packages>/pybind11/share/cmake/pybind11`.
+pybind11's config directory. The `setup.py` path works only because the `pybind11_DIR`
+block (added in `ead5f3f`) explicitly passes
+`-Dpybind11_DIR=<site-packages>/pybind11/share/cmake/pybind11`.
 The in-tree `build/` directory in this working copy had a cached `pybind11_DIR` from an
 earlier run, which masked the problem — exactly the failure mode B-3 describes.
 
@@ -95,12 +96,13 @@ earlier run, which masked the problem — exactly the failure mode B-3 describes
 changes. Both attempts are recorded in `build.log` (Attempt 1 = documented command, fails;
 Attempt 2 = with `pybind11_DIR`, succeeds and produces a 592 KB `matmul_module.so`).
 
-**Action:** carry to **7A-5** (packaging/CI package, which owns `setup.py`/`pyproject.toml`
-and the sdist-install CI job). Either `CMakeLists.txt` gains a pybind11 discovery step, or
-the README build command is corrected to match what actually works. Until then, **the
-README's build instructions do not work on a clean checkout** — a first-time user following
-the README will hit the error. This is a documentation defect in a public claim surface and
-should be treated as a release blocker for the README, independent of the audit ID.
+**Action:** carry to **7A-8** (clean-clone build entry point, which owns
+`CMakeLists.txt` and the README build section): either `CMakeLists.txt` gains a pybind11
+discovery step, or the README build command is corrected to match what actually works,
+with a fresh-clone CI test. Until then, **the README's build instructions do not work on a
+clean checkout** — a first-time user following the README will hit the error. This is a
+documentation defect in a public claim surface and should be treated as a release blocker
+for the README, independent of the audit ID.
 
 ---
 
@@ -251,7 +253,7 @@ there is no parent/candidate red→green pair. This is the one deviation from th
 
 | ID | Defect | Where it lives now | Owner |
 |---|---|---|---|
-| B-3 | Documented `cmake -B build` fails on a clean tree (pybind11 not found) | `CMakeLists.txt:17`, README build section | 7A-5 |
+| B-3 | Documented `cmake -B build` fails on a clean tree (pybind11 not found) | `CMakeLists.txt:17`, README build section | 7A-8 |
 | — | `pyproject.toml` version `0.6.1` vs release line `v0.6.2`→`v0.7.0` | `pyproject.toml` | 7G |
 | — | Four published performance figures do not reproduce | `IMPLEMENTATION_PLAN.md` L45/L53/L81/L178/L209/L261 | 7F-3 |
 | — | README L107 "Supports … Qwen2 …" reads as a support claim | `README.md` | 7B/7C |

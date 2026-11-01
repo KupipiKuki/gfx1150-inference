@@ -34,7 +34,7 @@ the artifact (`cpu-suite.log`, `gpu-suite.log`).
 
 | ID | Condition | Owner | Target |
 |---|---|---|---|
-| C-1 | README's documented `cmake -B build` fails on a clean tree (audit B-3) | 7A-5 | G1 |
+| C-1 | README's documented `cmake -B build` fails on a clean tree (audit B-3) | 7A-8 | G1 |
 | C-2 | Four published performance figures do not reproduce (1.12 TFLOPS, 983.4 tok/s, 0.50 ms, 2.76 ms) | 7F-3 | G6 |
 
 QAQC conditions from the independent re-run (`7.0-baseline/qaqc-probes/qaqc-report.md`):

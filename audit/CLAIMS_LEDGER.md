@@ -18,11 +18,11 @@ Every public claim about capability, correctness, or performance must appear her
 | 3 | GPU kernel/layer/E2E suites pass | **VERIFIED** | `GPU` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log` | gfx1150, ROCm 10.1; all five suites exit 0 (synthetic models) |
 | 4 | `Q4_0`/`Q4_K`/`Q8_0` kernels match reference | **VERIFIED** | `llama-family` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log`, `tests/test_gguf_and_q4.py`, `tests/test_phase5_scale.py` | synthetic data; tolerance as tested (max err ≤ `6.1e-5`) |
 | 5 | `Q6_K` tensor support (CPU + kernels) | **VERIFIED** | `Q6_K` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log`, `tests/test_phase5_scale.py` | synthetic; real-GGUF Q6_K golden pending (7F-2). CPU path is `dequantize_q6_k_cpu` in `src/gguf_parser.py` |
-| 6 | Real `Q4_K_M` GGUF end-to-end | **PARTIAL** | `Q4_K_M` | **yes** — README §Runtime Modes: "Verified release scope: text-only llama-family `Q4_0` / `Q4_K` / `Q8_0`" | `audit/evidence/G0/7.0-baseline/gpu-suite.log` (recipe tensor types wired) | all recipe tensor types wired; **no real GGUF fixture or logit golden yet**. README L10 also lists `Q4_K_M` in the goal statement without a qualifier — see baseline entry |
+| 6 | Real `Q4_K_M` GGUF end-to-end | **PARTIAL** | `Q4_K_M` | **no** — README L10 lists `Q4_K_M` in the goal sentence unqualified; L108 scopes the verified release to `Q4_0`/`Q4_K`/`Q8_0`. Baseline entry required until 7C-4. | `audit/evidence/G0/7.0-baseline/gpu-suite.log` (recipe tensor types wired) | all recipe tensor types wired; **no real GGUF fixture or logit golden yet**. See baseline entry `6 README.md Q4_K_M` |
 | 7 | GPT-2 byte-level `Ġ` plain-text tokenization | **VERIFIED** | `GPT-2` | n/a | `tests/test_cpu_only.py` V-6, `audit/VERIFICATION_2026-11-01.md` §4 | plain text, multibyte, double spaces only; **not** special tokens (see ID 8) |
 | 8 | Chat special tokens (e.g. `im_start`) | **NOT YET** | `chat special-token encoding` | **yes** — README: "chat special-token encoding and `add_bos_token` are not implemented" | 7B-1 | not implemented; encode emits byte tokens. README qualifies it inline; the literal `<im_start>` itself does not appear in README/PLAN |
 | 9 | `tokenizer.ggml.add_bos_token` respected | **NOT YET** | `add_bos_token` | **yes** — README: "`add_bos_token` are not implemented" | 7B-2 | `generate()` currently hardcodes `add_bos=True`. PLAN L241 lists it as planned 7B work (a task description, not a capability claim) |
-| 10 | Qwen2 support | **NOT YET** | `qwen2` | **yes** — README: "Metadata for `qwen2`/`phi3`/`gemma` resolves, but those families are **not** yet fully supported" | 7B/7C | metadata only; chat/BOS correctness open. **README L107 still says "Supports … GPT-2 / Llama-3 / Qwen2 byte-level … BPE vocabularies"** — reads as a support claim; see baseline entry |
+| 10 | Qwen2 support | **NOT YET** | `qwen2` | **no** — README L107 says "Supports … GPT-2 / Llama-3 / Qwen2 byte-level … BPE vocabularies" in one bullet; the L108 qualification is in the next bullet, which violates the same-bullet rule. Baseline entry required until 7B/7C. | 7B/7C | metadata only; chat/BOS correctness open. See baseline entry `10 README.md qwen2` |
 | 11 | Phi-3 support | **NOT YET** | `phi3` | **yes** — same README bullet as ID 10 | 7C-2 | metadata only; fused `attn_qkv` missing |
 | 12 | Gemma support | **NOT YET** | `gemma` | **yes** — same README bullet as ID 10 | 7C-3 | metadata only; embedding scale, soft-cap, `key_length` missing |
 | 13 | 983 tok/s / 4.4× E2E speedup | **UNVERIFIED** | `983` | **partial** — PLAN L266 qualifies ("983.4 tok/s synthetic E2E, owner-verified"); **PLAN L209 is unqualified** | 7F-3 | synthetic 2-layer; G0 measured `849.3 tok/s` (decode `866.5`) — does not reproduce 983. Must be re-recorded or removed by G6 |
@@ -64,7 +64,7 @@ The seeded ledger was reviewed line-by-line against the live `README.md` and
    qualification as a quoted phrase that does not exist in the README. The README does
    qualify these claims inline, in a different wording — the flag and the quoted text now
    match the actual prose.
-4. **Twelve uncovered public claims added (IDs 18–30).** The seeded ledger covered 17
+4. **Thirteen uncovered public claims added (IDs 18–30).** The seeded ledger covered 17
    rows; a systematic scan of every assertive statement in README and PLAN found 13
    additional public claims with no ledger row. These include the 7B–70B scope, the
    8-hour runtime, the Active RAM Cap table, all four stale performance figures, and the
@@ -93,8 +93,8 @@ The `phi3`/`gemma` bullet was qualified inline on 2026-11-01 (metadata-only supp
 ### G0 additions to the ratchet
 
 The G0 review found two additional unqualified public claims that the seeded baseline did
-not cover. They are recorded here so 7A-6 can add them to `audit/claims_baseline.txt`
-(the file is owned by 7A-6; 7.0 records the requirement, 7A-6 lands the entries):
+not cover. The auditor reclassified them to `Qualified in place? = no` and seeded them in
+`audit/claims_baseline.txt`; 7A-6 verifies and maintains that baseline:
 
 | Claim ID | Path | Literal | Why it is tolerated until G6 | Target |
 |---|---|---|---|---|
@@ -106,5 +106,6 @@ Both are cheap to fix in README wording and should be **removed from the baselin
 correct. IDs 13, 14, 18, 19, 20, 26, 27, 28, 29, 30 are likewise candidates for cheap
 inline qualification; the handoff's ratchet rule (`check_claims.py` default mode tolerates
 only exact baseline entries) means each one must either be qualified in place or appear in
-`audit/claims_baseline.txt`. `7A-6` must build that baseline from this list, and QAQC must
-reject any entry that hides a claim which could be fixed cheaply.
+`audit/claims_baseline.txt`. The auditor seeded those entries (15 exact lines, including
+both files for multi-path claims); 7A-6 must verify them and reject any entry that hides a
+claim which could be fixed cheaply.
