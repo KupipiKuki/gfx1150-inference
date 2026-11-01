@@ -59,6 +59,29 @@ struct SwiGLUWorkspace {
 
 } // namespace
 
+void launch_swiglu_fp16_device(
+    const void* d_gate,
+    const void* d_up,
+    void* d_out,
+    int num_elements
+) {
+    const int threads = 256;
+    const int blocks = (num_elements + threads - 1) / threads;
+
+    hipLaunchKernelGGL(
+        swiglu_kernel,
+        dim3(blocks),
+        dim3(threads),
+        0,
+        0,
+        static_cast<const half*>(d_gate),
+        static_cast<const half*>(d_up),
+        static_cast<half*>(d_out),
+        num_elements
+    );
+    HIP_CHECK(hipGetLastError());
+}
+
 void launch_swiglu_fp16(
     const void* h_gate,
     const void* h_up,
@@ -72,21 +95,7 @@ void launch_swiglu_fp16(
     HIP_CHECK(hipMemcpy(ws.d_gate, h_gate, bytes, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(ws.d_up, h_up, bytes, hipMemcpyHostToDevice));
 
-    const int threads = 256;
-    const int blocks = (num_elements + threads - 1) / threads;
-
-    hipLaunchKernelGGL(
-        swiglu_kernel,
-        dim3(blocks),
-        dim3(threads),
-        0,
-        0,
-        ws.d_gate,
-        ws.d_up,
-        ws.d_out,
-        num_elements
-    );
-    HIP_CHECK(hipGetLastError());
+    launch_swiglu_fp16_device(ws.d_gate, ws.d_up, ws.d_out, num_elements);
 
     HIP_CHECK(hipMemcpy(h_out, ws.d_out, bytes, hipMemcpyDeviceToHost));
 }

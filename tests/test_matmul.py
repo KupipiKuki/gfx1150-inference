@@ -121,6 +121,26 @@ def test_edge_cases():
             print(f"❌ FAIL (max_error={max_error:.6f})")
             all_passed = False
 
+        # Also test matmul_nt (native GGUF N x K layout without host transpose)
+        B_nt = np.ascontiguousarray(B_np.T)
+        C_nt = np.zeros((M, N), dtype=np.float16)
+        matmul_module.matmul_nt(A_np, B_nt, C_nt, M, N, K)
+        nt_err = float(np.abs(C_nt.astype(np.float32) - C_ref.astype(np.float32)).max())
+        if nt_err >= 1e-2:
+            print(f"❌ FAIL matmul_nt (max_error={nt_err:.6f})")
+            all_passed = False
+
+    # Validate matmul_nt rejects swapped 2D B_nt shape (K, N) when K != N
+    A_rect = _make_random_fp16(8, 64, seed=201)
+    B_wrong = _make_random_fp16(64, 32, seed=202)  # (K=64, N=32) instead of (N=32, K=64)
+    C_rect = np.zeros((8, 32), dtype=np.float16)
+    try:
+        matmul_module.matmul_nt(A_rect, B_wrong, C_rect, 8, 32, 64)
+        print("❌ FAIL: matmul_nt did not reject swapped (K, N) B_nt shape")
+        all_passed = False
+    except ValueError:
+        print("\n✅ PASS: matmul_nt rejected swapped (K, N) B_nt shape")
+
     return all_passed
 
 

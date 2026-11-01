@@ -16,28 +16,7 @@
 
 constexpr int BLOCK_SIZE = 16;
 
-// Naive FP16 matrix multiplication kernel (reference) with FP32 accumulation
-__global__ void matmul_kernel(
-    const half* __restrict__ A,
-    const half* __restrict__ B,
-    half* __restrict__ C,
-    const int M,
-    const int N,
-    const int K
-) {
-    const int row = blockIdx.y * blockDim.y + threadIdx.y;
-    const int col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (row >= M || col >= N) return;
-
-    float sum = 0.0f;
-    for (int k = 0; k < K; ++k) {
-        sum += __half2float(A[row * K + k]) * __half2float(B[k * N + col]);
-    }
-    C[row * N + col] = __float2half(sum);
-}
-
-// 16x16 shared-memory tiled FP16 kernel for small/edge-case matrices
+// 16x16 shared-memory tiled FP16 kernel for small/edge-case matrices: C(M,N) = A(M,K) * B(K,N)
 __global__ void matmul_kernel_tiled(
     const half* __restrict__ A,
     const half* __restrict__ B,
@@ -60,10 +39,14 @@ __global__ void matmul_kernel_tiled(
 
     for (int t = 0; t < num_tiles; ++t) {
         const int a_col = t * BLOCK_SIZE + tx;
-        As[ty][tx] = (row < M && a_col < K) ? __half2float(A[row * K + a_col]) : 0.0f;
+        As[ty][tx] = (row < M && a_col < K)
+            ? __half2float(A[static_cast<size_t>(row) * K + a_col])
+            : 0.0f;
 
         const int b_row = t * BLOCK_SIZE + ty;
-        Bs[ty][tx] = (b_row < K && col < N) ? __half2float(B[b_row * N + col]) : 0.0f;
+        Bs[ty][tx] = (b_row < K && col < N)
+            ? __half2float(B[static_cast<size_t>(b_row) * N + col])
+            : 0.0f;
 
         __syncthreads();
 
@@ -76,7 +59,53 @@ __global__ void matmul_kernel_tiled(
     }
 
     if (row < M && col < N) {
-        C[row * N + col] = __float2half(sum);
+        C[static_cast<size_t>(row) * N + col] = __float2half(sum);
+    }
+}
+
+// 16x16 shared-memory tiled FP16 NT kernel: C(M,N) = A(M,K) * B_nt(N,K)^T
+__global__ void matmul_nt_kernel_tiled(
+    const half* __restrict__ A,
+    const half* __restrict__ B_nt,
+    half* __restrict__ C,
+    const int M,
+    const int N,
+    const int K
+) {
+    const int tx = threadIdx.x;
+    const int ty = threadIdx.y;
+    const int row = blockIdx.y * BLOCK_SIZE + ty;
+    const int col = blockIdx.x * BLOCK_SIZE + tx;
+
+    __shared__ float As[BLOCK_SIZE][BLOCK_SIZE + 1];
+    __shared__ float Bs[BLOCK_SIZE][BLOCK_SIZE + 1];
+
+    float sum = 0.0f;
+    const int num_tiles = (K + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+    for (int t = 0; t < num_tiles; ++t) {
+        const int a_col = t * BLOCK_SIZE + tx;
+        As[ty][tx] = (row < M && a_col < K)
+            ? __half2float(A[static_cast<size_t>(row) * K + a_col])
+            : 0.0f;
+
+        const int b_k = t * BLOCK_SIZE + ty;
+        Bs[ty][tx] = (col < N && b_k < K)
+            ? __half2float(B_nt[static_cast<size_t>(col) * K + b_k])
+            : 0.0f;
+
+        __syncthreads();
+
+        #pragma unroll
+        for (int i = 0; i < BLOCK_SIZE; ++i) {
+            sum += As[ty][i] * Bs[i][tx];
+        }
+
+        __syncthreads();
+    }
+
+    if (row < M && col < N) {
+        C[static_cast<size_t>(row) * N + col] = __float2half(sum);
     }
 }
 
@@ -109,8 +138,6 @@ __global__ __launch_bounds__(256) void matmul_kernel_reg_tiled(
 
     float acc[TM][TN] = {{0.0f}};
 
-    // 256 threads load 64x16 = 1024 elements of A (4 elements per thread)
-    // and 16x64 = 1024 elements of B (4 elements per thread)
     const int a_tile_row = tid / 4;       // 0..63
     const int a_tile_col = (tid % 4) * 4; // 0, 4, 8, 12
 
@@ -128,11 +155,15 @@ __global__ __launch_bounds__(256) void matmul_kernel_reg_tiled(
         for (int i = 0; i < 4; ++i) {
             const int g_a_col = k_base + a_tile_col + i;
             As[a_tile_row][a_tile_col + i] =
-                (g_a_row < M && g_a_col < K) ? __half2float(A[g_a_row * K + g_a_col]) : 0.0f;
+                (g_a_row < M && g_a_col < K)
+                    ? __half2float(A[static_cast<size_t>(g_a_row) * K + g_a_col])
+                    : 0.0f;
 
             const int g_b_col = block_col + b_tile_col + i;
             Bs[b_tile_row][b_tile_col + i] =
-                (g_b_row < K && g_b_col < N) ? __half2float(B[g_b_row * N + g_b_col]) : 0.0f;
+                (g_b_row < K && g_b_col < N)
+                    ? __half2float(B[static_cast<size_t>(g_b_row) * N + g_b_col])
+                    : 0.0f;
         }
 
         __syncthreads();
@@ -169,7 +200,94 @@ __global__ __launch_bounds__(256) void matmul_kernel_reg_tiled(
             for (int n = 0; n < TN; ++n) {
                 const int col = block_col + tx * TN + n;
                 if (col < N) {
-                    C[row * N + col] = __float2half(acc[m][n]);
+                    C[static_cast<size_t>(row) * N + col] = __float2half(acc[m][n]);
+                }
+            }
+        }
+    }
+}
+
+// 2D register-blocked tiled NT kernel: C(M,N) = A(M,K) * B_nt(N,K)^T
+__global__ __launch_bounds__(256) void matmul_nt_kernel_reg_tiled(
+    const half* __restrict__ A,
+    const half* __restrict__ B_nt,
+    half* __restrict__ C,
+    const int M,
+    const int N,
+    const int K
+) {
+    const int tx = threadIdx.x; // 0..15
+    const int ty = threadIdx.y; // 0..15
+    const int tid = ty * 16 + tx; // 0..255
+
+    const int block_row = blockIdx.y * BM;
+    const int block_col = blockIdx.x * BN;
+
+    __shared__ float As[BM][BK + 1];
+    __shared__ float Bs[BK][BN + 1];
+
+    float acc[TM][TN] = {{0.0f}};
+
+    // Both A (M x K) and B_nt (N x K) are K-contiguous row-major; 256 threads load 64x16 tiles
+    const int tile_row = tid / 4;       // 0..63 (row of A or row of B_nt)
+    const int tile_col = (tid % 4) * 4; // 0, 4, 8, 12 along K
+
+    const int num_tiles = (K + BK - 1) / BK;
+
+    for (int t = 0; t < num_tiles; ++t) {
+        const int k_base = t * BK;
+        const int g_a_row = block_row + tile_row;
+        const int g_b_col = block_col + tile_row;
+
+        #pragma unroll
+        for (int i = 0; i < 4; ++i) {
+            const int g_k = k_base + tile_col + i;
+            As[tile_row][tile_col + i] =
+                (g_a_row < M && g_k < K)
+                    ? __half2float(A[static_cast<size_t>(g_a_row) * K + g_k])
+                    : 0.0f;
+
+            Bs[tile_col + i][tile_row] =
+                (g_b_col < N && g_k < K)
+                    ? __half2float(B_nt[static_cast<size_t>(g_b_col) * K + g_k])
+                    : 0.0f;
+        }
+
+        __syncthreads();
+
+        #pragma unroll
+        for (int k = 0; k < BK; ++k) {
+            float a_reg[TM];
+            float b_reg[TN];
+            #pragma unroll
+            for (int m = 0; m < TM; ++m) {
+                a_reg[m] = As[ty * TM + m][k];
+            }
+            #pragma unroll
+            for (int n = 0; n < TN; ++n) {
+                b_reg[n] = Bs[k][tx * TN + n];
+            }
+            #pragma unroll
+            for (int m = 0; m < TM; ++m) {
+                #pragma unroll
+                for (int n = 0; n < TN; ++n) {
+                    acc[m][n] += a_reg[m] * b_reg[n];
+                }
+            }
+        }
+
+        __syncthreads();
+    }
+
+    #pragma unroll
+    for (int m = 0; m < TM; ++m) {
+        const int row = block_row + ty * TM + m;
+        if (row < M) {
+            #pragma unroll
+            for (int n = 0; n < TN; ++n) {
+                const int col = block_col + tx * TN + n;
+                if (col < N) {
+                    C[static_cast<size_t>(row) * N + col] = __float2half(acc[m][n]);
                 }
             }
         }
@@ -212,6 +330,11 @@ struct DeviceWorkspace {
     }
 };
 
+DeviceWorkspace& get_matmul_ws() {
+    static DeviceWorkspace ws;
+    return ws;
+}
+
 } // namespace
 
 void launch_matmul_fp16(
@@ -222,7 +345,7 @@ void launch_matmul_fp16(
     int N,
     int K
 ) {
-    static DeviceWorkspace ws;
+    auto& ws = get_matmul_ws();
 
     const size_t size_A = static_cast<size_t>(M) * K * sizeof(half);
     const size_t size_B = static_cast<size_t>(K) * N * sizeof(half);
@@ -268,6 +391,73 @@ void launch_matmul_fp16(
     }
     HIP_CHECK(hipGetLastError());
 
-    // hipMemcpy DeviceToHost implicitly synchronizes the default stream
+    HIP_CHECK(hipMemcpy(h_C, ws.d_C, size_C, hipMemcpyDeviceToHost));
+}
+
+void launch_matmul_fp16_nt_device(
+    const void* d_A,
+    const void* d_B_nt,
+    void* d_C,
+    int M,
+    int N,
+    int K
+) {
+    dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
+
+    if (M >= 64 && N >= 64) {
+        dim3 gridDim((N + BN - 1) / BN, (M + BM - 1) / BM);
+        hipLaunchKernelGGL(
+            matmul_nt_kernel_reg_tiled,
+            gridDim,
+            blockDim,
+            0,
+            0,
+            static_cast<const half*>(d_A),
+            static_cast<const half*>(d_B_nt),
+            static_cast<half*>(d_C),
+            M,
+            N,
+            K
+        );
+    } else {
+        dim3 gridDim((N + BLOCK_SIZE - 1) / BLOCK_SIZE, (M + BLOCK_SIZE - 1) / BLOCK_SIZE);
+        hipLaunchKernelGGL(
+            matmul_nt_kernel_tiled,
+            gridDim,
+            blockDim,
+            0,
+            0,
+            static_cast<const half*>(d_A),
+            static_cast<const half*>(d_B_nt),
+            static_cast<half*>(d_C),
+            M,
+            N,
+            K
+        );
+    }
+    HIP_CHECK(hipGetLastError());
+}
+
+void launch_matmul_fp16_nt(
+    const void* h_A,
+    const void* h_B_nt,
+    void* h_C,
+    int M,
+    int N,
+    int K
+) {
+    auto& ws = get_matmul_ws();
+
+    const size_t size_A = static_cast<size_t>(M) * K * sizeof(half);
+    const size_t size_B = static_cast<size_t>(N) * K * sizeof(half);
+    const size_t size_C = static_cast<size_t>(M) * N * sizeof(half);
+
+    ws.ensure(size_A, size_B, size_C);
+
+    HIP_CHECK(hipMemcpy(ws.d_A, h_A, size_A, hipMemcpyHostToDevice));
+    HIP_CHECK(hipMemcpy(ws.d_B, h_B_nt, size_B, hipMemcpyHostToDevice));
+
+    launch_matmul_fp16_nt_device(ws.d_A, ws.d_B, ws.d_C, M, N, K);
+
     HIP_CHECK(hipMemcpy(h_C, ws.d_C, size_C, hipMemcpyDeviceToHost));
 }

@@ -17,9 +17,8 @@ import numpy as np
 
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 _BUILD_DIR = os.path.abspath(os.path.join(_SRC_DIR, "..", "build"))
-for _p in (_SRC_DIR, _BUILD_DIR):
-    if _p not in sys.path and os.path.isdir(_p):
-        sys.path.insert(0, _p)
+if _SRC_DIR not in sys.path:
+    sys.path.append(_SRC_DIR)
 
 from gguf_parser import GGMLType, GGUFTensorInfo
 from weight_loader import WeightStreamer
@@ -27,15 +26,32 @@ from kv_cache import KVCacheManager
 
 try:
     import matmul_module
-except ImportError as exc:
-    raise ImportError(
-        "Failed to import 'matmul_module' HIP extension. Build it first with:\n"
-        "  cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\n"
-        "or install the package via 'pip install -e . --no-build-isolation'."
-    ) from exc
+except ImportError:
+    if _BUILD_DIR not in sys.path and os.path.isdir(_BUILD_DIR):
+        sys.path.append(_BUILD_DIR)
+    try:
+        import matmul_module
+    except ImportError as exc:
+        raise ImportError(
+            "Failed to import 'matmul_module' HIP extension. Build it first with:\n"
+            "  cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\n"
+            "or install the package via 'pip install -e . --no-build-isolation'."
+        ) from exc
 
 
 _NEOX_ROPE_ARCHS = frozenset({"qwen2", "stablelm", "falcon", "gptneox", "phi2", "phi3", "starcoder2"})
+
+
+def _get_arch_meta(metadata: Dict[str, object], arch: str, suffix: str, default: object = None) -> object:
+    arch_key = f"{arch}.{suffix}"
+    if arch_key in metadata:
+        return metadata[arch_key]
+    llama_key = f"llama.{suffix}"
+    if llama_key in metadata:
+        return metadata[llama_key]
+    if default is not None:
+        return default
+    raise KeyError(f"Missing required GGUF metadata key '{arch_key}' (or '{llama_key}')")
 
 
 @dataclass(frozen=True)
@@ -55,19 +71,22 @@ class LlamaLayerConfig:
         metadata: Dict[str, object],
         rope_neox: Optional[bool] = None,
     ) -> "LlamaLayerConfig":
-        hidden_size = int(metadata["llama.embedding_length"])
-        intermediate_size = int(metadata["llama.feed_forward_length"])
-        num_heads = int(metadata["llama.attention.head_count"])
-        num_kv_heads = int(metadata.get("llama.attention.head_count_kv", num_heads))
-        head_dim = int(metadata.get("llama.rope.dimension_count", hidden_size // num_heads))
-        rms_norm_eps = float(metadata.get("llama.attention.layer_norm_rms_epsilon", 1e-5))
-        rope_freq_base = float(metadata.get("llama.rope.freq_base", 10000.0))
+        arch = str(metadata.get("general.architecture", "llama")).lower()
+        hidden_size = int(_get_arch_meta(metadata, arch, "embedding_length"))
+        intermediate_size = int(_get_arch_meta(metadata, arch, "feed_forward_length"))
+        num_heads = int(_get_arch_meta(metadata, arch, "attention.head_count"))
+        num_kv_heads = int(_get_arch_meta(metadata, arch, "attention.head_count_kv", num_heads))
+        head_dim = int(_get_arch_meta(metadata, arch, "rope.dimension_count", hidden_size // num_heads))
+        rms_norm_eps = float(_get_arch_meta(metadata, arch, "attention.layer_norm_rms_epsilon", 1e-5))
+        rope_freq_base = float(_get_arch_meta(metadata, arch, "rope.freq_base", 10000.0))
 
         if rope_neox is None:
-            if "llama.rope.neox" in metadata:
+            neox_key = f"{arch}.rope.neox"
+            if neox_key in metadata:
+                rope_neox = bool(metadata[neox_key])
+            elif "llama.rope.neox" in metadata:
                 rope_neox = bool(metadata["llama.rope.neox"])
             else:
-                arch = str(metadata.get("general.architecture", "llama")).lower()
                 rope_neox = arch in _NEOX_ROPE_ARCHS
 
         return cls(
@@ -82,6 +101,29 @@ class LlamaLayerConfig:
         )
 
 
+def _prepare_weight_for_device(
+    weight_entry: Tuple[GGUFTensorInfo, np.ndarray],
+    out_features: int,
+    in_features: int,
+) -> Tuple[np.ndarray, int]:
+    """
+    Prepare a GGUF weight buffer and its effective GGMLType int for device execution.
+    F32 weights are converted to contiguous (N, K) FP16 without transposing.
+    """
+    info, w_view = weight_entry
+    if info.ggml_type in (GGMLType.Q4_0, GGMLType.Q8_0, GGMLType.Q4_K, GGMLType.Q6_K):
+        return w_view, int(info.ggml_type)
+    if info.ggml_type == GGMLType.F16:
+        w_nt = np.ascontiguousarray(w_view.view(np.float16).reshape(out_features, in_features))
+        return w_nt, int(GGMLType.F16)
+    if info.ggml_type == GGMLType.F32:
+        w_nt = np.ascontiguousarray(
+            w_view.view(np.float32).reshape(out_features, in_features).astype(np.float16)
+        )
+        return w_nt, int(GGMLType.F16)
+    raise ValueError(f"Unsupported weight quantization type: {info.ggml_type}")
+
+
 def linear_project(
     x_fp16: np.ndarray,
     weight_entry: Tuple[GGUFTensorInfo, np.ndarray],
@@ -89,7 +131,8 @@ def linear_project(
 ) -> np.ndarray:
     """
     Compute `x_fp16 (M, K) @ W^T (N, K)` on GPU using fused quantized kernels
-    (`matmul_q4_0`, `matmul_q8_0`, `matmul_q4_k`) or FP16 `matmul`.
+    (`matmul_q4_0`, `matmul_q8_0`, `matmul_q4_k`, `matmul_q6_k`) or native-layout
+    FP16 `matmul_nt` (zero host transpose).
     """
     info, w_view = weight_entry
     M, K = x_fp16.shape
@@ -102,12 +145,14 @@ def linear_project(
         matmul_module.matmul_q8_0(x_fp16, w_view, out, M, N, K)
     elif info.ggml_type == GGMLType.Q4_K:
         matmul_module.matmul_q4_k(x_fp16, w_view, out, M, N, K)
+    elif info.ggml_type == GGMLType.Q6_K:
+        matmul_module.matmul_q6_k(x_fp16, w_view, out, M, N, K)
     elif info.ggml_type == GGMLType.F16:
-        w_t = np.ascontiguousarray(w_view.reshape(N, K).T)
-        matmul_module.matmul(x_fp16, w_t, out, M, N, K)
+        w_nt = np.ascontiguousarray(w_view.view(np.float16).reshape(N, K))
+        matmul_module.matmul_nt(x_fp16, w_nt, out, M, N, K)
     elif info.ggml_type == GGMLType.F32:
-        w_t = np.ascontiguousarray(w_view.reshape(N, K).astype(np.float16).T)
-        matmul_module.matmul(x_fp16, w_t, out, M, N, K)
+        w_nt = np.ascontiguousarray(w_view.view(np.float32).reshape(N, K).astype(np.float16))
+        matmul_module.matmul_nt(x_fp16, w_nt, out, M, N, K)
     else:
         raise ValueError(f"Unsupported weight quantization type: {info.ggml_type}")
     return out
@@ -161,15 +206,80 @@ class TransformerLayer:
         q_dim = cfg.num_heads * cfg.head_dim
         kv_dim = cfg.num_kv_heads * cfg.head_dim
 
-        # 1. Pre-Attention RMSNorm
         attn_norm_w = norm_weight_fp16(layer_weights[prefix + "attn_norm.weight"])
+        ffn_norm_w = norm_weight_fp16(layer_weights[prefix + "ffn_norm.weight"])
+
+        has_bias = any(
+            (prefix + bname) in layer_weights
+            for bname in ("attn_q.bias", "attn_k.bias", "attn_v.bias", "attn_output.bias")
+        )
+
+        # Fast C++-owned device-resident pipeline when using GPU-resident KVCacheManager
+        # (and layer has no QKV biases):
+        # Performs 1 H2D activation copy, keeps all layer intermediates on-GPU, writes
+        # K/V to the pool via D2D hipMemcpy, fuses residual+RMSNorm, and does 1 D2H copy.
+        if isinstance(kv_cache, KVCacheManager) and kv_cache.mode == "gpu" and not has_bias:
+            kv_cache.record_gpu_layer_step(layer_idx, seq_len, pos_offset)
+            wq_buf, wq_type = _prepare_weight_for_device(
+                layer_weights[prefix + "attn_q.weight"], q_dim, hidden_size
+            )
+            wk_buf, wk_type = _prepare_weight_for_device(
+                layer_weights[prefix + "attn_k.weight"], kv_dim, hidden_size
+            )
+            wv_buf, wv_type = _prepare_weight_for_device(
+                layer_weights[prefix + "attn_v.weight"], kv_dim, hidden_size
+            )
+            wo_buf, wo_type = _prepare_weight_for_device(
+                layer_weights[prefix + "attn_output.weight"], hidden_size, q_dim
+            )
+            wgate_buf, wgate_type = _prepare_weight_for_device(
+                layer_weights[prefix + "ffn_gate.weight"], cfg.intermediate_size, hidden_size
+            )
+            wup_buf, wup_type = _prepare_weight_for_device(
+                layer_weights[prefix + "ffn_up.weight"], cfg.intermediate_size, hidden_size
+            )
+            wdown_buf, wdown_type = _prepare_weight_for_device(
+                layer_weights[prefix + "ffn_down.weight"], hidden_size, cfg.intermediate_size
+            )
+
+            out_hidden = np.empty_like(x)
+            matmul_module.forward_layer_cached(
+                x, out_hidden,
+                attn_norm_w,
+                wq_buf, wq_type,
+                wk_buf, wk_type,
+                wv_buf, wv_type,
+                wo_buf, wo_type,
+                ffn_norm_w,
+                wgate_buf, wgate_type,
+                wup_buf, wup_type,
+                wdown_buf, wdown_type,
+                layer_idx, seq_len, pos_offset,
+                hidden_size, cfg.intermediate_size,
+                cfg.num_heads, cfg.num_kv_heads, cfg.head_dim,
+                cfg.rms_norm_eps, cfg.rope_freq_base, cfg.rope_neox,
+                self.scale
+            )
+            return out_hidden, None
+
+        # 1. Pre-Attention RMSNorm
         normed_x = np.empty_like(x)
         matmul_module.rmsnorm(x, attn_norm_w, normed_x, seq_len, hidden_size, cfg.rms_norm_eps)
 
-        # 2. Q, K, V Projections (Fused Q4_0 or FP16)
+        # 2. Q, K, V Projections (Fused Q4_0/Q8_0/Q4_K/Q6_K or FP16 NT) + optional QKV biases (C-3)
         q_proj = linear_project(normed_x, layer_weights[prefix + "attn_q.weight"], q_dim)
         k_proj = linear_project(normed_x, layer_weights[prefix + "attn_k.weight"], kv_dim)
         v_proj = linear_project(normed_x, layer_weights[prefix + "attn_v.weight"], kv_dim)
+
+        if (prefix + "attn_q.bias") in layer_weights:
+            q_bias = norm_weight_fp16(layer_weights[prefix + "attn_q.bias"])
+            q_proj = (q_proj.astype(np.float32) + q_bias.astype(np.float32)).astype(np.float16)
+        if (prefix + "attn_k.bias") in layer_weights:
+            k_bias = norm_weight_fp16(layer_weights[prefix + "attn_k.bias"])
+            k_proj = (k_proj.astype(np.float32) + k_bias.astype(np.float32)).astype(np.float16)
+        if (prefix + "attn_v.bias") in layer_weights:
+            v_bias = norm_weight_fp16(layer_weights[prefix + "attn_v.bias"])
+            v_proj = (v_proj.astype(np.float32) + v_bias.astype(np.float32)).astype(np.float16)
 
         q_heads = q_proj.reshape(seq_len, cfg.num_heads, cfg.head_dim)
         k_heads = k_proj.reshape(seq_len, cfg.num_kv_heads, cfg.head_dim)
@@ -227,16 +337,18 @@ class TransformerLayer:
 
         attn_out_flat = attn_out_heads.reshape(seq_len, q_dim)
 
-        # 6. Output Projection + First Residual Connection
+        # 6 & 7. Output Projection + Fused First Residual + Pre-FFN RMSNorm on GPU
         attn_proj = linear_project(
             attn_out_flat, layer_weights[prefix + "attn_output.weight"], hidden_size
         )
-        h = (x.astype(np.float32) + attn_proj.astype(np.float32)).astype(np.float16)
-
-        # 7. Pre-FFN RMSNorm
-        ffn_norm_w = norm_weight_fp16(layer_weights[prefix + "ffn_norm.weight"])
-        normed_h = np.empty_like(h)
-        matmul_module.rmsnorm(h, ffn_norm_w, normed_h, seq_len, hidden_size, cfg.rms_norm_eps)
+        if (prefix + "attn_output.bias") in layer_weights:
+            out_bias = norm_weight_fp16(layer_weights[prefix + "attn_output.bias"])
+            attn_proj = (attn_proj.astype(np.float32) + out_bias.astype(np.float32)).astype(np.float16)
+        h = np.empty_like(x)
+        normed_h = np.empty_like(x)
+        matmul_module.rmsnorm_residual(
+            x, attn_proj, ffn_norm_w, h, normed_h, seq_len, hidden_size, cfg.rms_norm_eps
+        )
 
         # 8. SwiGLU Feed-Forward Network (gate_proj, up_proj -> SwiGLU -> down_proj)
         gate = linear_project(
@@ -252,8 +364,9 @@ class TransformerLayer:
             swiglu_out, layer_weights[prefix + "ffn_down.weight"], hidden_size
         )
 
-        # 9. Second Residual Connection
-        out_hidden = (h.astype(np.float32) + down.astype(np.float32)).astype(np.float16)
+        # 9. Second Residual Connection on GPU
+        out_hidden = np.empty_like(h)
+        matmul_module.residual_add(h, down, out_hidden, seq_len * hidden_size)
         return out_hidden, kv_present
 
     def forward_streamed(

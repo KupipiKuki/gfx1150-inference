@@ -12,5 +12,25 @@ void launch_matmul_fp16(
     int K
 );
 
-#endif // MATMUL_H
+// Native-layout GGUF FP16 matrix multiplication without host transpose:
+// Computes C (M x N) = A (M x K) * B_nt^T, where B_nt is (N x K) row-major in FP16.
+void launch_matmul_fp16_nt(
+    const void* h_A,
+    const void* h_B_nt,
+    void* h_C,
+    int M,
+    int N,
+    int K
+);
 
+// Device-resident variant of launch_matmul_fp16_nt (all pointers in GPU memory).
+void launch_matmul_fp16_nt_device(
+    const void* d_A,
+    const void* d_B_nt,
+    void* d_C,
+    int M,
+    int N,
+    int K
+);
+
+#endif // MATMUL_H

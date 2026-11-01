@@ -1,17 +1,30 @@
 [build-system]
-requires = ["setuptools>=64", "wheel", "pybind11>=2.11"]
+requires = ["setuptools>=64", "wheel", "pybind11>=2.11", "cmake>=3.21"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gfx1150-inference"
-version = "0.5.0"
+version = "0.6.1"
 description = "SSD-offloaded GGUF LLM inference engine for AMD gfx1150 (Radeon 890M / Ryzen AI 370) with ROCm/HIP"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "numpy>=1.24.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/KupipiKuki/gfx1150-inference"
+Repository = "https://github.com/KupipiKuki/gfx1150-inference"
 
 [project.scripts]
 gfx1150-infer = "inference:main"

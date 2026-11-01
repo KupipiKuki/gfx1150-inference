@@ -1,0 +1,30 @@
+name: CPU-Only Verification & Regression CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  cpu-smoke:
+    name: CPU Parser, Tokenizer, Sampler & Packaging Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel
+
+      - name: Run self-contained CPU test suite (standard mode)
+        run: python tests/test_cpu_only.py
+
+      - name: Run self-contained CPU test suite (optimized -O mode)
+        run: python -O tests/test_cpu_only.py
+

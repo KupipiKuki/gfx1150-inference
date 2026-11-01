@@ -108,8 +108,16 @@ def align_offset(offset: int, alignment: int = GGUF_DEFAULT_ALIGNMENT) -> int:
 class GGUFParser:
     """Zero-copy parser for GGUF v2/v3 headers and tensor descriptors."""
 
+    MAX_TENSOR_DIMS = 8
+    MAX_ALIGNMENT = 65536
+    MIN_KV_ENTRY_BYTES = 13
+    MIN_TENSOR_ENTRY_BYTES = 24
+
     def __init__(self, buf: Union[bytes, bytearray, memoryview, Any]):
-        self._buf = memoryview(buf)
+        # Create a private memoryview wrapper so releasing `view` in `finally`
+        # drops our export on `mmap` without invalidating a caller-owned memoryview.
+        view = memoryview(buf).cast("B")
+        self._buf: Optional[memoryview] = view
         self._pos = 0
         self.version: int = 0
         self.tensor_count: int = 0
@@ -119,12 +127,15 @@ class GGUFParser:
         self.alignment: int = GGUF_DEFAULT_ALIGNMENT
         self.data_offset: int = 0
 
-        self._parse()
-        if isinstance(self._buf, memoryview):
-            self._buf.release()
-        self._buf = None
+        try:
+            self._parse()
+        finally:
+            self._buf = None
+            view.release()
 
     def _read_fmt(self, fmt: str) -> Tuple[Any, ...]:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
         size = struct.calcsize(fmt)
         if self._pos + size > len(self._buf):
             raise ValueError(f"Unexpected EOF at offset {self._pos} while reading {fmt}")
@@ -133,6 +144,8 @@ class GGUFParser:
         return vals
 
     def _read_string(self) -> str:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
         (length,) = self._read_fmt("<Q")
         if self._pos + length > len(self._buf):
             raise ValueError(f"Unexpected EOF while reading string of length {length}")
@@ -141,6 +154,8 @@ class GGUFParser:
         return raw.decode("utf-8")
 
     def _read_value(self, vtype: int) -> Any:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
         if vtype in _SCALAR_FORMATS:
             return self._read_fmt(_SCALAR_FORMATS[vtype])[0]
         if vtype == GGUFValueType.BOOL:
@@ -149,10 +164,20 @@ class GGUFParser:
             return self._read_string()
         if vtype == GGUFValueType.ARRAY:
             elem_type, count = self._read_fmt("<IQ")
+            remaining = len(self._buf) - self._pos
+            if count > remaining:
+                raise ValueError(
+                    f"GGUF array count {count} exceeds remaining buffer bytes ({remaining})"
+                )
             return [self._read_value(elem_type) for _ in range(count)]
         raise ValueError(f"Unsupported GGUF metadata value type: {vtype}")
 
     def _parse(self) -> None:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
+        buf_len = len(self._buf)
+        if buf_len < 4:
+            raise ValueError(f"Buffer too small for GGUF header ({buf_len} bytes)")
         magic = bytes(self._buf[0:4])
         if magic != GGUF_MAGIC:
             raise ValueError(f"Invalid GGUF magic: {magic!r} (expected b'GGUF')")
@@ -162,22 +187,70 @@ class GGUFParser:
         if self.version not in (2, 3):
             raise ValueError(f"Unsupported GGUF version: {self.version} (expected 2 or 3)")
 
+        remaining_after_header = buf_len - self._pos
+        if self.kv_count * self.MIN_KV_ENTRY_BYTES > remaining_after_header:
+            raise ValueError(
+                f"Corrupt GGUF header: kv_count={self.kv_count} requires at least "
+                f"{self.kv_count * self.MIN_KV_ENTRY_BYTES} bytes, but only {remaining_after_header} remain"
+            )
+        if self.tensor_count * self.MIN_TENSOR_ENTRY_BYTES > remaining_after_header:
+            raise ValueError(
+                f"Corrupt GGUF header: tensor_count={self.tensor_count} requires at least "
+                f"{self.tensor_count * self.MIN_TENSOR_ENTRY_BYTES} bytes, but only {remaining_after_header} remain"
+            )
+
         for _ in range(self.kv_count):
             key = self._read_string()
             (vtype,) = self._read_fmt("<I")
             self.metadata[key] = self._read_value(vtype)
 
-        self.alignment = int(self.metadata.get("general.alignment", GGUF_DEFAULT_ALIGNMENT))
+        raw_align = self.metadata.get("general.alignment", GGUF_DEFAULT_ALIGNMENT)
+        if isinstance(raw_align, bool) or not isinstance(raw_align, int):
+            raise ValueError(f"Invalid general.alignment value: {raw_align!r}")
+        if (
+            raw_align < 1
+            or raw_align > self.MAX_ALIGNMENT
+            or (raw_align & (raw_align - 1)) != 0
+        ):
+            raise ValueError(
+                f"Invalid general.alignment={raw_align}: must be a power of 2 in [1, {self.MAX_ALIGNMENT}]"
+            )
+        self.alignment = raw_align
+
+        remaining_for_tensors = buf_len - self._pos
+        if self.tensor_count * self.MIN_TENSOR_ENTRY_BYTES > remaining_for_tensors:
+            raise ValueError(
+                f"Corrupt GGUF tensor table: tensor_count={self.tensor_count} exceeds remaining bytes ({remaining_for_tensors})"
+            )
 
         raw_tensors = []
+        seen_names = set()
         for _ in range(self.tensor_count):
             name = self._read_string()
+            if name in seen_names:
+                raise ValueError(f"Duplicate tensor name in GGUF tensor table: {name!r}")
+            seen_names.add(name)
             (n_dims,) = self._read_fmt("<I")
+            if n_dims == 0 or n_dims > self.MAX_TENSOR_DIMS:
+                raise ValueError(
+                    f"Tensor '{name}' has invalid n_dims={n_dims} (must be in [1, {self.MAX_TENSOR_DIMS}])"
+                )
             dims = tuple(self._read_fmt(f"<{n_dims}Q"))
+            if any(d == 0 for d in dims):
+                raise ValueError(f"Tensor '{name}' has a zero dimension in {dims}")
             ggml_type_id, rel_offset = self._read_fmt("<IQ")
-            ggml_type = GGMLType(ggml_type_id)
+            try:
+                ggml_type = GGMLType(ggml_type_id)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Tensor '{name}' has unknown GGMLType id {ggml_type_id}"
+                ) from exc
+            if ggml_type not in GGML_BLOCK_INFO:
+                raise ValueError(
+                    f"Tensor '{name}' has unsupported GGMLType {ggml_type!r} (no block size info)"
+                )
 
-            n_elements = math.prod(dims) if dims else 0
+            n_elements = math.prod(dims)
             block_elems, block_bytes = GGML_BLOCK_INFO[ggml_type]
             if n_elements % block_elems != 0:
                 raise ValueError(
@@ -187,9 +260,18 @@ class GGUFParser:
             raw_tensors.append((name, dims, ggml_type, rel_offset, n_elements, n_bytes))
 
         self.data_offset = align_offset(self._pos, self.alignment)
+        if self.data_offset > buf_len and self.tensor_count > 0:
+            raise ValueError(
+                f"Truncated GGUF file: data_offset {self.data_offset} exceeds buffer size {buf_len}"
+            )
 
         for name, dims, ggml_type, rel_offset, n_elements, n_bytes in raw_tensors:
             abs_offset = self.data_offset + rel_offset
+            if abs_offset < self.data_offset or abs_offset + n_bytes > buf_len:
+                raise ValueError(
+                    f"Truncated GGUF file: tensor '{name}' requires byte range "
+                    f"[{abs_offset}, {abs_offset + n_bytes}), but file size is {buf_len} bytes"
+                )
             self.tensors[name] = GGUFTensorInfo(
                 name=name,
                 dims=dims,
@@ -205,8 +287,52 @@ class GGUFParser:
         prefix = f"blk.{layer_idx}."
         return {k: v for k, v in self.tensors.items() if k.startswith(prefix)}
 
+    def get_layer_byte_spans(self, layer_idx: int) -> List[Tuple[int, int]]:
+        """
+        Return a list of `(start_offset, byte_length)` spans for `layer_idx`, merging
+        adjacent layer tensors that have no foreign (non-layer) tensor interleaved between them.
+        """
+        layer_tensors = self.get_layer_tensors(layer_idx)
+        if not layer_tensors:
+            raise KeyError(f"No tensors found for layer {layer_idx}")
+
+        sorted_layer = sorted(layer_tensors.values(), key=lambda t: t.abs_offset)
+        layer_names = set(layer_tensors.keys())
+        foreign_intervals = sorted(
+            (t.abs_offset, t.abs_offset + t.n_bytes)
+            for name, t in self.tensors.items()
+            if name not in layer_names
+        )
+
+        def _has_foreign_between(end_prev: int, start_next: int) -> bool:
+            if start_next <= end_prev:
+                return False
+            for f_start, f_end in foreign_intervals:
+                if f_start >= start_next:
+                    break
+                if f_end > end_prev and f_start < start_next:
+                    return True
+            return False
+
+        spans: List[Tuple[int, int]] = []
+        cur_start = sorted_layer[0].abs_offset
+        cur_end = cur_start + sorted_layer[0].n_bytes
+
+        for t in sorted_layer[1:]:
+            t_start = t.abs_offset
+            t_end = t_start + t.n_bytes
+            gap = t_start - cur_end
+            if gap <= self.alignment and not _has_foreign_between(cur_end, t_start):
+                cur_end = max(cur_end, t_end)
+            else:
+                spans.append((cur_start, cur_end - cur_start))
+                cur_start, cur_end = t_start, t_end
+
+        spans.append((cur_start, cur_end - cur_start))
+        return spans
+
     def get_layer_byte_span(self, layer_idx: int) -> Tuple[int, int]:
-        """Return `(start_offset, byte_length)` covering all tensors in `layer_idx`."""
+        """Return hull `(start_offset, byte_length)` covering all tensors in `layer_idx`."""
         layer_tensors = self.get_layer_tensors(layer_idx)
         if not layer_tensors:
             raise KeyError(f"No tensors found for layer {layer_idx}")
@@ -372,6 +498,93 @@ def dequantize_q4_k_cpu(q4k_bytes: np.ndarray, num_elements: int) -> np.ndarray:
 
         out[:, chunk * 64 : chunk * 64 + 32] = d0 * q0 - dm0
         out[:, chunk * 64 + 32 : (chunk + 1) * 64] = d1 * q1 - dm1
+
+    return out.reshape(-1).astype(np.float16)
+
+
+def quantize_q6_k_cpu(weights_fp32: np.ndarray) -> np.ndarray:
+    """
+    Reference CPU quantizer: converts a float32/float16 array (multiple of 256 elements)
+    into GGML Q6_K super-block bytes (`n_elements // 256 * 210` bytes).
+
+    Layout of `block_q6_K` (210 bytes per 256 elements):
+    - `ql[128]` (bytes 0..128): lower 4 bits of the 256 6-bit unsigned quants (offset by -32)
+    - `qh[64]`  (bytes 128..192): upper 2 bits of the 256 6-bit unsigned quants
+    - `scales[16]` (bytes 192..208): 16 signed `int8` sub-block scales (16 elements per sub-block)
+    - `d` (bytes 208..210): 2-byte FP16 super-block scale
+    """
+    flat = np.asarray(weights_fp32, dtype=np.float32).reshape(-1, 256)
+    num_sb = flat.shape[0]
+    sub = flat.reshape(num_sb, 16, 16)
+
+    # Sub-block scales for symmetric 6-bit signed range [-32, 31]
+    sub_max = np.max(np.abs(sub), axis=2)  # (num_sb, 16)
+    sc_float = sub_max / 31.0              # (num_sb, 16)
+    d_fp16 = (np.max(sc_float, axis=1) / 127.0).astype(np.float16)
+    d_fp32 = d_fp16.astype(np.float32)[:, None]
+
+    inv_d = np.where(d_fp32 > 0.0, 1.0 / d_fp32, 0.0)
+    sc_i8 = np.clip(np.round(sc_float * inv_d), -127, 127).astype(np.int8)  # (num_sb, 16)
+
+    eff_scale = (d_fp32 * sc_i8.astype(np.float32))[:, :, None]  # (num_sb, 16, 1)
+    inv_eff = np.where(np.abs(eff_scale) > 0.0, 1.0 / eff_scale, 0.0)
+    q_u6 = np.clip(np.round(sub * inv_eff) + 32.0, 0, 63).astype(np.uint8).reshape(num_sb, 256)
+
+    ql = np.empty((num_sb, 128), dtype=np.uint8)
+    qh = np.empty((num_sb, 64), dtype=np.uint8)
+
+    for n in range(2):
+        half_q = q_u6[:, n * 128 : (n + 1) * 128]
+        q1 = half_q[:, 0:32]
+        q2 = half_q[:, 32:64]
+        q3 = half_q[:, 64:96]
+        q4 = half_q[:, 96:128]
+
+        ql[:, n * 64 : n * 64 + 32] = (q1 & 0x0F) | ((q3 & 0x0F) << 4)
+        ql[:, n * 64 + 32 : (n + 1) * 64] = (q2 & 0x0F) | ((q4 & 0x0F) << 4)
+        qh[:, n * 32 : (n + 1) * 32] = (
+            ((q1 >> 4) & 0x03)
+            | (((q2 >> 4) & 0x03) << 2)
+            | (((q3 >> 4) & 0x03) << 4)
+            | (((q4 >> 4) & 0x03) << 6)
+        )
+
+    out = np.empty((num_sb, 210), dtype=np.uint8)
+    out[:, 0:128] = ql
+    out[:, 128:192] = qh
+    out[:, 192:208] = sc_i8.view(np.uint8)
+    out[:, 208:210] = d_fp16.view(np.uint8).reshape(num_sb, 2)
+    return out.reshape(-1)
+
+
+def dequantize_q6_k_cpu(q6k_bytes: np.ndarray, num_elements: int) -> np.ndarray:
+    """Reference CPU dequantizer for GGML Q6_K super-blocks into `np.float16`."""
+    num_sb = num_elements // 256
+    raw = np.frombuffer(q6k_bytes, dtype=np.uint8, count=num_sb * 210).reshape(num_sb, 210)
+    ql = raw[:, 0:128]
+    qh = raw[:, 128:192]
+    scales = raw[:, 192:208].view(np.int8).astype(np.float32)          # (num_sb, 16)
+    d = raw[:, 208:210].copy().view(np.float16).astype(np.float32)     # (num_sb, 1)
+
+    out = np.empty((num_sb, 256), dtype=np.float32)
+    for n in range(2):
+        ql_n = ql[:, n * 64 : (n + 1) * 64]
+        qh_n = qh[:, n * 32 : (n + 1) * 32]
+        sc_n = scales[:, n * 8 : (n + 1) * 8]
+
+        q1 = (((ql_n[:, 0:32]  & 0x0F) | (((qh_n >> 0) & 0x03) << 4)).astype(np.int8) - 32).astype(np.float32)
+        q2 = (((ql_n[:, 32:64] & 0x0F) | (((qh_n >> 2) & 0x03) << 4)).astype(np.int8) - 32).astype(np.float32)
+        q3 = (((ql_n[:, 0:32]  >> 4)   | (((qh_n >> 4) & 0x03) << 4)).astype(np.int8) - 32).astype(np.float32)
+        q4 = (((ql_n[:, 32:64] >> 4)   | (((qh_n >> 6) & 0x03) << 4)).astype(np.int8) - 32).astype(np.float32)
+
+        out[:, n * 128 + 0  : n * 128 + 16]  = d * sc_n[:, 0:1] * q1[:, 0:16]
+        out[:, n * 128 + 16 : n * 128 + 32]  = d * sc_n[:, 1:2] * q1[:, 16:32]
+        out[:, n * 128 + 32 : n * 128 + 48]  = d * sc_n[:, 2:3] * q2[:, 0:16]
+        out[:, n * 128 + 48 : n * 128 + 64]  = d * sc_n[:, 3:4] * q2[:, 16:32]
+        out[:, n * 128 + 64 : n * 128 + 80]  = d * sc_n[:, 4:5] * q3[:, 0:16]
+        out[:, n * 128 + 80 : n * 128 + 96]  = d * sc_n[:, 5:6] * q3[:, 16:32]
+        out[:, n * 128 + 96 : n * 128 + 112] = d * sc_n[:, 6:7] * q4[:, 0:16]
+        out[:, n * 128 + 112: n * 128 + 128] = d * sc_n[:, 7:8] * q4[:, 16:32]
 
     return out.reshape(-1).astype(np.float16)
 
