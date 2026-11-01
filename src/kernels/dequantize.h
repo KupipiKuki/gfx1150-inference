@@ -72,5 +72,33 @@ void launch_matmul_q4_k(
     int K
 );
 
+// Device-resident fused quantized matmul launchers (all pointers in GPU memory)
+void launch_matmul_q4_0_device(
+    const void* d_A_fp16,
+    const void* d_B_q4,
+    void* d_C_fp16,
+    int M,
+    int N,
+    int K
+);
+
+void launch_matmul_q8_0_device(
+    const void* d_A_fp16,
+    const void* d_B_q8,
+    void* d_C_fp16,
+    int M,
+    int N,
+    int K
+);
+
+void launch_matmul_q4_k_device(
+    const void* d_A_fp16,
+    const void* d_B_q4k,
+    void* d_C_fp16,
+    int M,
+    int N,
+    int K
+);
+
 #endif // DEQUANTIZE_H
 

@@ -40,13 +40,22 @@ class WeightStreamer:
     def __init__(self, model_path: str):
         self.model_path = model_path
         self._file = open(model_path, "rb")
-        self._mm = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
-        self.gguf = GGUFParser(self._mm)
-        self.num_layers = int(self.gguf.metadata.get("llama.block_count", 0))
+        self._mm = None
+        try:
+            self._mm = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
+            self.gguf = GGUFParser(self._mm)
+            self.num_layers = int(self.gguf.metadata.get("llama.block_count", 0))
 
-        # Advise sequential access pattern by default
-        if hasattr(mmap, "MADV_SEQUENTIAL"):
-            self._mm.madvise(mmap.MADV_SEQUENTIAL)
+            # Advise sequential access pattern by default
+            if hasattr(mmap, "MADV_SEQUENTIAL"):
+                self._mm.madvise(mmap.MADV_SEQUENTIAL)
+        except Exception:
+            if self._mm is not None:
+                self._mm.close()
+                self._mm = None
+            self._file.close()
+            self._file = None
+            raise
 
     def get_tensor_view(self, name: str) -> np.ndarray:
         """
@@ -64,17 +73,19 @@ class WeightStreamer:
         return raw_view
 
     def prefetch_layer(self, layer_idx: int) -> None:
-        """Asynchronously prefetch all tensors for `layer_idx` into the OS page cache."""
+        """Asynchronously prefetch all contiguous tensor spans for `layer_idx` into the OS page cache."""
         if not hasattr(mmap, "MADV_WILLNEED"):
             return
         try:
-            offset, length = self.gguf.get_layer_byte_span(layer_idx)
+            spans = self.gguf.get_layer_byte_spans(layer_idx)
         except KeyError:
             return
-        aligned_offset, aligned_len = _page_align_span(offset, length)
-        aligned_len = min(aligned_len, len(self._mm) - aligned_offset)
-        if aligned_len > 0:
-            self._mm.madvise(mmap.MADV_WILLNEED, aligned_offset, aligned_len)
+        mm_len = len(self._mm)
+        for offset, length in spans:
+            aligned_offset, aligned_len = _page_align_span(offset, length)
+            aligned_len = min(aligned_len, mm_len - aligned_offset)
+            if aligned_len > 0:
+                self._mm.madvise(mmap.MADV_WILLNEED, aligned_offset, aligned_len)
 
     def release_layer(self, layer_idx: int) -> None:
         """
@@ -84,13 +95,15 @@ class WeightStreamer:
         if not hasattr(mmap, "MADV_DONTNEED"):
             return
         try:
-            offset, length = self.gguf.get_layer_byte_span(layer_idx)
+            spans = self.gguf.get_layer_byte_spans(layer_idx)
         except KeyError:
             return
-        aligned_offset, aligned_len = _page_align_span(offset, length)
-        aligned_len = min(aligned_len, len(self._mm) - aligned_offset)
-        if aligned_len > 0:
-            self._mm.madvise(mmap.MADV_DONTNEED, aligned_offset, aligned_len)
+        mm_len = len(self._mm)
+        for offset, length in spans:
+            aligned_offset, aligned_len = _page_align_span(offset, length)
+            aligned_len = min(aligned_len, mm_len - aligned_offset)
+            if aligned_len > 0:
+                self._mm.madvise(mmap.MADV_DONTNEED, aligned_offset, aligned_len)
 
     def prefetch_tensor(self, name: str) -> None:
         """Asynchronously prefetch a named tensor (`token_embd.weight`, `output.weight`) from SSD."""

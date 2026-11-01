@@ -3,15 +3,16 @@ GGUF Metadata Tokenizer & Token Embedding Lookup (`GGUFTokenizer`, `embed_tokens
 for gfx1150-inference.
 
 Extracts vocabulary tokens, scores, and special token IDs directly from a GGUF header
-without external tokenizer file dependencies, and performs zero-copy row-wise token
-embedding lookup (supporting `Q4_0`, `F16`, and `F32` `token_embd.weight` tensors).
+without external tokenizer file dependencies, and performs vectorized row-wise token
+embedding lookup (supporting `Q4_0`, `Q8_0`, `Q4_K`, `F16`, and `F32` `token_embd.weight` tensors).
 """
 
 from __future__ import annotations
 
+import heapq
 import os
 import sys
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -71,8 +72,8 @@ class GGUFTokenizer:
 
     def encode(self, text: str, add_bos: bool = True) -> List[int]:
         """
-        Encode text into token IDs using SentencePiece normalization + BPE highest-score merge
-        (with `<0xXX>` byte fallback for unknown UTF-8 bytes).
+        Encode text into token IDs using SentencePiece normalization + O(L log L)
+        priority-queue BPE highest-score merge (with `<0xXX>` byte fallback for unknown UTF-8 bytes).
         """
         ids: List[int] = []
         if add_bos and 0 <= self.bos_token_id < self.vocab_size:
@@ -96,26 +97,63 @@ class GGUFTokenizer:
                     if hex_tok in self.token_to_id:
                         symbols.append(hex_tok)
 
-        # Iteratively merge adjacent symbol pairs with the highest vocabulary score
-        while len(symbols) >= 2:
-            best_idx = -1
-            best_score = -float("inf")
-            for i in range(len(symbols) - 1):
-                merged = symbols[i] + symbols[i + 1]
-                tok_id = self.token_to_id.get(merged)
-                if tok_id is not None:
-                    score = self.scores[tok_id]
-                    if score > best_score:
-                        best_score = score
-                        best_idx = i
-            if best_idx < 0:
-                break
-            symbols[best_idx] = symbols[best_idx] + symbols[best_idx + 1]
-            del symbols[best_idx + 1]
+        n = len(symbols)
+        if n == 0:
+            return ids
+        if n == 1:
+            tok_id = self.token_to_id.get(symbols[0])
+            if tok_id is not None:
+                ids.append(tok_id)
+            return ids
 
-        for sym in symbols:
-            if sym in self.token_to_id:
-                ids.append(self.token_to_id[sym])
+        # Doubly-linked symbol list + min-heap keyed by (-score, left_pos, right_pos, ver_left, ver_right)
+        prev_idx = [i - 1 for i in range(n)]
+        next_idx = [i + 1 if i + 1 < n else -1 for i in range(n)]
+        alive = [True] * n
+        ver = [0] * n
+        heap: List[Tuple[float, int, int, int, int]] = []
+
+        def _try_push(left: int, right: int) -> None:
+            if left < 0 or right < 0:
+                return
+            merged = symbols[left] + symbols[right]
+            tid = self.token_to_id.get(merged)
+            if tid is not None:
+                heapq.heappush(heap, (-self.scores[tid], left, right, ver[left], ver[right]))
+
+        for i in range(n - 1):
+            _try_push(i, i + 1)
+
+        while heap:
+            neg_score, left, right, v_left, v_right = heapq.heappop(heap)
+            if (
+                not alive[left]
+                or not alive[right]
+                or next_idx[left] != right
+                or ver[left] != v_left
+                or ver[right] != v_right
+            ):
+                continue
+
+            symbols[left] = symbols[left] + symbols[right]
+            ver[left] += 1
+            alive[right] = False
+
+            nxt = next_idx[right]
+            next_idx[left] = nxt
+            if nxt != -1:
+                prev_idx[nxt] = left
+
+            _try_push(prev_idx[left], left)
+            _try_push(left, nxt)
+
+        cur = 0
+        while cur != -1:
+            sym = symbols[cur]
+            tid = self.token_to_id.get(sym)
+            if tid is not None:
+                ids.append(tid)
+            cur = next_idx[cur]
 
         return ids
 
@@ -154,6 +192,15 @@ class GGUFTokenizer:
         return text
 
 
+def _validate_token_ids(ids_arr: np.ndarray, n_rows: int) -> None:
+    if ids_arr.size == 0:
+        return
+    oob_mask = (ids_arr < 0) | (ids_arr >= n_rows)
+    if np.any(oob_mask):
+        bad_id = int(ids_arr[oob_mask][0])
+        raise ValueError(f"Token ID {bad_id} is out of range for embedding table with {n_rows} rows")
+
+
 def embed_tokens(
     token_ids: Sequence[int],
     embd_info: GGUFTensorInfo,
@@ -162,44 +209,42 @@ def embed_tokens(
 ) -> np.ndarray:
     """
     Look up token embeddings `(len(token_ids), hidden_size)` in `np.float16`
-    from `token_embd.weight` without dequantizing the entire vocabulary table.
+    from `token_embd.weight` using vectorized gather and batched row dequantization.
     """
-    ids = [int(t) for t in token_ids]
-    seq_len = len(ids)
-    out = np.empty((seq_len, hidden_size), dtype=np.float16)
+    ids_arr = np.asarray(token_ids, dtype=np.int64).reshape(-1)
+    seq_len = int(ids_arr.size)
+    if seq_len == 0:
+        return np.empty((0, hidden_size), dtype=np.float16)
 
     if embd_info.ggml_type == GGMLType.F16:
         table = embd_view.view(np.float16).reshape(-1, hidden_size)
-        for i, tid in enumerate(ids):
-            out[i] = table[tid]
-        return out
+        _validate_token_ids(ids_arr, table.shape[0])
+        return np.ascontiguousarray(table[ids_arr], dtype=np.float16)
 
     if embd_info.ggml_type == GGMLType.F32:
         table = embd_view.view(np.float32).reshape(-1, hidden_size)
-        for i, tid in enumerate(ids):
-            out[i] = table[tid].astype(np.float16)
-        return out
+        _validate_token_ids(ids_arr, table.shape[0])
+        return np.ascontiguousarray(table[ids_arr].astype(np.float16))
 
     if embd_info.ggml_type == GGMLType.Q4_0:
         row_bytes = (hidden_size // 32) * 18
         raw_u8 = embd_view.view(np.uint8).reshape(-1, row_bytes)
-        for i, tid in enumerate(ids):
-            out[i] = dequantize_q4_0_cpu(raw_u8[tid], hidden_size)
-        return out
+        _validate_token_ids(ids_arr, raw_u8.shape[0])
+        gathered = np.ascontiguousarray(raw_u8[ids_arr])
+        return dequantize_q4_0_cpu(gathered, seq_len * hidden_size).reshape(seq_len, hidden_size)
 
     if embd_info.ggml_type == GGMLType.Q8_0:
         row_bytes = (hidden_size // 32) * 34
         raw_u8 = embd_view.view(np.uint8).reshape(-1, row_bytes)
-        for i, tid in enumerate(ids):
-            out[i] = dequantize_q8_0_cpu(raw_u8[tid], hidden_size)
-        return out
+        _validate_token_ids(ids_arr, raw_u8.shape[0])
+        gathered = np.ascontiguousarray(raw_u8[ids_arr])
+        return dequantize_q8_0_cpu(gathered, seq_len * hidden_size).reshape(seq_len, hidden_size)
 
     if embd_info.ggml_type == GGMLType.Q4_K:
         row_bytes = (hidden_size // 256) * 144
         raw_u8 = embd_view.view(np.uint8).reshape(-1, row_bytes)
-        for i, tid in enumerate(ids):
-            out[i] = dequantize_q4_k_cpu(raw_u8[tid], hidden_size)
-        return out
+        _validate_token_ids(ids_arr, raw_u8.shape[0])
+        gathered = np.ascontiguousarray(raw_u8[ids_arr])
+        return dequantize_q4_k_cpu(gathered, seq_len * hidden_size).reshape(seq_len, hidden_size)
 
     raise ValueError(f"Unsupported token_embd.weight type: {embd_info.ggml_type}")
-

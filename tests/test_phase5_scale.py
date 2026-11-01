@@ -27,6 +27,7 @@ import matmul_module
 from gguf_parser import (
     GGMLType,
     GGUFValueType,
+    quantize_q4_0_cpu,
     quantize_q8_0_cpu,
     dequantize_q8_0_cpu,
     quantize_q4_k_cpu,
@@ -245,7 +246,8 @@ def test_q4km_chunked_batch_and_kv_offload() -> None:
         # 3. NVMe mmap-backed KV cache equivalence
         with LlamaInferenceEngine(gguf_path, max_seq_len=128, kv_mmap_dir=mmap_kv_dir) as engine_mmap:
             assert engine_mmap.kv_cache.device_bytes == 0
-            assert os.path.exists(os.path.join(mmap_kv_dir, "kv_cache_k.mmap"))
+            created_mmaps = engine_mmap.kv_cache.mmap_files
+            assert len(created_mmaps) == 2 and all(os.path.exists(p) for p in created_mmaps)
             ids_mmap, _ = engine_mmap.generate_ids(
                 prompt_ids, max_new_tokens=6, temperature=0.0, stop_on_eos=False
             )
@@ -253,7 +255,7 @@ def test_q4km_chunked_batch_and_kv_offload() -> None:
             assert ids_mmap == ids_full, f"mmap KV offload mismatch: {ids_mmap} != {ids_full}"
 
         # Confirm mmap files were cleaned up on close()
-        assert not os.path.exists(os.path.join(mmap_kv_dir, "kv_cache_k.mmap"))
+        assert all(not os.path.exists(p) for p in created_mmaps)
 
         # 4. CLI entry point verification
         rc = cli_main([
@@ -267,10 +269,73 @@ def test_q4km_chunked_batch_and_kv_offload() -> None:
         print("  [CLI Entry Point] gfx1150-infer exited with code 0")
 
 
+def test_v060_prefill_tile_and_fused_residual_kernels() -> None:
+    """
+    Verify v0.6.0 Stage 6C kernel additions:
+    1. Multi-row prefill kernels (`TILE_M = 4`, `M >= 4`) for `Q4_0`, `Q8_0`, and `Q4_K`
+       match single-row (`M = 1`) wave kernel output bit-close on identical random weights
+       (including non-multiple-of-4 `M = 7`).
+    2. Fused `rmsnorm_residual` and `residual_add` match FP32-accumulated reference.
+    """
+    print("--- Testing v0.6.0 Prefill TILE_M=4 Equivalence & Fused Residual Kernels ---")
+    rng = np.random.default_rng(601)
+    N, K = 128, 256
+    w_fp32 = rng.standard_normal((N, K), dtype=np.float32) * 0.2
+    w_q4_0 = quantize_q4_0_cpu(w_fp32)
+    w_q8_0 = quantize_q8_0_cpu(w_fp32)
+    w_q4_k = quantize_q4_k_cpu(w_fp32)
+
+    for M in (4, 7, 16):
+        A = (rng.standard_normal((M, K), dtype=np.float32) * 0.2).astype(np.float16)
+        for q_name, w_buf, fn in (
+            ("Q4_0", w_q4_0, matmul_module.matmul_q4_0),
+            ("Q8_0", w_q8_0, matmul_module.matmul_q8_0),
+            ("Q4_K", w_q4_k, matmul_module.matmul_q4_k),
+        ):
+            c_prefill = np.empty((M, N), dtype=np.float16)
+            fn(A, w_buf, c_prefill, M, N, K)
+
+            # Compute row-by-row using the M=1 single-row wave kernel path
+            c_single = np.empty((M, N), dtype=np.float16)
+            for m in range(M):
+                row_in = np.ascontiguousarray(A[m : m + 1])
+                row_out = np.empty((1, N), dtype=np.float16)
+                fn(row_in, w_buf, row_out, 1, N, K)
+                c_single[m] = row_out[0]
+
+            diff = float(np.max(np.abs(c_prefill.astype(np.float32) - c_single.astype(np.float32))))
+            assert diff == 0.0, f"{q_name} prefill M={M} vs M=1 wave mismatch: max_diff={diff}"
+    print("  [Prefill TILE_M=4 vs M=1 Wave] Q4_0, Q8_0, Q4_K bit-identical across M=4, 7, 16")
+
+    # Test fused rmsnorm_residual and residual_add
+    M_res, K_res = 9, 256
+    eps = 1e-5
+    x = (rng.standard_normal((M_res, K_res), dtype=np.float32) * 0.5).astype(np.float16)
+    res = (rng.standard_normal((M_res, K_res), dtype=np.float32) * 0.5).astype(np.float16)
+    weight = (rng.standard_normal(K_res, dtype=np.float32) * 0.2 + 1.0).astype(np.float16)
+
+    h_gpu = np.empty_like(x)
+    norm_gpu = np.empty_like(x)
+    matmul_module.rmsnorm_residual(x, res, weight, h_gpu, norm_gpu, M_res, K_res, eps)
+
+    h_ref = (x.astype(np.float32) + res.astype(np.float32)).astype(np.float16)
+    norm_ref = np.empty_like(x)
+    matmul_module.rmsnorm(h_ref, weight, norm_ref, M_res, K_res, eps)
+
+    assert np.array_equal(h_gpu, h_ref), "rmsnorm_residual h_out mismatch"
+    assert np.array_equal(norm_gpu, norm_ref), "rmsnorm_residual norm_out mismatch"
+
+    add_gpu = np.empty_like(x)
+    matmul_module.residual_add(x, res, add_gpu, M_res * K_res)
+    assert np.array_equal(add_gpu, h_ref), "residual_add mismatch"
+    print("  [rmsnorm_residual & residual_add] Bit-identical to unfused reference")
+
+
 if __name__ == "__main__":
-    print("=== Phase 5: K-Quants (Q4_K_M / Q8_0), 70B Scale & KV Offload Test Suite ===")
+    print("=== Phase 5 & v0.6.0: K-Quants, 70B Scale, Prefill & KV Offload Test Suite ===")
     test_q8_0_kernels()
     test_q4_k_superblock_kernels_and_70b_scale()
     test_q4km_chunked_batch_and_kv_offload()
-    print("=== All Phase 5 Tests Passed! ===")
+    test_v060_prefill_tile_and_fused_residual_kernels()
+    print("=== All Phase 5 & v0.6.0 Tests Passed! ===")
 

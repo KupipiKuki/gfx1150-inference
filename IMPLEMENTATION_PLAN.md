@@ -188,6 +188,34 @@ class WeightStreamer:
 
 ---
 
+### **🟢 Phase 6 (`v0.6.0`): Security Hardening, Device-Resident Layer Pipeline & CI** *(COMPLETED)*
+**Goal**: Remediate all findings from the v0.5.0 independent audits ([AUDIT_REPORT_v0.5.0.md](AUDIT_REPORT_v0.5.0.md) and [AUDIT_REMEDIATION_v0.6.0.md](AUDIT_REMEDIATION_v0.6.0.md)): harden GGUF parsing and `mmap` KV-cache lifecycle against malformed/truncated inputs, eliminate per-op host-device activation round-trips and host `.T` weight transposes, add `TILE_M = 4` multi-row quantized prefill kernels, optimize CPU tokenization/embeddings, and establish CPU-only CI.
+
+#### **Tasks**
+| # | Task | Owner | Status | Dependencies |
+|---|------|-------|--------|--------------|
+| 6A.1 | GGUF tensor bounds validation (`S-1` / `A-5`), metadata/alignment caps (`S-2`), and private `memoryview` wrapper lifecycle (`D-3`) | Argon | ✅ | Phase 5 |
+| 6A.2 | `KVCacheManager` `O_CREAT \| O_EXCL` `mmap` file safety (`S-3`) & `__del__` `RuntimeWarning` (`D-4` / `A-4`) | Argon | ✅ | Phase 5 |
+| 6A.3 | Build & packaging cleanup (`D-1` / `A-1`, `D-2`) and Top-P underflow guard (`D-5`) | Argon | ✅ | Phase 5 |
+| 6B.1 | $O(L \log L)$ priority-queue BPE merge (`P-4`) & vectorized, bounds-checked `embed_tokens` (`P-5`) | Argon | ✅ | Phase 5 |
+| 6B.2 | Multi-span layer page eviction `get_layer_byte_spans` (`P-8` / `A-3`) & CPU-only test suite + CI (`D-6` / `A-7`) | Argon | ✅ | 6A.1–6B.1 |
+| 6C.1 | Native-layout FP16 `matmul_nt` kernels (`P-2`), dead `matmul_kernel` removal (`P-10`), `size_t` GQA indexing (`P-6` / `A-2`), and host-cached RoPE `inv_freq` (`P-7`) | Argon | ✅ | Phase 5 |
+| 6C.2 | Multi-row (`TILE_M = 4`) quantized prefill Wave32 kernels for `Q4_0`, `Q8_0`, and `Q4_K` (`P-3`) | Argon | ✅ | Phase 5 |
+| 6C.3 | Fused `rmsnorm_residual` + `residual_add` kernels (`6C-i`) and C++-owned device-resident layer pipeline `forward_layer_cached` with D2D KV-cache writes (`6C-ii` / `P-1`) | Argon | ✅ | 6C.1–6C.2 |
+
+#### **Success Criteria**
+- [x] Truncated or malformed GGUF files raise `ValueError` at parse time with zero `SIGBUS` or leaked file descriptors
+- [x] `TILE_M = 4` quantized prefill kernels match `M = 1` Wave32 kernels with `max_diff == 0.0` across `Q4_0`, `Q8_0`, and `Q4_K`
+- [x] C++-owned device-resident layer pipeline (`forward_layer_cached`) increases end-to-end throughput on `tests/test_full_model.py` from `~224 tok/s` to **`983.4 tok/s` (`decode: 1107.9 tok/s`)**
+- [x] Self-contained CPU-only test suite ([tests/test_cpu_only.py](tests/test_cpu_only.py)) passes under both `python3` and `python3 -O`
+
+#### **Deliverables**
+- ✅ [src/gguf_parser.py](src/gguf_parser.py), [src/weight_loader.py](src/weight_loader.py), [src/kv_cache.py](src/kv_cache.py), [src/tokenizer.py](src/tokenizer.py) (Hardened parser, multi-span `madvise`, `O_EXCL` mmap safety, $O(L \log L)$ BPE, vectorized embeddings)
+- ✅ [src/kernels/matmul.hip](src/kernels/matmul.hip), [src/kernels/dequantize.hip](src/kernels/dequantize.hip), [src/kernels/rmsnorm.hip](src/kernels/rmsnorm.hip), [src/kernels/rope.hip](src/kernels/rope.hip), [src/kernels/attention.hip](src/kernels/attention.hip) (`matmul_nt`, `TILE_M=4` prefill, `rmsnorm_residual`, `forward_layer_cached`)
+- ✅ [tests/test_cpu_only.py](tests/test_cpu_only.py) & [.github/workflows/ci-cpu.yml](.github/workflows/ci-cpu.yml) (CPU-only regression suite & GitHub Actions workflow)
+
+---
+
 ## 📊 Performance Targets
 
 | **Model** | **Quantization** | **SSD Size** | **Active RAM Cap** | **Target Tokens/sec** | **Estimated Time for 1K Tokens** |
@@ -208,3 +236,4 @@ class WeightStreamer:
 | Phase 3   | Llama Layer Kernels (RMSNorm, RoPE, GQA, SwiGLU) | ✅ Complete |
 | Phase 4   | End-to-End Model Inference + KV Cache + Tokenizer | ✅ Complete |
 | Phase 5   | K-Quants (`Q4_K_M` / `Q8_0`), 70B Scaling, KV Offload & Packaging | ✅ Complete |
+| Phase 6 (`v0.6.0`) | Audit Remediation, Security Hardening, Device-Resident Pipeline & CPU CI | ✅ Complete (983.4 tok/s synthetic E2E) |

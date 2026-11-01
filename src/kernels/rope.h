@@ -18,5 +18,16 @@ void launch_rope_fp16(
     bool neox_style
 );
 
+void launch_rope_fp16_device(
+    const void* d_in,
+    void* d_out,
+    int seq_len,
+    int num_heads,
+    int head_dim,
+    int pos_offset,
+    float freq_base,
+    bool neox_style
+);
+
 #endif // ROPE_H
 

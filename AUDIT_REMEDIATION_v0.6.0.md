@@ -68,3 +68,32 @@
 ## 6. Verdict
 
 Well-architected, internally consistent, numerically sound (FP32 accumulation throughout; quantization errors within published bounds), and fail-closed on malformed headers. No correctness bugs in the compute path. The headline risks are the **SIGBUS on truncated model files (S-1)** and **per-op blocking copies + per-layer host transposes (P-1/P-2)** as the main throughput limiters. All findings are hardening/performance items queued above for v0.6.0.
+
+---
+
+## 7. v0.6.0 Resolution Log (`Argon_Phase_6`)
+
+All findings from [AUDIT_REMEDIATION_v0.6.0.md](AUDIT_REMEDIATION_v0.6.0.md) (`S-1`–`S-4`, `P-1`–`P-10`, `D-1`–`D-6`) and [AUDIT_REPORT_v0.5.0.md](AUDIT_REPORT_v0.5.0.md) (`A-1`–`A-8`) have been implemented and verified on `gfx1150`:
+
+| ID | Cross-Ref | Status | Resolution Summary |
+|---|---|---|---|
+| **S-1** | `A-5` | ✅ Resolved | [src/gguf_parser.py](src/gguf_parser.py) validates `abs_offset >= self.data_offset` and `abs_offset + n_bytes <= len(buf)` inside `_parse`, raising `ValueError` on truncated GGUF files instead of `SIGBUS`. [src/weight_loader.py](src/weight_loader.py) closes `_mm` and `_file` on parser error. |
+| **S-2** | — | ✅ Resolved | [src/gguf_parser.py](src/gguf_parser.py) caps `kv_count * 13 <= remaining`, `tensor_count * 24 <= remaining`, `ARRAY` count `<= remaining`, `n_dims <= 8`, validates `general.alignment` is a power of two in `[1, 65536]` before calling `align_offset`, and replaces internal `assert` statements with `RuntimeError`. |
+| **S-3** | — | ✅ Resolved | [src/kv_cache.py](src/kv_cache.py) pre-creates unique `kv_cache_{k,v}_{pid}_{id}.mmap` files with `os.open(p, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)` before `np.memmap` creation and unlinks only paths in `self._created_mmap_files`. |
+| **S-4** | — | ✅ Informational | Local CLI buffer-protocol surface documented as trusted caller input. |
+| **P-1** | — | ✅ Resolved | Split into **6C-i** and **6C-ii**: (i) Added fused `rmsnorm_residual` and `residual_add` HIP kernels in [src/kernels/rmsnorm.hip](src/kernels/rmsnorm.hip); (ii) Added C++-owned device-resident layer pipeline `forward_layer_cached` in [src/kernels/attention.hip](src/kernels/attention.hip) performing 1 H2D activation copy at layer entry, D2D (`hipMemcpyDeviceToDevice`) KV-cache writes, on-device projections/RoPE/GQA/SwiGLU, and 1 D2H copy at layer exit (**4.4x end-to-end throughput increase** on `test_full_model.py`: `224 -> 983.4 tok/s`). |
+| **P-2** | — | ✅ Resolved | Added `launch_matmul_fp16_nt` (`matmul_nt_kernel_reg_tiled` `64x64` + `matmul_nt_kernel_tiled` `16x16`) in [src/kernels/matmul.hip](src/kernels/matmul.hip), bound as `matmul_nt` with `(N, K)` shape validation in [src/python_bindings/bindings.cpp](src/python_bindings/bindings.cpp), and wired into `linear_project` in [src/layer.py](src/layer.py) to eliminate host `.T` transposes. |
+| **P-3** | — | ✅ Resolved | Added `TILE_M = 4` multi-row quantized prefill Wave32 kernels (`matmul_q4_0_prefill_wave_kernel`, `matmul_q8_0_prefill_wave_kernel`, `matmul_q4_k_prefill_wave_kernel`) in [src/kernels/dequantize.hip](src/kernels/dequantize.hip), dispatched when `M >= 4` and verified bit-identical (`max_diff == 0.0`) to `M = 1` wave kernels in [tests/test_phase5_scale.py](tests/test_phase5_scale.py). |
+| **P-4** | — | ✅ Resolved | Replaced $O(L^2)$ BPE merge loop in [src/tokenizer.py](src/tokenizer.py) with an $O(L \log L)$ min-heap (`heapq`) over a doubly-linked symbol list preserving leftmost tie-breaking. |
+| **P-5** | — | ✅ Resolved | Vectorized `embed_tokens` in [src/tokenizer.py](src/tokenizer.py) (`table[ids_arr]` for `F16`/`F32`, contiguous `raw_u8[ids_arr]` gather + batch dequantization for `Q4_0`/`Q8_0`/`Q4_K`) with `_validate_token_ids` bounds checking (`0 <= tid < n_rows`). |
+| **P-6** | `A-2` | ✅ Resolved | Promoted `total_qh` and `qh_idx` to `size_t` at all 3 sites in [src/kernels/attention.hip](src/kernels/attention.hip). |
+| **P-7** | — | ✅ Resolved | Precomputed and cached `d_inv_freq` on host per `(head_dim, freq_base)` in [src/kernels/rope.hip](src/kernels/rope.hip), eliminating per-thread device `powf` calls. |
+| **P-8** | `A-3` | ✅ Resolved | Added `get_layer_byte_spans(layer_idx)` in [src/gguf_parser.py](src/gguf_parser.py) that splits around interleaved non-layer tensors and updated `WeightStreamer.prefetch_layer` / `release_layer` in [src/weight_loader.py](src/weight_loader.py). |
+| **P-9** | — | ✅ Documented | Register-resident GQA online softmax (`head_dim <= 256`) documented as architectural choice for Llama/Mistral/Qwen models. |
+| **P-10** | — | ✅ Resolved | Removed dead unlaunched naive `matmul_kernel` from [src/kernels/matmul.hip](src/kernels/matmul.hip). |
+| **D-1** | `A-1` | ✅ Resolved | Added `"cmake>=3.21"` to `[build-system] requires` in [pyproject.toml](pyproject.toml), bumped version to `0.6.0`, and added `cmake` + `ROCM_ROOT` pre-checks in [setup.py](setup.py). |
+| **D-2** | — | ✅ Resolved | Removed unused `hipblas`/`rocblas` `find_package` and link targets, and replaced hardcoded `therock-dist` RPATH with `${ROCM_ROOT}/lib` in [CMakeLists.txt](CMakeLists.txt). |
+| **D-3** | — | ✅ Resolved | [src/gguf_parser.py](src/gguf_parser.py) creates a private `view = memoryview(buf).cast("B")` wrapper and releases only `view` in `try/finally`, preserving caller-owned `memoryview` objects. |
+| **D-4** | `A-4` | ✅ Resolved | [src/kv_cache.py](src/kv_cache.py) emits a `RuntimeWarning` in `__del__` (guarded by `try/except Exception: pass`) if `close()` raises during finalization. |
+| **D-5** | — | ✅ Resolved | [src/inference.py](src/inference.py) guards Top-P renormalization against `sum(sorted_probs) <= 0` or non-finite values by falling back to `argmax(logits_fp16)`. |
+| **D-6** | `A-7` | ✅ Resolved | Added self-contained CPU-only test suite [tests/test_cpu_only.py](tests/test_cpu_only.py) and GitHub Actions workflow [.github/workflows/ci-cpu.yml](.github/workflows/ci-cpu.yml). |

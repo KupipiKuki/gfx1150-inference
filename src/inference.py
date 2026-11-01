@@ -90,7 +90,10 @@ def sample_next_token(
         cum_probs = np.cumsum(sorted_probs)
         cutoff = cum_probs - sorted_probs > top_p
         sorted_probs[cutoff] = 0.0
-        sorted_probs /= np.sum(sorted_probs)
+        s = float(np.sum(sorted_probs))
+        if s <= 0.0 or not np.isfinite(s):
+            return int(np.argmax(logits_fp16))
+        sorted_probs /= s
         if rng is None:
             rng = np.random.default_rng()
         choice = int(rng.choice(sorted_idx, p=sorted_probs))
@@ -432,6 +435,9 @@ class LlamaInferenceEngine:
         return texts, metrics
 
     def close(self) -> None:
+        self.token_embd_view = None
+        self.output_norm_w = None
+        self.output_weight_entry = None
         if getattr(self, "kv_cache", None) is not None:
             self.kv_cache.close()
         if getattr(self, "streamer", None) is not None:

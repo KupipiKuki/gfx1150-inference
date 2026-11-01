@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Optional
+import warnings
+from typing import List, Optional
 import numpy as np
 
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -63,17 +64,25 @@ class KVCacheManager:
         self._allocated = False
         self._k_host: Optional[np.ndarray] = None
         self._v_host: Optional[np.ndarray] = None
-        self._mmap_files: list[str] = []
+        self._created_mmap_files: List[str] = []
 
         shape = (self.num_layers, self.max_seq_len, self.num_kv_heads, self.head_dim)
 
         if self.mmap_dir is not None:
             os.makedirs(self.mmap_dir, exist_ok=True)
-            k_path = os.path.join(self.mmap_dir, "kv_cache_k.mmap")
-            v_path = os.path.join(self.mmap_dir, "kv_cache_v.mmap")
-            self._mmap_files = [k_path, v_path]
-            self._k_host = np.memmap(k_path, dtype=np.float16, mode="w+", shape=shape)
-            self._v_host = np.memmap(v_path, dtype=np.float16, mode="w+", shape=shape)
+            uid = f"{os.getpid()}_{id(self):x}"
+            k_path = os.path.join(self.mmap_dir, f"kv_cache_k_{uid}.mmap")
+            v_path = os.path.join(self.mmap_dir, f"kv_cache_v_{uid}.mmap")
+            try:
+                for p in (k_path, v_path):
+                    fd = os.open(p, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)
+                    os.close(fd)
+                    self._created_mmap_files.append(p)
+                self._k_host = np.memmap(k_path, dtype=np.float16, mode="w+", shape=shape)
+                self._v_host = np.memmap(v_path, dtype=np.float16, mode="w+", shape=shape)
+            except BaseException:
+                self.close()
+                raise
         elif self.offload_to_cpu:
             self._k_host = np.empty(shape, dtype=np.float16)
             self._v_host = np.empty(shape, dtype=np.float16)
@@ -108,9 +117,31 @@ class KVCacheManager:
         return 2 * self.num_layers * self.max_seq_len * self.num_kv_heads * self.head_dim * 2
 
     @property
+    def mode(self) -> str:
+        """Active KV cache storage backend ('gpu', 'cpu', or 'mmap')."""
+        if self.mmap_dir is not None:
+            return "mmap"
+        return "cpu" if self.offload_to_cpu else "gpu"
+
+    @property
     def device_bytes(self) -> int:
         """Bytes allocated in persistent GPU KV pool (0 when offloaded to CPU/mmap)."""
         return 0 if self.offload_to_cpu else self.nbytes
+
+    def record_gpu_layer_step(self, layer_idx: int, q_len: int, start_pos: int) -> None:
+        """
+        Validate bounds and update `current_seq_len` when the C++-owned device-resident
+        layer pipeline (`forward_layer_cached`) writes directly to the GPU KV cache pool.
+        """
+        total_kv_len = start_pos + q_len
+        if total_kv_len > self.max_seq_len:
+            raise ValueError(
+                f"Sequence length {total_kv_len} exceeds max_seq_len {self.max_seq_len}"
+            )
+        if not self._allocated:
+            raise RuntimeError("GPU KV cache pool is not allocated or has been closed.")
+        if layer_idx == self.num_layers - 1:
+            self.current_seq_len = total_kv_len
 
     def attend(
         self,
@@ -178,30 +209,44 @@ class KVCacheManager:
         if layer_idx == self.num_layers - 1:
             self.current_seq_len = total_kv_len
 
+    @property
+    def mmap_files(self) -> List[str]:
+        """Paths of disk-backed mmap files created by this instance."""
+        return list(self._created_mmap_files)
+
     def reset(self) -> None:
         """Reset logical sequence length to 0 without reallocating memory."""
         self.current_seq_len = 0
 
     def close(self) -> None:
         if self._allocated:
-            matmul_module.kv_cache_free()
-            self._allocated = False
-            KVCacheManager._active_gpu_instance = False
+            try:
+                matmul_module.kv_cache_free()
+            finally:
+                self._allocated = False
+                KVCacheManager._active_gpu_instance = False
         self._k_host = None
         self._v_host = None
-        for p in self._mmap_files:
+        for p in self._created_mmap_files:
             try:
                 if os.path.exists(p):
                     os.remove(p)
             except OSError:
                 pass
-        self._mmap_files.clear()
+        self._created_mmap_files.clear()
 
     def __del__(self) -> None:
         try:
             self.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            try:
+                warnings.warn(
+                    f"KVCacheManager.close() raised during finalization: {exc}",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+            except Exception:
+                pass
 
     def __enter__(self) -> "KVCacheManager":
         return self

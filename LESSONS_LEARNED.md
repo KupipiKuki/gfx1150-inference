@@ -473,6 +473,10 @@ python3 -c "import pyhip; print(pyhip.hipRuntimeGetVersion())"
 | 2026-10-31 | Wire `setup.py` `CMakeBuild(build_ext)` to `CMakeLists.txt` so `pip install -e .` compiles the HIP extension (`matmul_module`) | Phase 5 | KupipiKuki |
 | 2026-10-31 | Never use `assert` for runtime validation in CLI/library code (`python -O` strips assertions); raise `RuntimeError` explicitly | Phase 5 | KupipiKuki |
 | 2026-10-31 | Guard process-wide static GPU pools (`DeviceKVCachePool`) against concurrent instance overwrites | Phase 5 | KupipiKuki |
+| 2026-10-31 | Validate GGUF tensor `abs_offset + n_bytes <= len(buf)` at parse time to prevent `SIGBUS` on truncated `mmap` files | Phase 6 (`v0.6.0`) | KupipiKuki |
+| 2026-10-31 | Keep intermediate layer activations on-GPU inside a C++-owned pipeline (`forward_layer_cached`) with D2D KV-cache writes (1 H2D + 1 D2H per layer, 4.4x E2E speedup) instead of exposing raw device pointers to Python | Phase 6 (`v0.6.0`) | KupipiKuki |
+| 2026-10-31 | Use `matmul_nt` (`A @ B_nt^T` on native `(N, K)` GGUF weights) and `TILE_M = 4` multi-row quantized prefill kernels to eliminate host `.T` transposes and 4x redundant weight reads during prefill | Phase 6 (`v0.6.0`) | KupipiKuki |
+| 2026-10-31 | Clear exported NumPy views (`token_embd_view`, `output_weight_entry`) before calling `mmap.close()` in `close()` / `__exit__` so exception unwinding never triggers `BufferError` | Phase 6 (`v0.6.0`) | KupipiKuki |
 
 ---
 

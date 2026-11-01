@@ -82,6 +82,29 @@ class LlamaLayerConfig:
         )
 
 
+def _prepare_weight_for_device(
+    weight_entry: Tuple[GGUFTensorInfo, np.ndarray],
+    out_features: int,
+    in_features: int,
+) -> Tuple[np.ndarray, int]:
+    """
+    Prepare a GGUF weight buffer and its effective GGMLType int for device execution.
+    F32 weights are converted to contiguous (N, K) FP16 without transposing.
+    """
+    info, w_view = weight_entry
+    if info.ggml_type in (GGMLType.Q4_0, GGMLType.Q8_0, GGMLType.Q4_K):
+        return w_view, int(info.ggml_type)
+    if info.ggml_type == GGMLType.F16:
+        w_nt = np.ascontiguousarray(w_view.view(np.float16).reshape(out_features, in_features))
+        return w_nt, int(GGMLType.F16)
+    if info.ggml_type == GGMLType.F32:
+        w_nt = np.ascontiguousarray(
+            w_view.view(np.float32).reshape(out_features, in_features).astype(np.float16)
+        )
+        return w_nt, int(GGMLType.F16)
+    raise ValueError(f"Unsupported weight quantization type: {info.ggml_type}")
+
+
 def linear_project(
     x_fp16: np.ndarray,
     weight_entry: Tuple[GGUFTensorInfo, np.ndarray],
@@ -89,7 +112,8 @@ def linear_project(
 ) -> np.ndarray:
     """
     Compute `x_fp16 (M, K) @ W^T (N, K)` on GPU using fused quantized kernels
-    (`matmul_q4_0`, `matmul_q8_0`, `matmul_q4_k`) or FP16 `matmul`.
+    (`matmul_q4_0`, `matmul_q8_0`, `matmul_q4_k`) or native-layout FP16 `matmul_nt`
+    (zero host transpose).
     """
     info, w_view = weight_entry
     M, K = x_fp16.shape
@@ -103,11 +127,11 @@ def linear_project(
     elif info.ggml_type == GGMLType.Q4_K:
         matmul_module.matmul_q4_k(x_fp16, w_view, out, M, N, K)
     elif info.ggml_type == GGMLType.F16:
-        w_t = np.ascontiguousarray(w_view.reshape(N, K).T)
-        matmul_module.matmul(x_fp16, w_t, out, M, N, K)
+        w_nt = np.ascontiguousarray(w_view.view(np.float16).reshape(N, K))
+        matmul_module.matmul_nt(x_fp16, w_nt, out, M, N, K)
     elif info.ggml_type == GGMLType.F32:
-        w_t = np.ascontiguousarray(w_view.reshape(N, K).astype(np.float16).T)
-        matmul_module.matmul(x_fp16, w_t, out, M, N, K)
+        w_nt = np.ascontiguousarray(w_view.view(np.float32).reshape(N, K).astype(np.float16))
+        matmul_module.matmul_nt(x_fp16, w_nt, out, M, N, K)
     else:
         raise ValueError(f"Unsupported weight quantization type: {info.ggml_type}")
     return out
@@ -161,12 +185,61 @@ class TransformerLayer:
         q_dim = cfg.num_heads * cfg.head_dim
         kv_dim = cfg.num_kv_heads * cfg.head_dim
 
-        # 1. Pre-Attention RMSNorm
         attn_norm_w = norm_weight_fp16(layer_weights[prefix + "attn_norm.weight"])
+        ffn_norm_w = norm_weight_fp16(layer_weights[prefix + "ffn_norm.weight"])
+
+        # Fast C++-owned device-resident pipeline when using GPU-resident KVCacheManager:
+        # Performs 1 H2D activation copy, keeps all layer intermediates on-GPU, writes
+        # K/V to the pool via D2D hipMemcpy, fuses residual+RMSNorm, and does 1 D2H copy.
+        if isinstance(kv_cache, KVCacheManager) and kv_cache.mode == "gpu":
+            kv_cache.record_gpu_layer_step(layer_idx, seq_len, pos_offset)
+            wq_buf, wq_type = _prepare_weight_for_device(
+                layer_weights[prefix + "attn_q.weight"], q_dim, hidden_size
+            )
+            wk_buf, wk_type = _prepare_weight_for_device(
+                layer_weights[prefix + "attn_k.weight"], kv_dim, hidden_size
+            )
+            wv_buf, wv_type = _prepare_weight_for_device(
+                layer_weights[prefix + "attn_v.weight"], kv_dim, hidden_size
+            )
+            wo_buf, wo_type = _prepare_weight_for_device(
+                layer_weights[prefix + "attn_output.weight"], hidden_size, q_dim
+            )
+            wgate_buf, wgate_type = _prepare_weight_for_device(
+                layer_weights[prefix + "ffn_gate.weight"], cfg.intermediate_size, hidden_size
+            )
+            wup_buf, wup_type = _prepare_weight_for_device(
+                layer_weights[prefix + "ffn_up.weight"], cfg.intermediate_size, hidden_size
+            )
+            wdown_buf, wdown_type = _prepare_weight_for_device(
+                layer_weights[prefix + "ffn_down.weight"], hidden_size, cfg.intermediate_size
+            )
+
+            out_hidden = np.empty_like(x)
+            matmul_module.forward_layer_cached(
+                x, out_hidden,
+                attn_norm_w,
+                wq_buf, wq_type,
+                wk_buf, wk_type,
+                wv_buf, wv_type,
+                wo_buf, wo_type,
+                ffn_norm_w,
+                wgate_buf, wgate_type,
+                wup_buf, wup_type,
+                wdown_buf, wdown_type,
+                layer_idx, seq_len, pos_offset,
+                hidden_size, cfg.intermediate_size,
+                cfg.num_heads, cfg.num_kv_heads, cfg.head_dim,
+                cfg.rms_norm_eps, cfg.rope_freq_base, cfg.rope_neox,
+                self.scale
+            )
+            return out_hidden, None
+
+        # 1. Pre-Attention RMSNorm
         normed_x = np.empty_like(x)
         matmul_module.rmsnorm(x, attn_norm_w, normed_x, seq_len, hidden_size, cfg.rms_norm_eps)
 
-        # 2. Q, K, V Projections (Fused Q4_0 or FP16)
+        # 2. Q, K, V Projections (Fused Q4_0/Q8_0/Q4_K or FP16 NT)
         q_proj = linear_project(normed_x, layer_weights[prefix + "attn_q.weight"], q_dim)
         k_proj = linear_project(normed_x, layer_weights[prefix + "attn_k.weight"], kv_dim)
         v_proj = linear_project(normed_x, layer_weights[prefix + "attn_v.weight"], kv_dim)
@@ -227,16 +300,15 @@ class TransformerLayer:
 
         attn_out_flat = attn_out_heads.reshape(seq_len, q_dim)
 
-        # 6. Output Projection + First Residual Connection
+        # 6 & 7. Output Projection + Fused First Residual + Pre-FFN RMSNorm on GPU
         attn_proj = linear_project(
             attn_out_flat, layer_weights[prefix + "attn_output.weight"], hidden_size
         )
-        h = (x.astype(np.float32) + attn_proj.astype(np.float32)).astype(np.float16)
-
-        # 7. Pre-FFN RMSNorm
-        ffn_norm_w = norm_weight_fp16(layer_weights[prefix + "ffn_norm.weight"])
-        normed_h = np.empty_like(h)
-        matmul_module.rmsnorm(h, ffn_norm_w, normed_h, seq_len, hidden_size, cfg.rms_norm_eps)
+        h = np.empty_like(x)
+        normed_h = np.empty_like(x)
+        matmul_module.rmsnorm_residual(
+            x, attn_proj, ffn_norm_w, h, normed_h, seq_len, hidden_size, cfg.rms_norm_eps
+        )
 
         # 8. SwiGLU Feed-Forward Network (gate_proj, up_proj -> SwiGLU -> down_proj)
         gate = linear_project(
@@ -252,8 +324,9 @@ class TransformerLayer:
             swiglu_out, layer_weights[prefix + "ffn_down.weight"], hidden_size
         )
 
-        # 9. Second Residual Connection
-        out_hidden = (h.astype(np.float32) + down.astype(np.float32)).astype(np.float16)
+        # 9. Second Residual Connection on GPU
+        out_hidden = np.empty_like(h)
+        matmul_module.residual_add(h, down, out_hidden, seq_len * hidden_size)
         return out_hidden, kv_present
 
     def forward_streamed(

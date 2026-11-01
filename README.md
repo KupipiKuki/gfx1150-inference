@@ -48,6 +48,7 @@ gfx1150-inference/
 │   └── python_bindings/
 │       └── bindings.cpp
 └── tests/
+    ├── test_cpu_only.py
     ├── test_matmul.py
     ├── test_gguf_and_q4.py
     ├── test_layer.py
@@ -63,6 +64,7 @@ gfx1150-inference/
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
+python3 tests/test_cpu_only.py
 PYTHONPATH=build python3 tests/test_matmul.py
 PYTHONPATH=build:src python3 tests/test_gguf_and_q4.py
 PYTHONPATH=build:src python3 tests/test_layer.py

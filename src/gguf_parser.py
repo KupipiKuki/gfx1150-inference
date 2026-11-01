@@ -108,8 +108,16 @@ def align_offset(offset: int, alignment: int = GGUF_DEFAULT_ALIGNMENT) -> int:
 class GGUFParser:
     """Zero-copy parser for GGUF v2/v3 headers and tensor descriptors."""
 
+    MAX_TENSOR_DIMS = 8
+    MAX_ALIGNMENT = 65536
+    MIN_KV_ENTRY_BYTES = 13
+    MIN_TENSOR_ENTRY_BYTES = 24
+
     def __init__(self, buf: Union[bytes, bytearray, memoryview, Any]):
-        self._buf = memoryview(buf)
+        # Create a private memoryview wrapper so releasing `view` in `finally`
+        # drops our export on `mmap` without invalidating a caller-owned memoryview.
+        view = memoryview(buf).cast("B")
+        self._buf: Optional[memoryview] = view
         self._pos = 0
         self.version: int = 0
         self.tensor_count: int = 0
@@ -119,12 +127,15 @@ class GGUFParser:
         self.alignment: int = GGUF_DEFAULT_ALIGNMENT
         self.data_offset: int = 0
 
-        self._parse()
-        if isinstance(self._buf, memoryview):
-            self._buf.release()
-        self._buf = None
+        try:
+            self._parse()
+        finally:
+            self._buf = None
+            view.release()
 
     def _read_fmt(self, fmt: str) -> Tuple[Any, ...]:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
         size = struct.calcsize(fmt)
         if self._pos + size > len(self._buf):
             raise ValueError(f"Unexpected EOF at offset {self._pos} while reading {fmt}")
@@ -133,6 +144,8 @@ class GGUFParser:
         return vals
 
     def _read_string(self) -> str:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
         (length,) = self._read_fmt("<Q")
         if self._pos + length > len(self._buf):
             raise ValueError(f"Unexpected EOF while reading string of length {length}")
@@ -141,6 +154,8 @@ class GGUFParser:
         return raw.decode("utf-8")
 
     def _read_value(self, vtype: int) -> Any:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
         if vtype in _SCALAR_FORMATS:
             return self._read_fmt(_SCALAR_FORMATS[vtype])[0]
         if vtype == GGUFValueType.BOOL:
@@ -149,10 +164,20 @@ class GGUFParser:
             return self._read_string()
         if vtype == GGUFValueType.ARRAY:
             elem_type, count = self._read_fmt("<IQ")
+            remaining = len(self._buf) - self._pos
+            if count > remaining:
+                raise ValueError(
+                    f"GGUF array count {count} exceeds remaining buffer bytes ({remaining})"
+                )
             return [self._read_value(elem_type) for _ in range(count)]
         raise ValueError(f"Unsupported GGUF metadata value type: {vtype}")
 
     def _parse(self) -> None:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
+        buf_len = len(self._buf)
+        if buf_len < 4:
+            raise ValueError(f"Buffer too small for GGUF header ({buf_len} bytes)")
         magic = bytes(self._buf[0:4])
         if magic != GGUF_MAGIC:
             raise ValueError(f"Invalid GGUF magic: {magic!r} (expected b'GGUF')")
@@ -162,17 +187,50 @@ class GGUFParser:
         if self.version not in (2, 3):
             raise ValueError(f"Unsupported GGUF version: {self.version} (expected 2 or 3)")
 
+        remaining_after_header = buf_len - self._pos
+        if self.kv_count * self.MIN_KV_ENTRY_BYTES > remaining_after_header:
+            raise ValueError(
+                f"Corrupt GGUF header: kv_count={self.kv_count} requires at least "
+                f"{self.kv_count * self.MIN_KV_ENTRY_BYTES} bytes, but only {remaining_after_header} remain"
+            )
+        if self.tensor_count * self.MIN_TENSOR_ENTRY_BYTES > remaining_after_header:
+            raise ValueError(
+                f"Corrupt GGUF header: tensor_count={self.tensor_count} requires at least "
+                f"{self.tensor_count * self.MIN_TENSOR_ENTRY_BYTES} bytes, but only {remaining_after_header} remain"
+            )
+
         for _ in range(self.kv_count):
             key = self._read_string()
             (vtype,) = self._read_fmt("<I")
             self.metadata[key] = self._read_value(vtype)
 
-        self.alignment = int(self.metadata.get("general.alignment", GGUF_DEFAULT_ALIGNMENT))
+        raw_align = self.metadata.get("general.alignment", GGUF_DEFAULT_ALIGNMENT)
+        if isinstance(raw_align, bool) or not isinstance(raw_align, int):
+            raise ValueError(f"Invalid general.alignment value: {raw_align!r}")
+        if (
+            raw_align < 1
+            or raw_align > self.MAX_ALIGNMENT
+            or (raw_align & (raw_align - 1)) != 0
+        ):
+            raise ValueError(
+                f"Invalid general.alignment={raw_align}: must be a power of 2 in [1, {self.MAX_ALIGNMENT}]"
+            )
+        self.alignment = raw_align
+
+        remaining_for_tensors = buf_len - self._pos
+        if self.tensor_count * self.MIN_TENSOR_ENTRY_BYTES > remaining_for_tensors:
+            raise ValueError(
+                f"Corrupt GGUF tensor table: tensor_count={self.tensor_count} exceeds remaining bytes ({remaining_for_tensors})"
+            )
 
         raw_tensors = []
         for _ in range(self.tensor_count):
             name = self._read_string()
             (n_dims,) = self._read_fmt("<I")
+            if n_dims > self.MAX_TENSOR_DIMS:
+                raise ValueError(
+                    f"Tensor '{name}' has n_dims={n_dims} exceeding maximum {self.MAX_TENSOR_DIMS}"
+                )
             dims = tuple(self._read_fmt(f"<{n_dims}Q"))
             ggml_type_id, rel_offset = self._read_fmt("<IQ")
             ggml_type = GGMLType(ggml_type_id)
@@ -187,9 +245,18 @@ class GGUFParser:
             raw_tensors.append((name, dims, ggml_type, rel_offset, n_elements, n_bytes))
 
         self.data_offset = align_offset(self._pos, self.alignment)
+        if self.data_offset > buf_len and self.tensor_count > 0:
+            raise ValueError(
+                f"Truncated GGUF file: data_offset {self.data_offset} exceeds buffer size {buf_len}"
+            )
 
         for name, dims, ggml_type, rel_offset, n_elements, n_bytes in raw_tensors:
             abs_offset = self.data_offset + rel_offset
+            if abs_offset < self.data_offset or abs_offset + n_bytes > buf_len:
+                raise ValueError(
+                    f"Truncated GGUF file: tensor '{name}' requires byte range "
+                    f"[{abs_offset}, {abs_offset + n_bytes}), but file size is {buf_len} bytes"
+                )
             self.tensors[name] = GGUFTensorInfo(
                 name=name,
                 dims=dims,
@@ -205,8 +272,52 @@ class GGUFParser:
         prefix = f"blk.{layer_idx}."
         return {k: v for k, v in self.tensors.items() if k.startswith(prefix)}
 
+    def get_layer_byte_spans(self, layer_idx: int) -> List[Tuple[int, int]]:
+        """
+        Return a list of `(start_offset, byte_length)` spans for `layer_idx`, merging
+        adjacent layer tensors that have no foreign (non-layer) tensor interleaved between them.
+        """
+        layer_tensors = self.get_layer_tensors(layer_idx)
+        if not layer_tensors:
+            raise KeyError(f"No tensors found for layer {layer_idx}")
+
+        sorted_layer = sorted(layer_tensors.values(), key=lambda t: t.abs_offset)
+        layer_names = set(layer_tensors.keys())
+        foreign_intervals = sorted(
+            (t.abs_offset, t.abs_offset + t.n_bytes)
+            for name, t in self.tensors.items()
+            if name not in layer_names
+        )
+
+        def _has_foreign_between(end_prev: int, start_next: int) -> bool:
+            if start_next <= end_prev:
+                return False
+            for f_start, f_end in foreign_intervals:
+                if f_start >= start_next:
+                    break
+                if f_end > end_prev and f_start < start_next:
+                    return True
+            return False
+
+        spans: List[Tuple[int, int]] = []
+        cur_start = sorted_layer[0].abs_offset
+        cur_end = cur_start + sorted_layer[0].n_bytes
+
+        for t in sorted_layer[1:]:
+            t_start = t.abs_offset
+            t_end = t_start + t.n_bytes
+            gap = t_start - cur_end
+            if gap <= self.alignment and not _has_foreign_between(cur_end, t_start):
+                cur_end = max(cur_end, t_end)
+            else:
+                spans.append((cur_start, cur_end - cur_start))
+                cur_start, cur_end = t_start, t_end
+
+        spans.append((cur_start, cur_end - cur_start))
+        return spans
+
     def get_layer_byte_span(self, layer_idx: int) -> Tuple[int, int]:
-        """Return `(start_offset, byte_length)` covering all tensors in `layer_idx`."""
+        """Return hull `(start_offset, byte_length)` covering all tensors in `layer_idx`."""
         layer_tensors = self.get_layer_tensors(layer_idx)
         if not layer_tensors:
             raise KeyError(f"No tensors found for layer {layer_idx}")

@@ -83,6 +83,7 @@ __global__ void dequantize_q4_0_kernel(
 // by streaming blocks along K in parallel and reducing across the 32 lanes.
 constexpr int WAVE_SIZE = 32;
 constexpr int WAVES_PER_BLOCK = 8; // 256 threads per workgroup
+constexpr int PREFILL_TILE_M = 4;  // Multi-row prefill tile (reuses dequantized weight across 4 rows)
 
 __global__ __launch_bounds__(256) void matmul_q4_0_wave_kernel(
     const half* __restrict__ A,
@@ -134,6 +135,68 @@ __global__ __launch_bounds__(256) void matmul_q4_0_wave_kernel(
 
     if (lane_id == 0) {
         C[static_cast<size_t>(m) * N + n] = __float2half(sum);
+    }
+}
+
+// Multi-row prefill Q4_0 Wave32 kernel (TILE_M = 4):
+// Dequantizes each Q4_0 weight block once in registers and accumulates across 4 activation rows.
+__global__ __launch_bounds__(256) void matmul_q4_0_prefill_wave_kernel(
+    const half* __restrict__ A,
+    const block_q4_0* __restrict__ B,
+    half* __restrict__ C,
+    const int M,
+    const int N,
+    const int K,
+    const int blocks_per_row
+) {
+    const int tid = threadIdx.x;
+    const int wave_id = tid / WAVE_SIZE;
+    const int lane_id = tid % WAVE_SIZE;
+
+    const int n = blockIdx.x * WAVES_PER_BLOCK + wave_id;
+    const int m_base = blockIdx.y * PREFILL_TILE_M;
+
+    if (m_base >= M || n >= N) return;
+
+    const block_q4_0* b_row = B + static_cast<size_t>(n) * blocks_per_row;
+    float sum[PREFILL_TILE_M] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+    for (int ib = lane_id; ib < blocks_per_row; ib += WAVE_SIZE) {
+        const float d = __half2float(b_row[ib].d);
+        const uint8_t* qs = b_row[ib].qs;
+
+        float block_sum[PREFILL_TILE_M] = {0.0f, 0.0f, 0.0f, 0.0f};
+        #pragma unroll
+        for (int j = 0; j < QK4_0 / 2; ++j) {
+            const uint8_t packed = qs[j];
+            const float w0 = static_cast<float>(static_cast<int>(packed & 0x0F) - 8);
+            const float w1 = static_cast<float>(static_cast<int>(packed >> 4) - 8);
+
+            #pragma unroll
+            for (int r = 0; r < PREFILL_TILE_M; ++r) {
+                if (m_base + r < M) {
+                    const half* a_blk = A + static_cast<size_t>(m_base + r) * K + ib * QK4_0;
+                    const float a0 = __half2float(a_blk[j]);
+                    const float a1 = __half2float(a_blk[j + QK4_0 / 2]);
+                    block_sum[r] += a0 * w0 + a1 * w1;
+                }
+            }
+        }
+        #pragma unroll
+        for (int r = 0; r < PREFILL_TILE_M; ++r) {
+            sum[r] += d * block_sum[r];
+        }
+    }
+
+    #pragma unroll
+    for (int r = 0; r < PREFILL_TILE_M; ++r) {
+        #pragma unroll
+        for (int offset = WAVE_SIZE / 2; offset > 0; offset /= 2) {
+            sum[r] += __shfl_down(sum[r], offset, WAVE_SIZE);
+        }
+        if (lane_id == 0 && (m_base + r) < M) {
+            C[static_cast<size_t>(m_base + r) * N + n] = __float2half(sum[r]);
+        }
     }
 }
 
@@ -200,6 +263,62 @@ __global__ __launch_bounds__(256) void matmul_q8_0_wave_kernel(
 
     if (lane_id == 0) {
         C[static_cast<size_t>(m) * N + n] = __float2half(sum);
+    }
+}
+
+// Multi-row prefill Q8_0 Wave32 kernel (TILE_M = 4)
+__global__ __launch_bounds__(256) void matmul_q8_0_prefill_wave_kernel(
+    const half* __restrict__ A,
+    const block_q8_0* __restrict__ B,
+    half* __restrict__ C,
+    const int M,
+    const int N,
+    const int K,
+    const int blocks_per_row
+) {
+    const int tid = threadIdx.x;
+    const int wave_id = tid / WAVE_SIZE;
+    const int lane_id = tid % WAVE_SIZE;
+
+    const int n = blockIdx.x * WAVES_PER_BLOCK + wave_id;
+    const int m_base = blockIdx.y * PREFILL_TILE_M;
+
+    if (m_base >= M || n >= N) return;
+
+    const block_q8_0* b_row = B + static_cast<size_t>(n) * blocks_per_row;
+    float sum[PREFILL_TILE_M] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+    for (int ib = lane_id; ib < blocks_per_row; ib += WAVE_SIZE) {
+        const float d = __half2float(b_row[ib].d);
+        const int8_t* qs = b_row[ib].qs;
+
+        float block_sum[PREFILL_TILE_M] = {0.0f, 0.0f, 0.0f, 0.0f};
+        #pragma unroll
+        for (int j = 0; j < QK8_0; ++j) {
+            const float w = static_cast<float>(qs[j]);
+            #pragma unroll
+            for (int r = 0; r < PREFILL_TILE_M; ++r) {
+                if (m_base + r < M) {
+                    const half* a_blk = A + static_cast<size_t>(m_base + r) * K + ib * QK8_0;
+                    block_sum[r] += __half2float(a_blk[j]) * w;
+                }
+            }
+        }
+        #pragma unroll
+        for (int r = 0; r < PREFILL_TILE_M; ++r) {
+            sum[r] += d * block_sum[r];
+        }
+    }
+
+    #pragma unroll
+    for (int r = 0; r < PREFILL_TILE_M; ++r) {
+        #pragma unroll
+        for (int offset = WAVE_SIZE / 2; offset > 0; offset /= 2) {
+            sum[r] += __shfl_down(sum[r], offset, WAVE_SIZE);
+        }
+        if (lane_id == 0 && (m_base + r) < M) {
+            C[static_cast<size_t>(m_base + r) * N + n] = __float2half(sum[r]);
+        }
     }
 }
 
@@ -308,6 +427,74 @@ __global__ __launch_bounds__(256) void matmul_q4_k_wave_kernel(
     }
 }
 
+// Multi-row prefill Q4_K Wave32 kernel (TILE_M = 4)
+__global__ __launch_bounds__(256) void matmul_q4_k_prefill_wave_kernel(
+    const half* __restrict__ A,
+    const block_q4_k* __restrict__ B,
+    half* __restrict__ C,
+    const int M,
+    const int N,
+    const int K,
+    const int super_blocks_per_row
+) {
+    const int tid = threadIdx.x;
+    const int wave_id = tid / WAVE_SIZE;
+    const int lane_id = tid % WAVE_SIZE;
+
+    const int n = blockIdx.x * WAVES_PER_BLOCK + wave_id;
+    const int m_base = blockIdx.y * PREFILL_TILE_M;
+
+    if (m_base >= M || n >= N) return;
+
+    const block_q4_k* b_row = B + static_cast<size_t>(n) * super_blocks_per_row;
+    float sum[PREFILL_TILE_M] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+    for (int ib = 0; ib < super_blocks_per_row; ++ib) {
+        const float d = __half2float(b_row[ib].d);
+        const float min_val = __half2float(b_row[ib].dmin);
+        const uint8_t* scales = b_row[ib].scales;
+        const uint8_t* qs = b_row[ib].qs;
+
+        #pragma unroll
+        for (int chunk = 0; chunk < 4; ++chunk) {
+            uint8_t sc0, m0, sc1, m1;
+            get_scale_min_k4(2 * chunk,     scales, sc0, m0);
+            get_scale_min_k4(2 * chunk + 1, scales, sc1, m1);
+
+            const float d0 = d * static_cast<float>(sc0);
+            const float dm0 = min_val * static_cast<float>(m0);
+            const float d1 = d * static_cast<float>(sc1);
+            const float dm1 = min_val * static_cast<float>(m1);
+
+            const uint8_t q_byte = qs[chunk * 32 + lane_id];
+            const float w0 = d0 * static_cast<float>(q_byte & 0x0F) - dm0;
+            const float w1 = d1 * static_cast<float>(q_byte >> 4)   - dm1;
+
+            #pragma unroll
+            for (int r = 0; r < PREFILL_TILE_M; ++r) {
+                if (m_base + r < M) {
+                    const half* a_blk =
+                        A + static_cast<size_t>(m_base + r) * K + static_cast<size_t>(ib) * QK_K;
+                    const float a0 = __half2float(a_blk[chunk * 64 + lane_id]);
+                    const float a1 = __half2float(a_blk[chunk * 64 + 32 + lane_id]);
+                    sum[r] += a0 * w0 + a1 * w1;
+                }
+            }
+        }
+    }
+
+    #pragma unroll
+    for (int r = 0; r < PREFILL_TILE_M; ++r) {
+        #pragma unroll
+        for (int offset = WAVE_SIZE / 2; offset > 0; offset /= 2) {
+            sum[r] += __shfl_down(sum[r], offset, WAVE_SIZE);
+        }
+        if (lane_id == 0 && (m_base + r) < M) {
+            C[static_cast<size_t>(m_base + r) * N + n] = __float2half(sum[r]);
+        }
+    }
+}
+
 namespace {
 
 struct Q4Workspace {
@@ -385,6 +572,62 @@ void launch_dequantize_q4_0(
     HIP_CHECK(hipMemcpy(h_fp16_out, ws.d_buf1, size_out, hipMemcpyDeviceToHost));
 }
 
+void launch_matmul_q4_0_device(
+    const void* d_A_fp16,
+    const void* d_B_q4,
+    void* d_C_fp16,
+    int M,
+    int N,
+    int K
+) {
+    if (K % QK4_0 != 0) {
+        throw std::invalid_argument("K dimension must be a multiple of 32 for Q4_0 matmul.");
+    }
+    const int blocks_per_row = K / QK4_0;
+    dim3 blockDim(WAVE_SIZE * WAVES_PER_BLOCK); // 256 threads
+
+    if (M >= PREFILL_TILE_M) {
+        dim3 gridDim(
+            (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
+            (M + PREFILL_TILE_M - 1) / PREFILL_TILE_M
+        );
+        hipLaunchKernelGGL(
+            matmul_q4_0_prefill_wave_kernel,
+            gridDim,
+            blockDim,
+            0,
+            0,
+            static_cast<const half*>(d_A_fp16),
+            static_cast<const block_q4_0*>(d_B_q4),
+            static_cast<half*>(d_C_fp16),
+            M,
+            N,
+            K,
+            blocks_per_row
+        );
+    } else {
+        dim3 gridDim(
+            (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
+            M
+        );
+        hipLaunchKernelGGL(
+            matmul_q4_0_wave_kernel,
+            gridDim,
+            blockDim,
+            0,
+            0,
+            static_cast<const half*>(d_A_fp16),
+            static_cast<const block_q4_0*>(d_B_q4),
+            static_cast<half*>(d_C_fp16),
+            M,
+            N,
+            K,
+            blocks_per_row
+        );
+    }
+    HIP_CHECK(hipGetLastError());
+}
+
 void launch_matmul_q4_0(
     const void* h_A_fp16,
     const void* h_B_q4,
@@ -407,27 +650,7 @@ void launch_matmul_q4_0(
     HIP_CHECK(hipMemcpy(ws.d_buf0, h_A_fp16, size_A, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(ws.d_buf1, h_B_q4, size_B, hipMemcpyHostToDevice));
 
-    dim3 blockDim(WAVE_SIZE * WAVES_PER_BLOCK); // 256 threads
-    dim3 gridDim(
-        (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
-        M
-    );
-
-    hipLaunchKernelGGL(
-        matmul_q4_0_wave_kernel,
-        gridDim,
-        blockDim,
-        0,
-        0,
-        static_cast<const half*>(ws.d_buf0),
-        static_cast<const block_q4_0*>(ws.d_buf1),
-        static_cast<half*>(ws.d_buf2),
-        M,
-        N,
-        K,
-        blocks_per_row
-    );
-    HIP_CHECK(hipGetLastError());
+    launch_matmul_q4_0_device(ws.d_buf0, ws.d_buf1, ws.d_buf2, M, N, K);
 
     HIP_CHECK(hipMemcpy(h_C_fp16, ws.d_buf2, size_C, hipMemcpyDeviceToHost));
 }
@@ -467,6 +690,62 @@ void launch_dequantize_q8_0(
     HIP_CHECK(hipMemcpy(h_fp16_out, ws.d_buf1, size_out, hipMemcpyDeviceToHost));
 }
 
+void launch_matmul_q8_0_device(
+    const void* d_A_fp16,
+    const void* d_B_q8,
+    void* d_C_fp16,
+    int M,
+    int N,
+    int K
+) {
+    if (K % QK8_0 != 0) {
+        throw std::invalid_argument("K dimension must be a multiple of 32 for Q8_0 matmul.");
+    }
+    const int blocks_per_row = K / QK8_0;
+    dim3 blockDim(WAVE_SIZE * WAVES_PER_BLOCK); // 256 threads
+
+    if (M >= PREFILL_TILE_M) {
+        dim3 gridDim(
+            (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
+            (M + PREFILL_TILE_M - 1) / PREFILL_TILE_M
+        );
+        hipLaunchKernelGGL(
+            matmul_q8_0_prefill_wave_kernel,
+            gridDim,
+            blockDim,
+            0,
+            0,
+            static_cast<const half*>(d_A_fp16),
+            static_cast<const block_q8_0*>(d_B_q8),
+            static_cast<half*>(d_C_fp16),
+            M,
+            N,
+            K,
+            blocks_per_row
+        );
+    } else {
+        dim3 gridDim(
+            (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
+            M
+        );
+        hipLaunchKernelGGL(
+            matmul_q8_0_wave_kernel,
+            gridDim,
+            blockDim,
+            0,
+            0,
+            static_cast<const half*>(d_A_fp16),
+            static_cast<const block_q8_0*>(d_B_q8),
+            static_cast<half*>(d_C_fp16),
+            M,
+            N,
+            K,
+            blocks_per_row
+        );
+    }
+    HIP_CHECK(hipGetLastError());
+}
+
 void launch_matmul_q8_0(
     const void* h_A_fp16,
     const void* h_B_q8,
@@ -489,27 +768,7 @@ void launch_matmul_q8_0(
     HIP_CHECK(hipMemcpy(ws.d_buf0, h_A_fp16, size_A, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(ws.d_buf1, h_B_q8, size_B, hipMemcpyHostToDevice));
 
-    dim3 blockDim(WAVE_SIZE * WAVES_PER_BLOCK); // 256 threads
-    dim3 gridDim(
-        (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
-        M
-    );
-
-    hipLaunchKernelGGL(
-        matmul_q8_0_wave_kernel,
-        gridDim,
-        blockDim,
-        0,
-        0,
-        static_cast<const half*>(ws.d_buf0),
-        static_cast<const block_q8_0*>(ws.d_buf1),
-        static_cast<half*>(ws.d_buf2),
-        M,
-        N,
-        K,
-        blocks_per_row
-    );
-    HIP_CHECK(hipGetLastError());
+    launch_matmul_q8_0_device(ws.d_buf0, ws.d_buf1, ws.d_buf2, M, N, K);
 
     HIP_CHECK(hipMemcpy(h_C_fp16, ws.d_buf2, size_C, hipMemcpyDeviceToHost));
 }
@@ -549,6 +808,62 @@ void launch_dequantize_q4_k(
     HIP_CHECK(hipMemcpy(h_fp16_out, ws.d_buf1, size_out, hipMemcpyDeviceToHost));
 }
 
+void launch_matmul_q4_k_device(
+    const void* d_A_fp16,
+    const void* d_B_q4k,
+    void* d_C_fp16,
+    int M,
+    int N,
+    int K
+) {
+    if (K % QK_K != 0) {
+        throw std::invalid_argument("K dimension must be a multiple of 256 for Q4_K matmul.");
+    }
+    const int super_blocks_per_row = K / QK_K;
+    dim3 blockDim(WAVE_SIZE * WAVES_PER_BLOCK); // 256 threads
+
+    if (M >= PREFILL_TILE_M) {
+        dim3 gridDim(
+            (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
+            (M + PREFILL_TILE_M - 1) / PREFILL_TILE_M
+        );
+        hipLaunchKernelGGL(
+            matmul_q4_k_prefill_wave_kernel,
+            gridDim,
+            blockDim,
+            0,
+            0,
+            static_cast<const half*>(d_A_fp16),
+            static_cast<const block_q4_k*>(d_B_q4k),
+            static_cast<half*>(d_C_fp16),
+            M,
+            N,
+            K,
+            super_blocks_per_row
+        );
+    } else {
+        dim3 gridDim(
+            (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
+            M
+        );
+        hipLaunchKernelGGL(
+            matmul_q4_k_wave_kernel,
+            gridDim,
+            blockDim,
+            0,
+            0,
+            static_cast<const half*>(d_A_fp16),
+            static_cast<const block_q4_k*>(d_B_q4k),
+            static_cast<half*>(d_C_fp16),
+            M,
+            N,
+            K,
+            super_blocks_per_row
+        );
+    }
+    HIP_CHECK(hipGetLastError());
+}
+
 void launch_matmul_q4_k(
     const void* h_A_fp16,
     const void* h_B_q4k,
@@ -571,27 +886,7 @@ void launch_matmul_q4_k(
     HIP_CHECK(hipMemcpy(ws.d_buf0, h_A_fp16, size_A, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(ws.d_buf1, h_B_q4k, size_B, hipMemcpyHostToDevice));
 
-    dim3 blockDim(WAVE_SIZE * WAVES_PER_BLOCK); // 256 threads
-    dim3 gridDim(
-        (N + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK,
-        M
-    );
-
-    hipLaunchKernelGGL(
-        matmul_q4_k_wave_kernel,
-        gridDim,
-        blockDim,
-        0,
-        0,
-        static_cast<const half*>(ws.d_buf0),
-        static_cast<const block_q4_k*>(ws.d_buf1),
-        static_cast<half*>(ws.d_buf2),
-        M,
-        N,
-        K,
-        super_blocks_per_row
-    );
-    HIP_CHECK(hipGetLastError());
+    launch_matmul_q4_k_device(ws.d_buf0, ws.d_buf1, ws.d_buf2, M, N, K);
 
     HIP_CHECK(hipMemcpy(h_C_fp16, ws.d_buf2, size_C, hipMemcpyDeviceToHost));
 }

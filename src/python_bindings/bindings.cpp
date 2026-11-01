@@ -47,6 +47,29 @@ void matmul(
     launch_matmul_fp16(h_A, h_B, h_C, M, N, K);
 }
 
+void matmul_nt(
+    const py::array& A,
+    const py::array& B_nt,
+    py::array& C,
+    int M,
+    int N,
+    int K
+) {
+    check_fp16_contiguous(A, "A", static_cast<py::ssize_t>(M) * K);
+    check_fp16_contiguous(B_nt, "B_nt", static_cast<py::ssize_t>(N) * K);
+    if (B_nt.ndim() == 2 && (B_nt.shape(0) != N || B_nt.shape(1) != K)) {
+        throw std::invalid_argument("B_nt 2D shape must be (N, K) for matmul_nt.");
+    }
+    check_fp16_contiguous(C, "C", static_cast<py::ssize_t>(M) * N);
+
+    const void* h_A = A.data();
+    const void* h_B = B_nt.data();
+    void* h_C = C.mutable_data();
+
+    py::gil_scoped_release release;
+    launch_matmul_fp16_nt(h_A, h_B, h_C, M, N, K);
+}
+
 void dequantize_q4_0(
     const py::buffer& q4_buf,
     py::array& out_fp16,
@@ -223,6 +246,51 @@ void rmsnorm(
     launch_rmsnorm_fp16(h_x, h_w, h_out, M, K, eps);
 }
 
+void rmsnorm_residual(
+    const py::array& x,
+    const py::array& residual,
+    const py::array& weight,
+    py::array& h_out,
+    py::array& norm_out,
+    int M,
+    int K,
+    float eps
+) {
+    const py::ssize_t total = static_cast<py::ssize_t>(M) * K;
+    check_fp16_contiguous(x, "x", total);
+    check_fp16_contiguous(residual, "residual", total);
+    check_fp16_contiguous(weight, "weight", K);
+    check_fp16_contiguous(h_out, "h_out", total);
+    check_fp16_contiguous(norm_out, "norm_out", total);
+
+    const void* ptr_x = x.data();
+    const void* ptr_res = residual.data();
+    const void* ptr_w = weight.data();
+    void* ptr_h_out = h_out.mutable_data();
+    void* ptr_norm_out = norm_out.mutable_data();
+
+    py::gil_scoped_release release;
+    launch_rmsnorm_residual_fp16(ptr_x, ptr_res, ptr_w, ptr_h_out, ptr_norm_out, M, K, eps);
+}
+
+void residual_add(
+    const py::array& x,
+    const py::array& residual,
+    py::array& out,
+    int num_elements
+) {
+    check_fp16_contiguous(x, "x", num_elements);
+    check_fp16_contiguous(residual, "residual", num_elements);
+    check_fp16_contiguous(out, "out", num_elements);
+
+    const void* ptr_x = x.data();
+    const void* ptr_res = residual.data();
+    void* ptr_out = out.mutable_data();
+
+    py::gil_scoped_release release;
+    launch_residual_add_fp16(ptr_x, ptr_res, ptr_out, num_elements);
+}
+
 void rope(
     const py::array& x_in,
     py::array& x_out,
@@ -341,6 +409,112 @@ void gqa_attention_cached(
     );
 }
 
+namespace {
+
+const void* check_weight_buffer(
+    const py::buffer& buf,
+    int w_type,
+    int N,
+    int K,
+    const char* name
+) {
+    py::buffer_info info = buf.request();
+    const size_t actual_bytes = static_cast<size_t>(info.size) * info.itemsize;
+    size_t expected_bytes = 0;
+    if (w_type == 1) {
+        expected_bytes = static_cast<size_t>(N) * K * 2;
+    } else if (w_type == 2) {
+        if (K <= 0 || K % QK4_0 != 0) {
+            throw std::invalid_argument(std::string(name) + " K must be divisible by 32 for Q4_0.");
+        }
+        expected_bytes = static_cast<size_t>(N) * (K / QK4_0) * BLOCK_Q4_0_BYTES;
+    } else if (w_type == 8) {
+        if (K <= 0 || K % QK8_0 != 0) {
+            throw std::invalid_argument(std::string(name) + " K must be divisible by 32 for Q8_0.");
+        }
+        expected_bytes = static_cast<size_t>(N) * (K / QK8_0) * BLOCK_Q8_0_BYTES;
+    } else if (w_type == 12) {
+        if (K <= 0 || K % QK_K != 0) {
+            throw std::invalid_argument(std::string(name) + " K must be divisible by 256 for Q4_K.");
+        }
+        expected_bytes = static_cast<size_t>(N) * (K / QK_K) * BLOCK_Q4_K_BYTES;
+    } else {
+        throw std::invalid_argument(std::string(name) + " has unsupported ggml_type.");
+    }
+    if (actual_bytes < expected_bytes) {
+        throw std::invalid_argument(std::string(name) + " weight buffer is smaller than required.");
+    }
+    return info.ptr;
+}
+
+} // namespace
+
+void forward_layer_cached(
+    const py::array& x_in,
+    py::array& x_out,
+    const py::array& attn_norm_w,
+    const py::buffer& wq, int wq_type,
+    const py::buffer& wk, int wk_type,
+    const py::buffer& wv, int wv_type,
+    const py::buffer& wo, int wo_type,
+    const py::array& ffn_norm_w,
+    const py::buffer& wgate, int wgate_type,
+    const py::buffer& wup, int wup_type,
+    const py::buffer& wdown, int wdown_type,
+    int layer_idx,
+    int seq_len,
+    int pos_offset,
+    int hidden_size,
+    int intermediate_size,
+    int num_heads,
+    int num_kv_heads,
+    int head_dim,
+    float rms_norm_eps,
+    float rope_freq_base,
+    bool rope_neox,
+    float scale
+) {
+    const py::ssize_t hidden_elems = static_cast<py::ssize_t>(seq_len) * hidden_size;
+    check_fp16_contiguous(x_in, "x_in", hidden_elems);
+    check_fp16_contiguous(x_out, "x_out", hidden_elems);
+    check_fp16_contiguous(attn_norm_w, "attn_norm_w", hidden_size);
+    check_fp16_contiguous(ffn_norm_w, "ffn_norm_w", hidden_size);
+
+    const int q_dim = num_heads * head_dim;
+    const int kv_dim = num_kv_heads * head_dim;
+
+    const void* h_x_in = x_in.data();
+    void* h_x_out = x_out.mutable_data();
+    const void* h_attn_norm_w = attn_norm_w.data();
+    const void* h_ffn_norm_w = ffn_norm_w.data();
+
+    const void* h_wq = check_weight_buffer(wq, wq_type, q_dim, hidden_size, "wq");
+    const void* h_wk = check_weight_buffer(wk, wk_type, kv_dim, hidden_size, "wk");
+    const void* h_wv = check_weight_buffer(wv, wv_type, kv_dim, hidden_size, "wv");
+    const void* h_wo = check_weight_buffer(wo, wo_type, hidden_size, q_dim, "wo");
+    const void* h_wgate = check_weight_buffer(wgate, wgate_type, intermediate_size, hidden_size, "wgate");
+    const void* h_wup = check_weight_buffer(wup, wup_type, intermediate_size, hidden_size, "wup");
+    const void* h_wdown = check_weight_buffer(wdown, wdown_type, hidden_size, intermediate_size, "wdown");
+
+    py::gil_scoped_release release;
+    launch_forward_layer_cached_fp16(
+        h_x_in, h_x_out,
+        h_attn_norm_w,
+        h_wq, wq_type,
+        h_wk, wk_type,
+        h_wv, wv_type,
+        h_wo, wo_type,
+        h_ffn_norm_w,
+        h_wgate, wgate_type,
+        h_wup, wup_type,
+        h_wdown, wdown_type,
+        layer_idx, seq_len, pos_offset,
+        hidden_size, intermediate_size,
+        num_heads, num_kv_heads, head_dim,
+        rms_norm_eps, rope_freq_base, rope_neox, scale
+    );
+}
+
 PYBIND11_MODULE(matmul_module, m) {
     m.doc() = "HIP FP16 & Q4_0 Transformer Kernels for AMD gfx1150";
     m.def(
@@ -349,6 +523,17 @@ PYBIND11_MODULE(matmul_module, m) {
         "FP16 matrix multiplication on AMD GPU (gfx1150)",
         py::arg("A"),
         py::arg("B"),
+        py::arg("C"),
+        py::arg("M"),
+        py::arg("N"),
+        py::arg("K")
+    );
+    m.def(
+        "matmul_nt",
+        &matmul_nt,
+        "FP16 native-layout GGUF matrix multiplication C(M,N) = A(M,K) @ B_nt(N,K)^T on AMD GPU (gfx1150)",
+        py::arg("A"),
+        py::arg("B_nt"),
         py::arg("C"),
         py::arg("M"),
         py::arg("N"),
@@ -423,6 +608,28 @@ PYBIND11_MODULE(matmul_module, m) {
         py::arg("eps") = 1e-5f
     );
     m.def(
+        "rmsnorm_residual",
+        &rmsnorm_residual,
+        "Fused Residual Add + RMSNorm on AMD GPU (gfx1150)",
+        py::arg("x"),
+        py::arg("residual"),
+        py::arg("weight"),
+        py::arg("h_out"),
+        py::arg("norm_out"),
+        py::arg("M"),
+        py::arg("K"),
+        py::arg("eps") = 1e-5f
+    );
+    m.def(
+        "residual_add",
+        &residual_add,
+        "FP32-accumulated FP16 residual addition on AMD GPU (gfx1150)",
+        py::arg("x"),
+        py::arg("residual"),
+        py::arg("out"),
+        py::arg("num_elements")
+    );
+    m.def(
         "rope",
         &rope,
         "Rotary Positional Embeddings (RoPE) on AMD GPU (gfx1150)",
@@ -491,5 +698,33 @@ PYBIND11_MODULE(matmul_module, m) {
         py::arg("head_dim"),
         py::arg("scale") = 0.0f,
         py::arg("causal") = true
+    );
+    m.def(
+        "forward_layer_cached",
+        &forward_layer_cached,
+        "Execute a full transformer layer on-device with GPU-resident KV cache (1 H2D + 1 D2H)",
+        py::arg("x_in"),
+        py::arg("x_out"),
+        py::arg("attn_norm_w"),
+        py::arg("wq"), py::arg("wq_type"),
+        py::arg("wk"), py::arg("wk_type"),
+        py::arg("wv"), py::arg("wv_type"),
+        py::arg("wo"), py::arg("wo_type"),
+        py::arg("ffn_norm_w"),
+        py::arg("wgate"), py::arg("wgate_type"),
+        py::arg("wup"), py::arg("wup_type"),
+        py::arg("wdown"), py::arg("wdown_type"),
+        py::arg("layer_idx"),
+        py::arg("seq_len"),
+        py::arg("pos_offset"),
+        py::arg("hidden_size"),
+        py::arg("intermediate_size"),
+        py::arg("num_heads"),
+        py::arg("num_kv_heads"),
+        py::arg("head_dim"),
+        py::arg("rms_norm_eps"),
+        py::arg("rope_freq_base"),
+        py::arg("rope_neox"),
+        py::arg("scale")
     );
 }

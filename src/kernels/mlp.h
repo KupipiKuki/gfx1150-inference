@@ -10,5 +10,12 @@ void launch_swiglu_fp16(
     int num_elements
 );
 
+void launch_swiglu_fp16_device(
+    const void* d_gate,
+    const void* d_up,
+    void* d_out,
+    int num_elements
+);
+
 #endif // MLP_H
 
