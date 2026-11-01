@@ -98,3 +98,47 @@
 All four P0 ship-blockers from the Deepseek report are now genuinely fixed and I verified B-1 (sdist contents), C-1 (Q6_K round trip + kernel wiring by inspection), C-2 (byte-exact GPT-2 round trips incl. spaces/unicode + raise-on-unmappable), and C-3 core (arch-prefixed metadata) by execution. The P1 hardening round is likewise real: bindings dtype/contiguity/writability, workspace mutex, `O_NOFOLLOW` KV files, `sys.path` de-prioritized, sampler validation, generation edge cases, `perf_counter`, duplicate-name rejection, close()-fd-leak, and ctor-leak fixes are all in the diff and the executable ones reproduce cleanly. `tests/test_cpu_only.py` is 12/12 green in standard and `-O` modes.
 
 The package is now in a defensible state for v0.6.1: parser is fail-closed on malformed/truncated input, tokenizer handles both major vocab families, Q4_K_M's Q6_K tensors are supported, and distribution via sdist contains the build sources. What remains is P1/P2 polish (KV clamp, fused-path biases, golden tests, real stream overlap, budgeted residency, flash attention, RoPE scaling/SWA, pytest/telemetry) — none of it blocks a v0.6.1 release for llama-family Q4_0/Q4_K/Q8_0 models on gfx1150.
+
+---
+
+## 5. Reconciliation with the independent review of `c75914b` (REVIEW_v0.6.1_c75914b.md)
+
+The independent review was cross-checked line-by-line; its load-bearing claims were re-probed executable-side on this branch (`986d033`):
+
+**Confirmed by my own probes:**
+- **C-2 is only partially fixed (High).** Special tokens are *filtered on decode* but never *split on encode*: `encode("<|im_start|>")` on a vocab with that control token (id 257, `token_type=3`) produces 12 byte tokens `[28, 92, 73, ...]`, not `[257]` (reproduced). `tokenizer.ggml.add_bos_token` is never read, and `generate()`/`generate_batch_ids()` hardcode `add_bos=True` — wrong for Qwen2/GPT-2-style chat models (reproduced by inspection). The `\w`/`\d` pre-tokenizer regex is not the GPT-2 spec regex (`\p{L}`/`\p{N}`). My v0.6.2 R-5 tested plain text only — I qualify my own "C-2 fixed" to **plain-text byte-level BPE fixed; chat/special-token encode still open**.
+- **C-3 is only metadata-fixed (High).** Phi-3's fused `attn_qkv.weight` has no path (`layer.py` still requires separate `attn_q.weight` → `KeyError` on real Phi-3 files); Gemma's `sqrt(hidden)` embedding scale, final-logit soft-cap, and `{arch}.attention.key_length`/`value_length` are all absent (grep-confirmed). README line 93 advertises `phi3`/`gemma` support that is not real.
+- **P-1 streams deliver no overlap (Medium).** `attention.hip` records events on the copy stream but the **NULL stream waits** (`hipStreamWaitEvent(0, …)`) and all kernels launch on stream 0; the final D2H on `ws.stream` has no compute-done event — correct only under legacy NULL-stream implicit sync, and a latent race under per-thread default streams. `ensure()` frees/reallocs buffers without stream sync. Agrees with my ◐ rating — I now state it plainly: asynchronous syntax, no pipeline.
+- **D-1/P-2 memory claims still wrong (Medium).** `MADV_DONTNEED` on the `MAP_SHARED` mmap still only drops PTEs, not page-cache pages; `cache_weights` is a boolean that merely skips `MADV_DONTNEED` — weights are still copied H2D per layer per token, nothing is pinned or budgeted. The 70B "bounded RAM" claim does not hold by construction.
+- **S-1 residual (Medium).** `DEFAULT_MAX_KV_BYTES = 32 GiB` is a sanity cap, not an available-memory check; `block_count` is not cross-checked against actual `blk.N.*` tensor prefixes; KV mmap files are unlinked on `close()` but not unlinked-before-map (no crash cleanup), no disk-space check. (`validate_supported_tensors()` does now give fail-fast quant rejection — an improvement over my v0.6.1 note.)
+- **R-1/R-2 residual (Low).** `close()` closes the fd in `finally` (fd leak fixed) but if `_mm.close()` raises `BufferError` the mapping stays open and `self._mm` is never cleared; the ctor's `except Exception: self.close(); raise` can mask the original error with that `BufferError`.
+- **Test gaps (Medium).** CPU suite is self-referential (own quantizer vs own dequantizer; synthetic vocab, no llama.cpp goldens; sdist test checks archive *names* only, no `pip install` of the sdist; no GPU runner/benchmark gate; no parser fuzz corpus).
+- **Packaging details (Low).** PEP 639 license still deprecated form, no `__version__`, top-level module namespace unchanged, `top_k` unvalidated (`top_p==0` accepted-then-ignored), `dequantize_q6_k_cpu` lacks `num_elements % 256` guard, `embed_tokens` row-byte math assumes block-divisible hidden size, `matmul` doesn't validate positive M/N/K.
+- **Hardware claims unverifiable here** (4.4× tok/s, "bit-identical" prefill, Q6_K on-device): inspection/owner-verified only — I agree and the README should not quote them until CI-recorded.
+
+**Corrections to my own v0.6.2 report:**
+- My N-1 ("SentencePiece fallback can silently drop a word's chars") is **not reproducible**: `_chars_to_symbols` raises on unmappable chars and the fallback re-raises (verified: `encode("hello w")` with a vocab lacking `w` raises `ValueError`). Retracted.
+- My N-2 stands but is narrower: the GPT-2 branch raises before trying `<0xXX>` byte fallback for minimal vocabs.
+- My "C-2 fixed" and "C-3 core fixed" are qualified above (plain-text / metadata-only).
+
+**Net position:** the independent review's go/no-go matches mine with sharper edges: merge the verified fixes, but the release claim must stay narrow — **text-only llama-family Q4_0/Q4_K/Q8_0 models, no chat special tokens, no Qwen2 `add_bos` correctness, no Phi-3/Gemma** — until the P0 items below land.
+
+## 6. Final prioritized backlog (v0.6.2 remediation package)
+
+**P0:**
+1. Tokenizer: special-token trie split on encode; read `tokenizer.ggml.add_bos_token`; GPT-2 spec regex or llama.cpp golden vectors.
+2. Model support: tensor-name map + fused-QKV path (Phi-3), Gemma embedding scale/soft-cap/`attention.key_length`; publish an honest compatibility matrix and fix README line 93.
+3. Memory honesty: `posix_fadvise(DONTNEED)`/`MADV_PAGEOUT` or budgeted residency policy (pin-if-fits); make `cache_weights` affect real residency; correct the bounded-RAM docs.
+
+**P1:**
+4. Stream topology: explicit compute stream + compute-done event, double-buffered weight staging, pinned host buffers; sync-before-free in `ensure()`; remove legacy NULL-stream reliance.
+5. Robustness: cross-check `block_count` vs `blk.N.*` prefixes; clamp KV to available memory/cgroup; unlink-before-map + disk-space check for KV files; fix `close()`/ctor exception masking.
+6. Evidence gates: real Q6_K GGUF fixture or golden blocks, llama.cpp tokenizer/logit goldens, sdist-*install* CI job, GPU benchmark gate with recorded artifacts, parser fuzz corpus.
+
+**P2:**
+7. PEP 639 license + `__version__`, namespace package, `top_k` validation, `dequantize_q6_k_cpu` block guard, `embed_tokens` boundary guard, `matmul` positive-dims validation.
+8. Flash-style attention with GQA sharing; RoPE scaling (linear/YaRN); sliding-window mask; pytest conversion + telemetry (`--stats`/`--json`).
+
+## 7. Final verdict
+
+`c75914b` (+ my report commits) is a genuine, verified improvement: fail-closed parser, safe KV files, hardened bindings, thread-safe workspaces, sdist that actually builds, Q6_K end-to-end, plain-text GPT-2/Ġ tokenization, arch-prefixed metadata, and a green CPU CI suite. **Release scope for v0.6.1: text-only llama-family Q4_0/Q4_K/Q8_0 GGUFs on gfx1150.** Do not claim production-ready, Qwen2-chat, Llama-3-chat, Phi-3, or Gemma support, and do not quote throughput numbers, until the P0/P1 gates above are met and evidenced on hardware.
