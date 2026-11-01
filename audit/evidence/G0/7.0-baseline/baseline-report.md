@@ -5,7 +5,8 @@
 **Audit trace:** process prerequisite for all findings
 **Branch:** `wp/7.0-baseline`
 **Parent (tree under test):** `ea6dbeb1db990bc11d991f7f9940a113fd21efd1`
-**Candidate:** see `candidate-sha.txt`
+**Candidate:** see `candidate-sha.txt` (content commit; a metadata follow-up commit adds
+`candidate-sha.txt` and `diffstat.txt`, since a commit cannot contain its own SHA)
 **Host:** AMD Ryzen AI 9 HX 370 w/ Radeon 890M (`gfx1150`) · Linux Mint 22.3 · ROCm 10.1 (HIP 7.16.26385) · Python 3.14.10 · NumPy 2.5.3 · pybind11 3.1.0 · CMake 3.28.3
 **Date:** 2026-11-01
 

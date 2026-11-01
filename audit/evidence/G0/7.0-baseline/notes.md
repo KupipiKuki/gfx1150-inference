@@ -5,6 +5,10 @@
 **Branch:** `wp/7.0-baseline`
 **Parent (tree under test):** `ea6dbeb1db990bc11d991f7f9940a113fd21efd1`
 **Candidate (this package):** recorded in `candidate-sha.txt`
+**Commit structure:** two commits. The **content commit** (`candidate-sha.txt`) holds the
+evidence bundle and the ledger corrections. A **metadata follow-up** adds
+`candidate-sha.txt` and `diffstat.txt`, because a commit cannot contain its own SHA.
+Both are inside the 7.0 allowed file set and neither touches `src/`.
 **Host:** AMD Ryzen AI 9 HX 370 w/ Radeon 890M (gfx1150), Linux Mint 22.3, ROCm 10.1 (HIP 7.16.26385)
 
 ---
