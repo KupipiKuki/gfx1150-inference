@@ -17,6 +17,8 @@
     } while (0)
 
 constexpr int WAVE_SIZE = 32;
+constexpr int WAVES_PER_BLOCK = 8;
+constexpr int BLOCK_THREADS = WAVE_SIZE * WAVES_PER_BLOCK; // 256 threads
 constexpr int MAX_HEAD_DIM = 256;
 constexpr int ELEMS_PER_LANE = MAX_HEAD_DIM / WAVE_SIZE; // up to 8 elements per lane
 
@@ -24,7 +26,7 @@ constexpr int ELEMS_PER_LANE = MAX_HEAD_DIM / WAVE_SIZE; // up to 8 elements per
 // Each Wave32 (32 threads) processes one (query_pos m, query_head h) pair.
 // Supports head_dim up to 256 (e.g. 64, 128, 256) with zero shared-memory overhead
 // by keeping the query vector and running output accumulator in per-lane registers.
-__global__ __launch_bounds__(256) void gqa_online_softmax_kernel(
+__global__ __launch_bounds__(BLOCK_THREADS) void gqa_online_softmax_kernel(
     const half* __restrict__ Q,
     const half* __restrict__ K,
     const half* __restrict__ V,
@@ -42,7 +44,7 @@ __global__ __launch_bounds__(256) void gqa_online_softmax_kernel(
     const int wave_id = tid / WAVE_SIZE; // 0..7
     const int lane_id = tid % WAVE_SIZE; // 0..31
 
-    const int qh_idx = blockIdx.x * 8 + wave_id;
+    const int qh_idx = blockIdx.x * WAVES_PER_BLOCK + wave_id;
     const int total_qh = q_len * num_heads;
     if (qh_idx >= total_qh) return;
 
@@ -170,10 +172,14 @@ struct DeviceKVCachePool {
         const size_t needed =
             static_cast<size_t>(layers) * max_seq * kv_heads * dim * sizeof(half);
         if (needed > cap_bytes) {
-            if (d_K_pool) HIP_CHECK(hipFree(d_K_pool));
-            if (d_V_pool) HIP_CHECK(hipFree(d_V_pool));
+            release();
             HIP_CHECK(hipMalloc(&d_K_pool, needed));
-            HIP_CHECK(hipMalloc(&d_V_pool, needed));
+            hipError_t err = hipMalloc(&d_V_pool, needed);
+            if (err != hipSuccess) {
+                (void)hipFree(d_K_pool);
+                d_K_pool = nullptr;
+                HIP_CHECK(err);
+            }
             cap_bytes = needed;
         }
         num_layers = layers;
@@ -245,13 +251,12 @@ void launch_gqa_attention_fp16(
     HIP_CHECK(hipMemcpy(ws.d_V, h_V, size_KV, hipMemcpyHostToDevice));
 
     const int total_qh = q_len * num_heads;
-    const int waves_per_block = 8; // 256 threads
-    const int blocks = (total_qh + waves_per_block - 1) / waves_per_block;
+    const int blocks = (total_qh + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK;
 
     hipLaunchKernelGGL(
         gqa_online_softmax_kernel,
         dim3(blocks),
-        dim3(waves_per_block * WAVE_SIZE),
+        dim3(BLOCK_THREADS),
         0,
         0,
         ws.d_Q,
@@ -336,13 +341,12 @@ void launch_gqa_attention_cached_fp16(
     HIP_CHECK(hipMemcpy(ws.d_Q, h_Q, size_Q, hipMemcpyHostToDevice));
 
     const int total_qh = q_len * num_heads;
-    const int waves_per_block = 8;
-    const int blocks = (total_qh + waves_per_block - 1) / waves_per_block;
+    const int blocks = (total_qh + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK;
 
     hipLaunchKernelGGL(
         gqa_online_softmax_kernel,
         dim3(blocks),
-        dim3(waves_per_block * WAVE_SIZE),
+        dim3(BLOCK_THREADS),
         0,
         0,
         ws.d_Q,

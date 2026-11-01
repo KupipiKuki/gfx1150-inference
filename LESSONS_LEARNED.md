@@ -467,6 +467,12 @@ python3 -c "import pyhip; print(pyhip.hipRuntimeGetVersion())"
 | 2026-10-31 | Support both GGUF-Llama (adjacent) and NeoX (half-dim) RoPE layouts | Phase 3 | KupipiKuki |
 | 2026-10-31 | GPU-resident offset KV cache eliminates per-step host slice copies & O(N) H2D transfers | Phase 4 | KupipiKuki |
 | 2026-10-31 | Row-wise Q4_0 token embedding lookup avoids full-vocab dequantization | Phase 4 | KupipiKuki |
+| 2026-10-31 | Wave32 intra-superblock lane mapping (`l = lane_id`) gives 100% wave utilization & coalesced loads for `Q4_K` (256-weight super-blocks) | Phase 5 | KupipiKuki |
+| 2026-10-31 | Explicit `MADV_DONTNEED` eviction on `token_embd.weight` and `output.weight` prevents global tensor page accumulation across decode steps | Phase 5 | KupipiKuki |
+| 2026-10-31 | Chunked prompt prefill + CPU/mmap KV-cache offload bounds activation and KV memory for long-context 70B runs | Phase 5 | KupipiKuki |
+| 2026-10-31 | Wire `setup.py` `CMakeBuild(build_ext)` to `CMakeLists.txt` so `pip install -e .` compiles the HIP extension (`matmul_module`) | Phase 5 | KupipiKuki |
+| 2026-10-31 | Never use `assert` for runtime validation in CLI/library code (`python -O` strips assertions); raise `RuntimeError` explicitly | Phase 5 | KupipiKuki |
+| 2026-10-31 | Guard process-wide static GPU pools (`DeviceKVCachePool`) against concurrent instance overwrites | Phase 5 | KupipiKuki |
 
 ---
 

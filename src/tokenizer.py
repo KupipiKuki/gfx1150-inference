@@ -20,7 +20,13 @@ for _p in (_SRC_DIR, _BUILD_DIR):
     if _p not in sys.path and os.path.isdir(_p):
         sys.path.insert(0, _p)
 
-from gguf_parser import GGMLType, GGUFTensorInfo, dequantize_q4_0_cpu
+from gguf_parser import (
+    GGMLType,
+    GGUFTensorInfo,
+    dequantize_q4_0_cpu,
+    dequantize_q8_0_cpu,
+    dequantize_q4_k_cpu,
+)
 
 SPIECE_UNDERLINE = "\u2581"  # '▁' used by SentencePiece / Llama tokenizers
 
@@ -179,6 +185,20 @@ def embed_tokens(
         raw_u8 = embd_view.view(np.uint8).reshape(-1, row_bytes)
         for i, tid in enumerate(ids):
             out[i] = dequantize_q4_0_cpu(raw_u8[tid], hidden_size)
+        return out
+
+    if embd_info.ggml_type == GGMLType.Q8_0:
+        row_bytes = (hidden_size // 32) * 34
+        raw_u8 = embd_view.view(np.uint8).reshape(-1, row_bytes)
+        for i, tid in enumerate(ids):
+            out[i] = dequantize_q8_0_cpu(raw_u8[tid], hidden_size)
+        return out
+
+    if embd_info.ggml_type == GGMLType.Q4_K:
+        row_bytes = (hidden_size // 256) * 144
+        raw_u8 = embd_view.view(np.uint8).reshape(-1, row_bytes)
+        for i, tid in enumerate(ids):
+            out[i] = dequantize_q4_k_cpu(raw_u8[tid], hidden_size)
         return out
 
     raise ValueError(f"Unsupported token_embd.weight type: {embd_info.ggml_type}")
