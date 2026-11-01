@@ -230,33 +230,26 @@ class WeightStreamer:
 ### 🟣 Phase 7 (`v0.6.2` → v0.7.0): Testing Phase & Evidence Gates *(IN PROGRESS)*
 **Goal**: Convert the ad-hoc GPU test scripts into a gated, reproducible test phase with golden data, fuzzing, sdist-install CI, and a self-hosted gfx1150 hardware gate — per the finalized [audit/AUDIT_REMEDIATION_v0.6.2.md](audit/AUDIT_REMEDIATION_v0.6.2.md) §6 backlog and the independent review of `c75914b`.
 
-#### Stage 7A — Test infrastructure (CPU CI only, no hardware needed; do first)
-| # | Task | Notes |
-|---|------|-------|
-| 7A-1 | Convert all 5 GPU suites to pytest: `tests/conftest.py` with a `matmul_module` fixture (`pytest.importorskip` + `@pytest.mark.gpu`) | module-level `import matmul_module` currently aborts collection on non-GPU hosts |
-| 7A-2 | Add `[tool.pytest.ini_options]` markers (`gpu`, `slow`) in `pyproject.toml` | keep `tests/test_cpu_only.py` as the unittest CPU suite |
-| 7A-3 | Commit golden data: small real GGUF fixture or extracted Q6_K/Q4_K golden blocks + llama.cpp tokenizer golden vectors (plain text, multibyte, double spaces, special tokens like `<|im_start|>`, `add_bos` cases) | closes the "tests are self-referential" gap; gates P0-① |
-| 7A-4 | `hypothesis`-based GGUF header fuzz in the CPU suite | would have caught `alignment=0` / truncation / duplicate names |
-| 7A-5 | CI: add **sdist-install job** (`pip install dist/*.tar.gz` with `GFX1150_SKIP_CMAKE=1` into a venv → import all 6 modules + run CPU suite) and a **pytest CPU job** | `test_v8` currently only lists archive names; runner env needs `setuptools>=64 wheel` (fixed in `8038012`) |
+> **Execution is governed by [PHASE7_IMPLEMENTATION_HANDOFF.md](PHASE7_IMPLEMENTATION_HANDOFF.md).** That document defines the coder/QAQC/auditor roles, the one-work-package-per-gate workflow, hard stop points, the evidence contract, and the handoff templates. This section is the roadmap summary only.
 
-#### Stage 7B — Hardware gate (self-hosted gfx1150 runner)
-| # | Task | Notes |
-|---|------|-------|
-| 7B-1 | Register self-hosted runner with labels `gfx1150`, `rocm`; add `.github/workflows/ci-gpu.yml` running `pytest -m gpu` on those labels | `continue-on-error` until the runner exists, then required |
-| 7B-2 | On hardware: CMake build, full GPU suites, and **record artifacts** — generated token IDs + logits for a fixed prompt vs llama.cpp reference, and `hipEvent` medians over ≥20 iterations | replaces unevidenced 4.4× / 983 tok/s claims; fail on logit mismatch or perf regression vs checked-in baseline |
-| 7B-3 | Promote existing determinism checks (chunked-vs-full prefill, KV-mode equivalence, TILE_M=4 vs wave kernels) to hard assertions with recorded expected values | already designed in `test_phase5_scale.py` |
+#### Sub-phases and gates
 
-#### Stage 7C — Remediation code gated by tests
-| # | Task | Gate |
-|---|------|------|
-| 7C-1 | P0-①: special-token trie on encode + read `tokenizer.ggml.add_bos_token` + GPT-2 spec regex | fails 7A-3 goldens before, passes after |
-| 7C-2 | P0-②: model-spec/tensor-name map + fused QKV (Phi-3) + Gemma scale/soft-cap/`key_length`; fix README compat matrix | per-arch synthetic GGUF fixtures (CPU) + llama.cpp logits (GPU) |
-| 7C-3 | P1-④: real stream topology (compute stream + events, double-buffered weights, pinned host, sync-before-free) | race test under per-thread default-stream semantics |
-| 7C-4 | P1-⑤: `block_count` vs `blk.N.*` cross-check, KV clamp to free RAM/cgroup, KV unlink-before-map + disk-space check, `close()`/ctor exception-masking fix | synthetic huge-`block_count` GGUF (CPU-only) |
+| Phase | Focus | Gate | Stop after |
+|---|---|---|---|
+| **7.0** | Freeze baseline; record environment; verify current green state; create evidence layout and claims ledger | **G0** | Baseline signed; tree clean; all suites recorded |
+| **7A** | Test infrastructure: pytest harness + markers, golden data with provenance, parser fuzz, CPU/sdist-install CI | **G1** | Tests provably fail on parent; CI + sdist install green; no `src/` diff |
+| **7B** | Tokenizer P0: special-token encode, `add_bos_token`, GPT-2 spec regex, uniform byte fallback | **G2** | Golden vectors pass; no silent byte loss |
+| **7C** | Model families P0: `ModelSpec`/tensor map, Phi-3 fused QKV, Gemma scale/soft-cap/key length, honest compatibility matrix | **G3** | Per-arch fixtures + reference logits pass; llama unchanged |
+| **7D** | Memory honesty & robustness: `posix_fadvise`/`MADV_PAGEOUT`, budgeted residency policy, KV clamp, crash-safe files, exception masking | **G4** | Memory behavior matches docs; hostile inputs fail closed |
+| **7E** | Stream topology: compute stream + events, double-buffered staging, pinned host, sync-before-free | **G5** | Event graph reviewed; race/stress test passes; overlap evidenced |
+| **7F** | Evidence & release: self-hosted GPU CI, real-GGUF golden tokens/logits, benchmark baseline, telemetry, claims ledger | **G6** | CPU+GPU CI green; claims ledger clean; auditor release signoff |
+| **7G** | Post-release P2 polish (packaging, flash attention, RoPE scaling/SWA, batching) — **deferred** | **G7** | Only after v0.7.0 ships |
 
-#### Stage 7D — Merge discipline
-- PR #7 merges once CPU CI + sdist-install job are green (CPU CI green since `8038012`).
-- Release notes carry the §7 verdict verbatim: **v0.6.1 scope = text-only llama-family Q4_0/Q4_K/Q8_0 GGUFs on gfx1150**; no Qwen2/Llama-3-chat, Phi-3, or Gemma claims until 7C gates pass.
+#### Merge discipline
+- Only the auditor-approved SHA is merged; QAQC reviews a frozen commit and does not accept force-pushes mid-gate.
+- One work package per branch/PR (`wp/<id>-<slug>`); no bundling of P0 correctness with P2 performance work.
+- Release notes carry the verified scope verbatim: **text-only llama-family `Q4_0`/`Q4_K`/`Q8_0` GGUFs on gfx1150**; no Qwen2/Llama-3-chat, Phi-3, or Gemma claims until G2/G3 evidence exists, and no throughput numbers until G6.
+- A gate failure triggers the stop conditions and blocker report defined in the handoff document; do not "fix forward" silently.
 
 ---
 

@@ -76,6 +76,18 @@ class CMakeBuild(build_ext):
             f"-DROCM_ROOT={rocm_root}",
         ]
 
+        # Point CMake at this interpreter's pybind11 package. Without this, a clean
+        # `pip install` from an sdist fails in find_package(pybind11) on systems where
+        # pybind11's CMake config is only present inside site-packages.
+        try:
+            import pybind11
+
+            pybind11_cmake_dir = pybind11.get_cmake_dir()
+        except Exception:  # pragma: no cover - pybind11 is a declared build requirement
+            pybind11_cmake_dir = None
+        if pybind11_cmake_dir and os.path.isdir(pybind11_cmake_dir):
+            cmake_args.append(f"-Dpybind11_DIR={pybind11_cmake_dir}")
+
         max_jobs = str(min(os.cpu_count() or 4, 8))
         subprocess.check_call(cmake_args)
         subprocess.check_call(["cmake", "--build", build_temp, "-j", max_jobs])
