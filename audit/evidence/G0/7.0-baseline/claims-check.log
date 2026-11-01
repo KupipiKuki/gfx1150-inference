@@ -1,0 +1,111 @@
+# G0 manual claims-ledger review
+# (scripts/qa/check_claims.py lands in 7A-6; this is the G0 manual equivalent)
+# Generated: 2026-11-01, after the G0 ledger corrections
+
+ledger rows parsed: 30
+
+row  1 | VERIFIED   | literal 'pip install'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+          evidence audit/evidence/G0/7.0-baseline/sdist-install.log: EXISTS
+
+row  2 | VERIFIED   | literal 'test_cpu_only.py'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+          evidence audit/evidence/G0/7.0-baseline/cpu-suite.log: EXISTS
+
+row  3 | VERIFIED   | literal 'GPU'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+          evidence audit/evidence/G0/7.0-baseline/gpu-suite.log: EXISTS
+
+row  4 | VERIFIED   | literal 'llama-family'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+          evidence audit/evidence/G0/7.0-baseline/gpu-suite.log: EXISTS
+          evidence tests/test_gguf_and_q4.py: EXISTS
+          evidence tests/test_phase5_scale.py: EXISTS
+
+row  5 | VERIFIED   | literal 'Q6_K'
+          present in: ['README.md']
+          evidence audit/evidence/G0/7.0-baseline/gpu-suite.log: EXISTS
+          evidence tests/test_phase5_scale.py: EXISTS
+
+row  6 | PARTIAL    | literal 'Q4_K_M'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+
+row  7 | VERIFIED   | literal 'GPT-2'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+          evidence tests/test_cpu_only.py: EXISTS
+          evidence audit/VERIFICATION_2026-11-01.md: EXISTS
+
+row  8 | NOT YET    | literal 'chat special-token encoding'
+          present in: ['README.md']
+
+row  9 | NOT YET    | literal 'add_bos_token'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+
+row 10 | NOT YET    | literal 'qwen2'
+          present in: ['README.md']
+
+row 11 | NOT YET    | literal 'phi3'
+          present in: ['README.md']
+
+row 12 | NOT YET    | literal 'gemma'
+          present in: ['README.md']
+
+row 13 | UNVERIFIED | literal '983'
+          present in: ['IMPLEMENTATION_PLAN.md']
+
+row 14 | UNVERIFIED | literal 'bounded memory'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+
+row 15 | NOT YET    | (no public literal — internal/planning item)
+row 16 | NOT YET    | (no public literal — internal/planning item)
+row 17 | NOT YET    | (no public literal — internal/planning item)
+row 18 | PARTIAL    | literal '7B–70B'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+
+row 19 | UNVERIFIED | literal '8-hour runtimes'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+
+row 20 | UNVERIFIED | literal 'Active RAM Cap'
+          present in: ['IMPLEMENTATION_PLAN.md']
+
+row 21 | PARTIAL    | literal 'reclaim clean file-backed page-cache'
+          present in: ['README.md']
+
+row 22 | VERIFIED   | literal 'permitted per process'
+          present in: ['README.md']
+          evidence audit/evidence/G0/7.0-baseline/gpu-suite.log: EXISTS
+          evidence src/python_bindings/bindings.cpp: EXISTS
+          evidence src/kv_cache.py: EXISTS
+
+row 23 | VERIFIED   | literal 'persistent GPU KV pool usage at'
+          present in: ['README.md']
+          evidence audit/evidence/G0/7.0-baseline/gpu-suite.log: EXISTS
+
+row 24 | VERIFIED   | literal 'generate_batch'
+          present in: ['README.md', 'IMPLEMENTATION_PLAN.md']
+          evidence audit/evidence/G0/7.0-baseline/gpu-suite.log: EXISTS
+
+row 25 | VERIFIED   | literal 'rope.neox'
+          present in: ['README.md']
+          evidence audit/evidence/G0/7.0-baseline/gpu-suite.log: EXISTS
+
+row 26 | UNVERIFIED | literal '1.12 TFLOPS'
+          present in: ['IMPLEMENTATION_PLAN.md']
+
+row 27 | UNVERIFIED | literal '983.4 tok/s'
+          present in: ['IMPLEMENTATION_PLAN.md']
+
+row 28 | UNVERIFIED | literal '0.50 ms'
+          present in: ['IMPLEMENTATION_PLAN.md']
+
+row 29 | UNVERIFIED | literal '2.76 ms'
+          present in: ['IMPLEMENTATION_PLAN.md']
+
+row 30 | UNVERIFIED | literal '500 MB'
+          present in: ['IMPLEMENTATION_PLAN.md']
+
+==============================================================================
+FINDINGS
+==============================================================================
+  none — every ledger literal resolves in a public document and every
+  VERIFIED row points at an evidence path that exists on disk.
