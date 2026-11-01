@@ -32,6 +32,7 @@ gfx1150-inference/
 │   ├── AUDIT_REMEDIATION_v0.6.2.md
 │   ├── VERIFICATION_2026-11-01.md
 │   ├── CLAIMS_LEDGER.md
+│   ├── claims_baseline.txt
 │   ├── evidence/
 │   ├── remediation_plan.md
 │   ├── HANDOFF_PHASE2.md
@@ -103,7 +104,7 @@ gfx1150-infer --model /path/to/model.gguf --prompt "Hello" --max-new-tokens 32
   - **Default (GPU-resident pool)**: Pre-allocates the GQA KV cache in GPU/GTT memory (`kv_cache_init` / `gqa_attention_cached`); `forward_layer_cached` keeps layer activations on-device and updates K/V via D2D `hipMemcpyAsync`.
   - **`--offload-kv-cpu` / `--kv-mmap-dir <dir>`**: Memory-saving modes for ultra-long-context 70B runs. Keeps persistent GPU KV pool usage at `0` bytes by storing the KV cache in host RAM or a private (`0600`, `O_NOFOLLOW`) disk-backed `mmap` file, trading per-step H2D KV transfer bandwidth (`O(context_len)`) for a minimal GPU memory footprint.
 - **Tokenizer & Architecture Support**:
-  - Supports both SentencePiece (`▁`) and GPT-2 / Llama-3 / Qwen2 byte-level (`Ġ`, `tokenizer.ggml.merges`) BPE vocabularies, `{arch}.*` GGUF metadata keys (`llama`, `qwen2`, `phi3`, `gemma`), and optional QKV attention biases (`blk.{i}.attn_{q,k,v,output}.bias`).
+  - Supports both SentencePiece (`▁`) and GPT-2 / Llama-3 / Qwen2 byte-level (`Ġ`, `tokenizer.ggml.merges`) BPE vocabularies, `{arch}.*` GGUF metadata keys (`llama`, `qwen2`, `phi3`, `gemma`; only `llama` is in the verified release scope, and `qwen2`/`phi3`/`gemma` model support is **not yet verified**), and optional QKV attention biases (`blk.{i}.attn_{q,k,v,output}.bias`).
   - **Verified release scope:** text-only **llama-family `Q4_0` / `Q4_K` / `Q8_0`** GGUFs. Metadata for `qwen2`/`phi3`/`gemma` resolves, but those families are **not** yet fully supported: chat special-token encoding and `add_bos_token` are not implemented, Phi-3's fused `attn_qkv` is missing, and Gemma's embedding scale / logit soft-cap / `attention.key_length` are absent. See `audit/AUDIT_REMEDIATION_v0.6.2.md` §6 and `audit/VERIFICATION_2026-11-01.md` §4.
 - **Sequential Multi-Prompt Batching (`generate_batch`)**: Processes multiple prompts sequentially while reusing the initialized `WeightStreamer` and `KVCacheManager` without re-allocating GPU/mmap resources.
 - **Single-Engine / Thread-Guarded Workspaces**: Kernel device workspaces and `DeviceKVCachePool` use process-wide static buffers guarded by a C++ mutex (`g_hip_workspace_mutex`); only one active GPU-resident `LlamaInferenceEngine` / `KVCacheManager` instance is permitted per process at a time (enforced at runtime).

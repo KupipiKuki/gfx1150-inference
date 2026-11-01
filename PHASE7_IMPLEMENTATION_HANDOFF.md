@@ -32,6 +32,8 @@ The previous plan had four broad stages (7A test infrastructure, 7B hardware gat
 | No file ownership | Parallel work conflicts in `inference.py` | Allowed file set per package; sequential for shared files |
 | No traceability or claims ledger | Audit findings could be silently dropped | Matrix in §11 and `audit/CLAIMS_LEDGER.md` |
 | Hardware claims unverifiable | "983 tok/s" and "bit-identical" were owner-only | 7F-2/7F-3 require recorded artifacts |
+| No GPU CI workflow or runner | G5/G6 had no enforcement mechanism | 7A-7 adds `ci-gpu.yml` with `continue-on-error`; 7F-1 registers the runner and makes it required |
+| Claims ledger had no enforcement | `UNVERIFIED`/`NOT YET` claims could remain in README | 7A-6 adds `scripts/qa/check_claims.py`; G6 makes it release-blocking and diffs ledger vs README |
 | No release gate | Merge on "CI green" alone | G6 requires golden logits, benchmark baseline, clean claims ledger |
 
 The phase count was also too coarse: tokenizer, model families, memory, and streams have different owners, risks, and evidence. They are now separate gates so a failure in one does not block or contaminate the others.
@@ -126,6 +128,7 @@ Each evidence bundle must contain:
 | `cpu-suite.log` | `python -m pytest -m "not gpu"` and `python tests/test_cpu_only.py` (normal + `-O`) |
 | `gpu-suite.log` | `python -m pytest -m gpu` on gfx1150, when in scope |
 | `gate-commands.log` | Every command in the package's "Required checks", with exit codes |
+| `claims-check.log` | Output of `scripts/qa/check_claims.py` (default mode from 7A-6; `--strict` at G6) |
 | `qaqc-probes/` | QAQC's own probes, independent of the coder's tests |
 | `notes.md` | Limitations, follow-ups, rollback, claims changed |
 
@@ -146,13 +149,13 @@ A golden without provenance is not evidence.
 
 | Phase | Goal | Gate | Hardware needed |
 |---|---|---|---|
-| **7.0** | Freeze baseline, record environment, verify current green state | **G0** | Yes (record GPU baseline) |
-| **7A** | Test infrastructure: pytest, goldens, fuzz, CI, sdist install | **G1** | No (CPU CI) |
+| **7.0** | Freeze baseline, record environment, verify current green state | **G0** | Yes (manual GPU baseline on the available host) |
+| **7A** | Test infrastructure: pytest, goldens, fuzz, CPU/sdist CI, GPU CI scaffold, claims checker | **G1** | CPU CI; GPU workflow scaffold (`continue-on-error`) |
 | **7B** | Tokenizer correctness (P0-1) | **G2** | CPU; GPU optional |
 | **7C** | Model-family support (P0-2) | **G3** | CPU fixtures + GPU reference logits |
 | **7D** | Memory honesty & robustness (P0-3, P1-5) | **G4** | CPU + cgroup; GPU residency evidence |
-| **7E** | Stream topology (P1-4) | **G5** | Yes |
-| **7F** | Evidence & release gates (P1-6) | **G6** | Yes |
+| **7E** | Stream topology (P1-4) | **G5** | Yes (7A-7 workflow or manual) |
+| **7F** | Evidence & release gates (P1-6), promote GPU CI to required | **G6** | Yes (required) |
 | **7G** | Post-release polish (P2) | **G7** | As needed |
 
 **Sequencing:** 7.0 → 7A → 7B → 7C → 7D → 7E → 7F → release. 7G is deferred. Do not parallelize packages that touch `src/inference.py`; file ownership is listed per package.
@@ -164,7 +167,7 @@ A golden without provenance is not evidence.
 ### 7.0 — Baseline freeze and governance (Gate G0)
 
 **Audit trace:** process prerequisite for all findings.
-**Allowed files:** none (report only).
+**Allowed files:** `audit/CLAIMS_LEDGER.md`, `audit/evidence/G0/**`, baseline report. **No source, test, workflow, or packaging changes.**
 
 **Tasks**
 1. Commit or explicitly park the 2026-11-01 verification changes; record the exact baseline SHA.
@@ -175,12 +178,14 @@ A golden without provenance is not evidence.
 6. Build the sdist and perform a **full** `pip install` from it in a clean venv (not only `GFX1150_SKIP_CMAKE=1`).
 7. Confirm the `tests/fixtures/PROVENANCE.md` registry and the `audit/evidence/` layout (§4).
 8. Review and update the seeded claims ledger (§10) with every current README/audit claim and its evidence status.
+9. Record the GPU baseline **manually** on the available gfx1150 host. Automated enforcement is added in 7A-7 (`continue-on-error`) and becomes mandatory at G6; G0 does not wait for a CI runner.
 
 **Exit criteria (G0)**
 - [ ] Baseline SHA recorded; tree clean.
 - [ ] All suites green, or every failure documented as a known baseline defect.
 - [ ] Full sdist install succeeds on the target platform.
 - [ ] Claims ledger exists and marks unverified claims.
+- [ ] Manual GPU baseline recorded with environment and logs.
 - [ ] Auditor signs the baseline report.
 
 **Stop:** If any previously green suite is red, do not start 7A. Diagnose first.
@@ -189,8 +194,8 @@ A golden without provenance is not evidence.
 
 ### 7A — Test infrastructure (Gate G1)
 
-**Audit trace:** T-1, T-2, T-3, T-4, T-5, T-6, T-7; B-1 residual (sdist install); Phase 7A-1..7A-5.
-**Allowed files:** `tests/**`, `pyproject.toml` (pytest config only), `.github/workflows/**`, `audit/evidence/7A/**`, `tests/fixtures/**`, docs. **No `src/` changes.**
+**Audit trace:** T-1, T-2, T-3, T-4, T-5, T-6, T-7; B-1 residual (sdist install); Phase 7A-1..7A-7.
+**Allowed files:** `tests/**`, `pyproject.toml` (pytest config only), `.github/workflows/**`, `scripts/qa/**` (new), `audit/CLAIMS_LEDGER.md`, `audit/claims_baseline.txt` (new), `README.md` (claims wording only), `audit/evidence/7A/**`, `tests/fixtures/**`, docs. **No `src/` changes.**
 
 **Work packages**
 
@@ -201,6 +206,8 @@ A golden without provenance is not evidence.
 | 7A-3 | Commit golden data with provenance: GPT-2/SentencePiece token IDs for plain text, multibyte, double spaces, special tokens, `add_bos` on/off; Q4_0/Q4_K/Q6_K golden blocks; one tiny GGUF fixture | Goldens load offline; provenance complete; each golden has a test that currently fails where the known bug exists |
 | 7A-4 | Add deterministic `hypothesis` fuzz for GGUF headers (alignment, counts, dims, truncation, duplicates) | ≥10,000 examples, no crash; failures minimized; CI deterministic (fixed seed or `derandomize`) |
 | 7A-5 | CI: CPU pytest job; sdist-install job (`GFX1150_SKIP_CMAKE=1`, import CPU modules, run CPU suite); keep existing CI | Jobs green on PR; sdist install is a real install, not an archive listing |
+| 7A-6 | Add `scripts/qa/check_claims.py` with default CI mode and `--strict`; parse the ledger, scan `README.md` and `IMPLEMENTATION_PLAN.md`, and fail if an `UNVERIFIED`/`NOT YET` claim appears without an inline qualifier; require evidence paths for `VERIFIED` rows; add `audit/claims_baseline.txt` for known violations with a `G6` expiry. Wire default mode into CPU CI (strict is advisory until G6). | Default mode green with a reviewed baseline; `--strict` detects injected canaries; baseline entries are exact and target G6; no silent wildcard/allow-all entry |
+| 7A-7 | Add `.github/workflows/ci-gpu.yml` targeting `runs-on: [self-hosted, gfx1150, rocm]`; build with CMake and run `pytest -m gpu`; upload logs/artifacts. Set `continue-on-error: true` until a runner registers, with an issue link in the workflow comment. | Workflow is valid YAML, triggers on PR/nightly, and either runs green on a registered runner or is explicitly `continue-on-error` with a tracked issue; it is **not** counted as a gate pass while skipped |
 
 **Required checks**
 ```bash
@@ -208,10 +215,14 @@ python -m pytest -m "not gpu" -q
 python -m pytest -m gpu --collect-only -q          # CPU host: must skip, not error
 python tests/test_cpu_only.py
 python -O tests/test_cpu_only.py
+python scripts/qa/check_claims.py                 # default CI mode (baseline-aware)
+python scripts/qa/check_claims.py --strict        # advisory until G6; must be clean at G6
 python setup.py sdist
 # clean venv:
 pip install --no-build-isolation dist/*.tar.gz     # full build on gfx1150
 GFX1150_SKIP_CMAKE=1 pip install --no-build-isolation dist/*.tar.gz  # CPU-only runner
+# workflow sanity:
+python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci-gpu.yml'))"
 ```
 
 **QAQC adversarial checks**
@@ -219,12 +230,16 @@ GFX1150_SKIP_CMAKE=1 pip install --no-build-isolation dist/*.tar.gz  # CPU-only 
 - Confirm goldens are external, not generated by the code under test.
 - Confirm GPU tests skip, not silently pass, on CPU.
 - Confirm no test is skipped in the CPU job without a reason.
+- Inject a canary `NOT YET` claim into `README.md` and confirm `check_claims.py` fails; restore it.
+- Confirm `ci-gpu.yml` is genuinely `continue-on-error` (not silently skipped) and that its logs are uploaded when a runner exists.
 
 **Exit criteria (G1)**
 - [ ] CPU and GPU collection behavior correct.
 - [ ] Goldens have provenance and exercise the known P0 bugs (red evidence).
 - [ ] Fuzz runs deterministically.
-- [ ] CI jobs green; sdist install verified.
+- [ ] CPU + sdist CI jobs green; full sdist install verified.
+- [ ] Claims checker default mode green; baseline reviewed and exact; canary detected in strict mode.
+- [ ] GPU workflow exists and is valid; it is green or explicitly `continue-on-error` with a tracked runner issue. GPU correctness is **not** a G1 gate (G0's manual baseline covers the current host); it becomes required at G6.
 - [ ] No `src/` diff.
 
 **Stop:** Do not start 7B until G1 is signed. 7B is gated by 7A-3 goldens.
@@ -389,23 +404,27 @@ python tests/test_phase5_scale.py
 ### 7F — Evidence and release gates (Gate G6)
 
 **Audit trace:** T-1..T-7, B-1 residual, unverified hardware claims; v0.6.2 §6 P1-6.
-**Allowed files:** `tests/**`, `.github/workflows/**`, `scripts/bench/**` (new), `README.md`, docs, evidence.
+**Allowed files:** `tests/**`, `.github/workflows/**`, `scripts/bench/**` (new), `scripts/qa/**`, `audit/CLAIMS_LEDGER.md`, `README.md`, docs, evidence.
 
 **Work packages**
 
 | ID | Task | Acceptance |
 |---|---|---|
-| 7F-1 | Self-hosted gfx1150 runner with labels `gfx1150`, `rocm`; `ci-gpu.yml` runs `pytest -m gpu`; required after a stabilization period | GPU CI green on a real runner; logs/artifacts retained |
+| 7F-1 | Register the self-hosted gfx1150 runner with labels `gfx1150`, `rocm`; remove `continue-on-error` from `ci-gpu.yml` (added in 7A-7) and make `pytest -m gpu` required on PR + nightly | GPU CI green on a real runner with no `continue-on-error`; logs/artifacts retained; branch protection requires it |
 | 7F-2 | Real Q4_K_M/Q6_K GGUF golden run: fixed prompt, `temperature=0`, fixed seed; compare token IDs exactly and logits within a stated tolerance vs llama.cpp | Token IDs match; logits within tolerance; artifacts committed |
 | 7F-3 | Benchmark harness: warm-up, `hipEvent`, ≥20 iterations, median/p95, hardware/ROCm recorded, checked-in baseline; fail on regression beyond an agreed ratio | Reproducible numbers; baseline file; CI gate or documented manual gate |
 | 7F-4 | Telemetry: `--stats` / `--json` with bytes read, major faults, GTT peak, per-kernel ms, tok/s; `perf_counter` everywhere | Metrics reproducible; no prompt leakage in logs |
+| 7F-5 | **Claims release gate:** `scripts/qa/check_claims.py --strict` runs in CI and the release checklist with `audit/claims_baseline.txt` **empty**; it diffs `audit/CLAIMS_LEDGER.md` against `README.md`/`IMPLEMENTATION_PLAN.md` and fails if any `UNVERIFIED`/`NOT YET` claim appears unqualified, or if a `VERIFIED` row lacks an existing evidence path | Release-blocking; baseline empty; canary claim fails; ledger/README diff is part of the release evidence; no unqualified `phi3`/`gemma`, chat, or throughput claim remains |
 
 **Required checks**
 ```bash
 python -m pytest -m "not gpu" -q
 python -m pytest -m gpu -q
 python tests/test_cpu_only.py && python -O tests/test_cpu_only.py
+python scripts/qa/check_claims.py --strict
+test ! -s audit/claims_baseline.txt            # baseline must be empty at G6
 python scripts/bench/run.py --model <fixture> --json > bench.json
+git diff "$(git merge-base HEAD origin/main)" -- audit/CLAIMS_LEDGER.md README.md IMPLEMENTATION_PLAN.md
 ```
 
 **QAQC adversarial checks**
@@ -413,13 +432,15 @@ python scripts/bench/run.py --model <fixture> --json > bench.json
 - Confirm token IDs are compared exactly, not "close enough".
 - Confirm benchmark includes warm-up and reports variance; rerun to check stability.
 - Confirm claims ledger matches measured numbers; delete or qualify any unsupported claim.
+- Inject an `UNVERIFIED` canary into `README.md` and confirm 7F-5 fails; inject a `VERIFIED` row with a missing evidence path and confirm it fails.
+- Confirm the GPU CI job is required (no `continue-on-error`) and would block a red GPU suite.
 
 **Exit criteria (G6)**
-- [ ] CPU + GPU CI green.
+- [ ] CPU + GPU CI green; GPU job is required, not `continue-on-error`.
 - [ ] Golden token/logit artifacts pass.
 - [ ] Benchmark baseline and regression gate exist.
 - [ ] Telemetry works and is documented.
-- [ ] Claims ledger has no unverified claim.
+- [ ] Claims check is release-blocking and green; no `UNVERIFIED`/`NOT YET` claim appears unqualified in public docs.
 - [ ] Auditor signs the release candidate.
 
 **Release statement:** text-only llama-family `Q4_0`/`Q4_K`/`Q8_0` on gfx1150. No Qwen2/Llama-3 chat, Phi-3, or Gemma claim unless G2/G3 evidence exists. No throughput claim without 7F-3 artifacts.
@@ -446,7 +467,8 @@ Only after v0.7.0. Candidate items: PEP 639 license, `__version__`, namespace pa
 - [ ] No new dependency/network access without approval.
 - [ ] Error paths and hostile inputs are tested, not just happy paths.
 - [ ] Docs and compatibility matrix match behavior.
-- [ ] Claims ledger updated; no unverified claim added.
+- [ ] Claims ledger updated; `scripts/qa/check_claims.py` default mode passes from 7A-6 onward; `--strict` passes at G6 with an empty baseline.
+- [ ] GPU CI workflow exists; its `continue-on-error` state matches the phase (allowed in 7A–7E, forbidden at G6).
 - [ ] Rollback plan is stated and plausible.
 - [ ] Commit messages reference the work package and audit IDs.
 
@@ -454,12 +476,12 @@ Only after v0.7.0. Candidate items: PEP 639 license, `__version__`, namespace pa
 
 | Gate | Additional checks |
 |---|---|
-| G1 | Mutation test at least one fix; goldens external; GPU tests skip on CPU |
+| G1 | Mutation test at least one fix; goldens external; GPU tests skip on CPU; claims checker mutation-tested; `ci-gpu.yml` present and valid |
 | G2 | Special-token longest match; `add_bos` precedence; no silent byte loss |
 | G3 | Real GGUF tensor names; head-dim math; llama regression; no fake support claim |
 | G4 | cgroup/full-disk/symlink/huge-header; fd/mmap leak; exception masking |
-| G5 | Event-graph review; stress/realloc; output equivalence; overlap evidence |
-| G6 | Clean-clone reproduction; exact token IDs; benchmark variance; claims ledger |
+| G5 | Event-graph review; stress/realloc; output equivalence; overlap evidence; GPU workflow run (or tracked `continue-on-error`) |
+| G6 | Clean-clone reproduction; exact token IDs; benchmark variance; claims ledger diff vs README; `check_claims.py --strict` release-blocking with empty baseline; GPU CI required |
 | G7 | Same as G1–G6, scoped to the item |
 
 ### 7.3 Verdicts
@@ -579,9 +601,10 @@ Decision needed by: <date/role>
 |---|---|---|---|
 | **CPU unit/integration** | GitHub `ubuntu-latest` | Every push/PR | Parser, fuzz, tokenizer goldens, sampler, model-spec, KV safety, packaging, CPU quantizers |
 | **CPU packaging** | `ubuntu-latest` | Every push/PR | sdist build, clean install (`SKIP_CMAKE=1`), import CPU modules, run CPU suite |
-| **GPU correctness** | Self-hosted gfx1150 | PR (required after stabilization) + nightly | Kernels, layer, E2E, golden token IDs/logits |
+| **GPU correctness** | Self-hosted gfx1150 | PR (`continue-on-error` from 7A-7; **required at G6**) + nightly | Kernels, layer, E2E, golden token IDs/logits |
 | **GPU performance** | Self-hosted gfx1150 | Nightly/manual | Warm-up + ≥20-iteration medians, regression ratio |
-| **Release gate** | Self-hosted gfx1150 | Tag/release | Full matrix + sdist full install + claims ledger |
+| **Claims/packaging** | `ubuntu-latest` | Every push/PR + release | `check_claims.py` default (PR) / `--strict` (release), sdist build/install, README/ledger diff |
+| **Release gate** | Self-hosted gfx1150 | Tag/release | Full matrix + sdist full install + claims ledger + required GPU CI |
 
 **Tolerances:** use relative/statistical tolerances for FP16 (e.g. max error ≤ a documented multiple of ULP + quant error), not a single absolute constant for all K. Golden token IDs are exact. Logits use a stated absolute/relative bound per model.
 
@@ -589,22 +612,39 @@ Decision needed by: <date/role>
 
 ---
 
-## 10. Claims ledger (required)
+## 10. Claims ledger (required, machine-checkable)
 
-Maintain `audit/CLAIMS_LEDGER.md` (seeded 2026-11-01; update during 7.0 and at every gate). Every public claim gets a row:
+Maintain `audit/CLAIMS_LEDGER.md` (seeded 2026-11-01; update during 7.0 and at every gate). Every public claim gets a row with a **README match string** and a **qualified?** flag so the gate can be enforced mechanically:
 
-| Claim | Location | Evidence | Status | Scope |
-|---|---|---|---|---|
-| Builds from sdist | README | `audit/evidence/G0/.../sdist-install.log` | VERIFIED | gfx1150 host |
-| Supports Q4_K_M | README | `test_phase5_scale.py` + 7F-2 | PARTIAL | synthetic; real GGUF pending |
-| 983 tok/s | IMPLEMENTATION_PLAN | none | UNVERIFIED | synthetic, owner-only |
-| Qwen2 support | README | 7B/7C gates | NOT YET | chat/special tokens open |
-| Phi-3/Gemma support | README | 7C | NOT YET | not supported |
+| ID | Claim | Status | README match (literal) | Qualified in place? | Evidence | Scope |
+|---|---|---|---|---|---|---|
+| 1 | Builds from sdist | VERIFIED | `Builds and installs from the sdist` | n/a | `audit/evidence/G0/.../sdist-install.log` | gfx1150 host |
+| 6 | Real `Q4_K_M` support | PARTIAL | `Q4_K_M` | yes, inline | 7F-2 | synthetic today; real GGUF pending |
+| 8 | Chat special tokens | NOT YET | `<\|im_start\|>` | no | 7B-1 | not implemented |
+| 10 | Qwen2 support | NOT YET | `qwen2` | yes, "verified: llama, qwen2" | 7B/7C | metadata only |
+| 11 | Phi-3 support | NOT YET | `phi3` | yes, "metadata resolves, not supported" | 7C | not supported |
+| 12 | Gemma support | NOT YET | `gemma` | yes, "metadata resolves, not supported" | 7C | not supported |
+| 13 | 983 tok/s | UNVERIFIED | `983` | no | 7F-3 | synthetic, owner-only |
+
+**Enforcement (`scripts/qa/check_claims.py`, added in 7A-6; `--strict` is release-blocking at G6):**
+- Parse the ledger table; every row must have a valid status, a match string, and an evidence pointer for `VERIFIED`.
+- Scan `README.md` and `IMPLEMENTATION_PLAN.md` for each `UNVERIFIED` / `NOT YET` match string.
+- Fail if a match appears and `Qualified in place?` is `no`.
+- Fail if a `VERIFIED` row's evidence path does not exist.
+- Fail if the ledger has not changed in a PR that changes a claim line in `README.md`/`IMPLEMENTATION_PLAN.md` (release check: `git diff` includes both files).
+- Inline qualification must be within the same paragraph/bullet as the match, not only in a separate later section.
+
+**Ratchet (adoption without weakening the release gate):**
+- `audit/claims_baseline.txt` lists known violations, one per line as `<claim-id> <path> <literal>`, each with a target gate of `G6`. It is **not** a waiver of the claim.
+- Default CI mode (7A-6 onward) exits non-zero for new violations but tolerates exact baseline entries; it also warns on any entry whose target gate has passed.
+- `--strict` (G6/release) ignores the baseline entirely and fails on every violation. At G6 the baseline file must be empty.
+- QAQC must review the baseline at G1 and reject it if it hides a claim that can be fixed cheaply (e.g. the `phi3`/`gemma` bullet).
 
 Rules:
 - `UNVERIFIED` claims must be removed or explicitly labelled before release.
 - A claim's scope must name model family, quant, context, hardware, and software versions.
 - Performance claims require the benchmark artifact and the exact command.
+- The auditor updates the ledger when accepting/rejecting a gate; the coder updates it in the same PR as any public-claim change.
 
 ---
 
@@ -660,10 +700,11 @@ Status as of the 2026-11-01 verification. `D` = deferred to 7G.
 
 **Release v0.7.0**
 - [ ] G0–G6 signed.
-- [ ] CPU + GPU CI green.
+- [ ] CPU + GPU CI green; GPU job required (no `continue-on-error`).
 - [ ] sdist full install verified on gfx1150.
 - [ ] Golden token IDs/logits pass on a real GGUF.
 - [ ] Benchmark baseline recorded; no unsupported perf claim.
+- [ ] `check_claims.py --strict` green with an empty `audit/claims_baseline.txt`; README/ledger diff reviewed; no unqualified `UNVERIFIED`/`NOT YET` claim.
 - [ ] Compatibility matrix and release statement accurate.
 - [ ] No open P0 in the release scope.
 - [ ] `audit/RELEASE_VERIFICATION_v0.7.0.md` written and signed.
@@ -682,8 +723,8 @@ Status as of the 2026-11-01 verification. `D` = deferred to 7G.
 ## 14. First action
 
 1. Commit/park the current verification changes and freeze the baseline (7.0).
-2. Run G0 and record the evidence bundle.
-3. Authorize **only** 7A-1 (pytest harness) to the coder.
+2. Run G0 and record the evidence bundle (manual GPU baseline; no runner required).
+3. Authorize **7A-1** (pytest harness), **7A-6** (claims checker), and **7A-7** (GPU workflow scaffold) first; they are independent and unblock the rest of 7A.
 4. Do not authorize 7B until G1 is signed.
 
 The coder receives exactly one work package ID, the allowed file set, the acceptance criteria, and the evidence template. Anything else is out of scope.

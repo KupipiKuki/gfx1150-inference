@@ -24,6 +24,7 @@ audit/evidence/
       red.log
       green.log
       gate-commands.log
+      claims-check.log
       qaqc-probes/
       notes.md
 ```

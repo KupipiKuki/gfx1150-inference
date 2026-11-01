@@ -1,0 +1,8 @@
+# Known claim violations (ratchet baseline)
+# Format: <claim-id> <path> <literal>
+# Every entry targets G6. Default CI tolerates only exact entries; --strict ignores
+# this file entirely. This file MUST be empty at G6.
+#
+# The bounded-RAM wording is corrected in 7D (posix_fadvise/MADV_PAGEOUT + residency policy).
+14 README.md bounded memory
+14 IMPLEMENTATION_PLAN.md bounded memory

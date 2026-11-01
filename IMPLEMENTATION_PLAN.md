@@ -237,18 +237,19 @@ class WeightStreamer:
 | Phase | Focus | Gate | Stop after |
 |---|---|---|---|
 | **7.0** | Freeze baseline; record environment; verify current green state; create evidence layout and claims ledger | **G0** | Baseline signed; tree clean; all suites recorded |
-| **7A** | Test infrastructure: pytest harness + markers, golden data with provenance, parser fuzz, CPU/sdist-install CI | **G1** | Tests provably fail on parent; CI + sdist install green; no `src/` diff |
+| **7A** | Test infrastructure: pytest harness + markers, golden data with provenance, parser fuzz, CPU/sdist-install CI, GPU CI scaffold (`continue-on-error`), claims checker + baseline | **G1** | Tests provably fail on parent; CI + sdist install green; GPU workflow exists; claims checker default mode green; no `src/` diff |
 | **7B** | Tokenizer P0: special-token encode, `add_bos_token`, GPT-2 spec regex, uniform byte fallback | **G2** | Golden vectors pass; no silent byte loss |
 | **7C** | Model families P0: `ModelSpec`/tensor map, Phi-3 fused QKV, Gemma scale/soft-cap/key length, honest compatibility matrix | **G3** | Per-arch fixtures + reference logits pass; llama unchanged |
 | **7D** | Memory honesty & robustness: `posix_fadvise`/`MADV_PAGEOUT`, budgeted residency policy, KV clamp, crash-safe files, exception masking | **G4** | Memory behavior matches docs; hostile inputs fail closed |
 | **7E** | Stream topology: compute stream + events, double-buffered staging, pinned host, sync-before-free | **G5** | Event graph reviewed; race/stress test passes; overlap evidenced |
-| **7F** | Evidence & release: self-hosted GPU CI, real-GGUF golden tokens/logits, benchmark baseline, telemetry, claims ledger | **G6** | CPU+GPU CI green; claims ledger clean; auditor release signoff |
+| **7F** | Evidence & release: promote GPU CI to required, real-GGUF golden tokens/logits, benchmark baseline, telemetry, **release-blocking claims check with empty baseline** | **G6** | CPU+GPU CI green with GPU required; claims `--strict` green; auditor release signoff |
 | **7G** | Post-release P2 polish (packaging, flash attention, RoPE scaling/SWA, batching) — **deferred** | **G7** | Only after v0.7.0 ships |
 
 #### Merge discipline
 - Only the auditor-approved SHA is merged; QAQC reviews a frozen commit and does not accept force-pushes mid-gate.
 - One work package per branch/PR (`wp/<id>-<slug>`); no bundling of P0 correctness with P2 performance work.
 - Release notes carry the verified scope verbatim: **text-only llama-family `Q4_0`/`Q4_K`/`Q8_0` GGUFs on gfx1150**; no Qwen2/Llama-3-chat, Phi-3, or Gemma claims until G2/G3 evidence exists, and no throughput numbers until G6.
+- The GPU workflow (7A-7) is `continue-on-error` only until the self-hosted runner registers; **7F-1 makes it required**. The claims checker (7A-6) runs baseline-aware in CI and becomes **release-blocking at G6 with an empty `audit/claims_baseline.txt`**.
 - A gate failure triggers the stop conditions and blocker report defined in the handoff document; do not "fix forward" silently.
 
 ---

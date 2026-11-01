@@ -11,7 +11,7 @@ Historical audit, review, and handoff documents for gfx1150-inference, kept for 
 | [REVIEW_v0.6.1_c75914b.md](REVIEW_v0.6.1_c75914b.md) | Independent review of `c75914b`: verifies the sdist/Q6_K/GPT-2/parser fixes and documents the still-open special-token, `add_bos`, Phi-3/Gemma, residency, and stream-topology issues |
 | [AUDIT_REMEDIATION_v0.6.2.md](AUDIT_REMEDIATION_v0.6.2.md) | Third-pass review of commit `c75914b`, **finalized** with the independent-review reconciliation and the P0/P1/P2 testing-phase backlog (authoritative remediation report) |
 | [VERIFICATION_2026-11-01.md](VERIFICATION_2026-11-01.md) | Build + hardware verification on a real gfx1150 host: CMake/sdist/`pip install` results, all 12 CPU tests and all 5 GPU suites passing, the `pybind11_DIR` sdist-install fix, and the still-open v0.6.2 backlog |
-| [CLAIMS_LEDGER.md](CLAIMS_LEDGER.md) | Every public capability/performance claim with its evidence pointer and verified/partial/unverified status |
+| [CLAIMS_LEDGER.md](CLAIMS_LEDGER.md) | Machine-checkable ledger of every public capability/performance claim: status, README match string, inline qualification, evidence pointer; enforced by `scripts/qa/check_claims.py` with a G6-expiring baseline |
 | [evidence/README.md](evidence/README.md) | Evidence-bundle layout and rules for each Phase 7 gate |
 | [remediation_plan.md](remediation_plan.md) | Phase 1 review & remediation plan (build/kernel defects) |
 | [HANDOFF_PHASE2.md](HANDOFF_PHASE2.md) | Phase 2 handoff: review fixes and doc reconciliation |
