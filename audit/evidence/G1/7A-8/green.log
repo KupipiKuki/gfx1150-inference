@@ -1,0 +1,42 @@
+# G1 / 7A-8 — GREEN: the documented build command on the candidate
+# Captured: 2026-11-02T22:51:14Z
+# Candidate: 9c049129e2f39ac2022442416d8fcb0feb7b465f (work commit)
+#
+# Method: a fresh clone of the candidate -- no build/ cache, no pybind11_DIR --
+# then the command the README documents, exactly as CI runs it.
+
+=== $ ls -d build ===
+  (no build cache present)
+
+=== $ env -u pybind11_DIR cmake -B build -DCMAKE_BUILD_TYPE=Release ===
+-- pybind11 CMake package: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/share/cmake/pybind11
+-- Found pybind11: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/include (found version "3.1.0")
+-- The CXX compiler identification is GNU 13.3.0
+-- The HIP compiler identification is Clang 24.0.0
+-- Configuring done (2.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/opencode/green8b/build
+--- exit code: 0 ---
+
+=== $ cmake --build build -j ===
+[ 87%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/dequantize.hip.o
+[100%] Linking HIP shared module matmul_module.so
+[100%] Built target matmul_module
+--- exit code: 0 ---
+
+=== $ ls -la build/matmul_module.so ===
+-rwxrwxr-x 1 kupipi kupipi 592488 Nov  2 17:52 build/matmul_module.so
+
+=== $ PYTHONPATH=build:src python3 -m pytest -m gpu -q ===
+..................                                                       [100%]
+18 passed, 43 deselected in 1.78s
+
+=== $ PYTHONPATH=build:src python3 -m pytest -m 'not gpu' -q ===
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+43 passed, 18 deselected, 1 warning in 4.88s
+
+=== $ python3 -m pytest tests/test_build_configure.py -v ===
+tests/test_build_configure.py::test_documented_configure_locates_pybind11_without_an_ambient_hint PASSED [ 33%]
+tests/test_build_configure.py::test_documented_configure_succeeds_with_the_hip_toolchain PASSED [ 66%]
+tests/test_build_configure.py::test_configure_does_not_leave_a_cache_outside_the_build_directory PASSED [100%]
+============================== 3 passed in 4.14s ===============================

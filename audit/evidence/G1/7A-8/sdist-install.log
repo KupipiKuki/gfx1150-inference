@@ -1,0 +1,42 @@
+# G1 / 7A-8 — sdist build + full clean-venv install
+# Captured: 2026-11-02T22:51:14Z  candidate: 9c049129e2f39ac2022442416d8fcb0feb7b465f
+#
+# The acceptance requires that the full sdist install still works: the sdist
+# build must compile the HIP extension and the package must install and
+# import in a clean venv.
+
+=== $ python3 setup.py sdist --dist-dir dist ===
+creating dist
+Creating tar archive
+removing 'gfx1150_inference-0.6.1' (and everything under it)
+--- exit code: 0 ---
+-rw-rw-r-- 1 kupipi kupipi 124975 Nov  2 17:52 dist/gfx1150_inference-0.6.1.tar.gz
+
+=== sdist contents ===
+gfx1150_inference-0.6.1/
+gfx1150_inference-0.6.1/CMakeLists.txt
+gfx1150_inference-0.6.1/LICENSE
+gfx1150_inference-0.6.1/MANIFEST.in
+gfx1150_inference-0.6.1/PKG-INFO
+gfx1150_inference-0.6.1/README.md
+gfx1150_inference-0.6.1/pyproject.toml
+gfx1150_inference-0.6.1/setup.cfg
+gfx1150_inference-0.6.1/setup.py
+gfx1150_inference-0.6.1/src/
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/PKG-INFO
+  ... (47 entries)
+
+=== full clean-venv install from the sdist ===
+  (setuptools/wheel/cmake/pybind11/numpy installed for the build)
+  Stored in directory: /home/kupipi/.cache/pip/wheels/90/be/15/5d0366ddbdd409c56372941218b3b5df69b66f0a69585bf86b
+Successfully built gfx1150-inference
+Installing collected packages: gfx1150-inference
+Successfully installed gfx1150-inference-0.6.1
+--- exit code: 0 ---
+
+=== the installed package imports ===
+imports OK
+matmul_module: /tmp/opencode/venv8b/lib/python3.14/site-packages/matmul_module.cpython-314-x86_64-linux-gnu.so
+-rwxrwxr-x 1 kupipi kupipi 171 Nov  2 17:52 /tmp/opencode/venv8b/bin/gfx1150-infer
+CLI installed
