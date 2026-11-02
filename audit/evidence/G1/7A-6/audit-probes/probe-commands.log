@@ -1,0 +1,115 @@
+# Auditor probe transcript — 7A-6
+# Auditor: DeepSeek V4.1 Flash, 2026-11-02
+# Candidate: 994d62922af7ed9f5b9546d787d8c05606cdb8f1
+# HEAD: f0a73a18cbfdc661f878d645f0fdae34a4fe1e2c
+# Clean clone: /tmp/opencode/audit-7a6
+
+### Default
+$ python3 scripts/qa/check_claims.py
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+exit: 0
+
+### Strict
+$ python3 scripts/qa/check_claims.py --strict
+RESULT: FAIL - 17 unqualified occurrence(s) (strict mode ignores the baseline)
+exit: 1
+
+### JSON
+$ python3 scripts/qa/check_claims.py --json
+ok=true, claims=30, violations=17 (all baselined), findings=0
+exit: 0
+
+### Canaries
+$ python3 scripts/qa/canary_claims.py
+RESULT: PASS - all 10 canaries behaved as required
+exit: 0
+
+### Canary mutation (checker forced to exit 0)
+$ python3 scripts/qa/canary_claims.py
+RESULT: FAIL - 8 of 10 canaries were not detected
+exit: 1
+# The two survivors (baseline_is_exact, expired_baseline_entry) read JSON, as designed.
+
+### CPU / GPU
+$ PYTHONPATH=<build> pytest -m "not gpu" -q
+37 passed, 18 deselected
+$ PYTHONPATH=<build> pytest -m gpu -q
+18 passed, 37 deselected
+
+### Baseline / scope
+$ git diff --stat 4bcffeb..994d629 -- audit/claims_baseline.txt
+(empty)
+# Statuses and flags unchanged vs parent; only literals and scope annotations added.
+
+### A2 second unqualified qwen2
+README.md appended: "- `qwen2` models are supported for text generation."
+$ check_claims.py --root <tree>
+README.md:115  'qwen2'  (NEW VIOLATION (not inventoried in the ledger))
+RESULT: FAIL - 1 new violation(s), 17 baselined
+exit: 1
+
+### A3 baseline entry removed
+Removed "10 README.md qwen2" from audit/claims_baseline.txt.
+README.md:109  'qwen2'  (NEW VIOLATION)
+RESULT: FAIL - 1 new violation(s), 16 baselined
+exit: 1
+
+### A4 wildcard baseline
+Added "10 README.md q*en2".
+check_claims: ... wildcard entries are not allowed
+exit: 2
+
+### A5 malformed baseline
+Added "10README.md".
+check_claims: ... malformed baseline entry
+exit: 2
+
+### A6 invalid status
+Changed claim 1 status to SOMETIMES.
+[invalid-status] claim 1: unknown status 'SOMETIMES'
+RESULT: FAIL - 0 new violation(s), 17 baselined, 1 finding(s)
+exit: 1
+
+### A7 duplicate claim ID
+Duplicated claim 1 row.
+check_claims: ... duplicate claim ID 1
+exit: 2
+
+### A9 line drift
+Inserted one line at the top of README.md.
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired, 0 findings
+drift warnings: 13
+exit: 0
+
+### A10 qualifier bullet removed
+Removed the "Verified release scope" bullet from README.md (1 line).
+[stale-scope] claims 8,9,10,11,12: README.md:110 no longer contains the literal
+[unresolved-literal] claim 8: 'chat special-token encoding' does not appear
+RESULT: FAIL - 0 new violation(s), 17 baselined, 6 finding(s)
+exit: 1
+
+### Strict-clean output (AUD-7A6-1)
+Minimal tree: one VERIFIED claim, empty baseline, README/PLAN contain the literal.
+$ check_claims.py --strict
+RESULT: FAIL - 0 unqualified occurrence(s) (strict mode ignores the baseline)
+exit: 0
+$ check_claims.py --strict --json
+{"ok": true, "violations": [], "findings": [], "mode": "strict"}
+exit: 0
+# Exit code is correct; the human-readable strict result is wrong.
+
+### QAQC evidence check (AUD-7A6-2)
+- qaqc-report.md header: "Probes: final-probe-commands.log (this directory)"
+- actual file: probe-commands.log
+- probe-commands.log B2: strict "exit: 0" (actual exit 1)
+- probe-commands.log A10: "lines removed: 0" (actual removal 1 line)
+- A2-A10 say "see earlier run", not a full transcript
+
+### Provenance (AUD-7A6-3)
+$ git show -s --format='%H %P %s' f6924ff
+f6924ff... 4bcffeb... G1/7A-6: add the claims checker...
+$ git diff --stat f6924ff..994d629 -- src tests scripts .github audit/CLAIMS_LEDGER.md audit/claims_baseline.txt
+(empty)
+$ git diff --shortstat 4bcffeb..994d629
+17 files changed, 2691 insertions(+), 24 deletions(-)
+# diffstat.txt says 2661/23; env.txt repeats the candidate line 3 times.

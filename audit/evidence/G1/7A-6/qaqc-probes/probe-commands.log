@@ -1,0 +1,115 @@
+# QAQC 7A-6 probe log — SUMMARY of the independent verification + adversarial probes
+#
+# *** CORRECTED IN THE 7A-6 FOLLOW-UP (condition C-7A6-2) ***
+#
+# This file is a **summary** of QAQC's probes: it states each probe's result,
+# but it is not a verbatim transcript. The corrections applied here are listed
+# in the "Corrections applied" section at the end, and every corrected number is
+# backed by the full transcript in `probe-commands-full.log` (this directory),
+# which was reproduced from scratch by the follow-up coder because QAQC's
+# scratch tree (/tmp/opencode/qaqc-76/) was ephemeral and is gone.
+#
+# Tree: f0a73a18cbfdc661f878d645f0fdae34a4fe1e2c (branch tip; candidate 994d629 + candidate-SHA follow-up f0a73a1)
+# Date: 2026-11-02T04:05:57Z
+# Corrected: 2026-11-02 (7A-6 follow-up, condition C-7A6-2)
+
+## B. Verification runs (coder-report claims)
+--- B1 default mode ---
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+exit: 0
+--- B2 strict mode ---
+RESULT: FAIL - 17 unqualified occurrence(s) (strict mode ignores the baseline)
+exit: 1
+--- B3 json mode ---
+exit: 0
+  ok=True claims=30 violations=17 baselined=17 unaccounted=0 expired=0 findings=0 warnings=1
+--- B4 canaries (10/10 on the 7A-6 candidate) ---
+RESULT: PASS - all 10 canaries behaved as required
+exit: 0
+--- B5 pytest lanes ---
+  37 passed, 18 deselected, 1 warning in 0.80s
+  18 passed, 37 deselected in 1.65s
+  55 passed, 1 warning in 2.13s
+--- B6 cpu suite unittest ---
+  OK
+  OK
+--- B7 ci-cpu.yml YAML ---
+  valid
+--- B8 baseline byte-identical to parent ---
+  baseline diff vs 4bcffeb: 0 lines (expect 0)
+--- B9 true diffstat ---
+   17 files changed, 2691 insertions(+), 24 deletions(-)
+
+## A. Adversarial probes
+--- A1 live NOT-YET canary (handoff §7): inject -> fail -> restore -> green ---
+  exit: 1 (expect 1)
+  NEW VIOLATION lines: 1
+  after restore exit: 0
+  README byte-identical after restore: True
+--- A2 line-precision attack (2nd unqualified qwen2 in baselined path) ---
+  exit: 1, README.md:114 qwen2 NEW VIOLATION (not inventoried)
+--- A3 baseline is load-bearing (delete entry 10) ---
+  exit: 1, README.md:109 qwen2 NEW VIOLATION; 16 baselined
+--- A4 wildcard baseline entry (`q*en2`) ---
+  exit: 2, "wildcard entries are not allowed"
+--- A5 malformed baseline entry ---
+  exit: 2, "malformed baseline entry (expected '<claim-id> <path> <literal>')"
+--- A6 invalid status (`SOMETIMES`) in a ledger row ---
+  invalid-status finding -> exit: 1
+--- A7 duplicate claim ID ---
+  exit: 2, "duplicate claim ID 30"
+--- A8 escaped-pipe (`\|`) literal cell parses to 7 columns ---
+  claims parsed: 30; the escape is honoured by the cell split
+--- A9 drift: line inserted at README top ---
+  13 drift warnings, exit: 0
+--- A10 (fixed) qualifier-bullet deletion in a copy ---
+  lines removed: 1
+  stale-scope findings: 5
+  unresolved-literal findings: 1
+  total findings: 6
+  exit: 1 (expect 1)
+--- A11 claims-check.log vs the run it documents ---
+  identical to the 7A-6 candidate's output after its 5-line header
+
+## C. Canary mutation-test (coder claim: 8/10 fail when the checker is neutered)
+  canaries failing under neutered checker: 8
+  restored exit: 0
+
+## D. Evidence provenance (f6924ff <-> 994d629)
+  - logs say: candidate: f6924ffab00f514fa449bac0bd0967c145698b92
+  - candidate-sha.txt says: 994d62922af7ed9f5b9546d787d8c05606cdb8f1
+  - f6924ff is a pre-amend commit, unreachable from the branch (git branch --contains: none)
+  - substantive+evidence delta f6924ff..994d629:  9 files changed, 11 insertions(+), 10 deletions(-)
+  - CODE/LEDGER/CI delta (expect 0): 0
+  - reflog: f0a73a1 commit: G1/7A-6: record the candidate SHA in the evidence bundle 994d629 commit (amend): G1/7A-6: add the claims checker, its canaries and the ledger scope annotations f6924ff commit: G1/7A-6: add the claims checker, its canaries and the ledger scope annotations 
+
+# Finished: 2026-11-02T04:06:08Z
+#
+# ---------------------------------------------------------------------------
+# Corrections applied in the 7A-6 follow-up (condition C-7A6-2)
+#
+# Applied by the follow-up coder, not by QAQC. Each correction fixes a factual
+# error the auditor confirmed (AUDIT_7A-6_CLAIMS_CHECKER_DEEP_2026-11-02.md
+# §3), and each is backed by `probe-commands-full.log`.
+#
+# 1. This file is now labelled a SUMMARY, not a transcript. QAQC's original
+#    header called it a probe log and the probes it summarises said "see
+#    earlier run"; the full transcript is `probe-commands-full.log`.
+# 2. B2: `exit: 0` -> `exit: 1`. The strict mode exits 1 on the real tree; the
+#    recorded 0 was wrong. Confirmed in the transcript.
+# 3. A10: `lines removed: 0` -> `lines removed: 1`, and the findings are now
+#    stated completely: 5 stale-scope + 1 unresolved-literal = 6 findings.
+#    The original recorded 0 removed lines while reporting stale scopes.
+# 4. A2-A9: the "see earlier run" placeholders are replaced with the results
+#    themselves, so this summary no longer depends on a transcript that was
+#    not retained.
+# 5. The reference to a non-existent `final-probe-commands.log` in
+#    `qaqc-report.md` (the "Probes:" line and the sign-off line) now names
+#    `probe-commands.log` and `probe-commands-full.log`, so the sign-off, this
+#    header and the directory contents agree.
+#
+# The line numbers quoted in A2/A3 (README.md:114 / README.md:109) are
+# QAQC's, recorded against the 7A-6 candidate's README. The follow-up's
+# reproduction quotes the current line numbers (README.md:116 / README.md:110):
+# the auditor's prep commit efe34fc added one line to the README project tree,
+# shifting every README line from 27 onward by +1.

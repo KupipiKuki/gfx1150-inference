@@ -1,0 +1,113 @@
+# 7A-6 QAQC probe reproduction — full transcript
+# Produced by audit/evidence/G1/7A-6-followup/reproduce-probes.py
+# tree: /tmp/opencode/wt-7a6
+# HEAD: 330fe70573135017d42c7c1d39e4ee035d8bea27
+
+--- B1 default mode ---
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+exit: 0
+--- B2 strict mode ---
+RESULT: FAIL - 17 unqualified occurrence(s) (strict mode ignores the baseline)
+exit: 1
+--- B3 json mode ---
+ok=True claims=30 violations=17 baselined=17 unaccounted=0 expired=0 findings=0 warnings=1
+exit: 0
+--- B4 canaries ---
+RESULT: PASS - all 12 canaries behaved as required
+exit: 0
+--- B5 pytest lanes ---
+  37 passed, 18 deselected, 1 warning in 1.01s
+  exit: 0
+  18 skipped, 37 deselected in 0.28s
+  exit: 0
+  37 passed, 18 skipped, 1 warning in 0.88s
+  exit: 0
+--- B6 cpu suite unittest ---
+  OK
+  exit: 0
+  OK
+  exit: 0
+--- B7 ci-cpu.yml YAML ---
+valid; 8 steps in cpu-smoke
+--- B8 baseline byte-identical to the 7A-6 candidate ---
+  no diff
+exit: 0
+--- B9 true diffstat of the follow-up ---
+  22 files changed, 2014 insertions(+), 54 deletions(-)
+  exit: 0
+
+--- A1 live NOT-YET canary (handoff §7): inject -> fail -> restore -> green ---
+  exit: 1 (expect 1)
+  NEW VIOLATION lines: 1
+  after restore exit: 0
+  README byte-identical after restore: True
+--- A2 line-precision attack (2nd unqualified qwen2 in a baselined path) ---
+        README.md:116  'qwen2'  (NEW VIOLATION (not inventoried in the ledger))
+  RESULT: FAIL - 1 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+  exit: 1 (expect 1)
+--- A3 baseline is load-bearing (delete entry 10) ---
+        README.md:110  'qwen2'  (NEW VIOLATION)
+  RESULT: FAIL - 1 new violation(s), 16 baselined, 0 expired baseline entry(ies), 0 finding(s)
+  exit: 1 (expect 1)
+--- A4 wildcard baseline entry ---
+  check_claims: /tmp/probe-52t4pg36/audit/claims_baseline.txt:41: wildcard entries are not allowed: '10 README.md q*en2'
+  exit: 2 (expect 2)
+--- A5 malformed baseline entry ---
+  check_claims: /tmp/probe-ssdqllhp/audit/claims_baseline.txt:41: malformed baseline entry (expected '<claim-id> <path> <literal>'): 'not a valid entry'
+  exit: 2 (expect 2)
+--- A6 invalid status in a ledger row ---
+    [invalid-status] claim 13: unknown status 'SOMETIMES' (expected one of VERIFIED, PARTIAL, NOT YET, UNVERIFIED, REMOVED)
+  RESULT: FAIL - 0 new violation(s), 16 baselined, 0 expired baseline entry(ies), 1 finding(s)
+  exit: 1 (expect 1)
+--- A7 duplicate claim ID ---
+  check_claims: /tmp/probe-wjitw3f_/audit/CLAIMS_LEDGER.md:63: duplicate claim ID 30
+  exit: 2 (expect 2)
+--- A8 escaped-pipe (\|) literal cell parses to 7 columns ---
+  claims parsed: 30 (expect 30)
+  exit: 1 (1: the substituted literal does not resolve)
+--- A9 drift: line inserted at README top ---
+  drift warnings: 13
+  RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+  exit: 0 (expect 0)
+--- A10 qualifier-bullet deletion in a copy ---
+  lines removed: 1
+  stale-scope findings: 5
+  unresolved-literal findings: 1
+  total findings: 6
+  RESULT: FAIL - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 6 finding(s)
+  exit: 1 (expect 1)
+--- A11 claims-check.log vs the run it documents ---
+  recorded body == the 7A-6 candidate's output: True
+  recorded body == the follow-up tree's output: False
+  (the follow-up tree differs: prep commit efe34fc added one line
+   to the README project tree, so the recorded line numbers moved)
+
+--- C canary mutation-test ---
+  mutation 'force exit 0': canaries failing: 9
+    FAIL not_yet_claim
+    FAIL unqualified_q4_k_m
+    FAIL unqualified_qwen2
+    FAIL missing_evidence
+    FAIL generic_literal
+    FAIL strict_detects_baseline
+    FAIL wrong_lane
+    FAIL nested_bullet
+    FAIL id3_claim_removed
+  exit: 1 (expect 1)
+  mutation 'always report FAIL': canaries failing: 1
+    FAIL strict_clean
+  exit: 1 (expect 1)
+  mutation 'checker does nothing': canaries failing: 12
+    FAIL not_yet_claim
+    FAIL unqualified_q4_k_m
+    FAIL unqualified_qwen2
+    FAIL missing_evidence
+    FAIL generic_literal
+    FAIL strict_detects_baseline
+    FAIL baseline_is_exact
+    FAIL expired_baseline_entry
+    FAIL wrong_lane
+    FAIL nested_bullet
+    FAIL strict_clean
+    FAIL id3_claim_removed
+  exit: 1 (expect 1)
