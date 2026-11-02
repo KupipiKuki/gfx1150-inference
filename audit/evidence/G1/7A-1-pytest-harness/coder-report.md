@@ -1,10 +1,18 @@
 # Work package: 7A-1 — Pytest harness
 
-**Audit trace:** AUD-2, QAQC-2, T-1, T-3
+**Audit trace:** AUD-2, QAQC-2, T-1, T-3 (plus AUD-7A1-1/2/3 and QF-1/QF-2/QF-3,
+closed by the follow-up on `wp/7A-1-followup`)
 **Parent SHA:** `2659e6c33fec50a6768cd35bb264d6f7453e6c0e`
 **Candidate SHA:** see `audit/evidence/G1/7A-1-pytest-harness/candidate-sha.txt` (`f0ce20e`)
 **Branch:** `wp/7A-1-pytest-harness`
 **Allowed file set:** `tests/**`, `pyproject.toml` (pytest config only), `scripts/qa/**` (unused), `audit/evidence/G1/7A-1/**`, docs — **respected** (see §Files changed)
+
+> **Follow-up:** the G1 audit accepted this package "in substance" but found two
+> weaknesses in the new meta-tests (AUD-7A1-1 wrong-lane acceptance, AUD-7A1-2
+> nested-raise acceptance) and three record imprecisions (QF-1/QF-2/QF-3). The
+> code fixes are on `wp/7A-1-followup`
+> (`audit/evidence/G1/7A-1-followup/`); the record corrections (QF-1/QF-2/QF-3) are
+> applied **in this document and in `notes.md`**.
 
 ---
 
@@ -61,6 +69,27 @@ contains only `tests/`, `pyproject.toml` and `audit/evidence/G1/`. The diff for
 `audit/evidence/G1/7A-1-pytest-harness/notes.md` §3. `src/` and all packaging
 and CI files are untouched.
 
+### Record corrections (QF-1 / QF-2 / QF-3, applied in the follow-up)
+
+These are wording corrections to this report and to `notes.md`. **Captured logs
+were not edited.**
+
+- **QF-1 — sdist packaging.** This report's limitation 1 said both
+  `tests/conftest.py` and `tests/test_harness_contract.py` are excluded from
+  the sdist. **Only `conftest.py` is excluded** — setuptools' default sdist
+  includes `tests/test_*.py`, and `test_harness_contract.py` matches that
+  pattern (verified by building the sdist). The 7A-5 `MANIFEST.in` fix
+  (`recursive-include tests *.py`) is still required, for `conftest.py` alone.
+  This is audit condition **C-7A1-5**, carried forward to 7A-5.
+- **QF-2 — commit count.** `notes.md` §4 said "two commits". The package is a
+  **content commit plus follow-up commits** (implementation, evidence bundle,
+  bundle-structure note, coder report). Corrected in `notes.md` §4.
+- **QF-3 — the "13 tests could not fail" claim was imprecise.** Precisely:
+  **13 test functions returned `bool`**; **4 of those also contained asserts**
+  (masked failure paths); **9 had no failure mechanism at all**; and a **14th**
+  returned a tuple from a nested helper, which pytest likewise ignores. The
+  conversion covers all of them. Corrected in `notes.md` §1 and here.
+
 ## Suite results
 
 | Suite | Result |
@@ -110,19 +139,22 @@ Additional probes, same file:
 ## G0 record correction (7A-1 task 7)
 
 The G0 "30 passed" record was a collection smoke including **18 GPU tests and
-13 bool-returning functions**; it was not a CPU gate. The corrected records are
-`pytest -m "not gpu"` → **37 passed / 18 deselected** and `pytest -m gpu` →
-**18 passed on gfx1150**. The captured G0 logs were **not edited** (handoff §4
-forbids editing captured logs); the correction is recorded in the 7A-1 notes
-and here. Details in `notes.md` §5.
+13 bool-returning functions** (of those 13, 4 also contained asserts and 9 had
+no failure mechanism at all; a 14th returned a tuple from a nested helper); it
+was not a CPU gate. The corrected records are `pytest -m "not gpu"` → **37
+passed / 18 deselected** and `pytest -m gpu` → **18 passed on gfx1150**. The
+captured G0 logs were **not edited** (handoff §4 forbids editing captured logs);
+the correction is recorded in the 7A-1 notes and here. Details in `notes.md` §5.
 
 ## Known limitations
 
-1. `tests/conftest.py` and `tests/test_harness_contract.py` are **not packaged
-   in the sdist** — setuptools' default sdist includes only `tests/test_*.py`.
-   Fixing this needs `MANIFEST.in`, which is outside 7A-1's allowed file set.
-   **7A-5 should add `recursive-include tests *.py`** so the CPU CI job can run
-   `pytest -m "not gpu"` from the installed tree. Flagged, not actioned.
+1. `tests/conftest.py` is **not** packaged in the sdist — setuptools' default
+   sdist includes `tests/test_*.py`, so `tests/test_harness_contract.py` **is**
+   packaged, but `conftest.py` is **not**. Fixing this needs `MANIFEST.in`,
+   which is outside 7A-1's allowed file set. **7A-5 should add
+   `recursive-include tests *.py`** so the CPU CI job can run
+   `pytest -m "not gpu"` from the installed tree. Flagged, not actioned. This is
+   audit condition **C-7A1-5**.
 2. **CI is not wired to pytest.** `.github/workflows/ci-cpu.yml` still runs only
    `python tests/test_cpu_only.py`. The pytest CPU job is **7A-5**; `.github/`
    is outside 7A-1's allowed file set, so it was not touched.

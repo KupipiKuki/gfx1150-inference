@@ -23,6 +23,7 @@ gfx1150-inference/
 ├── IMPLEMENTATION_PLAN.md
 ├── PHASE7_IMPLEMENTATION_HANDOFF.md
 ├── PHASE7_7A_CODER_BRIEF.md
+├── PHASE7_7A-1_FOLLOWUP_BRIEF.md
 ├── LESSONS_LEARNED.md
 ├── audit/                     # audit & remediation reports
 │   ├── AUDIT_REPORT_v0.5.0.md
