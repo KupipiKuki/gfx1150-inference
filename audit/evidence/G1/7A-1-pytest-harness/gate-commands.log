@@ -1,0 +1,92 @@
+# G1 / 7A-1 gate commands — every command run, with exit codes
+# Captured: 2026-11-02T00:19:18Z  HEAD: f0ce20e0021a313d3cb23a33f9b97b2638f56176
+
+### [1] $ git status --porcelain
+?? audit/evidence/G1/
+--- exit code: 0 ---
+
+### [2] $ python3 -m pytest -m not gpu -q
+.....................................                                    [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+37 passed, 18 deselected, 1 warning in 0.79s
+--- exit code: 0 ---
+
+### [3] $ python3 -m pytest -m gpu -q
+..................                                                       [100%]
+18 passed, 37 deselected in 1.55s
+--- exit code: 0 ---
+
+### [4] $ python3 -m pytest -m gpu --collect-only -q
+tests/test_matmul.py::test_edge_cases
+tests/test_phase5_scale.py::test_q8_0_kernels
+tests/test_phase5_scale.py::test_q4_k_superblock_kernels_and_70b_scale
+tests/test_phase5_scale.py::test_q4km_chunked_batch_and_kv_offload
+tests/test_phase5_scale.py::test_v060_prefill_tile_and_fused_residual_kernels
+tests/test_phase5_scale.py::test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards
+
+18/55 tests collected (37 deselected) in 0.18s
+--- exit code: 0 ---
+
+### [5] $ python3 -m pytest -m not gpu -q --strict-markers --strict-config
+.....................................                                    [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+37 passed, 18 deselected, 1 warning in 0.75s
+--- exit code: 0 ---
+
+### [6] $ python3 tests/test_cpu_only.py
+ok
+test_v8_b1_pyproject_and_sdist_contents (__main__.TestCPUOnlySuite.test_v8_b1_pyproject_and_sdist_contents)
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.407s
+
+OK
+--- exit code: 0 ---
+
+### [7] $ python3 -O tests/test_cpu_only.py
+ok
+test_v8_b1_pyproject_and_sdist_contents (__main__.TestCPUOnlySuite.test_v8_b1_pyproject_and_sdist_contents)
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.417s
+
+OK
+--- exit code: 0 ---
+
+### [8] $ python3 -W error::pytest.PytestReturnNotNoneWarning -m pytest -m 'not gpu' -q
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+37 passed, 18 deselected, 1 warning in 0.76s
+--- exit code: 0 ---
+
+### [9] $ grep -R -n 'def test_.*-> bool' tests/
+(no matches — PASS)
+--- exit code: 0 ---
+
+### [10] $ pytest -m 'not gpu' --collect-only -q   (lane split)
+tests/test_harness_contract.py::test_pytest_config_declares_required_markers
+
+37/55 tests collected (18 deselected) in 0.18s
+--- exit code: 0 ---
+
+### [11] $ pytest -m gpu --collect-only -q   (lane split)
+tests/test_phase5_scale.py::test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards
+
+18/55 tests collected (37 deselected) in 0.18s
+--- exit code: 0 ---
+
+=== SUMMARY ===
+  all commands exit 0.

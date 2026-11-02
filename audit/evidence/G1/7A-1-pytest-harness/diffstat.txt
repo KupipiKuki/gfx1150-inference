@@ -1,0 +1,55 @@
+# G1 / 7A-1 diffstat
+# parent:   2659e6c33fec50a6768cd35bb264d6f7453e6c0e  (base of the branch)
+# candidate: f0ce20e0021a313d3cb23a33f9b97b2638f56176
+
+=== git diff --stat parent..candidate ===
+ pyproject.toml                 |  23 ++++
+ tests/conftest.py              |  78 +++++++++++++
+ tests/test_cpu_only.py         |  10 ++
+ tests/test_full_model.py       |  77 ++++++++++---
+ tests/test_gguf_and_q4.py      |  80 ++++++++++----
+ tests/test_harness_contract.py | 242 +++++++++++++++++++++++++++++++++++++++++
+ tests/test_layer.py            | 116 +++++++++++++-------
+ tests/test_matmul.py           | 109 +++++++++++--------
+ tests/test_phase5_scale.py     |  69 ++++++++++--
+ 9 files changed, 668 insertions(+), 136 deletions(-)
+
+=== allowed file set (7A-1) ===
+  tests/**, pyproject.toml (pytest config only), scripts/qa/** (unused),
+  audit/evidence/G1/7A-1/**, docs.
+
+=== source / build / CI diff (must be EMPTY) ===
+(end — empty above means no src/build/CI/doc changes)
+
+=== pyproject.toml diff (pytest config only) ===
+diff --git a/pyproject.toml b/pyproject.toml
+index 28268ef..9d48dae 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -39,3 +39,26 @@ py-modules = [
+     "tokenizer",
+     "inference",
+ ]
++
++# Phase 7A-1 (audit AUD-2 / QAQC-2): pytest harness configuration.
++[tool.pytest.ini_options]
++minversion = "7.0"
++testpaths = ["tests"]
++addopts = [
++    "-ra",
++    "--strict-markers",
++    "--strict-config",
++    # A test function that returns a value instead of asserting is a silent
++    # pass: pytest ignores the return value and only emits a warning. Make it
++    # an error so such a test can never pass unnoticed.
++    "-W", "error::pytest.PytestReturnNotNoneWarning",
++]
++markers = [
++    "gpu: requires the compiled HIP extension 'matmul_module' and a gfx1150 GPU; skipped when unavailable",
++    "cpu: runs on any CPU-only host; part of the 'not gpu' lane",
++    "slow: long-running test; deselect with -m 'not slow'",
++]
++filterwarnings = [
++    "error::pytest.PytestReturnNotNoneWarning",
++]
++
