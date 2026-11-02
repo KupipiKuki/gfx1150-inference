@@ -150,7 +150,8 @@ decision is the auditor's and is recorded for G1 rather than taken here.
 | the documented configure command on the hosted runner | green in both runs |
 | the build, the sdist and the full sdist install on the hosted runner | green in the GREEN run |
 | no build-fix, CMake, README, tests, source, packaging, ledger or 7A-6 change | confirmed by the diffstat |
-| `scripts/qa/**`, `audit/CLAIMS_LEDGER.md`, `audit/claims_baseline.txt`, the 7A-6 evidence | untouched |
+| `audit/CLAIMS_LEDGER.md`, `audit/claims_baseline.txt` | present on this branch (it forks from `4bcffeb`) and untouched |
+| `scripts/qa/**`, the 7A-6 evidence | not present on this branch — 7A-8 forks from `4bcffeb`, in parallel with 7A-6 — and not added |
 
 ## Files touched
 
@@ -160,8 +161,11 @@ decision is the auditor's and is recorded for G1 rather than taken here.
 | `audit/evidence/G1/7A-8-followup/**` | this bundle: `ci-run.log`, `qf1-local-repro.log`, `capture-run.py`, `notes.md` |
 
 Nothing else. `CMakeLists.txt`, `README.md`, `tests/**`, `src/`, `setup.py`,
-`pyproject.toml`, `MANIFEST.in`, `scripts/qa/**`, the claims ledger and the 7A-6
-evidence are all untouched, as the brief requires.
+`pyproject.toml`, `MANIFEST.in`, the claims ledger and the baseline are all
+untouched, as the brief requires. (`scripts/qa/**` and the 7A-6 evidence are not
+on this branch at all — 7A-8 forks from `4bcffeb`, in parallel with 7A-6 — so
+they are untouched by construction; that is also why the claims checker could not
+be run as an extra check on this branch.)
 
 ## Limitations and follow-ups
 
