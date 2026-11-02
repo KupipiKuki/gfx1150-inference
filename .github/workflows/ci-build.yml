@@ -27,9 +27,11 @@ jobs:
         # pybind11 is a build requirement (see pyproject.toml). It must be
         # installed for the interpreter the build uses: the configure step
         # discovers it there, so no pybind11_DIR is needed.
+        # pytest is needed by the configure smoke test below;
+        # actions/setup-python does not ship it.
         run: |
           python -m pip install --upgrade pip \
-            "numpy>=1.24.0" "setuptools>=64" wheel "pybind11>=2.12"
+            "numpy>=1.24.0" "setuptools>=64" wheel "pybind11>=2.12" pytest
 
       - name: Register the AMD ROCm apt repository
         # The steps AMD documents for the stable repository
@@ -59,8 +61,24 @@ jobs:
         # The command the README documents. pybind11_DIR is removed from the
         # environment on purpose: the configure must discover pybind11 itself.
         # The checkout is fresh, so there is no build cache either.
+        # The output is kept so that the run records what was discovered.
         run: |
-          env -u pybind11_DIR cmake -B build -DCMAKE_BUILD_TYPE=Release
+          set -o pipefail
+          env -u pybind11_DIR cmake -B build -DCMAKE_BUILD_TYPE=Release 2>&1 | tee configure.log
+
+      - name: Record the configure result in the job summary
+        # Makes the run self-evidencing: the line below is the proof that
+        # pybind11 was discovered from the interpreter, not from an ambient
+        # pybind11_DIR.
+        if: always()
+        run: |
+          {
+            echo "### Configure (documented command, no ambient pybind11_DIR)"
+            echo
+            echo '```'
+            grep -E "pybind11 CMake package|Configuring done|Could not find" configure.log || echo "(no configure log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build the HIP extension
         run: cmake --build build -j
