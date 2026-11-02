@@ -5,7 +5,8 @@
 **Tree tested:** candidate `994d62922af7ed9f5b9546d787d8c05606cdb8f1` on `wp/7A-6-claims-checker`
 (tip `f0a73a1` = the candidate-SHA follow-up; parent `4bcffeb`). Live runs on the branch;
 adversarial probes on throwaway tree copies via the checker's own `--root` isolation.
-**Probes:** `final-probe-commands.log` (this directory).
+**Probes:** `probe-commands.log` (this directory) — the summary — and
+`probe-commands-full.log` (this directory) — the full transcript.
 **Preliminary report reviewed:** `gemini-qaqc-report.md` (same directory) — see §5.
 
 ---
@@ -125,5 +126,16 @@ is **directionally correct (approve) but factually unreliable in detail** — §
 the corrected record; the auditor should treat my §5 table as the reconciliation. G1
 remains unsigned pending 7A-2..7A-5 (and 7A-7/7A-8 per the brief).
 
-**QAQC sign-off:** 2026-11-02. Probe transcript: `final-probe-commands.log`.
+**QAQC sign-off:** 2026-11-02. Probes: `probe-commands.log` (summary) and
+`probe-commands-full.log` (full transcript), both in this directory.
+
+> **Follow-up correction (7A-6 follow-up, condition C-7A6-2).** The original sign-off named a
+> `final-probe-commands.log`, which did not exist; the directory holds `probe-commands.log`,
+> a summary rather than a transcript, whose `--strict` exit code and A10 removal count were
+> wrong. The summary has been corrected (B2 exit 1; A10: 1 line removed, 5 stale-scope +
+> 1 unresolved-literal = 6 findings) and is now explicitly labelled a summary; the full
+> transcript is `probe-commands-full.log`, reproduced at the follow-up commit because
+> QAQC's scratch tree was ephemeral. The corrections were applied by the follow-up coder,
+> not by QAQC, and are itemised at the end of `probe-commands.log`. No probe *result*
+> changed: every corrected number is the one the auditor already confirmed.
 Scratch retained at `/tmp/opencode/qaqc-76/`.

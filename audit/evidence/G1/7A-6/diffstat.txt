@@ -1,6 +1,13 @@
 # G1 / 7A-6 diffstat
 # Captured: 2026-11-02T03:28:01Z
 # parent: 4bcffeb35862c3d0b12fa54aac2f2d27bdc9ec60
+# candidate: 994d62922af7ed9f5b9546d787d8c05606cdb8f1
+#
+# Corrected in the 7A-6 follow-up (condition C-7A6-3): the summary line below
+# read "2661 insertions(+), 23 deletions(-)", captured before the final
+# evidence-file edits. The true 4bcffeb..994d629 figure is 2691 / 24, as the
+# auditor confirmed. Only this summary line changed; the per-file diffstat
+# below is the capture's own and was already correct.
 
 === files changed (name-status) ===
 M	.github/workflows/ci-cpu.yml
@@ -39,7 +46,7 @@ A	scripts/qa/check_claims.py
  audit/evidence/G1/7A-6/parent-sha.txt       |   1 +
  scripts/qa/canary_claims.py                 | 350 +++++++++++
  scripts/qa/check_claims.py                  | 903 ++++++++++++++++++++++++++++
- 17 files changed, 2661 insertions(+), 23 deletions(-)
+ 17 files changed, 2691 insertions(+), 24 deletions(-)
 
 === scope check: no src/, tests/, pyproject.toml, CMakeLists.txt, packaging change ===
   none — confirmed

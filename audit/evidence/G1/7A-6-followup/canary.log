@@ -1,0 +1,21 @@
+# G1 / 7A-6 follow-up — claims-checker canary suite
+# Captured: 2026-11-02T22:25:10Z
+#
+# 12 canaries: the 10 from 7A-6 plus strict_clean (C-7A6-1) and
+# id3_claim_removed (C-7A6-4). Each mutates a throw-away copy of the tree.
+# Run by .github/workflows/ci-cpu.yml ('Check the claims checker canaries').
+
+PASS not_yet_claim: the mutation was detected
+PASS unqualified_q4_k_m: the mutation was detected
+PASS unqualified_qwen2: the mutation was detected
+PASS missing_evidence: the mutation was detected
+PASS generic_literal: the mutation was detected
+PASS strict_detects_baseline: the mutation was detected
+PASS baseline_is_exact: the mutation was detected
+PASS expired_baseline_entry: the mutation was detected
+PASS wrong_lane: the mutation was detected
+PASS nested_bullet: the mutation was detected
+PASS strict_clean: the mutation was detected
+PASS id3_claim_removed: the mutation was detected
+
+RESULT: PASS - all 12 canaries behaved as required

@@ -48,6 +48,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -87,6 +88,53 @@ class Tree:
             raise CanaryError(f"cannot copy the tree: {exc}") from exc
         return cls(root)
 
+    @classmethod
+    def create_clean(cls, parent: str) -> "Tree":
+        """Build a minimal tree with one VERIFIED claim and an empty baseline.
+
+        This is the tree the ``strict_clean`` canary runs against: it has
+        nothing to complain about, so ``--strict`` must exit 0 and say PASS.
+        """
+        root = tempfile.mkdtemp(prefix="claims-canary-clean-", dir=parent)
+        tree = cls(root)
+        tree.write(
+            "README.md",
+            "# Demo\n\n"
+            "The CPU parser suite passes.\n"
+            "\n"
+            "```bash\n"
+            "python3 tests/test_cpu_only.py\n"
+            "```\n",
+        )
+        tree.write(
+            "IMPLEMENTATION_PLAN.md",
+            "# Demo plan\n\n"
+            "| Phase | Status |\n"
+            "|---|---|\n"
+            "| 1 | CPU parser suite | Complete |\n",
+        )
+        tree.write(
+            os.path.join("audit", "CLAIMS_LEDGER.md"),
+            "# Claims Ledger\n"
+            "\n"
+            "| ID | Claim | Status | Public match (literal) | Qualified in place? "
+            "| Evidence | Scope / limit |\n"
+            "|---|---|---|---|---|---|---|\n"
+            "| 1 | CPU parser suite passes | **VERIFIED** | `tests/test_cpu_only.py` "
+            "| n/a | `audit/evidence/demo/cpu-suite.log` | demo platform |\n",
+        )
+        tree.write(
+            os.path.join("audit", "claims_baseline.txt"),
+            "# Known claim violations (ratchet baseline)\n"
+            "# Format: <claim-id> <path> <literal>\n"
+            "# Empty: nothing is ratcheted.\n",
+        )
+        tree.write(
+            os.path.join("audit", "evidence", "demo", "cpu-suite.log"),
+            "demo evidence\n",
+        )
+        return tree
+
     def destroy(self) -> None:
         shutil.rmtree(self.root, ignore_errors=True)
 
@@ -98,7 +146,9 @@ class Tree:
             return handle.read()
 
     def write(self, relative: str, content: str) -> None:
-        with open(self.path(relative), "w", encoding="utf-8") as handle:
+        target = self.path(relative)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "w", encoding="utf-8") as handle:
             handle.write(content)
 
     def append(self, relative: str, content: str) -> None:
@@ -272,7 +322,6 @@ def canary_wrong_lane(tree: Tree) -> tuple[bool, str]:
     detected = code != 0 and "qwen2" in output
     return detected, output
 
-
 def canary_nested(tree: Tree) -> tuple[bool, str]:
     """A qualifier in the parent bullet must not cover a nested assertion.
 
@@ -294,17 +343,84 @@ def canary_nested(tree: Tree) -> tuple[bool, str]:
     return detected, output
 
 
-CANARIES: tuple[tuple[str, Callable[[Tree], tuple[bool, str]]], ...] = (
-    ("not_yet_claim", canary_not_yet_claim),
-    ("unqualified_q4_k_m", canary_unqualified_q4_k_m),
-    ("unqualified_qwen2", canary_unqualified_qwen2),
-    ("missing_evidence", canary_missing_evidence),
-    ("generic_literal", canary_generic_literal),
-    ("strict_detects_baseline", canary_strict_detects_baseline),
-    ("baseline_is_exact", canary_baseline_is_exact),
-    ("expired_baseline_entry", canary_expired_baseline_entry),
-    ("wrong_lane", canary_wrong_lane),
-    ("nested_bullet", canary_nested),
+def canary_strict_clean(tree: Tree) -> tuple[bool, str]:
+    """``--strict`` must say PASS on a clean ledger.
+
+    The strict mode is the G6 release gate: its human-readable output is a
+    release artifact, so it must report the run's actual outcome. On a tree
+    with nothing to complain about, ``--strict`` must exit 0 and say PASS.
+    """
+    code, output = tree.run_checker("--strict")
+    if code != 0:
+        return False, f"--strict exited {code} on a clean tree:\n{output}"
+    if "RESULT: PASS" not in output:
+        return False, f"--strict did not report RESULT: PASS:\n{output}"
+    if "RESULT: FAIL" in output:
+        return False, f"--strict reported RESULT: FAIL on a clean tree:\n{output}"
+    json_code, json_output = tree.run_checker("--strict", "--json")
+    if json_code != 0:
+        return False, f"--strict --json exited {json_code}:\n{json_output}"
+    try:
+        payload = json.loads(json_output)
+    except json.JSONDecodeError as exc:
+        return False, f"--strict --json did not emit JSON: {exc}\n{json_output}"
+    if not payload.get("ok"):
+        return False, f"--strict --json reported ok=false:\n{json_output}"
+    return True, "--strict exits 0, reports RESULT: PASS, and JSON ok=true"
+
+
+def canary_id3_claim_removed(tree: Tree) -> tuple[bool, str]:
+    """Removing the ID 3 claim from the README must fail the check.
+
+    ID 3 ("GPU kernel/layer/E2E suites pass") is a VERIFIED row: its literal
+    *locates* the claim in the public documents and its evidence path is the
+    proof. The literal must therefore vanish together with the claim -- if
+    deleting the claim's lines left the literal resolving somewhere else, the
+    literal would not be enforcing the claim at all.
+
+    The lines removed are exactly the ones the claim's literal selects, read
+    from the ledger, so the test tracks the ledger rather than hard-coding a
+    line number.
+    """
+    ledger = tree.read(os.path.join("audit", "CLAIMS_LEDGER.md"))
+    row = next(
+        (line for line in ledger.splitlines() if line.startswith("| 3 |")),
+        None,
+    )
+    if row is None:
+        raise CanaryError("claim 3 row not found in the ledger")
+    literals = re.findall(r"`([^`]+)`", row.split("|")[4])
+    if not literals:
+        raise CanaryError("claim 3 has no public-match literal")
+    literal = literals[0]
+
+    readme = tree.read("README.md")
+    lines = readme.splitlines(keepends=True)
+    kept = [line for line in lines if literal not in line]
+    removed = len(lines) - len(kept)
+    if removed == 0:
+        raise CanaryError(
+            f"the ID 3 claim lines ({literal!r}) were not found in README.md"
+        )
+    tree.write("README.md", "".join(kept))
+    code, output = tree.run_checker()
+    detected = code != 0 and "unresolved-literal" in output
+    return detected, output
+
+
+CANARIES: tuple[tuple[str, Callable[[Tree], tuple[bool, str]], str], ...] = (
+    ("not_yet_claim", canary_not_yet_claim, "copy"),
+    ("unqualified_q4_k_m", canary_unqualified_q4_k_m, "copy"),
+    ("unqualified_qwen2", canary_unqualified_qwen2, "copy"),
+    ("missing_evidence", canary_missing_evidence, "copy"),
+    ("generic_literal", canary_generic_literal, "copy"),
+    ("strict_detects_baseline", canary_strict_detects_baseline, "copy"),
+    ("baseline_is_exact", canary_baseline_is_exact, "copy"),
+    ("expired_baseline_entry", canary_expired_baseline_entry, "copy"),
+    ("wrong_lane", canary_wrong_lane, "copy"),
+    ("nested_bullet", canary_nested, "copy"),
+    ("strict_clean", canary_strict_clean, "clean"),
+    ("id3_claim_removed", canary_id3_claim_removed, "copy"),
 )
 
 
@@ -318,8 +434,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     failures = 0
-    for name, canary in CANARIES:
-        tree = Tree.create(tempfile.gettempdir())
+    for name, canary, tree_kind in CANARIES:
+        factory = Tree.create_clean if tree_kind == "clean" else Tree.create
+        tree = factory(tempfile.gettempdir())
         try:
             detected, output = canary(tree)
         except CanaryError as exc:

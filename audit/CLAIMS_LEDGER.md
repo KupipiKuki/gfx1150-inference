@@ -10,6 +10,13 @@ Every public claim about capability, correctness, or performance must appear her
 - `UNVERIFIED` claims must not appear in README/marketing; `NOT YET` claims must be inline-qualified where mentioned; `PARTIAL` claims must state the limit inline.
 - Update this file in the same PR as the claim change.
 - Enforcement: `scripts/qa/check_claims.py` (added in 7A-6). Default CI mode is baseline-aware; `--strict` is release-blocking at G6 with an empty `audit/claims_baseline.txt`.
+- A **VERIFIED** row's *evidence path* is the proof; its public-match literal is a **locator** that says where the
+  claim is published. The locator must stop resolving if the claim is removed from the public documents
+  (`unresolved-literal` finding). A claim published only as a command block has a command-shaped locator: it is
+  acceptable only if it selects exactly that claim's lines and appears nowhere else in the public documents
+  (ID 3's `PYTHONPATH=build` selects README L85–L89 and nowhere else; the `id3_claim_removed` canary deletes
+  those lines and asserts the failure). Generic literals (`GPU`, `pip install`, `llama-family`,
+  `test_cpu_only.py`) are rejected outright and must never be used.
 - The "Qualified in place?" cell also carries a **scope annotation**: the flag, then a
   parenthesised inventory of every place the claim's literal occurs in `README.md` /
   `IMPLEMENTATION_PLAN.md`, then prose. Scope entries are `PATH:LINE`; a bare line
@@ -25,16 +32,16 @@ Every public claim about capability, correctness, or performance must appear her
 |---|---|---|---|---|---|---|
 | 1 | Builds and installs from the sdist | **VERIFIED** | `sdist` | n/a | `audit/evidence/G0/7.0-baseline/sdist-install.log` | gfx1150 host, ROCm 10.1 (HIP 7.16.26385), Python 3.14.10; **full** clean-venv install with real HIP build, not only `GFX1150_SKIP_CMAKE=1` |
 | 2 | CPU-only suite passes (12 tests) | **VERIFIED** | `Self-contained CPU-only test suite` | n/a | `audit/evidence/G0/7.0-baseline/cpu-suite.log` | 12/12 normal, 12/12 under `-O`; also 12/12 from the installed sdist in a clean venv |
-| 3 | GPU kernel/layer/E2E suites pass | **VERIFIED** | `PYTHONPATH=build` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log` | gfx1150, ROCm 10.1; all five suites exit 0 (synthetic models) |
+| 3 | GPU kernel/layer/E2E suites pass | **VERIFIED** | `PYTHONPATH=build` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log` | gfx1150, ROCm 10.1; all five suites exit 0 (synthetic models). The literal is a **locator** for the five GPU-suite invocation lines (README L85–L89), where the claim is published; the evidence log is the proof (see the Rules) |
 | 4 | `Q4_0`/`Q4_K`/`Q8_0` kernels match reference | **VERIFIED** | `Q4_0`, `Q4_K`, `Q8_0` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log`, `tests/test_gguf_and_q4.py`, `tests/test_phase5_scale.py` | synthetic data; tolerance as tested (max err ≤ `6.1e-5`) |
 | 5 | `Q6_K` tensor support (CPU + kernels) | **VERIFIED** | `Q6_K` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log`, `tests/test_phase5_scale.py` | synthetic; real-GGUF Q6_K golden pending (7F-2). CPU path is `dequantize_q6_k_cpu` in `src/gguf_parser.py` |
-| 6 | Real `Q4_K_M` GGUF end-to-end | **PARTIAL** | `Q4_K_M` | **no** (unqualified: README.md:10; context: IMPLEMENTATION_PLAN.md:25,165,170,179,265) — README L10 lists `Q4_K_M` in the goal sentence unqualified; L110 scopes the verified release to `Q4_0`/`Q4_K`/`Q8_0`. The PLAN mentions are k-quant plan/status text (format table, phase goal, task rows, phase summary), qualified by this row's scope limit, not end-to-end support claims. Baseline entry required until 7C-4. | `audit/evidence/G0/7.0-baseline/gpu-suite.log` (recipe tensor types wired) | all recipe tensor types wired; **no real GGUF fixture or logit golden yet**. See baseline entry `6 README.md Q4_K_M` |
+| 6 | Real `Q4_K_M` GGUF end-to-end | **PARTIAL** | `Q4_K_M` | **no** (unqualified: README.md:10; context: IMPLEMENTATION_PLAN.md:25,165,170,179,265) — README L10 lists `Q4_K_M` in the goal sentence unqualified; L111 scopes the verified release to `Q4_0`/`Q4_K`/`Q8_0`. The PLAN mentions are k-quant plan/status text (format table, phase goal, task rows, phase summary), qualified by this row's scope limit, not end-to-end support claims. Baseline entry required until 7C-4. | `audit/evidence/G0/7.0-baseline/gpu-suite.log` (recipe tensor types wired) | all recipe tensor types wired; **no real GGUF fixture or logit golden yet**. See baseline entry `6 README.md Q4_K_M` |
 | 7 | GPT-2 byte-level `Ġ` plain-text tokenization | **VERIFIED** | `GPT-2` | n/a | `tests/test_cpu_only.py` V-6, `audit/VERIFICATION_2026-11-01.md` §4 | plain text, multibyte, double spaces only; **not** special tokens (see ID 8) |
-| 8 | Chat special tokens (e.g. `im_start`) | **NOT YET** | `chat special-token encoding` | **yes** (qualified: README.md:110) — README L110: "chat special-token encoding and `add_bos_token` are not implemented" | 7B-1 | not implemented; encode emits byte tokens. README qualifies it inline; the literal `<im_start>` itself does not appear in README/PLAN |
-| 9 | `tokenizer.ggml.add_bos_token` respected | **NOT YET** | `add_bos_token` | **yes** (qualified: README.md:110; context: IMPLEMENTATION_PLAN.md:241) — README L110: "`add_bos_token` are not implemented"; PLAN L241 lists it as planned 7B work (a task description, not a capability claim) | 7B-2 | `generate()` currently hardcodes `add_bos=True`. The claim is qualified in place; the incomplete caveat is a 7B-2 wording task |
-| 10 | Qwen2 support | **NOT YET** | `qwen2` | **no** (unqualified: README.md:109; qualified: README.md:110) — README L109 says "Supports … GPT-2 / Llama-3 / Qwen2 byte-level … BPE vocabularies" in one bullet; the L110 qualification is in the next bullet, which violates the same-bullet rule. L110's own mention is qualified in place ("not yet fully supported"). Baseline entry required until 7B/7C. | 7B/7C | metadata only; chat/BOS correctness open. See baseline entry `10 README.md qwen2` |
-| 11 | Phi-3 support | **NOT YET** | `phi3` | **yes** (qualified: README.md:109, README.md:110) — same README bullet as ID 10 | 7C-2 | metadata only; fused `attn_qkv` missing |
-| 12 | Gemma support | **NOT YET** | `gemma` | **yes** (qualified: README.md:109, README.md:110) — same README bullet as ID 10 | 7C-3 | metadata only; embedding scale, soft-cap, `key_length` missing |
+| 8 | Chat special tokens (e.g. `im_start`) | **NOT YET** | `chat special-token encoding` | **yes** (qualified: README.md:111) — README L111: "chat special-token encoding and `add_bos_token` are not implemented" | 7B-1 | not implemented; encode emits byte tokens. README qualifies it inline; the literal `<im_start>` itself does not appear in README/PLAN |
+| 9 | `tokenizer.ggml.add_bos_token` respected | **NOT YET** | `add_bos_token` | **yes** (qualified: README.md:111; context: IMPLEMENTATION_PLAN.md:241) — README L111: "`add_bos_token` are not implemented"; PLAN L241 lists it as planned 7B work (a task description, not a capability claim) | 7B-2 | `generate()` currently hardcodes `add_bos=True`. The claim is qualified in place; the incomplete caveat is a 7B-2 wording task |
+| 10 | Qwen2 support | **NOT YET** | `qwen2` | **no** (unqualified: README.md:110; qualified: README.md:111) — README L110 says "Supports … GPT-2 / Llama-3 / Qwen2 byte-level … BPE vocabularies" in one bullet; the L111 qualification is in the next bullet, which violates the same-bullet rule. L111's own mention is qualified in place ("not yet fully supported"). Baseline entry required until 7B/7C. | 7B/7C | metadata only; chat/BOS correctness open. See baseline entry `10 README.md qwen2` |
+| 11 | Phi-3 support | **NOT YET** | `phi3` | **yes** (qualified: README.md:110, README.md:111) — same README bullet as ID 10 | 7C-2 | metadata only; fused `attn_qkv` missing |
+| 12 | Gemma support | **NOT YET** | `gemma` | **yes** (qualified: README.md:110, README.md:111) — same README bullet as ID 10 | 7C-3 | metadata only; embedding scale, soft-cap, `key_length` missing |
 | 13 | 983 tok/s / 4.4× E2E speedup | **UNVERIFIED** | `983` | **partial** (unqualified: IMPLEMENTATION_PLAN.md:209; qualified: IMPLEMENTATION_PLAN.md:266) — PLAN L266 qualifies ("983.4 tok/s synthetic E2E, owner-verified"); **PLAN L209 is unqualified** | 7F-3 | synthetic 2-layer; G0 measured `849.3 tok/s` (decode `866.5`) — does not reproduce 983. Must be re-recorded or removed by G6 |
 | 14 | Bounded RAM for 70B models | **UNVERIFIED** | `bounded memory` | **no** (unqualified: README.md:12, IMPLEMENTATION_PLAN.md:17) — README L12 and PLAN L17 are unqualified | 7D-1/7D-2 | `MADV_DONTNEED` does not bound page cache; residency policy pending. Baseline entries held for both files |
 | 15 | One synchronization per token | **NOT YET** | *(no public literal — planning/audit text only)* | n/a — not asserted publicly | 7E | current path relies on NULL-stream waits. Literal lives only in the handoff/audit, not in README/PLAN |
@@ -43,7 +50,7 @@ Every public claim about capability, correctness, or performance must appear her
 | 18 | 7B–70B models on gfx1150 without OOM | **PARTIAL** | `7B–70B` | **no** (unqualified: README.md:10, IMPLEMENTATION_PLAN.md:12) — README L10 / PLAN L12 are unqualified | 7D-2, 7F-2 | goal statement; 70B path exists but residency is not budgeted (ID 14) and no real 70B GGUF was ever run |
 | 19 | 8-hour unattended runtimes | **UNVERIFIED** | `8-hour runtimes` | **no** (unqualified: README.md:12, IMPLEMENTATION_PLAN.md:15) — README L12 / PLAN L15 are unqualified | 7F-3, 7F-4 | no endurance/long-run test exists; needs a timed soak + telemetry (7F-4) |
 | 20 | Active RAM caps for 7B–70B (≤1.5–4.5 GB) | **UNVERIFIED** | `Active RAM Cap` | **no** (unqualified: IMPLEMENTATION_PLAN.md:221) — PLAN performance-targets table is unqualified | 7D-2, 7F-3 | target table, not a measurement; the `MADV_DONTNEED` mechanism does not enforce these caps |
-| 21 | `MADV_DONTNEED` reclaims page-cache for 70B | **PARTIAL** | `reclaim clean file-backed page-cache` | **partial** (qualified: README.md:103) — README describes the intent ("to advise the Linux kernel to reclaim clean file-backed page-cache pages"), but does not state that it does not bound RSS | 7D-1 | advice is issued, but `MADV_DONTNEED` on a read-only file mapping is best-effort and does not bound total RAM; mechanism must become `posix_fadvise(POSIX_FADV_DONTNEED)` / `MADV_PAGEOUT` |
+| 21 | `MADV_DONTNEED` reclaims page-cache for 70B | **PARTIAL** | `reclaim clean file-backed page-cache` | **partial** (qualified: README.md:104) — README describes the intent ("to advise the Linux kernel to reclaim clean file-backed page-cache pages"), but does not state that it does not bound RSS | 7D-1 | advice is issued, but `MADV_DONTNEED` on a read-only file mapping is best-effort and does not bound total RAM; mechanism must become `posix_fadvise(POSIX_FADV_DONTNEED)` / `MADV_PAGEOUT` |
 | 22 | Single active engine per process (thread-guarded) | **VERIFIED** | `permitted per process` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log`, `src/python_bindings/bindings.cpp` (`g_hip_workspace_mutex`), `src/kv_cache.py` (raises if a GPU-resident KV cache is already active) | enforced at runtime; **no automated test asserts the rejection path** — add one in 7A |
 | 23 | KV offload keeps persistent GPU KV pool at 0 bytes | **VERIFIED** | `persistent GPU KV pool usage at` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log` (`test_phase5_scale.py` asserts `device_bytes == 0` for both CPU-offload and mmap modes) | synthetic models; real-GGUF golden pending (7F-2) |
 | 24 | Sequential multi-prompt batching (`generate_batch`) | **VERIFIED** | `generate_batch` | n/a | `audit/evidence/G0/7.0-baseline/gpu-suite.log` (`test_phase5_scale.py` exercises `generate_batch`) | synthetic models; sequential only, no concurrent batching |
@@ -108,8 +115,8 @@ not cover. The auditor reclassified them to `Qualified in place? = no` and seede
 
 | Claim ID | Path | Literal | Why it is tolerated until G6 | Target |
 |---|---|---|---|---|
-| 6 | `README.md` | `Q4_K_M` | README L10 lists `Q4_K_M` in the project-goal sentence without a qualifier, while L110 scopes the verified release to `Q4_0`/`Q4_K`/`Q8_0`. 7C-4 publishes the compatibility matrix that settles it. | G6 |
-| 10 | `README.md` | `qwen2` | README L109 says "Supports both SentencePiece … and GPT-2 / Llama-3 / Qwen2 byte-level … BPE vocabularies", which reads as a support claim. L110 qualifies it in the next bullet, but the handoff requires the qualifier to be in the *same* bullet. 7B/7C close the gap. | G6 |
+| 6 | `README.md` | `Q4_K_M` | README L10 lists `Q4_K_M` in the project-goal sentence without a qualifier, while L111 scopes the verified release to `Q4_0`/`Q4_K`/`Q8_0`. 7C-4 publishes the compatibility matrix that settles it. | G6 |
+| 10 | `README.md` | `qwen2` | README L110 says "Supports both SentencePiece … and GPT-2 / Llama-3 / Qwen2 byte-level … BPE vocabularies", which reads as a support claim. L111 qualifies it in the next bullet, but the handoff requires the qualifier to be in the *same* bullet. 7B/7C close the gap. | G6 |
 
 Both are cheap to fix in README wording and should be **removed from the baseline** once
 7B/7C rewrite those bullets — the ratchet only tolerates them until the wording is
@@ -136,7 +143,7 @@ unqualified L209 instance"). Result:
   qualified in README wording by 7B/7C and 7C-4; IDs 13, 14, 18–20 and 26–30 are
   performance/ residency claims that 7D and 7F must re-measure or remove. The
   `phi3`/`gemma` bullet needs no baseline entry because the README qualifies it
-  inline at L109/L110.
+  inline at L110/L111.
 * Every entry still targets `G6`. At G6 the baseline must be **empty** and
   `check_claims.py --strict` must pass.
 
@@ -151,7 +158,16 @@ That is what makes the ratchet tighten instead of merely record.
 
 **Claim-specific literals.** The four generic literals flagged by AUD-3 were replaced
 with phrases the claim actually depends on: ID 1 `pip install` → `sdist`, ID 2
-`test_cpu_only.py` → `Self-contained CPU-only test suite`, ID 3 `GPU` →
-`PYTHONPATH=build`, ID 4 `llama-family` → `Q4_0`, `Q4_K`, `Q8_0`. The checker
-rejects a generic literal outright (`generic-literal` finding), so the old values
-cannot come back.
+`test_cpu_only.py` → `Self-contained CPU-only test suite`, ID 4 `llama-family` →
+`Q4_0`, `Q4_K`, `Q8_0`. The checker rejects a generic literal outright
+(`generic-literal` finding), so the old values cannot come back.
+
+ID 3 is the exception, and it is not a generic literal: the claim ("GPU
+kernel/layer/E2E suites pass") is published *only* as a command block, so no prose
+phrase identifies it. Its locator `PYTHONPATH=build` selects exactly the five
+GPU-suite invocation lines (README L85–L89) and occurs nowhere else in the public
+documents, so the claim and the locator stand or fall together — deleting the
+claim's lines makes the locator stop resolving and the checker fail. The evidence
+path (`audit/evidence/G0/7.0-baseline/gpu-suite.log`) is the proof; the literal only
+locates the claim. This is the ledger's VERIFIED-locator rule, and the
+`id3_claim_removed` canary enforces it.

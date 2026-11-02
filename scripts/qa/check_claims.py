@@ -796,14 +796,17 @@ def _render(report: Report, strict: bool) -> str:
     out.append("")
 
     if strict:
+        failed = _failed(report, strict)
         out.append(
-            f"RESULT: FAIL - {len(report.violations)} unqualified occurrence(s) "
+            f"RESULT: {'FAIL' if failed else 'PASS'} - "
+            f"{len(report.violations)} unqualified occurrence(s) "
             f"(strict mode ignores the baseline)"
         )
     else:
+        failed = _failed(report, strict)
         new_count = len(report.new_violations)
         out.append(
-            f"RESULT: {'FAIL' if new_count or report.findings else 'PASS'} - "
+            f"RESULT: {'FAIL' if failed else 'PASS'} - "
             f"{new_count} new violation(s), "
             f"{len(report.violations) - new_count} baselined, "
             f"{len(report.expired_baseline)} expired baseline entry(ies), "

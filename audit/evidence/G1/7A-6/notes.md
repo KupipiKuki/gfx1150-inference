@@ -178,3 +178,21 @@ None. No public claim was added, removed or re-qualified. The ledger's
 *annotation* changed (scope annotations, and the four literals became
 claim-specific), but every claim's status, wording and evidence pointer is
 unchanged.
+
+## Provenance erratum and follow-up (2026-11-02)
+
+The independent 7A-6 audit raised three evidence-hygiene findings against this
+bundle. They are closed in `PROVENANCE-ERRATUM.md` (this directory), which
+records that the pre-amend commit `f6924ff` and the candidate `994d629` are
+the same work (zero code/ledger/CI delta between them), corrects this bundle's
+`diffstat.txt` summary to the true `4bcffeb..994d629` figure (2691 / 24), and
+explains the repeated `candidate:` line in `env.txt` as a capture artifact
+(`candidate-sha.txt` is authoritative). No captured log was edited.
+
+The audit also raised a release-artifact defect in the checker itself
+(`--strict` printed `RESULT: FAIL` on a clean ledger) and a question about
+ID 3's literal. Both are fixed in the 7A-6 follow-up; see
+`audit/evidence/G1/7A-6-followup/notes.md`. Two statements above are therefore
+superseded by the follow-up: the strict-mode rendering, and the description of
+ID 3's literal as a claim-specific phrase (it is a **locator**; the evidence
+path is the proof).
