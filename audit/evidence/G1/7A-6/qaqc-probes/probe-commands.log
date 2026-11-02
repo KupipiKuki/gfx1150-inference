@@ -1,0 +1,64 @@
+# QAQC 7A-6 probe log — independent verification + adversarial probes
+# Tree: f0a73a18cbfdc661f878d645f0fdae34a4fe1e2c (branch tip; candidate 994d629 + candidate-SHA follow-up f0a73a1)
+# Date: 2026-11-02T04:05:57Z
+
+## B. Verification runs (coder-report claims)
+--- B1 default mode ---
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+exit: 0
+--- B2 strict mode ---
+RESULT: FAIL - 17 unqualified occurrence(s) (strict mode ignores the baseline)
+exit: 0
+--- B3 json mode ---
+exit: 0
+  ok=True claims=30 violations=17 baselined=17 unaccounted=0 expired=0 findings=0 warnings=1
+--- B4 canaries (10/10) ---
+RESULT: PASS - all 10 canaries behaved as required
+exit: 0
+--- B5 pytest lanes ---
+37 passed, 18 deselected, 1 warning in 0.80s
+18 passed, 37 deselected in 1.65s
+55 passed, 1 warning in 2.13s
+--- B6 cpu suite unittest ---
+OK
+OK
+--- B7 ci-cpu.yml YAML ---
+valid
+--- B8 baseline byte-identical to parent ---
+  baseline diff vs 4bcffeb: 0 lines (expect 0)
+--- B9 true diffstat ---
+   17 files changed, 2691 insertions(+), 24 deletions(-)
+
+## A. Adversarial probes
+--- A1 live NOT-YET canary (handoff §7): inject -> fail -> restore -> green ---
+  exit: 1 (expect 1)
+  NEW VIOLATION lines: 1
+  after restore exit: 0
+--- A2 line-precision attack (2nd unqualified qwen2 in baselined path) ---
+  see earlier run: exit 1, README.md:114 qwen2 NEW VIOLATION (not inventoried)
+--- A3 baseline is load-bearing (delete entry 10) ---
+  see earlier run: exit 1, README.md:109 qwen2 NEW VIOLATION; 16 baselined
+--- A4/A5 wildcard + malformed baseline -> exit 2 (see earlier runs) ---
+--- A6 invalid status -> invalid-status finding -> exit 1 (see earlier run) ---
+--- A7 duplicate claim ID -> exit 2 (see earlier run) ---
+--- A8 escaped-pipe table cell parses to 7 columns (see earlier run) ---
+--- A9 drift: line inserted at README top -> 13 drift warnings, exit 0 (see earlier run) ---
+--- A10 (fixed) qualifier-bullet deletion in a copy ---
+  lines removed: 0
+  exit: 1 (expect 1)
+  stale-scope findings: 5
+--- A11 claims-check.log vs live: identical after its 5-line header ---
+
+## C. Canary mutation-test (coder claim: 8/10 fail when the checker is neutered)
+  canaries failing under neutered checker: 8
+  restored exit: 0
+
+## D. Evidence provenance (f6924ff <-> 994d629)
+  - logs say: candidate: f6924ffab00f514fa449bac0bd0967c145698b92
+  - candidate-sha.txt says: 994d62922af7ed9f5b9546d787d8c05606cdb8f1
+  - f6924ff is a pre-amend commit, unreachable from the branch (git branch --contains: none)
+  - substantive+evidence delta f6924ff..994d629:  9 files changed, 11 insertions(+), 10 deletions(-)
+  - CODE/LEDGER/CI delta (expect 0): 0
+  - reflog: f0a73a1 commit: G1/7A-6: record the candidate SHA in the evidence bundle 994d629 commit (amend): G1/7A-6: add the claims checker, its canaries and the ledger scope annotations f6924ff commit: G1/7A-6: add the claims checker, its canaries and the ledger scope annotations 
+
+# Finished: 2026-11-02T04:06:08Z
