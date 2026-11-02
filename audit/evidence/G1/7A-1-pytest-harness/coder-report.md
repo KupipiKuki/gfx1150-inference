@@ -1,10 +1,18 @@
 # Work package: 7A-1 — Pytest harness
 
-**Audit trace:** AUD-2, QAQC-2, T-1, T-3
+**Audit trace:** AUD-2, QAQC-2, T-1, T-3 (plus AUD-7A1-1/2/3 and QF-1/QF-2/QF-3,
+closed by the follow-up on `wp/7A-1-followup`)
 **Parent SHA:** `2659e6c33fec50a6768cd35bb264d6f7453e6c0e`
 **Candidate SHA:** see `audit/evidence/G1/7A-1-pytest-harness/candidate-sha.txt` (`f0ce20e`)
 **Branch:** `wp/7A-1-pytest-harness`
 **Allowed file set:** `tests/**`, `pyproject.toml` (pytest config only), `scripts/qa/**` (unused), `audit/evidence/G1/7A-1/**`, docs — **respected** (see §Files changed)
+
+> **Follow-up:** the G1 audit accepted this package "in substance" but found two
+> weaknesses in the new meta-tests (AUD-7A1-1 wrong-lane acceptance, AUD-7A1-2
+> nested-raise acceptance) and three record imprecisions (QF-1/QF-2/QF-3). The
+> code fixes are on `wp/7A-1-followup`
+> (`audit/evidence/G1/7A-1-followup/`); the record corrections (QF-1/QF-2/QF-3) are
+> applied **in this document and in `notes.md`**.
 
 ---
 

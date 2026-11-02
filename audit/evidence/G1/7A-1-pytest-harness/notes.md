@@ -8,6 +8,13 @@
 **Host:** gfx1150 (Radeon 890M), ROCm 10.1 / HIP 7.16.26385, Python 3.14.10, pytest 9.1.1
 **red/green:** N/A (no behavioral change) — see §3
 
+> **Follow-up:** the G1 audit accepted this package "in substance" but found two
+> weaknesses in the meta-tests introduced here (AUD-7A1-1: the lane check
+> accepted any marker; AUD-7A1-2: the assertion check counted a `raise` inside a
+> nested helper) and three record imprecisions (QF-1/QF-2/QF-3). The code fixes
+> are on `wp/7A-1-followup`; the record corrections are applied **in this file
+> and in `coder-report.md`** (see the "Record corrections" section below).
+
 ---
 
 ## 1. Summary
@@ -193,6 +200,29 @@ likewise ignores. The conversion in this package covers all of them.
   captured logs. The correction is recorded here and in the coder report instead.
 - `audit/VERIFICATION_2026-11-01.md` §3.1 and the G0 baseline report remain
   historical records of the pre-7A state.
+
+These are record corrections only; captured logs must not be edited.
+
+### Record corrections (QF-1 / QF-2 / QF-3, applied in the follow-up)
+
+The G1 audit recorded three imprecisions in this document and in
+`coder-report.md`. The corrections are applied here; **no captured log was
+edited**.
+
+- **QF-1 — sdist packaging.** Limitation 1 below originally said both
+  `tests/conftest.py` and `tests/test_harness_contract.py` are excluded from the
+  sdist. **Only `conftest.py` is excluded** — setuptools' default sdist
+  includes `tests/test_*.py`, and `test_harness_contract.py` matches that
+  pattern (verified by building the sdist). The 7A-5 `MANIFEST.in` fix is still
+  required, for `conftest.py` alone (audit condition **C-7A1-5**).
+- **QF-2 — commit count.** §4 said "two commits". The package is a **content
+  commit plus follow-up commits** (implementation, evidence bundle,
+  bundle-structure note, coder report).
+- **QF-3 — "13 tests could not fail".** Precisely: **13 test functions
+  returned `bool`**; **4 of those also contained asserts** (masked rather than
+  absent failure paths); **9 had no failure mechanism at all**; and a **14th**
+  returned a tuple from a nested helper, which pytest likewise ignores. See §1
+  and §5.
 
 ---
 
