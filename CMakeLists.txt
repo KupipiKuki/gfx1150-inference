@@ -10,11 +10,63 @@ set(CMAKE_HIP_COMPILER "${ROCM_ROOT}/bin/amdclang++" CACHE FILEPATH "HIP compile
 # 2. Define target GPU architecture natively (replaces --amdgpu-target)
 set(CMAKE_HIP_ARCHITECTURES "gfx1150")
 
-project(gfx1150-inference LANGUAGES CXX HIP)
-
 # --- PyBind11 Configuration ---
+# pybind11 is a Python package, so on most systems its CMake package lives
+# inside site-packages rather than on CMAKE_PREFIX_PATH. A plain
+# find_package(pybind11) therefore fails on a clean tree (G0 condition C-1),
+# and the documented build command only worked if the caller happened to export
+# pybind11_DIR. Ask the interpreter we are building for where its pybind11
+# CMake package is -- the same thing setup.py does for `pip install`. An
+# explicit -Dpybind11_DIR=... still takes precedence.
+#
+# This runs before project() so that a missing pybind11 is reported as such
+# instead of being masked by a missing HIP toolchain, and so that the
+# discovery can be exercised on a host without ROCm.
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
-find_package(pybind11 REQUIRED)
+
+find_package(pybind11 CONFIG QUIET)
+if(pybind11_FOUND)
+    message(STATUS "pybind11 CMake package: ${pybind11_DIR}")
+else()
+    set(_pybind11_cmake_dir "")
+    # pybind11 >= 2.6 ships a --cmakedir entry point.
+    execute_process(
+        COMMAND "${Python_EXECUTABLE}" -m pybind11 --cmakedir
+        RESULT_VARIABLE _pybind11_probe_status
+        OUTPUT_VARIABLE _pybind11_probe_output
+        ERROR_VARIABLE _pybind11_probe_error
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(_pybind11_probe_status EQUAL 0 AND IS_DIRECTORY "${_pybind11_probe_output}")
+        set(_pybind11_cmake_dir "${_pybind11_probe_output}")
+    else()
+        # Older pybind11 releases expose the same directory via the module.
+        execute_process(
+            COMMAND "${Python_EXECUTABLE}" -c "import pybind11; print(pybind11.get_cmake_dir())"
+            RESULT_VARIABLE _pybind11_probe_status
+            OUTPUT_VARIABLE _pybind11_probe_output
+            ERROR_VARIABLE _pybind11_probe_error
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        if(_pybind11_probe_status EQUAL 0 AND IS_DIRECTORY "${_pybind11_probe_output}")
+            set(_pybind11_cmake_dir "${_pybind11_probe_output}")
+        endif()
+    endif()
+    if(_pybind11_cmake_dir)
+        message(STATUS "pybind11 CMake package: ${_pybind11_cmake_dir}")
+        find_package(pybind11 CONFIG REQUIRED PATHS "${_pybind11_cmake_dir}" NO_DEFAULT_PATH)
+    else()
+        message(FATAL_ERROR
+            "pybind11 was not found for ${Python_EXECUTABLE}.\n"
+            "Install it for that interpreter:\n"
+            "  ${Python_EXECUTABLE} -m pip install 'pybind11>=2.12'\n"
+            "or point CMake at an existing installation:\n"
+            "  cmake -B build -DCMAKE_BUILD_TYPE=Release -Dpybind11_DIR=/path/to/pybind11/share/cmake/pybind11\n"
+            "(probe output was: ${_pybind11_probe_output} ${_pybind11_probe_error})")
+    endif()
+endif()
+
+project(gfx1150-inference LANGUAGES CXX HIP)
 
 # --- Project Structure ---
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)

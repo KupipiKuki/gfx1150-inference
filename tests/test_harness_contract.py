@@ -315,6 +315,9 @@ EXPECTED_LANES = {
     "test_phase5_scale.py": "gpu",
     "test_cpu_only.py": "cpu",
     "test_harness_contract.py": "cpu",
+    # Phase 7A-8 (G0 condition C-1): the clean-clone build entry point. It
+    # needs neither the compiled extension nor a GPU, so it is a CPU-lane test.
+    "test_build_configure.py": "cpu",
 }
 
 

@@ -68,6 +68,7 @@ gfx1150-inference/
     ├── test_layer.py
     ├── test_full_model.py
     ├── test_phase5_scale.py
+    ├── test_build_configure.py
     └── fixtures/
         └── PROVENANCE.md
 ```
@@ -76,7 +77,19 @@ gfx1150-inference/
 
 ## 🛠️ Build, Install & Test
 
+### 0. Prerequisites
+
+| Requirement | Version | Notes |
+|---|---|---|
+| ROCm | 6.x or newer | Provides the HIP compiler (`amdclang++`) and the HIP headers/runtime the extension is built against. The build looks for it in `/opt/rocm`; override with `-DROCM_ROOT=/path/to/rocm`. Install it with AMD's [package-manager instructions](https://rocm.docs.amd.com/en/latest/install/rocm.html). |
+| Python | ≥ 3.10 | Needs the development headers (`Development.Module`): on Debian/Ubuntu, `python3-dev`. |
+| `pybind11` | ≥ 2.12 | A build requirement, declared in `pyproject.toml`. Install it **for the interpreter you build with**: `python3 -m pip install "pybind11>=2.12"`. The configure step locates it there, so **no `pybind11_DIR` has to be set**. |
+| CMake | ≥ 3.21 | `cmake --version`. |
+| C++ compiler | any C++17 | Only the HIP toolchain is used for the kernels; a host C++ compiler is still needed for the build system itself. |
+
 ### 1. CMake Build & Test Suite
+
+From a fresh clone, with the prerequisites above installed:
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
@@ -87,6 +100,12 @@ PYTHONPATH=build:src python3 tests/test_layer.py
 PYTHONPATH=build:src python3 tests/test_full_model.py
 PYTHONPATH=build:src python3 tests/test_phase5_scale.py
 ```
+
+The configure step finds `pybind11` through the Python interpreter it selected, so the
+command above works on a clean tree without exporting `pybind11_DIR` and without a
+pre-existing CMake cache. `tests/test_build_configure.py` is the regression test for
+that, and `.github/workflows/ci-build.yml` runs the same command on every push and pull
+request.
 
 ### 2. Editable Python Package & CLI Installation
 `setup.py` invokes `cmake` automatically during `pip install` to compile the `matmul_module` HIP extension.
