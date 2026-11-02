@@ -136,6 +136,7 @@ The workflow pins `ubuntu-24.04` because the ROCm repository path is per-release
 | `test_cpu_only.py` / `-O` | 12/12 each |
 | sdist build + **full** clean-venv install | exit 0; `inference`, `gguf_parser`, `matmul_module`, `kv_cache`, `tokenizer` import; the `gfx1150-infer` CLI is installed — `sdist-install.log` |
 | the new smoke test against the **parent** | **fails** (the discovery marker is absent) — the regression guard works |
+| `ci-build.yml` on the hosted runner | **green** — run [41545742018](https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41545742018); the job needed `pytest` added to its prerequisites first (7A-8 follow-up, QF-1) |
 | `audit/claims_baseline.txt` | untouched |
 | `scripts/qa/**`, `audit/CLAIMS_LEDGER.md`, the 7A-6 evidence | untouched |
 
