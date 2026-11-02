@@ -28,3 +28,20 @@ jobs:
       - name: Run self-contained CPU test suite (optimized -O mode)
         run: python -O tests/test_cpu_only.py
 
+      - name: Check the claims ledger (default mode, ratchet baseline-aware)
+        # Blocking. The baseline tolerates only the exact unqualified sites the
+        # auditor reviewed; any new unqualified public claim fails the build.
+        run: python scripts/qa/check_claims.py
+
+      - name: Check the claims checker canaries
+        # Proves the checker still detects injected unqualified claims, a
+        # missing evidence file and a generic (non claim-specific) literal.
+        run: python scripts/qa/canary_claims.py
+
+      - name: Check the claims ledger (strict mode, advisory until G6)
+        # Advisory: --strict is the G6 release gate, where the baseline must be
+        # empty and every unqualified site must be gone. Until G6 the seeded
+        # baseline is still populated, so this step is allowed to fail.
+        continue-on-error: true
+        run: python scripts/qa/check_claims.py --strict
+

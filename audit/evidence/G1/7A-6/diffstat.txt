@@ -1,0 +1,45 @@
+# G1 / 7A-6 diffstat
+# Captured: 2026-11-02T03:28:01Z
+# parent: 4bcffeb35862c3d0b12fa54aac2f2d27bdc9ec60
+
+=== files changed (name-status) ===
+M	.github/workflows/ci-cpu.yml
+M	audit/CLAIMS_LEDGER.md
+A	audit/evidence/G1/7A-6/canary-claims.log
+A	audit/evidence/G1/7A-6/canary-nested.log
+A	audit/evidence/G1/7A-6/canary-wronglane.log
+A	audit/evidence/G1/7A-6/candidate-sha.txt
+A	audit/evidence/G1/7A-6/claims-check.log
+A	audit/evidence/G1/7A-6/coder-report.md
+A	audit/evidence/G1/7A-6/cpu-suite.log
+A	audit/evidence/G1/7A-6/diffstat.txt
+A	audit/evidence/G1/7A-6/env.txt
+A	audit/evidence/G1/7A-6/gate-commands.log
+A	audit/evidence/G1/7A-6/gpu-suite.log
+A	audit/evidence/G1/7A-6/notes.md
+A	audit/evidence/G1/7A-6/parent-sha.txt
+A	scripts/qa/canary_claims.py
+A	scripts/qa/check_claims.py
+
+=== diffstat ===
+ .github/workflows/ci-cpu.yml                |  17 +
+ audit/CLAIMS_LEDGER.md                      |  92 ++-
+ audit/evidence/G1/7A-6/canary-claims.log    | 404 +++++++++++++
+ audit/evidence/G1/7A-6/canary-nested.log    |  71 +++
+ audit/evidence/G1/7A-6/canary-wronglane.log |  63 ++
+ audit/evidence/G1/7A-6/candidate-sha.txt    |   1 +
+ audit/evidence/G1/7A-6/claims-check.log     |  50 ++
+ audit/evidence/G1/7A-6/coder-report.md      | 117 ++++
+ audit/evidence/G1/7A-6/cpu-suite.log        |  83 +++
+ audit/evidence/G1/7A-6/diffstat.txt         |  19 +
+ audit/evidence/G1/7A-6/env.txt              |  27 +
+ audit/evidence/G1/7A-6/gate-commands.log    | 270 +++++++++
+ audit/evidence/G1/7A-6/gpu-suite.log        |  36 ++
+ audit/evidence/G1/7A-6/notes.md             | 180 ++++++
+ audit/evidence/G1/7A-6/parent-sha.txt       |   1 +
+ scripts/qa/canary_claims.py                 | 350 +++++++++++
+ scripts/qa/check_claims.py                  | 903 ++++++++++++++++++++++++++++
+ 17 files changed, 2661 insertions(+), 23 deletions(-)
+
+=== scope check: no src/, tests/, pyproject.toml, CMakeLists.txt, packaging change ===
+  none — confirmed
