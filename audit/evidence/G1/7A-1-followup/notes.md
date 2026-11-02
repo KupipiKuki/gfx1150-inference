@@ -195,6 +195,15 @@ runtime suite and 25 are harness meta-tests (audit observation AUD-7A1-7).
    re-run instruction names the old test; the new name is recorded here and in
    the commit message. `test_cpu_only_module_is_not_marked_gpu` is retained so
    the specific regression stays named.
+6. **Observation for the auditor — a dangling reference in `audit-probes/`.**
+   `audit/evidence/G1/7A-1-pytest-harness/audit-probes/README.md` states "The
+   full transcript is `probe-commands.log`", but that file is **not committed**:
+   `.gitignore` excludes `*.log`, and unlike the sibling `qaqc-probes/*.log`
+   files it was never force-added. It is present in the working tree only. This
+   is the auditor's artifact and sits outside this package's allowed file set,
+   so it was **not** committed here — flagged for the auditor to
+   `git add -f` it. The follow-up's own evidence logs under
+   `audit/evidence/G1/7A-1-followup/` *are* force-added and committed.
 
 ---
 

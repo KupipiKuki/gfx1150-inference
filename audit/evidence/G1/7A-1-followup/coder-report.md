@@ -130,6 +130,12 @@ again once removed (exit 0).
    was replaced by `test_every_test_module_declares_its_exact_lane`; QAQC's
    re-run instruction names the old test. `test_cpu_only_module_is_not_marked_gpu`
    is retained.
+6. **Observation for the auditor.** `audit/evidence/G1/7A-1-pytest-harness/audit-probes/README.md`
+   references a `probe-commands.log` that was never committed (`.gitignore`
+   excludes `*.log`; it was not force-added, unlike the sibling
+   `qaqc-probes/*.log` files). It is the auditor's artifact and outside this
+   package's allowed file set, so it was **not** committed here — flagged for
+   the auditor to `git add -f`.
 
 ## Rollback
 
