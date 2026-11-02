@@ -64,6 +64,16 @@ from gguf_parser import (
 from weight_loader import WeightStreamer
 from tokenizer import GGUFTokenizer, embed_tokens
 
+try:
+    import pytest
+except ImportError:  # pragma: no cover - pytest is optional for unittest-only runs
+    pytest = None
+
+if pytest is not None:
+    # Phase 7A-1: this suite is the CPU lane. It must be selected by
+    # ``pytest -m "not gpu"`` and deselected by ``pytest -m gpu`` (AUD-2).
+    pytestmark = pytest.mark.cpu
+
 
 class TestCPUOnlySuite(unittest.TestCase):
     def test_v1_py_compile_all_sources(self) -> None:

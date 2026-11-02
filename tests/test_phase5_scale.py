@@ -7,23 +7,33 @@ Phase 5 Validation & 70B-Scale Test Suite (`tests/test_phase5_scale.py`):
 4. Chunked prompt prefill (`prefill_chunk_size`) equivalence & multi-prompt batch generation (`generate_batch`).
 5. CPU RAM (`offload_kv_to_cpu=True`) and NVMe `mmap` (`kv_mmap_dir=...`) KV-cache offload equivalence.
 6. CLI entry point (`inference.main`) verification.
+
+Phase 7A-1: converted to a pytest module.
+
+- The module-scope ``import matmul_module`` and ``from inference import ...`` moved
+  into the test bodies: ``src/inference.py`` imports ``matmul_module`` at module
+  scope, so importing it at module level raised a collection error on a
+  CPU-only host (audit AUD-2).
+- The module is marked ``gpu``; ``python3 tests/test_phase5_scale.py`` still works
+  as a standalone script.
 """
 
 from __future__ import annotations
 
 import os
 import sys
+import inspect
 import tempfile
 import time
 from typing import Dict, List, Tuple
 import numpy as np
+import pytest
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 for _p in (os.path.join(_ROOT_DIR, "build"), os.path.join(_ROOT_DIR, "src")):
     if _p not in sys.path and os.path.isdir(_p):
         sys.path.insert(0, _p)
 
-import matmul_module
 from gguf_parser import (
     GGMLType,
     GGUFValueType,
@@ -36,10 +46,12 @@ from gguf_parser import (
     dequantize_q6_k_cpu,
     write_synthetic_gguf,
 )
-from inference import LlamaInferenceEngine, main as cli_main
+
+# Every test in this module belongs to the hardware lane.
+pytestmark = pytest.mark.gpu
 
 
-def test_q8_0_kernels() -> None:
+def test_q8_0_kernels(matmul_module) -> None:
     print("--- Testing Q8_0 Dequantize & Fused Matmul HIP Kernels ---")
     rng = np.random.default_rng(501)
     num_elements = 4096 * 32
@@ -69,7 +81,7 @@ def test_q8_0_kernels() -> None:
         assert err < 1e-2, f"matmul_q8_0 error {err} >= 1e-2"
 
 
-def test_q4_k_superblock_kernels_and_70b_scale() -> None:
+def test_q4_k_superblock_kernels_and_70b_scale(matmul_module) -> None:
     print("--- Testing Q4_K (256-Elem Super-Block) Kernels & 70B Dimension (K=8192) ---")
     rng = np.random.default_rng(502)
     num_elements = 256 * 256  # 256 super-blocks
@@ -185,7 +197,11 @@ def _build_synthetic_q4km_model(path: str, num_layers: int = 2) -> None:
         write_synthetic_gguf(f, metadata, tensors)
 
 
-def test_q4km_chunked_batch_and_kv_offload() -> None:
+def test_q4km_chunked_batch_and_kv_offload(matmul_module) -> None:
+    # Imported here (not at module scope): src/inference.py imports matmul_module
+    # at module scope and would break collection on a CPU-only host.
+    from inference import LlamaInferenceEngine, main as cli_main
+
     print("--- Testing Q4_K_M End-to-End, Chunked Prefill, Batching, CPU/mmap KV Offload & CLI ---")
     with tempfile.TemporaryDirectory() as tmpdir:
         gguf_path = os.path.join(tmpdir, "synthetic_q4km.gguf")
@@ -271,7 +287,7 @@ def test_q4km_chunked_batch_and_kv_offload() -> None:
         print("  [CLI Entry Point] gfx1150-infer exited with code 0")
 
 
-def test_v060_prefill_tile_and_fused_residual_kernels() -> None:
+def test_v060_prefill_tile_and_fused_residual_kernels(matmul_module) -> None:
     """
     Verify v0.6.0 Stage 6C kernel additions:
     1. Multi-row prefill kernels (`TILE_M = 4`, `M >= 4`) for `Q4_0`, `Q8_0`, and `Q4_K`
@@ -333,7 +349,7 @@ def test_v060_prefill_tile_and_fused_residual_kernels() -> None:
     print("  [rmsnorm_residual & residual_add] Bit-identical to unfused reference")
 
 
-def test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards() -> None:
+def test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards(matmul_module) -> None:
     """
     Verify v0.6.1 additions on GPU:
     1. C-1: `dequantize_q6_k` and `matmul_q6_k` (single-row wave and `TILE_M=4` prefill wave).
@@ -342,6 +358,10 @@ def test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards() -> None:
        and `max_new_tokens=0` / `max_seq_len` overflow guards.
     3. S-2 / N-4: PyBind11 `int16`, read-only output, strided quantized buffer, and `matmul_nt` shape guards.
     """
+    # Imported here (not at module scope): src/inference.py imports matmul_module
+    # at module scope and would break collection on a CPU-only host.
+    from inference import LlamaInferenceEngine
+
     print("--- Testing v0.6.1 Q6_K Kernels, Qwen2/GPT-2 BPE Mixed Q4_K_M & Bindings Guards ---")
     rng = np.random.default_rng(611)
     num_elements = 512 * 256
@@ -507,10 +527,35 @@ def test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards() -> None:
 
 if __name__ == "__main__":
     print("=== Phase 5 & v0.6.1: K-Quants (Q4_K/Q6_K), 70B Scale, Prefill & KV Offload Test Suite ===")
-    test_q8_0_kernels()
-    test_q4_k_superblock_kernels_and_70b_scale()
-    test_q4km_chunked_batch_and_kv_offload()
-    test_v060_prefill_tile_and_fused_residual_kernels()
-    test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards()
+    try:
+        import matmul_module
+    except ImportError as exc:
+        print(f"ERROR: matmul_module not available ({exc}). Run 'cmake --build build' first.")
+        sys.exit(1)
+
+    _checks = [
+        ("Q8_0 kernels", test_q8_0_kernels),
+        ("Q4_K superblock kernels & 70B scale", test_q4_k_superblock_kernels_and_70b_scale),
+        ("Q4_K_M chunked prefill, batching & KV offload", test_q4km_chunked_batch_and_kv_offload),
+        ("v0.6.0 prefill TILE_M=4 & fused residual", test_v060_prefill_tile_and_fused_residual_kernels),
+        ("v0.6.1 Q6_K kernels, Qwen2 mixed Q4_K_M & guards", test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards),
+    ]
+
+    _failures = []
+    for _label, _check in _checks:
+        try:
+            # Only the extension-dependent checks need the module passed in.
+            if "matmul_module" in inspect.signature(_check).parameters:
+                _check(matmul_module)
+            else:
+                _check()
+        except AssertionError as exc:
+            print(f"FAIL: {_label}: {exc}")
+            _failures.append(_label)
+
+    if _failures:
+        print(f"\n=== {len(_failures)} Phase 5 test(s) failed: {', '.join(_failures)} ===")
+        sys.exit(1)
     print("=== All Phase 5 & v0.6.1 Tests Passed! ===")
+    sys.exit(0)
 

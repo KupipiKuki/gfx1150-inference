@@ -5,13 +5,26 @@ Phase 4 End-to-End Test Suite (`tests/test_full_model.py`):
 2. GPU-resident offset-addressed `KVCacheManager` (`gqa_attention_cached`) vs. uncached reference
 3. Multi-layer `LlamaInferenceEngine` forward pass logits vs. full CPU reference (prefill + decode)
 4. End-to-end token generation loop (`generate` & `generate_ids`: greedy, top-k/top-p sampling, throughput)
+
+Phase 7A-1: converted to a pytest module.
+
+- Every ``test_*`` function asserts and returns ``None``. The previous version
+  returned ``True``/``False``, which pytest ignores: such a test could never fail
+  (audit AUD-2).
+- The ``src.kv_cache`` / ``src.inference`` imports moved out of module scope into
+  the test bodies: both import ``matmul_module`` at module scope and would break
+  collection on a CPU-only host (audit AUD-2).
+- The module is marked ``gpu``; ``python3 tests/test_full_model.py`` still works
+  as a standalone script.
 """
 
 import math
 import os
 import sys
+import inspect
 import tempfile
 import numpy as np
+import pytest
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _SRC_DIR = os.path.join(_ROOT_DIR, "src")
@@ -29,13 +42,15 @@ from gguf_parser import (
     write_synthetic_gguf,
 )
 from weight_loader import WeightStreamer
-from kv_cache import KVCacheManager
 from tokenizer import GGUFTokenizer, embed_tokens
-from inference import LlamaInferenceEngine, sample_next_token
 from test_layer import ref_gqa_attention, ref_rmsnorm, ref_rope, ref_swiglu
 
+# Every test in this module belongs to the hardware lane.
+pytestmark = pytest.mark.gpu
 
-def test_tokenizer_and_embedding() -> bool:
+
+def test_tokenizer_and_embedding() -> None:
+    """Tokenizer round-trip plus row-wise ``Q4_0`` embedding lookup."""
     print("\n=== 1. Testing `GGUFTokenizer` & `Q4_0` Embedding Lookup ===")
     vocab = [
         "<unk>", "<s>", "</s>", "▁", "H", "e", "l", "o", "w", "r", "d",
@@ -72,10 +87,14 @@ def test_tokenizer_and_embedding() -> bool:
     rows = embed_tokens(encoded, info, emb_q4, hidden_size)
     assert np.array_equal(rows, emb_deq_all[encoded])
     print("✅ PASS: GGUFTokenizer round-trip and row-wise Q4_0 embedding lookup verified")
-    return True
 
 
-def test_gpu_kv_cache_manager() -> bool:
+def test_gpu_kv_cache_manager(matmul_module) -> None:
+    """GPU-resident offset-addressed KV cache must match the full-context CPU reference."""
+    # Imported here (not at module scope): src/kv_cache.py imports matmul_module
+    # at module scope and would break collection on a CPU-only host.
+    from kv_cache import KVCacheManager
+
     print("\n=== 2. Testing GPU-Resident Offset `KVCacheManager` (`gqa_attention_cached`) ===")
     rng = np.random.default_rng(19)
     num_layers = 2
@@ -126,10 +145,15 @@ def test_gpu_kv_cache_manager() -> bool:
         assert kv_mgr.current_seq_len == 6
 
     print("✅ PASS: GPU-resident offset KVCacheManager matches full-context CPU reference with zero host copies")
-    return True
 
 
-def test_full_model_inference() -> bool:
+@pytest.mark.slow
+def test_full_model_inference(matmul_module) -> None:
+    """Multi-layer engine logits must match the full CPU reference."""
+    # Imported here (not at module scope): src/inference.py imports matmul_module
+    # at module scope and would break collection on a CPU-only host.
+    from inference import LlamaInferenceEngine, sample_next_token
+
     print("\n=== 3. Testing End-to-End 2-Layer `LlamaInferenceEngine` (Logits & Generation) ===")
     rng = np.random.default_rng(2026)
 
@@ -268,7 +292,6 @@ def test_full_model_inference() -> bool:
             assert metrics["tokens_per_sec"] > 0.5
 
         print("✅ PASS: Full-model prefill, cached decode, and token generation verified")
-        return True
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
@@ -279,18 +302,38 @@ def main() -> int:
     print("GFX1150 Inference - Phase 4: Full-Model End-to-End Inference Tests")
     print("=" * 70)
 
-    ok1 = test_tokenizer_and_embedding()
-    ok2 = test_gpu_kv_cache_manager()
-    ok3 = test_full_model_inference()
+    try:
+        import matmul_module
+    except ImportError as exc:
+        print(f"❌ ERROR: matmul_module not available ({exc}). "
+              "Run 'cmake --build build' first.")
+        return 1
+
+    checks = [
+        ("tokenizer & embedding", test_tokenizer_and_embedding),
+        ("GPU KVCacheManager", test_gpu_kv_cache_manager),
+        ("full-model inference", test_full_model_inference),
+    ]
+
+    failures = []
+    for label, check in checks:
+        try:
+            # Only the extension-dependent checks need the module passed in.
+            if "matmul_module" in inspect.signature(check).parameters:
+                check(matmul_module)
+            else:
+                check()
+        except AssertionError as exc:
+            print(f"❌ FAIL: {label}: {exc}")
+            failures.append(label)
 
     print("\n" + "=" * 70)
-    if ok1 and ok2 and ok3:
-        print("🎉 All Phase 4 tests passed!")
-        return 0
-    print("⚠️  Some Phase 4 tests failed.")
-    return 1
+    if failures:
+        print(f"⚠️  {len(failures)} Phase 4 test(s) failed: {', '.join(failures)}")
+        return 1
+    print("🎉 All Phase 4 tests passed!")
+    return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
-
