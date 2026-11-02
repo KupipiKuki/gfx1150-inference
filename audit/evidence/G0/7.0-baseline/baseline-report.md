@@ -19,7 +19,7 @@ cannot contain its own SHA)
 are green, the full sdist install succeeds on the target platform, the claims ledger has
 been reconciled against the live public docs, and a manual GPU baseline is recorded. Two
 conditions (below) are documentation/packaging defects that do not block 7A but must be
-closed by 7A-5 and before release.
+closed by 7A-8 and before release.
 
 ## Exit criteria (handoff §6, 7.0)
 
@@ -44,9 +44,10 @@ G0. No regression was found.
 ## Tasks completed (§6, 7.0)
 
 1. ✅ **Commit or park the 2026-11-01 verification changes; record the exact baseline SHA.**
-   Already committed — the `setup.py` pybind11 fix and the documentation pass are in
-   `cca793e`, inside the merge `089ed8e` (PR #7). Nothing needed parking. Baseline tree
-   under test: `ea6dbeb`. Full commit chain in `notes.md` §1.
+   Already committed — the `setup.py` pybind11 fix is in `ead5f3f`; the documentation pass
+   is split across `ead5f3f` and `cca793e`, inside the merge `089ed8e` (PR #7). Nothing
+   needed parking. Baseline tree under test: `ea6dbeb`. Full commit chain in `notes.md` §1.
+   *(Corrected 2026-11-01 per AUD-1: the original text misattributed the fix to `cca793e`.)*
 2. ✅ **Confirm `git status --porcelain` is empty.** Empty at package start and at the
    candidate.
 3. ✅ **Record environment and GPU (`rocminfo`).** `env.txt` — kernel, OS, ROCm/HIP/AMD
@@ -73,7 +74,7 @@ G0. No regression was found.
 ## Conditions (non-blocking, with owner and target)
 
 ### C-1 — The README's documented build command fails on a clean checkout
-**Owner: 7A-5 · Target: G1**
+**Owner: 7A-8 · Target: G1**
 
 `README.md` documents `cmake -B build -DCMAKE_BUILD_TYPE=Release`, which fails at
 `CMakeLists.txt:17` with "Could not find a package configuration file provided by
@@ -103,6 +104,10 @@ ratchet baseline — the correct outcome is deletion.
   (`gguf_parser`, `tokenizer`, `weight_loader`) and assert that `kv_cache`, `layer`, and
   `inference` raise the actionable `ImportError` without `matmul_module` — that is the
   designed CPU-only surface, per `test_cpu_only.py` V-3/G-1.
+- **Post-audit correction (2026-11-01):** IDs 6 and 10 were reclassified to
+  `Qualified in place? = no`; the auditor seeded `audit/claims_baseline.txt` with 15 exact
+  entries (11 `no` rows + ID 13's unqualified L209 instance). 7A-6 verifies and maintains
+  that baseline; the G0 list above is the pre-correction record.
 - **`check_claims.py` (7A-6) must parse the ledger table robustly**: the ratchet
   sub-table below the main ledger also starts with `|`, and escaped `|` characters inside
   a cell break naive column splits. The G0 manual checker (`claims-check.log`) parses by
@@ -175,8 +180,9 @@ targets and do not block the start of 7A.
 ## Erratum — G0 bundle corrections (QAQC-1, 2026-11-01)
 
 Prepared by QAQC after the independent re-run and submitted to the auditor for review with
-this commit. All changes are documentation-only, inside the 7.0 allowed file set
-(`audit/evidence/G0/**`), and affect no runtime surface, ledger status, or recorded
+this commit. Items 1–5 are the QAQC-1 corrections; items 6–7 are the independent auditor's
+AUD-1/AUD-7 corrections. All changes are documentation-only, inside the 7.0 allowed file
+set (`audit/evidence/G0/**`), and affect no runtime surface, ledger status, or recorded
 result:
 
 1. **Parent SHA corrected (QAQC F-1).** This report, `notes.md`, and `diffstat.txt`
@@ -200,6 +206,13 @@ result:
 5. **"Two commits" wording generalized (QAQC F-5).** The package is a content commit plus
    follow-up commits (metadata, documentation, and this correction); a fixed count would
    be stale as soon as the next follow-up lands.
+6. **Setup.py attribution corrected (AUD-1).** The pybind11 discovery fix is in
+   `ead5f3f`, not `cca793e`. Corrected in this report, `notes.md` §1, and `notes.md` §3.
+7. **`env.txt` status clarified (AUD-7).** The `status:` line records
+   `?? audit/evidence/G0/7.0-baseline/` because the evidence bundle was untracked while
+   being written; it is not an unrelated dirty tree. The post-commit candidate is clean.
+   `gate-commands.log` [1] shows the same transient state. The "tree clean" claim refers
+   to the committed candidate.
 
 The reference-hash caveat under the reference table is QAQC F-7 (the `.so` sha256 is
 source-path-dependent). The QAQC verdict, probes, and conditions are in

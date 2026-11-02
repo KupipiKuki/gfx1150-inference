@@ -237,7 +237,7 @@ class WeightStreamer:
 | Phase | Focus | Gate | Stop after |
 |---|---|---|---|
 | **7.0** | Freeze baseline; record environment; verify current green state; create evidence layout and claims ledger | **G0** | Baseline signed; tree clean; all suites recorded |
-| **7A** | Test infrastructure: pytest harness + markers, golden data with provenance, parser fuzz, CPU/sdist-install CI, GPU CI scaffold (`continue-on-error`), claims checker + baseline | **G1** | Tests provably fail on parent; CI + sdist install green; GPU workflow exists; claims checker default mode green; no `src/` diff |
+| **7A** | Test infrastructure: pytest harness + markers, golden data with provenance, parser fuzz, CPU/sdist-install CI, GPU CI scaffold (`continue-on-error`), claims checker + baseline, clean-clone build entry point (7A-8, C-1) | **G1** | Tests provably fail on parent; CI + sdist install green; GPU workflow exists; claims checker default mode green; documented `cmake` succeeds from a fresh clone; no `src/` diff |
 | **7B** | Tokenizer P0: special-token encode, `add_bos_token`, GPT-2 spec regex, uniform byte fallback | **G2** | Golden vectors pass; no silent byte loss |
 | **7C** | Model families P0: `ModelSpec`/tensor map, Phi-3 fused QKV, Gemma scale/soft-cap/key length, honest compatibility matrix | **G3** | Per-arch fixtures + reference logits pass; llama unchanged |
 | **7D** | Memory honesty & robustness: `posix_fadvise`/`MADV_PAGEOUT`, budgeted residency policy, KV clamp, crash-safe files, exception masking | **G4** | Memory behavior matches docs; hostile inputs fail closed |

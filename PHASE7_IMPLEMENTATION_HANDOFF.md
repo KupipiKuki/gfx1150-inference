@@ -143,6 +143,12 @@ output: [ ... ]
 
 A golden without provenance is not evidence.
 
+**Red/green is conditional:** `red.log` and `green.log` are required only when the package
+changes behavior (a fix, a new guard, a changed API). A non-behavioral package (baseline,
+test-harness, CI, docs) must state `red/green: N/A (no behavioral change)` in `notes.md`
+and include the green suite logs; no separate file is required. This resolves the G0
+AUD-5 discrepancy without weakening the red→green rule for behavioral work.
+
 ---
 
 ## 5. Phase map
@@ -150,7 +156,7 @@ A golden without provenance is not evidence.
 | Phase | Goal | Gate | Hardware needed |
 |---|---|---|---|
 | **7.0** | Freeze baseline, record environment, verify current green state | **G0** | Yes (manual GPU baseline on the available host) |
-| **7A** | Test infrastructure: pytest, goldens, fuzz, CPU/sdist CI, GPU CI scaffold, claims checker | **G1** | CPU CI; GPU workflow scaffold (`continue-on-error`) |
+| **7A** | Test infrastructure: pytest, goldens, fuzz, CPU/sdist CI, GPU CI scaffold, claims checker, clean-clone build entry point | **G1** | CPU CI; GPU workflow scaffold (`continue-on-error`) |
 | **7B** | Tokenizer correctness (P0-1) | **G2** | CPU; GPU optional |
 | **7C** | Model-family support (P0-2) | **G3** | CPU fixtures + GPU reference logits |
 | **7D** | Memory honesty & robustness (P0-3, P1-5) | **G4** | CPU + cgroup; GPU residency evidence |
@@ -194,25 +200,28 @@ A golden without provenance is not evidence.
 
 ### 7A — Test infrastructure (Gate G1)
 
-**Audit trace:** T-1, T-2, T-3, T-4, T-5, T-6, T-7; B-1 residual (sdist install); Phase 7A-1..7A-7.
-**Allowed files:** `tests/**`, `pyproject.toml` (pytest config only), `.github/workflows/**`, `scripts/qa/**` (new), `audit/CLAIMS_LEDGER.md`, `audit/claims_baseline.txt` (new), `README.md` (claims wording only), `audit/evidence/7A/**`, `tests/fixtures/**`, docs. **No `src/` changes.**
+**Audit trace:** T-1, T-2, T-3, T-4, T-5, T-6, T-7; B-1 residual (sdist install); G0 audit AUD-2..AUD-5; QAQC-2; Phase 7A-1..7A-8.
+**Allowed files:** `tests/**`, `pyproject.toml` (pytest config only), `.github/workflows/**`, `scripts/qa/**` (new), `audit/CLAIMS_LEDGER.md`, `audit/claims_baseline.txt`, `README.md` (claims wording; **7A-8 may edit the build section**), `CMakeLists.txt` (**7A-8 only**), `audit/evidence/7A/**`, `tests/fixtures/**`, docs. **No `src/` changes.** 7A-1..7A-7 must not touch `CMakeLists.txt`; 7A-8 owns the build entry point.
 
 **Work packages**
 
 | ID | Task | Acceptance |
 |---|---|---|
-| 7A-1 | Add `tests/conftest.py` with a `matmul_module` fixture using `pytest.importorskip`; add `gpu`/`slow` markers; convert the five GPU scripts to pytest without changing their assertions | `pytest -m "not gpu"` collects and passes on CPU; `pytest -m gpu` collects and skips cleanly on CPU; `pytest -m gpu` passes on gfx1150 |
+| 7A-1 | Add `tests/conftest.py` with a `matmul_module` fixture using `pytest.importorskip`; add `gpu`/`slow` markers; convert the five GPU scripts to pytest. **Every `test_*` function must use `assert`/raise and return `None`**; turn `PytestReturnNotNoneWarning` into an error; verify collection from a clean clone with no pre-built extension. | `pytest -m "not gpu"` collects **only CPU tests** and passes on CPU; `pytest -m gpu` collects only GPU tests, skips cleanly without the extension, and passes on gfx1150; a test returning `False` **fails**; one mutated assertion fails; no `def test_* -> bool` remains |
 | 7A-2 | Add `[tool.pytest.ini_options]` (`markers`, `testpaths`, `addopts`); keep `test_cpu_only.py` runnable as unittest | `python tests/test_cpu_only.py` still 12/12; `python -O` still 12/12 |
 | 7A-3 | Commit golden data with provenance: GPT-2/SentencePiece token IDs for plain text, multibyte, double spaces, special tokens, `add_bos` on/off; Q4_0/Q4_K/Q6_K golden blocks; one tiny GGUF fixture | Goldens load offline; provenance complete; each golden has a test that currently fails where the known bug exists |
 | 7A-4 | Add deterministic `hypothesis` fuzz for GGUF headers (alignment, counts, dims, truncation, duplicates) | ≥10,000 examples, no crash; failures minimized; CI deterministic (fixed seed or `derandomize`) |
 | 7A-5 | CI: CPU pytest job; sdist-install job (`GFX1150_SKIP_CMAKE=1`, import CPU modules, run CPU suite); keep existing CI | Jobs green on PR; sdist install is a real install, not an archive listing |
-| 7A-6 | Add `scripts/qa/check_claims.py` with default CI mode and `--strict`; parse the ledger, scan `README.md` and `IMPLEMENTATION_PLAN.md`, and fail if an `UNVERIFIED`/`NOT YET` claim appears without an inline qualifier; require evidence paths for `VERIFIED` rows; add `audit/claims_baseline.txt` for known violations with a `G6` expiry. Wire default mode into CPU CI (strict is advisory until G6). | Default mode green with a reviewed baseline; `--strict` detects injected canaries; baseline entries are exact and target G6; no silent wildcard/allow-all entry |
+| 7A-6 | Add `scripts/qa/check_claims.py` with default CI mode and `--strict`; parse the ledger and **enforce `Qualified in place?`**, not just literal presence; use claim-specific literals; scan `README.md` and `IMPLEMENTATION_PLAN.md`; require evidence paths for `VERIFIED` rows; review the seeded `audit/claims_baseline.txt` (15 exact entries: 11 `no` rows + ID 13's unqualified L209 instance) with a `G6` expiry. Wire default mode into CPU CI (strict is advisory until G6). | Default mode green with the exact reviewed baseline; `--strict` detects injected canaries; baseline entries are exact and target G6; no generic/allow-all literal; the checker reports every unqualified row instead of "none" |
 | 7A-7 | Add `.github/workflows/ci-gpu.yml` targeting `runs-on: [self-hosted, gfx1150, rocm]`; build with CMake and run `pytest -m gpu`; upload logs/artifacts. Set `continue-on-error: true` until a runner registers, with an issue link in the workflow comment. | Workflow is valid YAML, triggers on PR/nightly, and either runs green on a registered runner or is explicitly `continue-on-error` with a tracked issue; it is **not** counted as a gate pass while skipped |
+| 7A-8 | **Clean-clone build entry point (C-1):** make the documented `cmake -B build -DCMAKE_BUILD_TYPE=Release` succeed without `pybind11_DIR` or a pre-existing cache (or correct the README to the command that works); add a CI job that runs it from a fresh clone. | Fresh clone + documented prerequisites + documented command succeeds with no ambient `pybind11_DIR` and no build cache; CI reproduces it; README command matches the verified path |
 
 **Required checks**
 ```bash
-python -m pytest -m "not gpu" -q
-python -m pytest -m gpu --collect-only -q          # CPU host: must skip, not error
+python -m pytest -m "not gpu" -q                  # must collect only CPU tests
+python -m pytest -m gpu --collect-only -q         # CPU host: must skip, not error
+python -W error::pytest.PytestReturnNotNoneWarning -m pytest -m "not gpu" -q
+if grep -R -n "def test_.*-> bool" tests/; then echo "test functions must return None"; exit 1; fi
 python tests/test_cpu_only.py
 python -O tests/test_cpu_only.py
 python scripts/qa/check_claims.py                 # default CI mode (baseline-aware)
@@ -221,25 +230,34 @@ python setup.py sdist
 # clean venv:
 pip install --no-build-isolation dist/*.tar.gz     # full build on gfx1150
 GFX1150_SKIP_CMAKE=1 pip install --no-build-isolation dist/*.tar.gz  # CPU-only runner
+# 7A-8: fresh clone, no pybind11_DIR, no build cache
+rm -rf /tmp/7a-build && cmake -S . -B /tmp/7a-build -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/7a-build -j 8
 # workflow sanity:
 python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci-gpu.yml'))"
 ```
 
 **QAQC adversarial checks**
 - Mutation test the tests: revert a known fix locally (e.g. remove the parser bound) and confirm the relevant test fails. A test that cannot fail is not a test.
+- **Canary test:** add `def test_returns_false(): return False`; `pytest` must fail (not warn/pass), then remove it.
+- Confirm `pytest -m "not gpu"` collects **zero** GPU tests and `pytest -m gpu` collects all GPU tests.
+- Confirm a clean clone with no `matmul_module` collects/skips cleanly, not exit 2.
 - Confirm goldens are external, not generated by the code under test.
 - Confirm GPU tests skip, not silently pass, on CPU.
 - Confirm no test is skipped in the CPU job without a reason.
-- Inject a canary `NOT YET` claim into `README.md` and confirm `check_claims.py` fails; restore it.
+- Inject a `NOT YET` claim into `README.md` and an unqualified `Q4_K_M`/`qwen2` canary; `check_claims.py` must fail; restore them.
+- Confirm the ledger's ID 6/10 flags are `no`/`partial` and the baseline has exact entries.
 - Confirm `ci-gpu.yml` is genuinely `continue-on-error` (not silently skipped) and that its logs are uploaded when a runner exists.
+- Confirm 7A-8's fresh-clone command works with no ambient `pybind11_DIR` and no build cache.
 
 **Exit criteria (G1)**
-- [ ] CPU and GPU collection behavior correct.
+- [ ] CPU and GPU collection behavior correct; no `test_*` returns non-`None`; a False return fails.
 - [ ] Goldens have provenance and exercise the known P0 bugs (red evidence).
 - [ ] Fuzz runs deterministically.
 - [ ] CPU + sdist CI jobs green; full sdist install verified.
-- [ ] Claims checker default mode green; baseline reviewed and exact; canary detected in strict mode.
+- [ ] Claims checker default mode green; baseline reviewed and exact; qualification and canaries detected.
 - [ ] GPU workflow exists and is valid; it is green or explicitly `continue-on-error` with a tracked runner issue. GPU correctness is **not** a G1 gate (G0's manual baseline covers the current host); it becomes required at G6.
+- [ ] **Fresh-clone documented build succeeds (C-1/7A-8) with no `pybind11_DIR` and no build cache.**
 - [ ] No `src/` diff.
 
 **Stop:** Do not start 7B until G1 is signed. 7B is gated by 7A-3 goldens.
@@ -656,7 +674,7 @@ Status as of the 2026-11-01 verification. `D` = deferred to 7G.
 |---|---|---|---|
 | B-1 | sdist missing sources | ✅ fixed + full install verified | 7.0 / 7A-5 |
 | B-2 | unused hipblas/rocblas | ✅ fixed (CMake) | — |
-| B-3 | setup.py quality | ◐ partial (pybind11_DIR fixed; preflight/bounded -j present) | 7A-5 |
+| B-3 | setup.py quality | ◐ partial (pybind11_DIR fixed; preflight/bounded -j present; clean-clone command open) | 7A-8 |
 | B-4 | PEP 639 license | ❌ open | 7G |
 | B-5 | top-level namespace | ❌ open | 7G |
 | C-1 | Q6_K unsupported | ✅ kernels + CPU; real GGUF golden pending | 7F-2 |
@@ -724,7 +742,7 @@ Status as of the 2026-11-01 verification. `D` = deferred to 7G.
 
 1. Commit/park the current verification changes and freeze the baseline (7.0).
 2. Run G0 and record the evidence bundle (manual GPU baseline; no runner required).
-3. Authorize **7A-1** (pytest harness), **7A-6** (claims checker), and **7A-7** (GPU workflow scaffold) first; they are independent and unblock the rest of 7A.
+3. Authorize **7A-1** (pytest harness), **7A-6** (claims checker), **7A-7** (GPU workflow scaffold), and **7A-8** (clean-clone build entry point) first; they are independent and unblock the rest of 7A. Use one branch per work package; start with `wp/7A-1-pytest-harness`.
 4. Do not authorize 7B until G1 is signed.
 
 The coder receives exactly one work package ID, the allowed file set, the acceptance criteria, and the evidence template. Anything else is out of scope.

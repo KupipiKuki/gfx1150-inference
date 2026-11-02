@@ -258,3 +258,27 @@ follow-up commits are documentation and evidence only.
 probes. It is independent of the Minimax implementation and the GLM5.3 QAQC pass.
 
 **Sign-off:** DeepSeek V4.1 Flash, 2026-11-01.
+
+---
+
+## 7. Post-audit preparation (2026-11-01)
+
+The primary auditor applied the documentation-only conditions on the integration branch
+before handing 7A to the coder:
+
+- **C-AUD-1 applied:** AUD-1 (setup.py attribution → `ead5f3f`), AUD-6 ("Twelve" →
+  "Thirteen"), AUD-7 (`env.txt` untracked-bundle clarification, recorded in the report
+  erratum rather than editing the captured log).
+- **C-AUD-5 applied:** `red.log`/`green.log` are now conditional for behavioral packages;
+  non-behavioral packages state `red/green: N/A (no behavioral change)` in `notes.md`.
+- **C-AUD-3 partially applied:** ledger IDs 6 and 10 now say `no` (consistent with the
+  ratchet section), and `audit/claims_baseline.txt` is seeded with the 15 exact entries
+  from this audit. The `check_claims.py` implementation, claim-specific literals, and
+  negative canaries remain 7A-6 work.
+- **AUD-4 applied to the plan:** 7A-8 (clean-clone build entry point) is added with its own
+  file set and G1 criterion; the handoff's 7A-1/7A-6/7A-7 acceptance criteria now include
+  the AUD-2/AUD-3 requirements.
+- **Coder handoff:** `PHASE7_7A_CODER_BRIEF.md`; first branch `wp/7A-1-pytest-harness`.
+
+Remaining before G1: 7A-1, 7A-6, 7A-7, 7A-8 implementation; QAQC-2; and the rest of 7A
+(7A-2..7A-5) as scoped. 7B remains blocked.
