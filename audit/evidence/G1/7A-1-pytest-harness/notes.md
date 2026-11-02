@@ -14,13 +14,17 @@
 
 The G0 audit found two defects in the baseline test suite (AUD-2):
 
-1. **13 test functions could not fail.** They returned `True`/`False` instead of
+1. **13 test functions could not fail.** All 13 returned a `bool` instead of
    asserting. Pytest ignores a test's return value and only emits
    `PytestReturnNotNoneWarning`, so a regression that made one of them return
-   `False` still reported "passed".
+   `False` still reported "passed". Precisely: **13 returned `bool`; 4 of those
+   also contained asserts** (so they had a failure path but a masked one), and
+   **9 had no failure mechanism at all**. A **14th** function returned a tuple
+   from a nested helper, which pytest likewise ignores. The conversion in this
+   package covers all 13 bool-returning functions and the nested-tuple case.
 2. **`-m "not gpu"` collected 18 GPU tests.** No `gpu` marker existed, so the
    selector matched everything. The G0 record "30 passed" was a collection smoke
-   that included 18 GPU tests and 13 unfailable functions — not a CPU gate.
+   that included 18 GPU tests and 13 bool-returning functions — not a CPU gate.
 
 This package fixes both, and adds the harness the G0 audit and the handoff
 require: a `matmul_module` fixture, `gpu`/`cpu`/`slow` markers, and a
@@ -115,12 +119,12 @@ exemption here.
 
 ## 4. Evidence
 
-**Commit structure.** A commit cannot contain its own SHA, so 7A-1 is two
-commits: the **implementation commit** (`candidate-sha.txt`, `f0ce20e`) holds the
-harness and the converted tests; a **bundle commit** adds only this evidence
-directory. The reviewed tree is `candidate-sha.txt` plus the evidence files —
-neither touches `src/` or any runtime behaviour. This mirrors the G0 bundle's
-convention.
+**Commit structure.** A commit cannot contain its own SHA, so 7A-1 is a
+**content commit plus follow-up commits**: the content commit (`candidate-sha.txt`)
+holds the harness and the converted tests; the follow-ups add the evidence
+bundle, the bundle-structure note and the coder report. The reviewed tree is
+`candidate-sha.txt` plus the evidence files — none of them touches `src/` or any
+runtime behaviour. This mirrors the G0 bundle's convention.
 
 | File | Content |
 |---|---|
@@ -172,8 +176,16 @@ The G0 audit required that the baseline's "30 passed" record be re-labelled:
 it was a collection smoke that included **18 GPU tests and 13 bool-returning
 functions**, and was **not a CPU gate**.
 
+Precisely (verified by AST against the parent commit `2659e6c`): **13 test
+functions returned `bool`**; **4 of those also contained asserts**, so their
+failure path was masked rather than absent; **9 had no failure mechanism at
+all**; and a **14th** returned a tuple from a nested helper, which pytest
+likewise ignores. The conversion in this package covers all of them.
+
 - The corrected CPU gate is now **`pytest -m "not gpu"` → 37 passed, 18
   deselected** (12 from the self-contained CPU suite + 25 harness meta-tests).
+  Per audit observation AUD-7A1-7, those 37 are **not** "37 real CPU runtime
+  tests": 12 are the CPU runtime suite and 25 are harness meta-tests.
 - The corrected GPU gate is **`pytest -m gpu` → 18 passed on gfx1150**, the same
   18 tests the G0 record mis-counted as CPU.
 - The G0 `audit/evidence/G0/7.0-baseline/` logs are **not edited** — they are
@@ -186,15 +198,17 @@ functions**, and was **not a CPU gate**.
 
 ## 6. Known limitations and follow-ups
 
-1. **`tests/conftest.py` and `tests/test_harness_contract.py` are not packaged
-   in the sdist.** setuptools' default sdist includes only `tests/test_*.py`;
-   the two new files are excluded. This is **not** a defect of this package
-   (7A-1's allowed file set excludes `MANIFEST.in` and packaging), but it means
-   an sdist-installed tree has no conftest and no harness meta-tests. **7A-5
-   (CI/sdist-install) should add `recursive-include tests *.py` to
-   `MANIFEST.in`** so the CPU CI job can run `pytest -m "not gpu"` from the
-   installed tree. Flagged for the auditor; not actioned here (would breach
-   7A-1's allowed file set).
+1. **`tests/conftest.py` is not packaged in the sdist.** setuptools' default
+   sdist includes `tests/test_*.py`, so `tests/test_harness_contract.py` **is**
+   packaged, but `tests/conftest.py` is **not** (it does not match the
+   `test_*.py` pattern). This is **not** a defect of this package (7A-1's
+   allowed file set excludes `MANIFEST.in` and packaging), but it means an
+   sdist-installed tree has no conftest — hence no `matmul_module` fixture and
+   no GPU-lane skip. **7A-5 (CI/sdist-install) should add
+   `recursive-include tests *.py` to `MANIFEST.in`** so the CPU CI job can run
+   `pytest -m "not gpu"` from the installed tree. Flagged for the auditor; not
+   actioned here (would breach 7A-1's allowed file set). This is audit
+   condition **C-7A1-5**, carried forward to 7A-5.
 2. **CI is not yet wired to pytest.** `.github/workflows/ci-cpu.yml` still runs
    `python tests/test_cpu_only.py` only. The pytest CPU job belongs to **7A-5**.
    This package deliberately did not touch `.github/` (outside 7A-1's allowed
