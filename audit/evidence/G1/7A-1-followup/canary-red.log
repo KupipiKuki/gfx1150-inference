@@ -1,0 +1,39 @@
+# G1 / 7A-1 follow-up — RED evidence (the OLD meta-tests accept the canaries)
+# Captured: 2026-11-02T01:02:01Z
+# OLD code: 408fcab (the merged 7A-1, before the follow-up)
+# This is the defect the auditor recorded as AUD-7A1-1 / AUD-7A1-2.
+
+=== CANARY 1 — wrong lane: pytestmark = pytest.mark.cpu but the test
+    requests the matmul_module fixture (a GPU test by construction) ===
+--- file: tests/test_audit_wronglane.py ---
+import pytest
+
+pytestmark = pytest.mark.cpu
+
+
+def test_wrong_lane_canary(matmul_module) -> None:
+    assert matmul_module is not None
+
+--- pytest tests/test_harness_contract.py::test_gpu_lane_is_marked_and_cpu_lane_is_not -q ---
+.                                                                        [100%]
+1 passed in 0.16s
+exit: 0
+  EXPECTED (defect): PASS — the old check accepts any marker.
+
+=== CANARY 2 — nested raise: the only 'raise' is in a nested, never-called helper ===
+--- file: tests/test_audit_nested.py ---
+import pytest
+
+pytestmark = pytest.mark.cpu
+
+
+def test_nested_raise_canary() -> None:
+    def _helper():
+        raise AssertionError("never called")
+    x = 1
+
+--- pytest tests/test_harness_contract.py::test_every_test_function_asserts_or_raises -q -k test_audit_nested ---
+.                                                                        [100%]
+1 passed, 8 deselected in 0.14s
+exit: 0
+  EXPECTED (defect): PASS — the old check descends into nested defs.
