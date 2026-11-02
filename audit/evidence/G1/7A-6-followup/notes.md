@@ -115,6 +115,27 @@ No captured log was edited: `claims-check.log`, `canary-*.log`, `cpu-suite.log`,
 `gpu-suite.log`, `gate-commands.log` and `env.txt` are as the 7A-6 candidate
 produced them.
 
+## Auditor evidence erratum (2026-11-02, QF-1/QF-2/QF-3)
+
+Applied by the independent auditor after the follow-up QAQC pass; no product code or
+checker behaviour changed.
+
+* **QF-1 — reproducer crash.** `reproduce-probes.py` `probe_b()` B5 fell back to
+  `out.strip().splitlines()[-1:]` (a list) when no `passed`/`failed` line existed, so a
+  fresh clone without a built extension crashed with `TypeError` on the `18 skipped`
+  path. Fixed to `(out.strip().splitlines() or [""])[-1]`; re-run from a clean clone with
+  no extension and no `PYTHONPATH` (transcript in `reproduce-probes-audit.log`).
+* **QF-2 — B9 stale line.** The committed `qaqc-probes/probe-commands-full.log` B9 was
+  captured at an intermediate HEAD (`2 files changed, 141 insertions`). At the follow-up
+  tip the same command is `22 files changed, 2014 insertions(+), 54 deletions(-)`
+  (`b626c94..330fe70`). This is an informational line, not a probe result; the corrected
+  reproducer writes the current value.
+* **QF-3 — follow-up `env.txt` pre-amend SHAs.** `env.txt` names `bafcd9c` and `88cc19b`
+  with no note. Both are pre-amend SHAs; `candidate-sha.txt` (`190c9e1`) is authoritative,
+  the restricted code/ledger/CI delta is empty, and this follows the same
+  `PROVENANCE-ERRATUM` convention used for 7A-6 (`f6924ff`↔`994d629`). `env.txt` was not
+  edited because it is a captured log.
+
 ## C-7A6-4 — ID 3 literal
 
 ID 3 ("GPU kernel/layer/E2E suites pass") is published **only** as a command

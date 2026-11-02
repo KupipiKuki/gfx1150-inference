@@ -120,7 +120,7 @@ def probe_b() -> None:
             cwd=REPO_ROOT,
         )
         tail = [l for l in out.splitlines() if "passed" in l or "failed" in l]
-        print("  " + (tail[-1] if tail else out.strip().splitlines()[-1:]))
+        print("  " + (tail[-1] if tail else (out.strip().splitlines() or [""])[-1]))
         print(f"  exit: {code}")
 
     section("B6 cpu suite unittest")
