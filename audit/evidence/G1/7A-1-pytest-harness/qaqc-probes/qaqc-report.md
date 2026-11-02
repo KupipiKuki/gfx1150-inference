@@ -143,3 +143,16 @@ acknowledged in the coder's notes and now independently verified.
 
 **QAQC sign-off:** 2026-11-02. Probe transcript: `probe-commands.log` (this directory).
 Clone and scratch retained at `/tmp/opencode/qaqc-7a1/` for inspection.
+
+---
+
+## Erratum (2026-11-02, follow-up QAQC) — QF-3 count corrected
+
+QF-3 above says "of which **5** also had asserts". The exact figure, verified
+independently by AST against parent `2659e6c` during the 7A-1-follow-up QAQC (probe P8)
+and applied by the C-7A1-3 record correction, is **4 of the 13 bool-returners also had
+asserts** (`test_gguf_and_streamer`, `test_tokenizer_and_embedding`,
+`test_gpu_kv_cache_manager`, `test_full_model_inference`); **9 had no failure mechanism
+at all**; and one further function (`test_v061_…`) returned a tuple from a nested
+helper. 5 + 9 would not have summed to 13 — the arithmetic error was QAQC's, not the
+coder's. See `audit/evidence/G1/7A-1-followup/qaqc-probes/qaqc-report.md`.
