@@ -115,6 +115,13 @@ exemption here.
 
 ## 4. Evidence
 
+**Commit structure.** A commit cannot contain its own SHA, so 7A-1 is two
+commits: the **implementation commit** (`candidate-sha.txt`, `f0ce20e`) holds the
+harness and the converted tests; a **bundle commit** adds only this evidence
+directory. The reviewed tree is `candidate-sha.txt` plus the evidence files —
+neither touches `src/` or any runtime behaviour. This mirrors the G0 bundle's
+convention.
+
 | File | Content |
 |---|---|
 | `env.txt` | host, ROCm/HIP, GPU, toolchain, git SHAs |
