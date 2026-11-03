@@ -1,0 +1,20 @@
+# G1 / 7A-8 — GPU suite
+# Captured: 2026-11-02T22:51:14Z  candidate: 9c04912
+# The extension was built by the documented command in green.log.
+# PYTHONPATH=build:src
+
+### [1] $ PYTHONPATH=build:src python3 -m pytest -m gpu -q
+..................                                                       [100%]
+18 passed, 43 deselected in 1.76s
+--- exit code: 0 ---
+
+### [2] $ PYTHONPATH=build:src python3 -m pytest -q
+.............................................................            [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+61 passed, 1 warning in 6.27s
+--- exit code: 0 ---

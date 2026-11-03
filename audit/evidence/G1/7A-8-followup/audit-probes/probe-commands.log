@@ -1,0 +1,55 @@
+# Auditor probe transcript — 7A-8 follow-up
+# Auditor: DeepSeek V4.1 Flash, 2026-11-02
+# Fix: 683a0f7 · Tip: 86cdd32
+
+### Public GitHub API — RED run
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/actions/runs/41544981963
+  head_sha:  33fc5f98ee70c5b3cfaded6fe3623ff9ae494e18
+  conclusion: failure
+GET .../runs/41544981963/jobs
+  step 9 "Run the configure smoke test": completed / failure
+  steps 7-8 configure/build: success
+  steps 10-11 sdist: skipped
+
+### Public GitHub API — GREEN run
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/actions/runs/41545742018
+  head_sha:  683a0f7083d576fb64a37f374bce780634fae3ff
+  conclusion: success
+GET .../runs/41545742018/jobs
+  all steps success:
+    4 prerequisites (incl. pytest)
+    6 ROCm install
+    7 configure (documented command)
+    8 summary
+    9 build
+    10 smoke test
+    11 sdist
+    12 full sdist install
+
+### Tip check-runs
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/commits/86cdd323433aa72d5f70ec03882b9795dde4709a/check-runs
+  "Clean-clone documented build (G0 C-1)": success
+  "CPU Parser, Tokenizer, Sampler & Packaging Suite": success
+
+### Workflow diff (33fc5f9..86cdd32)
++ "numpy>=1.24.0" "setuptools>=64" wheel "pybind11>=2.12" pytest
++ set -o pipefail
++ env -u pybind11_DIR cmake ... 2>&1 | tee configure.log
++ - name: Record the configure result in the job summary
++   if: always()
+
+### Scope
+git diff --stat 33fc5f9..86cdd32 -- CMakeLists.txt README.md tests src setup.py pyproject.toml MANIFEST.in audit/CLAIMS_LEDGER.md audit/claims_baseline.txt
+(empty)
+
+### QF-2 (merge-time)
+Merge simulation on vibe/phase7-220201 + 7A-8:
+  check_claims.py exit 0, 9 drift warnings, 0 stale, 0 findings
+  claims 8/9 111 -> 130; 10/11/12 110,111 -> 129,130; 21 104 -> 123
+  ID3 block L85-89 -> L98-102
+  -> refresh ledger at merge, require zero drift.
+
+### ROCm cost
+RED run:   ROCm install 6:46, job 7:50
+GREEN run: ROCm install 4:49, job 5:56
+=> 83-87% of the job; G1 ruling (accept vs narrow/move build).
