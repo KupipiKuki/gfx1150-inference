@@ -73,6 +73,13 @@ and names the tracking:
   `gfx1150` and `rocm` and then removes `continue-on-error` so the lane is
   required on PR and nightly.
 
+**A note on the recorded SHA.** The branch's first push of this package recorded
+`candidate-sha.txt` as the commit that *recorded* the SHA rather than the work
+commit it stands for. That is corrected in a later commit on the same branch, so
+that the published history is not rewritten: `candidate-sha.txt` names the work
+commit (`955fa04`, the commit that adds the workflow and this bundle), and
+`diffstat.txt` is computed from it, so both figures are exact.
+
 **This package does not claim GPU CI is enforced.** The lane is designed and its
 steps are verified on the target hardware, but until the runner exists the job is
 queued, not green, and it must not be counted as a G1 pass.
