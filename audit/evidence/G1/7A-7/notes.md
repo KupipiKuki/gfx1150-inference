@@ -43,10 +43,11 @@ skipped**, and no failures or errors.
 The brief offers a grep-based pattern; this uses the junit report instead, for
 two reasons:
 
-* `-rs` prints the skip *reasons*, which contain the word "skipped" in prose
-  ("the extension ... is skipped"), so a bare `grep -q skipped` over the output
-  matches text that has nothing to do with a skipped test. The junit report
-  carries the counts as data, not as prose.
+* The junit report carries the counts as data, so the guard can report *how
+  many* tests were skipped and stays robust to prose/report-format changes.
+  (The brief's grep pattern was tested against both real lane outputs and
+  behaves correctly there; this is a robustness/precision choice, not a
+  demonstrated false positive.)
 * The counts are exact, so the guard states *how many* were skipped rather than
   only that the text appeared.
 
