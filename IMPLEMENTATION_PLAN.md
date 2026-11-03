@@ -254,6 +254,43 @@ class WeightStreamer:
 
 ---
 
+### ⚪ Phase 8 (Stretch, post-v0.7.0): AMD Radeon 780M / `gfx1103` Portability *(PROPOSED — NOT COMMITTED)*
+
+**Status:** stretch goal only. It is **not** part of v0.7.0, does not affect G1/G6, and starts only after v0.7.0 ships and the owner prioritizes it. No hardware, performance, or CI claim is made until the acceptance evidence below exists.
+
+**Why:** ROCm now exposes `gfx1103` (Radeon 780M, RDNA3 integrated GPU). The engine currently hardcodes `gfx1150` in `CMakeLists.txt`, but the kernels are largely Wave32 and architecture-neutral. A port should be mostly build-target selection, portability auditing, validation, and retuning — not a rewrite.
+
+**Target:** Radeon 780M / `gfx1103` (Ryzen 7040/8040-class APUs). Confirm the exact ROCm distribution/version that lists `gfx1103` at implementation time. Prefer the native target; if a documented fallback such as `HSA_OVERRIDE_GFX_VERSION` is ever required, document it explicitly rather than using it silently.
+
+#### Proposed work packages
+
+| ID | Task | Acceptance |
+|---|---|---|
+| 8.1 | Build-target selection: add a `GFX_ARCH` cache variable (default `gfx1150`) feeding `CMAKE_HIP_ARCHITECTURES`; support `gfx1103` and optional multi-arch (`gfx1150;gfx1103`). Keep the existing default and documented command working unchanged. | Clean configure with `-DGFX_ARCH=gfx1103` and no ambient `pybind11_DIR`; `rocminfo` reports `gfx1103`; the default `gfx1150` build is unchanged. |
+| 8.2 | Kernel portability audit: check workgroup assumptions, Wave32 shuffles, LDS/occupancy, CU-count/tile thresholds, cache behavior, and any `gfx1150`-specific constants or intrinsics. Use `__gfx1103__`/architecture guards only where a measured difference requires them. | Every kernel compiles for both targets; no silent arch fallback; a written portability matrix names any guarded code and why. |
+| 8.3 | Validation: run the CPU suite, all five GPU suites, quantization paths, GGUF/claims checks on a 780M host; compare correctness with the gfx1150 baseline and CPU references. | On `gfx1103`: GPU lane **18 passed / 0 skipped**, CPU 12/12, claims checker green. The full `gfx1150` suite still passes (no regression). Evidence is recorded per gate. |
+| 8.4 | Performance: retune tile sizes, workgroup counts, and memory thresholds for the 780M (fewer CUs and different clocks/bandwidth than the 890M). Record a separate 780M baseline; do not reuse gfx1150 throughput figures or claim a cross-GPU ratio. | Warm-up + ≥20-iteration medians/p95 per 7F-3 discipline; 780M numbers recorded separately; no unverified performance claim in README. |
+| 8.5 | CI and docs: add an optional gfx1103 runner/manual gate (or document a manual hardware gate until one exists); publish an honest compatibility matrix (arch × quant × context) and build instructions. | Matrix names exactly what was tested on gfx1103 vs gfx1150; no CI claim without a registered runner; `gfx1150` remains the primary target. |
+| 8.6 | Optional packaging: multi-arch fat binary or target-specific wheels, if the multi-arch build is practical; otherwise document the single-target build. | Packaging decision recorded; sdist/app install still works for the default target. |
+
+#### Acceptance criteria (all required before any support claim)
+
+- [ ] `cmake -B build -DCMAKE_BUILD_TYPE=Release -DGFX_ARCH=gfx1103` succeeds from a clean clone with only documented prerequisites, and the resulting extension loads on a 780M.
+- [ ] All five GPU suites pass on `gfx1103` with **no skips**; CPU suite and claims checker unchanged.
+- [ ] The full `gfx1150` suite still passes; no gfx1150 release regression.
+- [ ] No hardcoded `gfx1150` remains outside the documented default; `gfx1103` is a first-class build target.
+- [ ] Compatibility matrix and README are honest about what was actually run.
+- [ ] Performance is recorded on the 780M separately; no gfx1150 number is presented as a 780M result.
+- [ ] Evidence bundle and independent audit/QAQC signoff follow the same Phase 7 handoff discipline.
+
+#### Risks and non-goals
+
+- **Risks:** ROCm/package support for `gfx1103` varies by distribution; RDNA3 and RDNA3.5 are close but not identical (CU count, clocks, bandwidth, cache/occupancy); gfx1150-tuned tiles may be suboptimal or incorrect on 780M; a 780M CI runner may not exist; multi-arch binaries are larger; thermal/power behavior differs on laptops.
+- **Non-goals:** NPU (`aie2p`) support, multi-GPU, 780M-specific maximum-performance tuning, other RDNA3 iGPUs, or expanding the supported model/quant scope. Those would need separate proposals.
+- **Entry/exit:** only after v0.7.0 ships; new branch/work packages and a G8 gate; `gfx1150` remains the release baseline throughout.
+
+---
+
 ## 📅 Milestones
 
 | **Phase** | **Focus** | **Status** |
@@ -265,3 +302,4 @@ class WeightStreamer:
 | Phase 5   | K-Quants (`Q4_K_M` / `Q8_0`), 70B Scaling, KV Offload & Packaging | ✅ Complete |
 | Phase 6 (`v0.6.0`) | Audit Remediation, Security Hardening, Device-Resident Pipeline & CPU CI | ✅ Complete (983.4 tok/s synthetic E2E, owner-verified) |
 | Phase 7 (`v0.6.2`→v0.7.0) | Testing phase: pytest conversion, golden data, fuzz, sdist-install CI, self-hosted gfx1150 gate, P0/P1 fixes gated by tests | 🟡 In progress |
+| Phase 8 (stretch) | AMD Radeon 780M / `gfx1103` portability: configurable build target, kernel portability audit, dual-GPU validation, separate 780M performance baseline, honest compatibility matrix | ⚪ Proposed (post-v0.7.0; not committed) |
