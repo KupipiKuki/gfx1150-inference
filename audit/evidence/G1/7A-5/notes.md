@@ -13,7 +13,9 @@ both recorded in `sdist-contents.log` and `sdist-install.log`.
 
 ## What changed
 
-Three files, all inside the allowed set.
+Two files changed, both inside the allowed set (`MANIFEST.in` and
+`.github/workflows/ci-cpu.yml`); everything else this package adds is the
+evidence bundle under `audit/evidence/G1/7A-5/`.
 
 ### 1. `MANIFEST.in` — C-7A1-5
 
@@ -39,7 +41,8 @@ files rather than `*.py`, so the rule above stays correct when they land.
 
 ### 3. `.github/workflows/ci-cpu.yml` — the new `sdist-install` job
 
-Nine steps, in this order:
+Nine steps, in this order (the first two are the `actions/*` steps, shown
+together):
 
 | step | what it does |
 |---|---|
