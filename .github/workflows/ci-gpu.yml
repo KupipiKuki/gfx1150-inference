@@ -1,0 +1,113 @@
+name: Self-Hosted GPU CI
+
+# Phase 7A-7: the GPU correctness lane on a self-hosted gfx1150 runner.
+#
+# The lane is all-or-nothing. If the HIP extension is not importable, every
+# `gpu`-marked test is *skipped* and pytest exits 0 -- a silent pass. The step
+# below therefore fails on any skip, not merely on a non-zero exit code
+# (condition C-7A1-6 / QF-5): the lane must report at least one passed test
+# and zero skips.
+#
+# The runner is not registered yet, so this job is `continue-on-error: true` and
+# must NOT be counted as a G1 pass in this state. Tracking:
+#   https://github.com/KupipiKuki/gfx1150-inference/pull/8  (Phase 7 gates)
+#   handoff work package 7F-1, which registers the runner with the labels
+#   `gfx1150` and `rocm` and then removes `continue-on-error` so that this lane
+#   is required on PR and nightly.
+#
+# No secrets are used and no prompt or model data reaches the logs: the GPU
+# suite runs on synthetic models.
+
+on:
+  pull_request:
+    branches: ["**"]
+  schedule:
+    # Nightly, 03:00 UTC.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  gpu-correctness:
+    name: GPU correctness (self-hosted gfx1150)
+    runs-on: [self-hosted, gfx1150, rocm]
+    # Advisory until the self-hosted runner is registered (7F-1). While this is
+    # true the job is queued rather than passing, and it is not a G1 gate.
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install the documented test/build prerequisites
+        # The host Python is used on purpose: the runner's Python and ROCm
+        # toolchain are provisioned together, and the same interpreter must
+        # build and import the extension.
+        run: |
+          python3 -m pip install --upgrade pip \
+            "numpy>=1.24.0" "setuptools>=64" wheel "pybind11>=2.12" pytest
+
+      - name: Configure the project (the documented command)
+        # The README-documented command, with the 7A-8 discovery fix: no
+        # ambient pybind11_DIR, and pybind11 is found through the interpreter.
+        # The build directory is removed first so that no cache from an earlier
+        # run on this runner can hide a broken build.
+        run: |
+          set -o pipefail
+          rm -rf build
+          env -u pybind11_DIR cmake -B build -DCMAKE_BUILD_TYPE=Release 2>&1 | tee configure.log
+
+      - name: Build the HIP extension
+        run: |
+          set -o pipefail
+          cmake --build build -j 2>&1 | tee build.log
+
+      - name: Run the GPU lane (a skip is not a pass)
+        # pytest exits 0 when every GPU test is skipped, so the exit code alone
+        # proves nothing. The junit report is parsed for exact counts: the lane
+        # must have run at least one test, passed at least one, and skipped
+        # none.
+        run: |
+          set -o pipefail
+          PYTHONPATH=build:src python3 -m pytest -m gpu -v -rs --junitxml=gpu-lane.xml 2>&1 | tee gpu-lane.log
+          python3 - <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse("gpu-lane.xml").getroot()
+          suites = [root] if root.tag == "testsuite" else root.findall(".//testsuite")
+          total = sum(int(s.get("tests", 0)) for s in suites)
+          skipped = sum(int(s.get("skipped", 0)) for s in suites)
+          failures = sum(int(s.get("failures", 0)) for s in suites)
+          errors = sum(int(s.get("errors", 0)) for s in suites)
+          passed = total - skipped - failures - errors
+          print(
+              f"GPU lane: {passed} passed, {skipped} skipped, {failures} failed, "
+              f"{errors} errors, {total} collected"
+          )
+          if total == 0:
+              print("FAIL: the GPU lane collected no tests")
+              sys.exit(1)
+          if passed < 1:
+              print("FAIL: the GPU lane reported no passing test")
+              sys.exit(1)
+          if skipped:
+              print(f"FAIL: the GPU lane skipped {skipped} test(s) -- a skip is not a pass")
+              sys.exit(1)
+          if failures or errors:
+              print(f"FAIL: the GPU lane reported {failures} failure(s) / {errors} error(s)")
+              sys.exit(1)
+          print("PASS: the GPU lane ran, with no skips")
+          PY
+
+      - name: Upload the GPU lane logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpu-lane-logs-${{ github.run_id }}
+          path: |
+            configure.log
+            build.log
+            gpu-lane.log
+            gpu-lane.xml
+          if-no-files-found: warn
+          retention-days: 14
