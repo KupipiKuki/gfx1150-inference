@@ -1,0 +1,60 @@
+# G1 / 7A-7 — the no-skip guard: red/green
+# Captured: 2026-11-03T00:41:01Z
+#
+# C-7A1-6 / QF-5: a skipped GPU lane is not a pass. pytest exits 0 when every
+# 'gpu' test is skipped (the extension is not importable), so the exit code
+# alone proves nothing. The guard below is extracted verbatim from the shipped
+# workflow's parsed step (i.e. exactly what the shell runs on the runner) and
+# parses the junit report for exact counts.
+
+=== the guard, as shipped in .github/workflows/ci-gpu.yml ===
+  import sys
+  import xml.etree.ElementTree as ET
+  
+  root = ET.parse("gpu-lane.xml").getroot()
+  suites = [root] if root.tag == "testsuite" else root.findall(".//testsuite")
+  total = sum(int(s.get("tests", 0)) for s in suites)
+  skipped = sum(int(s.get("skipped", 0)) for s in suites)
+  failures = sum(int(s.get("failures", 0)) for s in suites)
+  errors = sum(int(s.get("errors", 0)) for s in suites)
+  passed = total - skipped - failures - errors
+  print(
+      f"GPU lane: {passed} passed, {skipped} skipped, {failures} failed, "
+      f"{errors} errors, {total} collected"
+  )
+  if total == 0:
+      print("FAIL: the GPU lane collected no tests")
+      sys.exit(1)
+  if passed < 1:
+      print("FAIL: the GPU lane reported no passing test")
+      sys.exit(1)
+  if skipped:
+      print(f"FAIL: the GPU lane skipped {skipped} test(s) -- a skip is not a pass")
+      sys.exit(1)
+  if failures or errors:
+      print(f"FAIL: the GPU lane reported {failures} failure(s) / {errors} error(s)")
+      sys.exit(1)
+  print("PASS: the GPU lane ran, with no skips")
+
+=== GREEN: the real lane on gfx1150 (18 passed / 0 skipped) ===
+GPU lane: 18 passed, 0 skipped, 0 failed, 0 errors, 18 collected
+PASS: the GPU lane ran, with no skips
+--- exit code: 0 ---
+
+=== RED 1: the extension is not importable -- pytest exits 0, the guard must not ===
+  SKIPPED [5] tests/test_phase5_scale.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+  18 skipped, 43 deselected in 0.21s
+  pytest exit code: 0   <-- pytest reports SUCCESS
+GPU lane: 0 passed, 18 skipped, 0 failed, 0 errors, 18 collected
+FAIL: the GPU lane reported no passing test
+--- exit code: 1 ---
+
+=== RED 2: a single skip among passing tests is enough ===
+GPU lane: 3 passed, 1 skipped, 0 failed, 0 errors, 4 collected
+FAIL: the GPU lane skipped 1 test(s) -- a skip is not a pass
+--- exit code: 1 ---
+
+=== RED 3: the lane collected nothing ===
+GPU lane: 0 passed, 0 skipped, 0 failed, 0 errors, 0 collected
+FAIL: the GPU lane collected no tests
+--- exit code: 1 ---

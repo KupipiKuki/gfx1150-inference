@@ -1,0 +1,18 @@
+-- Found Python: /home/kupipi/.pyenv/shims/python3 (found version "3.14.10") found components: Interpreter Development.Module 
+-- pybind11 CMake package: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/share/cmake/pybind11
+-- Found pybind11: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/include (found version "3.1.0")
+-- The CXX compiler identification is GNU 13.3.0
+-- The HIP compiler identification is Clang 24.0.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting HIP compiler ABI info
+-- Detecting HIP compiler ABI info - done
+-- Check for working HIP compiler: /opt/rocm/bin/amdclang++ - skipped
+-- Detecting HIP compile features
+-- Detecting HIP compile features - done
+-- Configuring done (2.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/opencode/gpu7/build
