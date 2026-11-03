@@ -129,6 +129,38 @@ written and shipped.**
 
 ---
 
+## The CI run (`ci-run.log`)
+
+The branch was pushed, so the workflow's `push` trigger ran both jobs on the
+runner the workflow targets — **ubuntu-latest, Python 3.12**:
+
+```
+CPU-Only Verification & Regression CI   run 41739977786   completed / success
+  job  CPU Parser, Tokenizer, Sampler & Packaging Suite   -> success
+       ... 5. Run self-contained CPU test suite (standard mode)            success
+       ... 6. Run self-contained CPU test suite (optimized -O mode)        success
+       ... 7. Run the pytest CPU lane                                      success
+       ... 8. Check the claims ledger (default mode, ratchet baseline-aware) success
+       ... 9. Check the claims checker canaries                            success
+       ...10. Check the claims ledger (strict mode, advisory until G6)     success
+  job  Sdist Install (CPU-only path, GFX1150_SKIP_CMAKE=1)                 -> success
+       ... 5. Build the sdist                                             success
+       ... 6. Assert the sdist ships the pytest harness (C-7A1-5)         success
+       ... 7. Install the sdist into a clean venv (CPU-only path)         success
+       ... 8. Assert the installed module split (CPU imports; GPU modules raise) success
+       ... 9. Run the shipped CPU lane in the extracted sdist tree        success
+       ...10. Run the full shipped lane in the extracted sdist tree (C-7A1-5 guard) success
+```
+
+Every step of every job is green. The raw step logs need repository admin
+rights to download (HTTP 403 on `/actions/jobs/<id>/logs`), so what is
+recorded is the run state and each step's conclusion.
+
+**This CI run is the authoritative check** — it closes the only deviation the
+local rehearsal carried (the interpreter version, below).
+
+---
+
 ## The 7A-2 closeout (`cpu-lane.log`)
 
 7A-2 was implemented inside 7A-1's `[tool.pytest.ini_options]` block, so its
@@ -166,6 +198,7 @@ And the two required runs:
 | the extracted tree collects and runs the CPU lane, and the full lane has no collection error | yes — steps 8 and 9, exit 0 (41 passed / 20 skipped) |
 | no collection errors on a CPU-only host; expected skips are visible | yes — the skip reasons are printed (`-rs`); the two `test_build_configure.py` skips are visible in the log |
 | 7A-2 closeout: 12/12 normal and `-O`, and the pytest configuration verified | yes — `cpu-lane.log` |
+| the two jobs run green in GitHub Actions on ubuntu-latest / Python 3.12 | yes — `ci-run.log`, run 41739977786, every step of both jobs green |
 | no `src/`, CMake, `setup.py`, README, ledger, baseline, or 7A-6 evidence change | confirmed by `diffstat.txt` |
 | no test deleted, skipped, or weakened | confirmed — `tests/**` is unchanged; the only test-visible change is that the shipped suite now *runs* from the sdist |
 
@@ -192,8 +225,8 @@ And the two required runs:
    host's `/usr/bin/python3.12` ships without `ensurepip` and without `pip`,
    so `python -m venv` cannot seed a venv there. The commands are unchanged and
    the version does not affect what is proven (the sdist installs; the shipped
-   suite runs), but the authoritative check is the CI run on 3.12, recorded in
-   `ci-run.log`.
+   suite runs). **The deviation is closed by the CI run above**, which executed
+   the same scripts on Python 3.12 and was green.
 
 2. **The rehearsal host has ROCm; the CI runner does not.** The rehearsal
    exported `ROCM_ROOT=/nonexistent-rocm` so the suite takes exactly the
