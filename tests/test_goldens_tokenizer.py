@@ -84,6 +84,47 @@ _AGREED_CASES = [
     "add_bos_disabled",
 ]
 
+#: The SentencePiece cases the repository's tokenizer already matches. The
+#: BOS-absent case has its own test below, which states the metadata argument
+#: explicitly.
+_SPM_AGREED_CASES = [
+    "spm_plain_text_no_bos",
+    "spm_double_space",
+    "spm_multibyte_accent",
+    "spm_multibyte_greek",
+    "spm_multibyte_emoji",
+    "spm_punctuation_digits",
+    "spm_contraction_were",
+    "spm_control_token_literal",
+]
+
+#: The SentencePiece cases the repository's tokenizer does not match yet.
+#: They are kept in the golden -- the family must not be omitted -- and pinned
+#: here as strict xfails with the reason, so that G1 stays green and the
+#: ``--runxfail`` run shows them failing for that reason.
+_SPM_XFAIL_CASES = [
+    pytest.param(
+        "spm_contraction_dont",
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason=(
+                "7B/7C: the repository's SentencePiece path is a greedy longest "
+                "match; the reference segments with the unigram scores"
+            ),
+        ),
+    ),
+    pytest.param(
+        "spm_control_token_parsed",
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason=(
+                "7B: a control token in the input is not parsed as its own "
+                "token ID"
+            ),
+        ),
+    ),
+]
+
 
 @pytest.mark.parametrize("case_id", _AGREED_CASES)
 def test_token_ids_match_the_reference_tokenizer(case_id: str) -> None:
@@ -146,9 +187,40 @@ def test_absent_add_bos_metadata_matches_the_reference_tokenizer() -> None:
     """
     case = _SPM_CASES["spm_absent_add_bos_metadata"]
     tokenizer = _build_tokenizer(_SPM_VOCAB)
-    assert tokenizer.encode(case["prompt"], add_bos=True) == case["token_ids"], (
+    assert tokenizer.encode(case["prompt"], add_bos=case["add_bos"]) == case["token_ids"], (
         "with the add_bos_token metadata absent, the tokenizer must agree with "
         "the reference on whether a BOS token is added"
+    )
+
+
+@pytest.mark.parametrize("case_id", _SPM_AGREED_CASES)
+def test_spm_token_ids_match_the_reference_tokenizer(case_id: str) -> None:
+    """The SentencePiece token IDs must equal llama.cpp's, byte for byte.
+
+    The switch the reference used is recorded per case in the golden, because
+    this vocabulary type adds a BOS token by default and the repository's
+    encoder has to be called with the same switch.
+    """
+    case = _SPM_CASES[case_id]
+    tokenizer = _build_tokenizer(_SPM_VOCAB)
+    assert tokenizer.encode(case["prompt"], add_bos=case["add_bos"]) == case["token_ids"], (
+        f"token IDs for {case['prompt']!r} differ from llama.cpp's reference"
+    )
+
+
+@pytest.mark.parametrize("case_id", _SPM_XFAIL_CASES)
+def test_spm_known_mismatches_are_pinned(case_id: str) -> None:
+    """The SentencePiece cases the repository does not match yet (7B/7C).
+
+    They are part of the golden, so the family is covered; the assertions
+    state what the reference does, and the repository's tokenizer does not do
+    it yet. ``strict=True`` means the suite fails if one of them starts
+    passing, so the fix cannot land unnoticed.
+    """
+    case = _SPM_CASES[case_id]
+    tokenizer = _build_tokenizer(_SPM_VOCAB)
+    assert tokenizer.encode(case["prompt"], add_bos=case["add_bos"]) == case["token_ids"], (
+        f"token IDs for {case['prompt']!r} differ from llama.cpp's reference"
     )
 
 
@@ -180,6 +252,38 @@ def test_the_golden_cases_cover_the_required_inputs() -> None:
         "<|endoftext|>",
     ):
         assert required in prompts, f"the golden does not cover {required!r}"
+
+
+def test_the_sentencepiece_golden_covers_the_required_inputs() -> None:
+    """The SentencePiece golden must cover the same input classes.
+
+    The 7A-3 brief requires both a GPT-2 and a SentencePiece family. The
+    SentencePiece half was missing (audit condition C-7A3-1), so the coverage
+    is asserted for it too rather than only for GPT-2.
+    """
+    spm_prompts = {case["prompt"] for case in _SPM_GOLDEN["cases"]}
+    for required in (
+        "Hello world",
+        "Hello  world",
+        "café",
+        "Ω",
+        "\U0001f600",
+        "hello, world! 123",
+        "we're",
+        "don't",
+        "<s>",
+    ):
+        assert required in spm_prompts, (
+            f"the SentencePiece golden does not cover {required!r}"
+        )
+
+    # The BOS switch must be covered for this family too: the reference adds a
+    # BOS for this vocabulary type unless --no-bos is passed.
+    switches = {case["add_bos"] for case in _SPM_GOLDEN["cases"]}
+    assert switches == {True, False}, (
+        "the SentencePiece golden must cover both the BOS and the no-BOS case, "
+        f"found {sorted(switches)}"
+    )
 
 
 def test_decode_round_trips_the_golden_text() -> None:

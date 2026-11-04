@@ -88,12 +88,27 @@ GPT2_CASES: list[tuple[str, str, str, bool]] = [
     ("special_token_eot", "<|endoftext|>", "", True),
 ]
 
-#: The SentencePiece (TinyLlama) case. Its GGUF carries no
-#: ``tokenizer.ggml.add_bos_token`` key at all, so it pins the behaviour of the
-#: "metadata absent" case: the reference adds a BOS and so does this
-#: repository's tokenizer.
-SPM_CASES: list[tuple[str, str, str, bool]] = [
-    ("spm_absent_add_bos_metadata", "Hello world", "", False),
+#: The SentencePiece (TinyLlama) cases. Its GGUF carries no
+#: ``tokenizer.ggml.add_bos_token`` key at all, so the reference adds a BOS
+#: token for this vocabulary type; the ``--no-bos`` case pins the other
+#: switch.
+#:
+#: The last two cases are the ones the repository's SentencePiece path cannot
+#: match yet. They are kept in the golden -- the family must not be omitted --
+#: and the test module pins them as strict xfails with the reason.
+SPM_CASES: list[tuple[str, str, str, bool, bool]] = [
+    # (case id, prompt, extra reference flags, parse special, add bos)
+    ("spm_absent_add_bos_metadata", "Hello world", "", False, True),
+    ("spm_plain_text_no_bos", "Hello world", "--no-bos", False, False),
+    ("spm_double_space", "Hello  world", "", False, True),
+    ("spm_multibyte_accent", "café", "", False, True),
+    ("spm_multibyte_greek", "Ω", "", False, True),
+    ("spm_multibyte_emoji", "\U0001f600", "", False, True),
+    ("spm_punctuation_digits", "hello, world! 123", "", False, True),
+    ("spm_contraction_were", "we're", "", False, True),
+    ("spm_contraction_dont", "don't", "", False, True),
+    ("spm_control_token_literal", "<s>", "", False, True),
+    ("spm_control_token_parsed", "<s>", "", True, True),
 ]
 
 
@@ -301,7 +316,7 @@ def cmd_tokenizer(args: argparse.Namespace) -> int:
     # exactly the bytes that are recorded in the provenance.
     spm_scratch = args.spm_gguf
     spm_cases = []
-    for case_id, prompt, extra, parse_special in SPM_CASES:
+    for case_id, prompt, extra, parse_special, add_bos in SPM_CASES:
         flags = []
         if extra:
             flags.append(extra)
@@ -313,6 +328,10 @@ def cmd_tokenizer(args: argparse.Namespace) -> int:
                 "id": case_id,
                 "prompt": prompt,
                 "reference_flags": flags,
+                # Whether the reference adds a BOS token for this case. It is
+                # recorded per case because the test has to call the
+                # repository's encoder with the same switch.
+                "add_bos": add_bos,
                 "token_ids": ids,
             }
         )
@@ -325,7 +344,14 @@ def cmd_tokenizer(args: argparse.Namespace) -> int:
             "reference": {
                 "project": "ggml-org/llama.cpp",
                 "tool": "llama-tokenize",
-                "command": "llama-tokenize -m stories260K.gguf -p <prompt> --ids",
+                "command": (
+                    "llama-tokenize -m stories260K.gguf -p <prompt> --ids "
+                    "[--no-bos] [--no-parse-special]"
+                ),
+                "add_bos": (
+                    "the reference adds a BOS token for this vocabulary unless "
+                    "--no-bos is passed; each case records the switch it used"
+                ),
             },
             "vocab": {
                 "id": "stories260k",
