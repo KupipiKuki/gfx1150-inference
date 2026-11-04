@@ -1,0 +1,156 @@
+{
+  "schema": "gfx1150-inference/tokenizer-golden/1",
+  "id": "gpt2",
+  "reference": {
+    "project": "ggml-org/llama.cpp",
+    "tool": "llama-tokenize",
+    "command": "llama-tokenize -m gpt2-vocab.gguf -p <prompt> --ids [--no-bos] [--no-parse-special]"
+  },
+  "vocab": {
+    "id": "gpt2",
+    "upstream": "openai-community/gpt2",
+    "upstream_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+    "vocab_json_sha256": "196139668be63f3b5d6574427317ae82f612a97c5d1cdaf36ed2256dbf636783",
+    "merges_txt_sha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+    "fixture_sha256": "6d69121d9abb291574dfa7087d6c2004b35caa4f0c53deef876aedecf71f3212",
+    "n_tokens": 50257
+  },
+  "cases": [
+    {
+      "id": "plain_text",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        15496,
+        995
+      ]
+    },
+    {
+      "id": "double_space",
+      "prompt": "Hello  world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        15496,
+        220,
+        995
+      ]
+    },
+    {
+      "id": "multibyte_accent",
+      "prompt": "caf\u00e9",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        66,
+        1878,
+        2634
+      ]
+    },
+    {
+      "id": "multibyte_greek",
+      "prompt": "\u03a9",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        138,
+        102
+      ]
+    },
+    {
+      "id": "multibyte_emoji",
+      "prompt": "\ud83d\ude00",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        47249,
+        222
+      ]
+    },
+    {
+      "id": "punctuation_digits",
+      "prompt": "hello, world! 123",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        31373,
+        11,
+        995,
+        0,
+        17031
+      ]
+    },
+    {
+      "id": "underscore",
+      "prompt": "a_b",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        64,
+        62,
+        65
+      ]
+    },
+    {
+      "id": "contraction_dont",
+      "prompt": "don't",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        9099,
+        470
+      ]
+    },
+    {
+      "id": "contraction_were",
+      "prompt": "we're",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        732,
+        821
+      ]
+    },
+    {
+      "id": "add_bos_disabled",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        15496,
+        995
+      ]
+    },
+    {
+      "id": "add_bos_default",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        15496,
+        995
+      ]
+    },
+    {
+      "id": "special_token_eot",
+      "prompt": "<|endoftext|>",
+      "reference_flags": [],
+      "token_ids": [
+        50256
+      ]
+    }
+  ]
+}

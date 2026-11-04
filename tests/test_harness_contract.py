@@ -318,6 +318,13 @@ EXPECTED_LANES = {
     # Phase 7A-8 (G0 condition C-1): the clean-clone build entry point. It
     # needs neither the compiled extension nor a GPU, so it is a CPU-lane test.
     "test_build_configure.py": "cpu",
+    # Phase 7A-3: the golden fixtures and their tests. The tokenizer vectors,
+    # the quantized blocks and the tiny GGUF are CPU-lane; the GPU golden
+    # module feeds the same golden blocks through the HIP dequantizers.
+    "test_goldens_tokenizer.py": "cpu",
+    "test_goldens_quant.py": "cpu",
+    "test_goldens_gguf.py": "cpu",
+    "test_goldens_gpu.py": "gpu",
 }
 
 

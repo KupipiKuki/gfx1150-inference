@@ -1,0 +1,249 @@
+# G1 / 7A-3 follow-up diffstat
+# Captured: 2026-11-04T01:30:22Z
+# parent:    c66728ca40a7c5a7ea87866f9bee1f48b8a07c24  (the branch base)
+# candidate: ec72104ff49b06cb1050e05b17e2a65bcf23e241  (the work commit under review)
+
+=== files changed (name-status) ===
+A	audit/evidence/G1/7A-3-followup/README.md
+A	audit/evidence/G1/7A-3-followup/cpu-lane.log
+A	audit/evidence/G1/7A-3-followup/env.txt
+A	audit/evidence/G1/7A-3-followup/generation-commands.log
+A	audit/evidence/G1/7A-3-followup/gpu-lane.log
+A	audit/evidence/G1/7A-3-followup/notes.md
+A	audit/evidence/G1/7A-3-followup/parent-sha.txt
+A	audit/evidence/G1/7A-3-followup/provenance.log
+A	audit/evidence/G1/7A-3-followup/runxfail.log
+A	audit/evidence/G1/7A-3-followup/sdist-contents.log
+A	audit/evidence/G1/7A-3-followup/tokenizer-spm.log
+M	tests/fixtures/PROVENANCE.md
+M	tests/fixtures/make_fixtures.py
+M	tests/fixtures/stories260k_tokenizer_golden.json
+M	tests/test_goldens_tokenizer.py
+=== diffstat ===
+ audit/evidence/G1/7A-3-followup/README.md          |  22 ++
+ audit/evidence/G1/7A-3-followup/cpu-lane.log       | 154 ++++++++++++
+ audit/evidence/G1/7A-3-followup/env.txt            |  32 +++
+ .../G1/7A-3-followup/generation-commands.log       |  98 ++++++++
+ audit/evidence/G1/7A-3-followup/gpu-lane.log       |  46 ++++
+ audit/evidence/G1/7A-3-followup/notes.md           | 195 +++++++++++++++
+ audit/evidence/G1/7A-3-followup/parent-sha.txt     |   1 +
+ audit/evidence/G1/7A-3-followup/provenance.log     | 158 +++++++++++++
+ audit/evidence/G1/7A-3-followup/runxfail.log       | 247 +++++++++++++++++++
+ audit/evidence/G1/7A-3-followup/sdist-contents.log |  49 ++++
+ audit/evidence/G1/7A-3-followup/tokenizer-spm.log  | 261 +++++++++++++++++++++
+ tests/fixtures/PROVENANCE.md                       |   6 +-
+ tests/fixtures/make_fixtures.py                    |  42 +++-
+ tests/fixtures/stories260k_tokenizer_golden.json   | 161 ++++++++++++-
+ tests/test_goldens_tokenizer.py                    | 106 ++++++++-
+ 15 files changed, 1565 insertions(+), 13 deletions(-)
+
+=== scope check: the allowed set is the SentencePiece golden, PROVENANCE.md,
+=== make_fixtures.py, tests/test_goldens_tokenizer.py, the evidence bundle and
+=== docs. None of these changed: ===
+  none — confirmed
+
+=== the fixtures that must NOT have moved ===
+  tests/fixtures/gpt2_tokenizer_golden.json      unchanged
+  tests/fixtures/gpt2_vocab.json                 unchanged
+  tests/fixtures/stories260k_vocab.json          unchanged
+  tests/fixtures/quant_golden.json               unchanged
+  tests/fixtures/tiny_gguf.gguf                  unchanged
+  tests/fixtures/tiny_gguf_expectations.json     unchanged
+  tests/fixtures/q4_0_blocks.bin                 unchanged
+  tests/fixtures/q4_k_blocks.bin                 unchanged
+  tests/fixtures/q6_k_blocks.bin                 unchanged
+
+=== the files that did change ===
+ tests/fixtures/PROVENANCE.md                     |   6 +-
+ tests/fixtures/make_fixtures.py                  |  42 ++++--
+ tests/fixtures/stories260k_tokenizer_golden.json | 161 ++++++++++++++++++++++-
+ tests/test_goldens_tokenizer.py                  | 106 ++++++++++++++-
+ 4 files changed, 302 insertions(+), 13 deletions(-)
+
+=== the SentencePiece golden, in full ===
+diff --git a/tests/fixtures/stories260k_tokenizer_golden.json b/tests/fixtures/stories260k_tokenizer_golden.json
+index 6588587..ad5ebe5 100644
+--- a/tests/fixtures/stories260k_tokenizer_golden.json
++++ b/tests/fixtures/stories260k_tokenizer_golden.json
+@@ -4,7 +4,8 @@
+   "reference": {
+     "project": "ggml-org/llama.cpp",
+     "tool": "llama-tokenize",
+-    "command": "llama-tokenize -m stories260K.gguf -p <prompt> --ids"
++    "command": "llama-tokenize -m stories260K.gguf -p <prompt> --ids [--no-bos] [--no-parse-special]",
++    "add_bos": "the reference adds a BOS token for this vocabulary unless --no-bos is passed; each case records the switch it used"
+   },
+   "vocab": {
+     "id": "stories260k",
+@@ -22,6 +23,7 @@
+       "reference_flags": [
+         "--no-parse-special"
+       ],
++      "add_bos": true,
+       "token_ids": [
+         1,
+         346,
+@@ -31,6 +33,163 @@
+         304,
+         341
+       ]
++    },
++    {
++      "id": "spm_plain_text_no_bos",
++      "prompt": "Hello world",
++      "reference_flags": [
++        "--no-bos",
++        "--no-parse-special"
++      ],
++      "add_bos": false,
++      "token_ids": [
++        346,
++        306,
++        414,
++        263,
++        304,
++        341
++      ]
++    },
++    {
++      "id": "spm_double_space",
++      "prompt": "Hello  world",
++      "reference_flags": [
++        "--no-parse-special"
++      ],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        346,
++        306,
++        414,
++        410,
++        263,
++        304,
++        341
++      ]
++    },
++    {
++      "id": "spm_multibyte_accent",
++      "prompt": "caf\u00e9",
++      "reference_flags": [
++        "--no-parse-special"
++      ],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        280,
++        412,
++        431,
++        485
++      ]
++    },
++    {
++      "id": "spm_multibyte_greek",
++      "prompt": "\u03a9",
++      "reference_flags": [
++        "--no-parse-special"
++      ],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        410,
++        209,
++        172
++      ]
++    },
++    {
++      "id": "spm_multibyte_emoji",
++      "prompt": "\ud83d\ude00",
++      "reference_flags": [
++        "--no-parse-special"
++      ],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        410,
++        243,
++        162,
++        155,
++        131
++      ]
++    },
++    {
++      "id": "spm_punctuation_digits",
++      "prompt": "hello, world! 123",
++      "reference_flags": [
++        "--no-parse-special"
++      ],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        281,
++        306,
++        414,
++        432,
++        263,
++        304,
++        341,
++        443,
++        410,
++        475,
++        479,
++        472
++      ]
++    },
++    {
++      "id": "spm_contraction_were",
++      "prompt": "we're",
++      "reference_flags": [
++        "--no-parse-special"
++      ],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        382,
++        439,
++        276
++      ]
++    },
++    {
++      "id": "spm_contraction_dont",
++      "prompt": "don't",
++      "reference_flags": [
++        "--no-parse-special"
++      ],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        279,
++        289,
++        439,
++        413
++      ]
++    },
++    {
++      "id": "spm_control_token_literal",
++      "prompt": "<s>",
++      "reference_flags": [
++        "--no-parse-special"
++      ],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        410,
++        504,
++        419,
++        505
++      ]
++    },
++    {
++      "id": "spm_control_token_parsed",
++      "prompt": "<s>",
++      "reference_flags": [],
++      "add_bos": true,
++      "token_ids": [
++        1,
++        1
++      ]
+     }
+   ]
+ }

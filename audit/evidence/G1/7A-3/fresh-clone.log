@@ -1,0 +1,50 @@
+# G1 / 7A-3 — the fresh-clone check
+# Captured: 2026-11-04T00:48:05Z
+#
+# The repository's .gitignore excludes '*.bin' and '*.gguf' -- the patterns
+# for model weights. Four of the fixtures match them, so they are committed
+# with 'git add -f'. A plain 'git add' would have skipped them silently, and
+# a fresh clone would then fail the golden tests with no visible cause.
+# This check clones the pushed branch and runs the golden tests there.
+
+$ git clone --branch wp/7A-3-goldens https://github.com/KupipiKuki/gfx1150-inference.git clone3
+$ cd clone3
+$ ls -la tests/fixtures/
+  total 2844
+  drwxrwxr-x 2 kupipi kupipi    4096 Nov  3 19:47 .
+  drwxrwxr-x 4 kupipi kupipi    4096 Nov  3 19:47 ..
+  -rw-rw-r-- 1 kupipi kupipi    3090 Nov  3 19:47 gpt2_tokenizer_golden.json
+  -rw-rw-r-- 1 kupipi kupipi 1350992 Nov  3 19:47 gpt2_vocab.json
+  -rw-rw-r-- 1 kupipi kupipi   21354 Nov  3 19:47 make_fixtures.py
+  -rw-rw-r-- 1 kupipi kupipi   11754 Nov  3 19:47 PROVENANCE.md
+  -rw-rw-r-- 1 kupipi kupipi     576 Nov  3 19:47 q4_0_blocks.bin
+  -rw-rw-r-- 1 kupipi kupipi    2304 Nov  3 19:47 q4_k_blocks.bin
+  -rw-rw-r-- 1 kupipi kupipi    3360 Nov  3 19:47 q6_k_blocks.bin
+  -rw-rw-r-- 1 kupipi kupipi  274424 Nov  3 19:47 quant_golden.json
+  -rw-rw-r-- 1 kupipi kupipi     922 Nov  3 19:47 stories260k_tokenizer_golden.json
+  -rw-rw-r-- 1 kupipi kupipi    6349 Nov  3 19:47 stories260k_vocab.json
+  -rw-rw-r-- 1 kupipi kupipi   23273 Nov  3 19:47 tiny_gguf_expectations.json
+  -rw-rw-r-- 1 kupipi kupipi 1185376 Nov  3 19:47 tiny_gguf.gguf
+
+$ python3 -m pytest tests/test_goldens_tokenizer.py tests/test_goldens_quant.py tests/test_goldens_gguf.py -q
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - 7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS
+XFAIL tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - 7B: special tokens in the input are not encoded as their own token IDs
+36 passed, 2 xfailed, 13 warnings in 0.65s
+  exit code: 0
+
+$ git ls-files tests/fixtures/
+  tests/fixtures/PROVENANCE.md
+  tests/fixtures/gpt2_tokenizer_golden.json
+  tests/fixtures/gpt2_vocab.json
+  tests/fixtures/make_fixtures.py
+  tests/fixtures/q4_0_blocks.bin
+  tests/fixtures/q4_k_blocks.bin
+  tests/fixtures/q6_k_blocks.bin
+  tests/fixtures/quant_golden.json
+  tests/fixtures/stories260k_tokenizer_golden.json
+  tests/fixtures/stories260k_vocab.json
+  tests/fixtures/tiny_gguf.gguf
+  tests/fixtures/tiny_gguf_expectations.json

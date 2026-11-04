@@ -1,0 +1,58 @@
+# Auditor probe transcript — 7A-3
+# Auditor: DeepSeek V4.1 Flash, 2026-11-04
+# Candidate: 2c59c5e · Tip: a9c5785
+
+### Provenance
+$ python audit/evidence/G1/7A-3/verify-provenance.py
+137/137 checks passed
+PASS: every fixture has complete, verified provenance
+
+### Generator independence
+$ grep -nE '^import |^from ' tests/fixtures/make_fixtures.py
+stdlib + numpy only; no src/ references.
+# drives llama-tokenize / llama-quantize / gguf-py
+
+### Fixture size
+2.8M tests/fixtures
+# largest: gpt2_vocab.json 1.35 MB, tiny_gguf.gguf 1.18 MB
+# each <= 2 MB; total 2.75 MiB <= 10 MB
+
+### CPU lane
+$ PYTHONPATH=<build> pytest -m "not gpu" -q
+91 passed, 24 deselected, 2 xfailed
+
+### GPU lane
+$ PYTHONPATH=<build> pytest -m gpu -q
+24 passed, 93 deselected
+
+### runxfail (red evidence)
+$ pytest -m "not gpu" -q --runxfail
+FAILED test_add_bos_default_matches_the_reference_tokenizer
+FAILED test_special_token_is_encoded_as_its_id
+2 failed, 91 passed, 24 deselected
+
+### Offline golden modules, no extension
+$ pytest -q tests/test_goldens_tokenizer.py tests/test_goldens_quant.py tests/test_goldens_gguf.py
+36 passed, 2 xfailed
+
+### sdist
+$ python setup.py sdist
+13 fixture entries (directory + 12 files), incl. tiny_gguf.gguf, goldens, generator, registry
+
+### CI
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/actions/runs/41749187809
+head_sha: 2c59c5e...
+conclusion: success
+
+### Lane registration
+EXPECTED_LANES:
+  test_goldens_tokenizer.py cpu
+  test_goldens_quant.py cpu
+  test_goldens_gguf.py cpu
+  test_goldens_gpu.py gpu
+
+### SentencePiece gap (C-7A3-1)
+$ cat tests/fixtures/stories260k_tokenizer_golden.json
+cases: only "spm_absent_add_bos_metadata" (prompt "Hello world")
+# no plain/double-space/multibyte/BOS on-off SentencePiece vectors
+# test_the_golden_cases_cover_the_required_inputs checks GPT-2 prompts only

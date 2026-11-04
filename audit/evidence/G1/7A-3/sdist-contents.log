@@ -1,0 +1,101 @@
+# G1 / 7A-3 — the sdist contents
+# Captured: 2026-11-04T00:42:14Z
+
+=== the sdist ===
+$ python setup.py sdist --dist-dir dist
+  exit code: 0
+
+
+CMakeLists.txt
+LICENSE
+MANIFEST.in
+PKG-INFO
+pyproject.toml
+README.md
+setup.cfg
+setup.py
+src/
+src/gfx1150_inference.egg-info/
+src/gfx1150_inference.egg-info/dependency_links.txt
+src/gfx1150_inference.egg-info/entry_points.txt
+src/gfx1150_inference.egg-info/PKG-INFO
+src/gfx1150_inference.egg-info/requires.txt
+src/gfx1150_inference.egg-info/SOURCES.txt
+src/gfx1150_inference.egg-info/top_level.txt
+src/gguf_parser.py
+src/inference.py
+src/kernels/
+src/kernels/attention.h
+src/kernels/attention.hip
+src/kernels/dequantize.h
+src/kernels/dequantize.hip
+src/kernels/matmul.h
+src/kernels/matmul.hip
+src/kernels/mlp.h
+src/kernels/mlp.hip
+src/kernels/rmsnorm.h
+src/kernels/rmsnorm.hip
+src/kernels/rope.h
+src/kernels/rope.hip
+src/kv_cache.py
+src/layer.py
+src/python_bindings/
+src/python_bindings/bindings.cpp
+src/tokenizer.py
+src/weight_loader.py
+tests/
+tests/conftest.py
+tests/fixtures/
+tests/fixtures/gpt2_tokenizer_golden.json
+tests/fixtures/gpt2_vocab.json
+tests/fixtures/make_fixtures.py
+tests/fixtures/PROVENANCE.md
+tests/fixtures/q4_0_blocks.bin
+tests/fixtures/q4_k_blocks.bin
+tests/fixtures/q6_k_blocks.bin
+tests/fixtures/quant_golden.json
+tests/fixtures/stories260k_tokenizer_golden.json
+tests/fixtures/stories260k_vocab.json
+tests/fixtures/tiny_gguf_expectations.json
+tests/fixtures/tiny_gguf.gguf
+tests/test_build_configure.py
+tests/test_cpu_only.py
+tests/test_full_model.py
+tests/test_gguf_and_q4.py
+tests/test_goldens_gguf.py
+tests/test_goldens_gpu.py
+tests/test_goldens_quant.py
+tests/test_goldens_tokenizer.py
+tests/test_harness_contract.py
+tests/test_layer.py
+tests/test_matmul.py
+tests/test_phase5_scale.py
+
+=== the fixtures in the sdist ===
+  tests/fixtures/                                 0 bytes
+  tests/fixtures/gpt2_tokenizer_golden.json        0 bytes
+  tests/fixtures/gpt2_vocab.json                  0 bytes
+  tests/fixtures/make_fixtures.py                 0 bytes
+  tests/fixtures/PROVENANCE.md                    0 bytes
+  tests/fixtures/q4_0_blocks.bin                  0 bytes
+  tests/fixtures/q4_k_blocks.bin                  0 bytes
+  tests/fixtures/q6_k_blocks.bin                  0 bytes
+  tests/fixtures/quant_golden.json                0 bytes
+  tests/fixtures/stories260k_tokenizer_golden.json        0 bytes
+  tests/fixtures/stories260k_vocab.json           0 bytes
+  tests/fixtures/tiny_gguf_expectations.json        0 bytes
+  tests/fixtures/tiny_gguf.gguf                   0 bytes
+
+=== the golden tests in the extracted tree ===
+=========================== short test summary info ============================
+XFAIL tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - 7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS
+XFAIL tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - 7B: special tokens in the input are not encoded as their own token IDs
+36 passed, 2 xfailed, 13 warnings in 0.72s
+  exit code: 0
+
+  (the extracted tree has no build/ directory, so the GPU golden tests skip
+   there, as they must on a CPU-only host)
+SKIPPED [3] tests/test_goldens_gpu.py:42: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+SKIPPED [3] tests/test_goldens_gpu.py:66: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+6 skipped, 13 warnings in 0.19s
+  exit code: 0
