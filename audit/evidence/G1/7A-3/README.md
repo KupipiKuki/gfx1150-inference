@@ -15,6 +15,8 @@ all produced by llama.cpp's own tools and registered with full provenance.
 | `gpu-lane.log` | the GPU lane on gfx1150 |
 | `runxfail.log` | the two known-bug goldens failing under `--runxfail` |
 | `sdist-contents.log` | the sdist contents and the golden tests in the extracted tree |
+| `fresh-clone.log` | the golden tests in a fresh clone of the pushed branch (four fixtures need `git add -f`) |
+| `ci-run.log` | the GitHub Actions run: URLs, job names, conclusions |
 | `env.txt` | environment, toolchain, and the pinned references |
 | `diffstat.txt` | the package's file delta and the scope check |
 | `parent-sha.txt` | the branch base (`34f1686`) |

@@ -108,6 +108,7 @@ repository's tokenizer.
 | the provenance check | **137/137** (`provenance.log`) |
 | the sdist contains the fixtures | yes (`sdist-contents.log`) |
 | the golden tests in the extracted sdist tree | **36 passed, 2 xfailed**, exit 0 |
+| the golden tests in a **fresh clone** of the pushed branch | **36 passed, 2 xfailed**, exit 0 (`fresh-clone.log`) |
 | no `src/`, CMake, `setup.py`, `pyproject`, README, PLAN, ledger, baseline or CI change | confirmed by `diffstat.txt` |
 | no test deleted, skipped or weakened | confirmed — the existing tests are untouched; the two new xfails are new tests |
 
@@ -179,6 +180,12 @@ SentencePiece model, and no golden was chosen to hide that.
    is a real upstream model committed verbatim, which is why it is that large;
    a generated file would have been smaller but would have had to be generated
    by *something*, and "something" is where the self-reference creeps in.
+5. **Four fixtures need `git add -f`.** The repository's `.gitignore` excludes
+   `*.bin` and `*.gguf` — the patterns for model weights — and four of the
+   fixtures match them. They are committed with `git add -f`, the
+   `PROVENANCE.md` registry records the command, and `fresh-clone.log` shows
+   the golden tests passing in a fresh clone of the pushed branch. A plain
+   `git add tests/fixtures/` would have skipped them silently.
 5. **7B is not started here.** The two xfails are its work; this package only
    pins them.
 
