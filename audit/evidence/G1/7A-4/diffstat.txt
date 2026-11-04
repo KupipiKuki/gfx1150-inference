@@ -1,0 +1,105 @@
+# G1 / 7A-4 diffstat
+# Captured: 2026-11-04T02:42:12Z
+# parent:    758e500662ffc8783957131641c6e73fdfbb0403  (the branch base)
+# candidate: a14fcfa5e0be1ad4a118a2c0b171881559dc2b04  (the work commit under review)
+
+=== files changed (name-status) ===
+M	.github/workflows/ci-cpu.yml
+A	audit/evidence/G1/7A-4/BLOCKER.md
+A	audit/evidence/G1/7A-4/README.md
+A	audit/evidence/G1/7A-4/cpu-lane.log
+A	audit/evidence/G1/7A-4/env.txt
+A	audit/evidence/G1/7A-4/fuzz-rerun.log
+A	audit/evidence/G1/7A-4/fuzz.log
+A	audit/evidence/G1/7A-4/gpu-lane.log
+A	audit/evidence/G1/7A-4/measure-fuzz-coverage.py
+A	audit/evidence/G1/7A-4/notes.md
+A	audit/evidence/G1/7A-4/parent-sha.txt
+A	audit/evidence/G1/7A-4/sdist-install.log
+A	tests/test_fuzz_gguf.py
+M	tests/test_harness_contract.py
+=== diffstat ===
+ .github/workflows/ci-cpu.yml                    |  12 +-
+ audit/evidence/G1/7A-4/BLOCKER.md               | 114 ++++
+ audit/evidence/G1/7A-4/README.md                |  28 +
+ audit/evidence/G1/7A-4/cpu-lane.log             | 164 ++++++
+ audit/evidence/G1/7A-4/env.txt                  |  30 +
+ audit/evidence/G1/7A-4/fuzz-rerun.log           |  72 +++
+ audit/evidence/G1/7A-4/fuzz.log                 |  83 +++
+ audit/evidence/G1/7A-4/gpu-lane.log             |  46 ++
+ audit/evidence/G1/7A-4/measure-fuzz-coverage.py | 121 ++++
+ audit/evidence/G1/7A-4/notes.md                 | 222 ++++++++
+ audit/evidence/G1/7A-4/parent-sha.txt           |   1 +
+ audit/evidence/G1/7A-4/sdist-install.log        | 345 ++++++++++++
+ tests/test_fuzz_gguf.py                         | 717 ++++++++++++++++++++++++
+ tests/test_harness_contract.py                  |   3 +
+ 14 files changed, 1954 insertions(+), 4 deletions(-)
+
+=== scope check: the allowed set is tests/**, tests/fixtures/**,
+=== .github/workflows/**, audit/evidence/G1/7A-4/** and docs.
+=== None of these changed: ===
+  none — confirmed
+
+=== the CI changes (the only functional edits) ===
+diff --git a/.github/workflows/ci-cpu.yml b/.github/workflows/ci-cpu.yml
+index 619ebde..df5630d 100644
+--- a/.github/workflows/ci-cpu.yml
++++ b/.github/workflows/ci-cpu.yml
+@@ -20,7 +20,7 @@ jobs:
+           python-version: "3.12"
+ 
+       - name: Install test dependencies
+-        run: python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel pytest
++        run: python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel pytest hypothesis
+ 
+       - name: Run self-contained CPU test suite (standard mode)
+         run: python tests/test_cpu_only.py
+@@ -114,7 +114,7 @@ jobs:
+           # setuptools is needed in the venv, not just for the install: the
+           # shipped suite's packaging test (test_v8_b1_pyproject_and_sdist_
+           # contents) builds an sdist with the interpreter that runs the tests.
+-          python -m pip install pytest "setuptools>=64"
++          python -m pip install pytest "setuptools>=64" hypothesis
+           export GFX1150_SKIP_CMAKE=1
+           python -m pip install dist/*.tar.gz
+           python -m pip list
+@@ -185,7 +185,11 @@ jobs:
+           TREE="$(ls -d extracted/*/)"
+           echo "extracted tree: ${TREE}"
+           cd "${TREE}"
+-          python -m pytest -m "not gpu" -q
++          # "slow" is deselected: the deterministic GGUF fuzz (Phase 7A-4) is
++          # marked slow, and the CPU job owns its 10,000-example run. Packaging
++          # stays fast, and the fuzz still has to *import* here, which is why
++          # the venv installs hypothesis.
++          python -m pytest -m "not gpu and not slow" -q
+ 
+       - name: Run the full shipped lane in the extracted sdist tree (C-7A1-5 guard)
+         # The CPU lane alone does NOT detect C-7A1-5: tests/test_cpu_only.py
+@@ -198,5 +202,5 @@ jobs:
+           # shellcheck disable=SC1091
+           . .venv-sdist/bin/activate
+           cd "$(ls -d extracted/*/)"
+-          python -m pytest -q -rs
++          python -m pytest -m "not slow" -q -rs
+ 
+
+=== the harness contract change ===
+diff --git a/tests/test_harness_contract.py b/tests/test_harness_contract.py
+index 139c74d..8e6eeca 100644
+--- a/tests/test_harness_contract.py
++++ b/tests/test_harness_contract.py
+@@ -325,6 +325,9 @@ EXPECTED_LANES = {
+     "test_goldens_quant.py": "cpu",
+     "test_goldens_gguf.py": "cpu",
+     "test_goldens_gpu.py": "gpu",
++    # Phase 7A-4: the deterministic GGUF header fuzz. It is CPU-lane; the fuzz
++    # test itself is marked ``slow`` so that the packaging job can deselect it.
++    "test_fuzz_gguf.py": "cpu",
+ }
+ 
+ 
+
+=== the fuzz module ===
+ tests/test_fuzz_gguf.py | 717 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 717 insertions(+)
