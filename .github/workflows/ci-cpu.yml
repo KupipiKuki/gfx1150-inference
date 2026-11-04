@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install test dependencies
-        run: python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel pytest
+        run: python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel pytest hypothesis
 
       - name: Run self-contained CPU test suite (standard mode)
         run: python tests/test_cpu_only.py
@@ -114,7 +114,7 @@ jobs:
           # setuptools is needed in the venv, not just for the install: the
           # shipped suite's packaging test (test_v8_b1_pyproject_and_sdist_
           # contents) builds an sdist with the interpreter that runs the tests.
-          python -m pip install pytest "setuptools>=64"
+          python -m pip install pytest "setuptools>=64" hypothesis
           export GFX1150_SKIP_CMAKE=1
           python -m pip install dist/*.tar.gz
           python -m pip list
@@ -185,7 +185,11 @@ jobs:
           TREE="$(ls -d extracted/*/)"
           echo "extracted tree: ${TREE}"
           cd "${TREE}"
-          python -m pytest -m "not gpu" -q
+          # "slow" is deselected: the deterministic GGUF fuzz (Phase 7A-4) is
+          # marked slow, and the CPU job owns its 10,000-example run. Packaging
+          # stays fast, and the fuzz still has to *import* here, which is why
+          # the venv installs hypothesis.
+          python -m pytest -m "not gpu and not slow" -q
 
       - name: Run the full shipped lane in the extracted sdist tree (C-7A1-5 guard)
         # The CPU lane alone does NOT detect C-7A1-5: tests/test_cpu_only.py
@@ -198,5 +202,5 @@ jobs:
           # shellcheck disable=SC1091
           . .venv-sdist/bin/activate
           cd "$(ls -d extracted/*/)"
-          python -m pytest -q -rs
+          python -m pytest -m "not slow" -q -rs
 

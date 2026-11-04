@@ -325,6 +325,9 @@ EXPECTED_LANES = {
     "test_goldens_quant.py": "cpu",
     "test_goldens_gguf.py": "cpu",
     "test_goldens_gpu.py": "gpu",
+    # Phase 7A-4: the deterministic GGUF header fuzz. It is CPU-lane; the fuzz
+    # test itself is marked ``slow`` so that the packaging job can deselect it.
+    "test_fuzz_gguf.py": "cpu",
 }
 
 
