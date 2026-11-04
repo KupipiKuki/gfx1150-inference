@@ -1,0 +1,141 @@
+# G1 / 7A-3 diffstat
+# Captured: 2026-11-04T00:47:25Z
+# parent:    34f1686cc2c7941972a2724f8bea02eae18f265a  (the branch base)
+# candidate: 2c59c5e935ce85afacee48cda17a0129bc9926c0  (the work commit under review)
+
+=== files changed (name-status) ===
+M	MANIFEST.in
+A	audit/evidence/G1/7A-3/README.md
+A	audit/evidence/G1/7A-3/cpu-lane.log
+A	audit/evidence/G1/7A-3/env.txt
+A	audit/evidence/G1/7A-3/generation-commands.log
+A	audit/evidence/G1/7A-3/gguf-golden.log
+A	audit/evidence/G1/7A-3/gpu-lane.log
+A	audit/evidence/G1/7A-3/notes.md
+A	audit/evidence/G1/7A-3/parent-sha.txt
+A	audit/evidence/G1/7A-3/provenance.log
+A	audit/evidence/G1/7A-3/quant-golden.log
+A	audit/evidence/G1/7A-3/runxfail.log
+A	audit/evidence/G1/7A-3/sdist-contents.log
+A	audit/evidence/G1/7A-3/tokenizer-golden.log
+A	audit/evidence/G1/7A-3/verify-provenance.py
+M	tests/fixtures/PROVENANCE.md
+A	tests/fixtures/gpt2_tokenizer_golden.json
+A	tests/fixtures/gpt2_vocab.json
+A	tests/fixtures/make_fixtures.py
+A	tests/fixtures/q4_0_blocks.bin
+A	tests/fixtures/q4_k_blocks.bin
+A	tests/fixtures/q6_k_blocks.bin
+A	tests/fixtures/quant_golden.json
+A	tests/fixtures/stories260k_tokenizer_golden.json
+A	tests/fixtures/stories260k_vocab.json
+A	tests/fixtures/tiny_gguf.gguf
+A	tests/fixtures/tiny_gguf_expectations.json
+A	tests/test_goldens_gguf.py
+A	tests/test_goldens_gpu.py
+A	tests/test_goldens_quant.py
+A	tests/test_goldens_tokenizer.py
+M	tests/test_harness_contract.py
+=== diffstat ===
+ MANIFEST.in                                      |    7 +-
+ audit/evidence/G1/7A-3/README.md                 |   25 +
+ audit/evidence/G1/7A-3/cpu-lane.log              |  145 +
+ audit/evidence/G1/7A-3/env.txt                   |   33 +
+ audit/evidence/G1/7A-3/generation-commands.log   |  172 +
+ audit/evidence/G1/7A-3/gguf-golden.log           |   66 +
+ audit/evidence/G1/7A-3/gpu-lane.log              |   67 +
+ audit/evidence/G1/7A-3/notes.md                  |  198 +
+ audit/evidence/G1/7A-3/parent-sha.txt            |    1 +
+ audit/evidence/G1/7A-3/provenance.log            |  219 +
+ audit/evidence/G1/7A-3/quant-golden.log          |  101 +
+ audit/evidence/G1/7A-3/runxfail.log              |  117 +
+ audit/evidence/G1/7A-3/sdist-contents.log        |  101 +
+ audit/evidence/G1/7A-3/tokenizer-golden.log      |  234 +
+ audit/evidence/G1/7A-3/verify-provenance.py      |  184 +
+ tests/fixtures/PROVENANCE.md                     |   99 +-
+ tests/fixtures/gpt2_tokenizer_golden.json        |  156 +
+ tests/fixtures/gpt2_vocab.json                   |    1 +
+ tests/fixtures/make_fixtures.py                  |  574 ++
+ tests/fixtures/q4_0_blocks.bin                   |    4 +
+ tests/fixtures/q4_k_blocks.bin                   |  Bin 0 -> 2304 bytes
+ tests/fixtures/q6_k_blocks.bin                   |  Bin 0 -> 3360 bytes
+ tests/fixtures/quant_golden.json                 | 9269 ++++++++++++++++++++++
+ tests/fixtures/stories260k_tokenizer_golden.json |   36 +
+ tests/fixtures/stories260k_vocab.json            |    1 +
+ tests/fixtures/tiny_gguf.gguf                    |  Bin 0 -> 1185376 bytes
+ tests/fixtures/tiny_gguf_expectations.json       | 1056 +++
+ tests/test_goldens_gguf.py                       |  165 +
+ tests/test_goldens_gpu.py                        |   92 +
+ tests/test_goldens_quant.py                      |  167 +
+ tests/test_goldens_tokenizer.py                  |  193 +
+ tests/test_harness_contract.py                   |    7 +
+ 32 files changed, 13487 insertions(+), 3 deletions(-)
+
+=== scope check: the allowed set is tests/**, tests/fixtures/**,
+=== MANIFEST.in (fixture globs only), audit/evidence/G1/7A-3/** and docs.
+=== None of these changed: ===
+  none — confirmed
+
+=== the changes outside the evidence bundle ===
+ MANIFEST.in                                      |    7 +-
+ tests/fixtures/PROVENANCE.md                     |   99 +-
+ tests/fixtures/gpt2_tokenizer_golden.json        |  156 +
+ tests/fixtures/gpt2_vocab.json                   |    1 +
+ tests/fixtures/make_fixtures.py                  |  574 ++
+ tests/fixtures/q4_0_blocks.bin                   |    4 +
+ tests/fixtures/q4_k_blocks.bin                   |  Bin 0 -> 2304 bytes
+ tests/fixtures/q6_k_blocks.bin                   |  Bin 0 -> 3360 bytes
+ tests/fixtures/quant_golden.json                 | 9269 ++++++++++++++++++++++
+ tests/fixtures/stories260k_tokenizer_golden.json |   36 +
+ tests/fixtures/stories260k_vocab.json            |    1 +
+ tests/fixtures/tiny_gguf.gguf                    |  Bin 0 -> 1185376 bytes
+ tests/fixtures/tiny_gguf_expectations.json       | 1056 +++
+ tests/test_goldens_gguf.py                       |  165 +
+ tests/test_goldens_gpu.py                        |   92 +
+ tests/test_goldens_quant.py                      |  167 +
+ tests/test_goldens_tokenizer.py                  |  193 +
+ tests/test_harness_contract.py                   |    7 +
+ 18 files changed, 11824 insertions(+), 3 deletions(-)
+
+=== MANIFEST.in, in full ===
+diff --git a/MANIFEST.in b/MANIFEST.in
+index 5293c83..a770788 100644
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -5,7 +5,10 @@ recursive-include src/kernels *.h *.hip
+ recursive-include src/python_bindings *.cpp
+ # The pytest harness must ship with the sdist: without tests/conftest.py the
+ # installed tree has no `matmul_module` fixture, so the GPU lane errors instead
+-# of skipping (G0 condition C-7A1-5). 7A-3 adds the fixture globs when its
+-# fixtures land.
++# of skipping (G0 condition C-7A1-5).
+ recursive-include tests *.py
++# Phase 7A-3: the golden fixtures (vocabularies, golden token vectors,
++# quantized blocks and the tiny GGUF) and their generator must ship with the
++# sdist, or the golden tests cannot run against an installed package.
++recursive-include tests/fixtures *
+ 
+
+=== the fixture budget ===
+  PROVENANCE.md                            11754  (the registry, not a fixture)
+  gpt2_tokenizer_golden.json                3090  
+  gpt2_vocab.json                        1350992  
+  make_fixtures.py                         21354  (the registry, not a fixture)
+  q4_0_blocks.bin                            576  
+  q4_k_blocks.bin                           2304  
+  q6_k_blocks.bin                           3360  
+  quant_golden.json                       274424  
+  stories260k_tokenizer_golden.json          922  
+  stories260k_vocab.json                    6349  
+  tiny_gguf.gguf                         1185376  
+  tiny_gguf_expectations.json              23273  
+  -- the fixtures alone --               2850666  (2.71 MiB, every one under the 2 MB limit)
+  -- plus the registry and the generator --   2883774
+
+=== the new test modules ===
+ tests/test_goldens_gguf.py      | 165 ++++++++++++++++++++++++++++++++++
+ tests/test_goldens_gpu.py       |  92 +++++++++++++++++++
+ tests/test_goldens_quant.py     | 167 ++++++++++++++++++++++++++++++++++
+ tests/test_goldens_tokenizer.py | 193 ++++++++++++++++++++++++++++++++++++++++
+ tests/test_harness_contract.py  |   7 ++
+ 5 files changed, 624 insertions(+)

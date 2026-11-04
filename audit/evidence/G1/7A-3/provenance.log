@@ -197,7 +197,7 @@ THE REGISTRY (tests/fixtures/PROVENANCE.md)
 | `gpt2_tokenizer_golden.json` | 3 090 |
 | `stories260k_tokenizer_golden.json` | 922 |
 | `q4_0_blocks.bin` | 576 |
-| **total** | **2 847 668** (2.7 MiB) |
+| **total** | **2 850 666** (2.7 MiB) |
 
 Every fixture is ≤ 2 MB and the total is ≤ 10 MB, as the rules require.
 
