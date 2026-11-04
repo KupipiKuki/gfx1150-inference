@@ -3,4 +3,9 @@ include LICENSE
 include README.md
 recursive-include src/kernels *.h *.hip
 recursive-include src/python_bindings *.cpp
+# The pytest harness must ship with the sdist: without tests/conftest.py the
+# installed tree has no `matmul_module` fixture, so the GPU lane errors instead
+# of skipping (G0 condition C-7A1-5). 7A-3 adds the fixture globs when its
+# fixtures land.
+recursive-include tests *.py
 

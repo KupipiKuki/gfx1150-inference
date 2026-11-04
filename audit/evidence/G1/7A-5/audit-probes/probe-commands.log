@@ -1,0 +1,58 @@
+# Auditor probe transcript — 7A-5
+# Auditor: DeepSeek V4.1 Flash, 2026-11-03
+# Candidate: 3635151 · Tip: e3d2d58
+
+### GitHub API — CI run
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/actions/runs/41739977786
+  head_sha: 36351518903a2f5efd6f011f3e54e760a16a79f0
+  conclusion: success
+  jobs: CPU Parser/Tokenizer/Sampler/Packaging + Sdist Install: success
+
+GET .../commits/e3d2d58/check-runs
+  Sdist Install: success
+  CPU suite: success
+  Clean-clone build: success
+
+### sdist
+$ python setup.py sdist --dist-dir ...
+SDIST_EXIT=0
+$ tar tzf dist/*.tar.gz | grep -E 'tests/(conftest|test_harness_contract|test_cpu_only)\.py'
+gfx1150_inference-0.6.1/tests/conftest.py
+gfx1150_inference-0.6.1/tests/test_cpu_only.py
+gfx1150_inference-0.6.1/tests/test_harness_contract.py
+# 9 tests/*.py entries
+
+### clean install + module split
+$ python -m venv .venv-sdist
+$ .venv-sdist/bin/pip install pytest "setuptools>=64"
+$ GFX1150_SKIP_CMAKE=1 .venv-sdist/bin/pip install dist/*.tar.gz
+INSTALL_EXIT=0
+# from a neutral directory:
+ok matmul_module absent
+ok gguf_parser   .../.venv-sdist/lib/.../site-packages/gguf_parser.py
+ok tokenizer     .../.venv-sdist/lib/.../site-packages/tokenizer.py
+ok weight_loader .../.venv-sdist/lib/.../site-packages/weight_loader.py
+ok kv_cache raised: Failed to import 'matmul_module' HIP extension...
+ok layer     raised: Failed to import 'matmul_module' HIP extension...
+ok inference raised: Failed to import 'matmul_module' HIP extension...
+
+### extracted tree — CPU lane / full lane
+# without ROCM_ROOT override on this ROCm host:
+$ pytest -m "not gpu" -q
+FAILED tests/test_build_configure.py::test_documented_configure_succeeds_with_the_hip_toolchain
+1 failed, 41 passed, 1 skipped, 18 deselected
+# with the CPU-only simulation:
+$ ROCM_ROOT=/nonexistent-rocm pytest -m "not gpu" -q
+41 passed, 2 skipped, 18 deselected
+$ ROCM_ROOT=/nonexistent-rocm pytest -q -rs
+41 passed, 20 skipped
+
+### 7A-2 closeout
+$ python audit/evidence/G1/7A-5/verify-pytest-config.py
+17/17 checks passed
+$ python tests/test_cpu_only.py      -> 12/12 OK
+$ python -O tests/test_cpu_only.py   -> 12/12 OK
+
+### Scope
+$ git diff --stat 180fc2d..e3d2d58 -- src tests CMakeLists.txt setup.py pyproject.toml README.md IMPLEMENTATION_PLAN.md scripts/qa audit/CLAIMS_LEDGER.md audit/claims_baseline.txt
+(empty)
