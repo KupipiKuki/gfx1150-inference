@@ -1,0 +1,36 @@
+{
+  "schema": "gfx1150-inference/tokenizer-golden/1",
+  "id": "stories260k",
+  "reference": {
+    "project": "ggml-org/llama.cpp",
+    "tool": "llama-tokenize",
+    "command": "llama-tokenize -m stories260K.gguf -p <prompt> --ids"
+  },
+  "vocab": {
+    "id": "stories260k",
+    "upstream": "ggml-org/models",
+    "upstream_revision": "ggml-org/models@main:tinyllamas/stories260K.gguf",
+    "source_gguf_sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
+    "fixture_sha256": "83087209d2555019d790b98408e307e8693d51441a91c253b367e9c9c0fbe7e7",
+    "n_tokens": 512,
+    "add_bos_token_metadata": "absent"
+  },
+  "cases": [
+    {
+      "id": "spm_absent_add_bos_metadata",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        1,
+        346,
+        306,
+        414,
+        263,
+        304,
+        341
+      ]
+    }
+  ]
+}

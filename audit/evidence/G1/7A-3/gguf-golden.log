@@ -1,0 +1,66 @@
+# G1 / 7A-3 — the tiny GGUF golden
+# Captured: 2026-11-04T00:42:14Z
+
+=== the fixture ===
+  tests/fixtures/tiny_gguf.gguf
+  sha256: 270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d
+  upstream: ggml-org/models  tinyllamas/stories260K.gguf  (committed verbatim)
+
+=== the expectations, as read by llama.cpp's own GGUF reader (gguf-py) ===
+reference: {
+  "project": "ggml-org/llama.cpp",
+  "tool": "gguf-py (llama.cpp's own GGUF reader)"
+}
+metadata:
+  tokenizer.ggml.tokens                        {'type': 'array', 'length': 512, 'first': ['<unk>', '<s>', '</s>', '<0x00>']}
+  tokenizer.ggml.scores                        {'type': 'array', 'length': 512, 'first': [0.0, 0.0, 0.0, 0.0]}
+  tokenizer.ggml.token_type                    {'type': 'array', 'length': 512, 'first': [2, 3, 3, 6]}
+  tokenizer.ggml.model                         llama
+  general.architecture                         llama
+  general.name                                 llama
+  tokenizer.ggml.unknown_token_id              0
+  tokenizer.ggml.bos_token_id                  1
+  tokenizer.ggml.eos_token_id                  2
+  tokenizer.ggml.seperator_token_id            4294967295
+  tokenizer.ggml.padding_token_id              4294967295
+  llama.context_length                         2048
+  llama.embedding_length                       64
+  llama.feed_forward_length                    172
+  llama.attention.head_count                   8
+  llama.attention.head_count_kv                4
+  llama.block_count                            5
+  llama.rope.dimension_count                   8
+  llama.attention.layer_norm_rms_epsilon       9.999999747378752e-06
+tensors (48):
+  token_embd.weight            F32   ne=[64, 512] n_bytes=131072 offset=14176 first=[-0.29474878311157227, 0.5618956089019775, 0.1754225343465805]
+  output_norm.weight           F32   ne=[64] n_bytes=256 offset=145248 first=[2.4583089351654053, 1.3673226833343506, 1.7504382133483887]
+  output.weight                F32   ne=[64, 512] n_bytes=131072 offset=145504 first=[-0.29474878311157227, 0.5618956089019775, 0.1754225343465805]
+  blk.0.attn_q.weight          F32   ne=[64, 64] n_bytes=16384 offset=276576 first=[0.04439278692007065, 0.07974770665168762, -0.008925346657633781]
+  blk.0.attn_k.weight          F32   ne=[64, 32] n_bytes=8192 offset=292960 first=[0.2161301076412201, 0.18407107889652252, -0.21698929369449615]
+  blk.0.attn_v.weight          F32   ne=[64, 32] n_bytes=8192 offset=301152 first=[0.09112543612718582, 0.03702841326594353, -0.08276227116584778]
+  ... (48 tensors in total)
+
+=== the GGUF golden tests ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 8 items
+tests/test_goldens_gguf.py::test_the_fixture_is_the_upstream_file PASSED [ 12%]
+tests/test_goldens_gguf.py::test_metadata_matches_the_reference_reader PASSED [ 25%]
+tests/test_goldens_gguf.py::test_tensor_descriptors_match_the_reference_reader PASSED [ 37%]
+tests/test_goldens_gguf.py::test_the_tensor_offsets_are_aligned PASSED   [ 50%]
+tests/test_goldens_gguf.py::test_the_data_section_starts_after_the_header PASSED [ 62%]
+tests/test_goldens_gguf.py::test_the_zero_copy_values_match_the_reference PASSED [ 75%]
+tests/test_goldens_gguf.py::test_the_tensor_shapes_are_transposed_by_the_parser PASSED [ 87%]
+tests/test_goldens_gguf.py::test_the_model_type_is_the_expected_ggml_type PASSED [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 8 passed, 13 warnings in 0.18s ========================
+--- exit code: 0 ---

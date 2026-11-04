@@ -1,0 +1,117 @@
+# G1 / 7A-3 — the known-bug goldens under --runxfail
+# Captured: 2026-11-04T00:42:14Z
+
+# The two known open bugs (7B) are xfail(strict=True) in the normal run, so
+# that G1 stays green. With --runxfail the xfail is disabled and the tests
+# must FAIL -- for the expected reason, not by accident. This log is the
+# red evidence the brief asks for.
+
+=== pytest tests/test_goldens_tokenizer.py --runxfail ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 16 items
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[plain_text] PASSED [  6%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[double_space] PASSED [ 12%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_accent] PASSED [ 18%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_greek] PASSED [ 25%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_emoji] PASSED [ 31%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[punctuation_digits] PASSED [ 37%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[underscore] PASSED [ 43%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[contraction_dont] PASSED [ 50%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[contraction_were] PASSED [ 56%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[add_bos_disabled] PASSED [ 62%]
+tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer FAILED [ 68%]
+tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id FAILED [ 75%]
+tests/test_goldens_tokenizer.py::test_absent_add_bos_metadata_matches_the_reference_tokenizer PASSED [ 81%]
+tests/test_goldens_tokenizer.py::test_the_vocabulary_fixture_matches_its_recorded_hash PASSED [ 87%]
+tests/test_goldens_tokenizer.py::test_the_golden_cases_cover_the_required_inputs PASSED [ 93%]
+tests/test_goldens_tokenizer.py::test_decode_round_trips_the_golden_text PASSED [100%]
+=================================== FAILURES ===================================
+_____________ test_add_bos_default_matches_the_reference_tokenizer _____________
+    @pytest.mark.xfail(
+        strict=True,
+        reason="7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS",
+    )
+    def test_add_bos_default_matches_the_reference_tokenizer() -> None:
+        """The default BOS handling must match the reference (known bug, 7B).
+    
+        The vocabulary has no ``tokenizer.ggml.add_bos_token`` metadata, so the
+        reference adds no BOS token. This repository's tokenizer always prepends
+        one, which is the open bug this test pins.
+        """
+        case = _GPT2_CASES["add_bos_default"]
+        tokenizer = _build_tokenizer(_GPT2_VOCAB)
+>       assert tokenizer.encode(case["prompt"]) == case["token_ids"], (
+            "the tokenizer must not add a BOS token when the vocabulary's metadata "
+            "does not ask for one"
+        )
+E       AssertionError: the tokenizer must not add a BOS token when the vocabulary's metadata does not ask for one
+E       assert [50256, 15496, 995] == [15496, 995]
+E         
+E         At index 0 diff: 50256 != 15496
+E         Left contains one more item: 995
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         +     50256,...
+E         
+E         ...Full output truncated, use '-vv' to show
+tests/test_goldens_tokenizer.py:117: AssertionError
+___________________ test_special_token_is_encoded_as_its_id ____________________
+    @pytest.mark.xfail(
+        strict=True,
+        reason="7B: special tokens in the input are not encoded as their own token IDs",
+    )
+    def test_special_token_is_encoded_as_its_id() -> None:
+        """A special token in the text must be encoded as that token's ID (7B).
+    
+        The reference parses special tokens and emits their ID; this repository's
+        tokenizer treats the text as ordinary characters.
+        """
+        case = _GPT2_CASES["special_token_eot"]
+        tokenizer = _build_tokenizer(_GPT2_VOCAB)
+>       assert tokenizer.encode(case["prompt"], add_bos=False) == case["token_ids"], (
+            "a special token in the input must be encoded as its own token ID"
+        )
+E       AssertionError: a special token in the input must be encoded as its own token ID
+E       assert [27, 91, 437,...5239, 91, ...] == [50256]
+E         
+E         At index 0 diff: 27 != 50256
+E         Left contains 6 more items, first extra item: 91
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         -     50256,...
+E         
+E         ...Full output truncated, use '-vv' to show
+tests/test_goldens_tokenizer.py:135: AssertionError
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer
+FAILED tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id
+================== 2 failed, 14 passed, 13 warnings in 0.62s ===================
+--- exit code: 1 ---
+
+=== the whole suite under --runxfail (only the two known bugs may fail) ===
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer
+FAILED tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id
+2 failed, 115 passed, 14 warnings in 7.01s
+--- exit code: 1 ---

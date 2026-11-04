@@ -1,0 +1,219 @@
+# G1 / 7A-3 — the provenance of every fixture
+# Captured: 2026-11-04T00:42:14Z
+#
+# The check below is mechanical: verify-provenance.py (committed next to this
+# log) parses tests/fixtures/PROVENANCE.md and verifies that every fixture on
+# disk has a row, that every row is complete, and that every recorded
+# output hash matches the file's actual hash. The upstream input hashes are
+# checked too, so a fixture cannot be quietly replaced.
+
+=== verifying the provenance of /home/kupipi/Documents/git/gfx1150-inference/tests/fixtures ===
+  [ok  ] the registry has rows -- 10 rows
+  [ok  ] every fixture on disk has a provenance row -- 10 fixtures
+  [ok  ] every registered row points at a file that exists
+  [ok  ] gpt2_vocab.json: the 'id' field is filled in
+  [ok  ] gpt2_vocab.json: the 'path' field is filled in
+  [ok  ] gpt2_vocab.json: the 'kind' field is filled in
+  [ok  ] gpt2_vocab.json: the 'source' field is filled in
+  [ok  ] gpt2_vocab.json: the 'command' field is filled in
+  [ok  ] gpt2_vocab.json: the 'input_sha256' field is filled in
+  [ok  ] gpt2_vocab.json: the 'output_sha256' field is filled in
+  [ok  ] gpt2_vocab.json: the 'license' field is filled in
+  [ok  ] gpt2_vocab.json: the 'notes' field is filled in
+  [ok  ] gpt2_vocab.json: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- tokenizer-vector
+  [ok  ] gpt2_vocab.json: the recorded output hash matches the file -- 6d69121d9abb291574dfa7087d6c2004b35caa4f0c53deef876aedecf71f3212
+  [ok  ] gpt2_vocab.json: the source names an upstream project -- openai-community/gpt2@607a30d783dfa663caf39e06633721c8d4cfcd7e` (vocabulary) + `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (format)
+  [ok  ] gpt2_vocab.json: the license is recorded -- MIT (GPT-2)
+  [ok  ] gpt2_tokenizer_golden.json: the 'id' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the 'path' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the 'kind' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the 'source' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the 'command' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the 'input_sha256' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the 'output_sha256' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the 'license' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the 'notes' field is filled in
+  [ok  ] gpt2_tokenizer_golden.json: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- tokenizer-vector
+  [ok  ] gpt2_tokenizer_golden.json: the recorded output hash matches the file -- 58200852c309ee0cb933267dd4903df6fc992c41766ad7e3a73410946c3f8315
+  [ok  ] gpt2_tokenizer_golden.json: the source names an upstream project -- ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247
+  [ok  ] gpt2_tokenizer_golden.json: the license is recorded -- MIT (GPT-2)
+  [ok  ] stories260k_vocab.json: the 'id' field is filled in
+  [ok  ] stories260k_vocab.json: the 'path' field is filled in
+  [ok  ] stories260k_vocab.json: the 'kind' field is filled in
+  [ok  ] stories260k_vocab.json: the 'source' field is filled in
+  [ok  ] stories260k_vocab.json: the 'command' field is filled in
+  [ok  ] stories260k_vocab.json: the 'input_sha256' field is filled in
+  [ok  ] stories260k_vocab.json: the 'output_sha256' field is filled in
+  [ok  ] stories260k_vocab.json: the 'license' field is filled in
+  [ok  ] stories260k_vocab.json: the 'notes' field is filled in
+  [ok  ] stories260k_vocab.json: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- tokenizer-vector
+  [ok  ] stories260k_vocab.json: the recorded output hash matches the file -- 83087209d2555019d790b98408e307e8693d51441a91c253b367e9c9c0fbe7e7
+  [ok  ] stories260k_vocab.json: the source names an upstream project -- ggml-org/models` `tinyllamas/stories260K.gguf
+  [ok  ] stories260k_vocab.json: the license is recorded -- Apache-2.0
+  [ok  ] stories260k_tokenizer_golden.json: the 'id' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the 'path' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the 'kind' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the 'source' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the 'command' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the 'input_sha256' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the 'output_sha256' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the 'license' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the 'notes' field is filled in
+  [ok  ] stories260k_tokenizer_golden.json: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- tokenizer-vector
+  [ok  ] stories260k_tokenizer_golden.json: the recorded output hash matches the file -- 3ec515b072b54e876076c69e13ca723a6f4a8116b77efac78d02b6a3b75b18c5
+  [ok  ] stories260k_tokenizer_golden.json: the source names an upstream project -- ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247
+  [ok  ] stories260k_tokenizer_golden.json: the license is recorded -- Apache-2.0
+  [ok  ] q4_0_blocks.bin: the 'id' field is filled in
+  [ok  ] q4_0_blocks.bin: the 'path' field is filled in
+  [ok  ] q4_0_blocks.bin: the 'kind' field is filled in
+  [ok  ] q4_0_blocks.bin: the 'source' field is filled in
+  [ok  ] q4_0_blocks.bin: the 'command' field is filled in
+  [ok  ] q4_0_blocks.bin: the 'input_sha256' field is filled in
+  [ok  ] q4_0_blocks.bin: the 'output_sha256' field is filled in
+  [ok  ] q4_0_blocks.bin: the 'license' field is filled in
+  [ok  ] q4_0_blocks.bin: the 'notes' field is filled in
+  [ok  ] q4_0_blocks.bin: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- quant-block
+  [ok  ] q4_0_blocks.bin: the recorded output hash matches the file -- e7b0b06400e43fddc2fddf79c06d62bbe36476d675f6e4b1bc20c46efae84e42
+  [ok  ] q4_0_blocks.bin: the source names an upstream project -- ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (quantizer) + `ggml-org/models` `tinyllamas/stories15M.gguf` (source)
+  [ok  ] q4_0_blocks.bin: the license is recorded -- Apache-2.0
+  [ok  ] q4_k_blocks.bin: the 'id' field is filled in
+  [ok  ] q4_k_blocks.bin: the 'path' field is filled in
+  [ok  ] q4_k_blocks.bin: the 'kind' field is filled in
+  [ok  ] q4_k_blocks.bin: the 'source' field is filled in
+  [ok  ] q4_k_blocks.bin: the 'command' field is filled in
+  [ok  ] q4_k_blocks.bin: the 'input_sha256' field is filled in
+  [ok  ] q4_k_blocks.bin: the 'output_sha256' field is filled in
+  [ok  ] q4_k_blocks.bin: the 'license' field is filled in
+  [ok  ] q4_k_blocks.bin: the 'notes' field is filled in
+  [ok  ] q4_k_blocks.bin: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- quant-block
+  [ok  ] q4_k_blocks.bin: the recorded output hash matches the file -- 7729550d2c6028d5330afe51a5c393acfa3b2cb22125ba5c95fd65eebe52efbc
+  [ok  ] q4_k_blocks.bin: the source names an upstream project -- ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (quantizer) + `ggml-org/models` `tinyllamas/stories15M.gguf` (source)
+  [ok  ] q4_k_blocks.bin: the license is recorded -- Apache-2.0
+  [ok  ] q6_k_blocks.bin: the 'id' field is filled in
+  [ok  ] q6_k_blocks.bin: the 'path' field is filled in
+  [ok  ] q6_k_blocks.bin: the 'kind' field is filled in
+  [ok  ] q6_k_blocks.bin: the 'source' field is filled in
+  [ok  ] q6_k_blocks.bin: the 'command' field is filled in
+  [ok  ] q6_k_blocks.bin: the 'input_sha256' field is filled in
+  [ok  ] q6_k_blocks.bin: the 'output_sha256' field is filled in
+  [ok  ] q6_k_blocks.bin: the 'license' field is filled in
+  [ok  ] q6_k_blocks.bin: the 'notes' field is filled in
+  [ok  ] q6_k_blocks.bin: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- quant-block
+  [ok  ] q6_k_blocks.bin: the recorded output hash matches the file -- 544b0bf8f79a82fc21546d3fb3c6d87a1da3753e419a80b114d322ba5db6cec8
+  [ok  ] q6_k_blocks.bin: the source names an upstream project -- ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (quantizer) + `ggml-org/models` `tinyllamas/stories15M.gguf` (source)
+  [ok  ] q6_k_blocks.bin: the license is recorded -- Apache-2.0
+  [ok  ] quant_golden.json: the 'id' field is filled in
+  [ok  ] quant_golden.json: the 'path' field is filled in
+  [ok  ] quant_golden.json: the 'kind' field is filled in
+  [ok  ] quant_golden.json: the 'source' field is filled in
+  [ok  ] quant_golden.json: the 'command' field is filled in
+  [ok  ] quant_golden.json: the 'input_sha256' field is filled in
+  [ok  ] quant_golden.json: the 'output_sha256' field is filled in
+  [ok  ] quant_golden.json: the 'license' field is filled in
+  [ok  ] quant_golden.json: the 'notes' field is filled in
+  [ok  ] quant_golden.json: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- quant-block
+  [ok  ] quant_golden.json: the recorded output hash matches the file -- 176adb3d91ae7c9450ce1934cfb9a96bff7f879d92bc10ebed8baebe5365074f
+  [ok  ] quant_golden.json: the source names an upstream project -- ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (`gguf-py`, the reference NumPy dequantizer)
+  [ok  ] quant_golden.json: the license is recorded -- Apache-2.0 (derived)
+  [ok  ] tiny_gguf.gguf: the 'id' field is filled in
+  [ok  ] tiny_gguf.gguf: the 'path' field is filled in
+  [ok  ] tiny_gguf.gguf: the 'kind' field is filled in
+  [ok  ] tiny_gguf.gguf: the 'source' field is filled in
+  [ok  ] tiny_gguf.gguf: the 'command' field is filled in
+  [ok  ] tiny_gguf.gguf: the 'input_sha256' field is filled in
+  [ok  ] tiny_gguf.gguf: the 'output_sha256' field is filled in
+  [ok  ] tiny_gguf.gguf: the 'license' field is filled in
+  [ok  ] tiny_gguf.gguf: the 'notes' field is filled in
+  [ok  ] tiny_gguf.gguf: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- tiny-model
+  [ok  ] tiny_gguf.gguf: the recorded output hash matches the file -- 270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d
+  [ok  ] tiny_gguf.gguf: the source names an upstream project -- ggml-org/models` `tinyllamas/stories260K.gguf
+  [ok  ] tiny_gguf.gguf: the license is recorded -- Apache-2.0
+  [ok  ] tiny_gguf_expectations.json: the 'id' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the 'path' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the 'kind' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the 'source' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the 'command' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the 'input_sha256' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the 'output_sha256' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the 'license' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the 'notes' field is filled in
+  [ok  ] tiny_gguf_expectations.json: the kind is one of ('tokenizer-vector', 'quant-block', 'gguf-header', 'tiny-model') -- gguf-header
+  [ok  ] tiny_gguf_expectations.json: the recorded output hash matches the file -- 5a8666f223c652b8adbaf3fccef06aacc9f9432c626a766715d6c4a63f87fca8
+  [ok  ] tiny_gguf_expectations.json: the source names an upstream project -- ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (`gguf-py`, the reference GGUF reader)
+  [ok  ] tiny_gguf_expectations.json: the license is recorded -- Apache-2.0 (derived)
+
+=== the upstream input hashes ===
+  [ok  ] the provenance quotes the hash of vocab.json -- 196139668be63f3b5d6574427317ae82f612a97c5d1cdaf36ed2256dbf636783
+  [ok  ] the provenance quotes the hash of merges.txt -- 1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5
+  [ok  ] the provenance quotes the hash of stories260K.gguf -- 270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d
+  [ok  ] the provenance quotes the hash of stories15M.gguf -- 61b50d457809a5194818fd22e6724b456cd7bb9a6264c52c8110684c53f3704a
+
+=== 137/137 checks passed ===
+PASS: every fixture has complete, verified provenance
+--- exit code: 0 ---
+
+================================================================================
+THE REGISTRY (tests/fixtures/PROVENANCE.md)
+================================================================================
+
+## Registry
+
+| id | path | kind | source | command | input_sha256 | output_sha256 | license | notes |
+|---|---|---|---|---|---|---|---|---|
+| `gpt2-vocab` | `gpt2_vocab.json` | tokenizer-vector | `openai-community/gpt2@607a30d783dfa663caf39e06633721c8d4cfcd7e` (vocabulary) + `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (format) | `make_fixtures.py tokenizer` (reads `vocab.json` + `merges.txt`, writes the GGUF metadata form) | `vocab.json` `196139668be63f3b5d6574427317ae82f612a97c5d1cdaf36ed2256dbf636783`, `merges.txt` `1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5` | `6d69121d9abb291574dfa7087d6c2004b35caa4f0c53deef876aedecf71f3212` | MIT (GPT-2) | 50 257 byte-level BPE tokens + 50 000 merges. The vocabulary is *input data* for the tokenizer test, not a golden: the golden is the token IDs below. `tokenizer.ggml.add_bos_token` is **absent** (GPT-2 has no BOS), which is what pins the `add_bos` behaviour. |
+| `gpt2-tokenizer-golden` | `gpt2_tokenizer_golden.json` | tokenizer-vector | `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` | `llama-tokenize -m gpt2-vocab.gguf -p <prompt> --ids [--no-bos] [--no-parse-special]` | the vocabulary above | `58200852c309ee0cb933267dd4903df6fc992c41766ad7e3a73410946c3f8315` | MIT (GPT-2) | 12 cases: plain text, double spaces, `café`, `Ω`, an emoji, punctuation + digits, `a_b`, two contractions, the BOS switch (off and default) and the `<\|endoftext\|>` special token. The two known open bugs (`add_bos`, special tokens) are `xfail(strict=True)` until 7B. |
+| `stories260k-vocab` | `stories260k_vocab.json` | tokenizer-vector | `ggml-org/models` `tinyllamas/stories260K.gguf` | `make_fixtures.py tokenizer` (reads the upstream GGUF with `gguf-py`) | `270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d` | `83087209d2555019d790b98408e307e8693d51441a91c253b367e9c9c0fbe7e7` | Apache-2.0 | 512 SentencePiece tokens with byte fallback. Used **only** for the "metadata absent" `add_bos` case: this GGUF carries no `tokenizer.ggml.add_bos_token` key, so the reference adds a BOS. |
+| `stories260k-tokenizer-golden` | `stories260k_tokenizer_golden.json` | tokenizer-vector | `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` | `llama-tokenize -m stories260K.gguf -p "Hello world" --ids` | `270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d` | `3ec515b072b54e876076c69e13ca723a6f4a8116b77efac78d02b6a3b75b18c5` | Apache-2.0 | One case: the BOS is added because the metadata is absent. |
+| `q4_0-blocks` | `q4_0_blocks.bin` | quant-block | `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (quantizer) + `ggml-org/models` `tinyllamas/stories15M.gguf` (source) | `llama-quantize --allow-requantize --output-tensor-type F16 stories15M.gguf out.gguf Q4_0`; the first 32 blocks of `blk.0.attn_q.weight` are extracted | `stories15M.gguf` `61b50d457809a5194818fd22e6724b456cd7bb9a6264c52c8110684c53f3704a` | `e7b0b06400e43fddc2fddf79c06d62bbe36476d675f6e4b1bc20c46efae84e42` | Apache-2.0 | 32 blocks × 32 weights = 1024 weights, 18 bytes per block. **Machine-checkable provenance:** llama.cpp's own NumPy quantizer (`gguf-py`) re-quantizes the source tensor to byte-identical bytes (`numpy_requantize_is_byte_identical: true` in `quant_golden.json`). |
+| `q4_k-blocks` | `q4_k_blocks.bin` | quant-block | `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (quantizer) + `ggml-org/models` `tinyllamas/stories15M.gguf` (source) | `llama-quantize ... Q4_K`; the first 16 super-blocks of `blk.0.ffn_down.weight` | `61b50d457809a5194818fd22e6724b456cd7bb9a6264c52c8110684c53f3704a` | `7729550d2c6028d5330afe51a5c393acfa3b2cb22125ba5c95fd65eebe52efbc` | Apache-2.0 | 16 super-blocks × 256 weights = 4096 weights, 144 bytes per block. `gguf-py` has no NumPy *quantizer* for Q4_K, so the byte-identity cross-check is unavailable for this type; the expected values still come from llama.cpp's NumPy *dequantizer*. |
+| `q6_k-blocks` | `q6_k_blocks.bin` | quant-block | `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (quantizer) + `ggml-org/models` `tinyllamas/stories15M.gguf` (source) | `llama-quantize ... Q6_K`; the first 16 super-blocks of `blk.0.ffn_down.weight` | `61b50d457809a5194818fd22e6724b456cd7bb9a6264c52c8110684c53f3704a` | `544b0bf8f79a82fc21546d3fb3c6d87a1da3753e419a80b114d322ba5db6cec8` | Apache-2.0 | 16 super-blocks × 256 weights = 4096 weights, 210 bytes per block. |
+| `quant-golden` | `quant_golden.json` | quant-block | `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (`gguf-py`, the reference NumPy dequantizer) | `make_fixtures.py quant` | the three `.bin` fixtures above | `176adb3d91ae7c9450ce1934cfb9a96bff7f879d92bc10ebed8baebe5365074f` | Apache-2.0 (derived) | The expected FP32 values for every block, plus the block layout and the byte hashes. The repository's CPU dequantizers reproduce the FP16 rounding of these values **exactly** (no tolerance). |
+| `tiny-gguf` | `tiny_gguf.gguf` | tiny-model | `ggml-org/models` `tinyllamas/stories260K.gguf` | downloaded verbatim from the upstream repository | `270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d` | `270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d` | Apache-2.0 | A **real** upstream GGUF, committed verbatim (not generated): 48 F32 tensors, a 512-token SentencePiece vocabulary, `general.alignment` absent (the default 32 applies). Exercises `GGUFParser` and `WeightStreamer`. |
+| `tiny-gguf-expectations` | `tiny_gguf_expectations.json` | gguf-header | `ggml-org/llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247` (`gguf-py`, the reference GGUF reader) | `make_fixtures.py gguf-expectations` | `270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d` | `5a8666f223c652b8adbaf3fccef06aacc9f9432c626a766715d6c4a63f87fca8` | Apache-2.0 (derived) | The metadata, the tensor descriptors (name, type, `ne`, size, offset) and the first values of each tensor, as read by llama.cpp -- **not** by this repository's parser. |
+
+## Scope and tolerances
+
+- The token-ID goldens are **exact**: the token IDs must match llama.cpp's
+  element for element.
+- The dequantization goldens are **exact** in FP16: the repository's CPU
+  dequantizers and the HIP kernels reproduce the FP16 rounding of llama.cpp's
+  FP32 reference values with no tolerance at all.
+- The GGUF expectations are **exact** for the metadata, the descriptors and the
+  recorded values.
+- The golden tests never call this repository's tokenizer, quantizer or parser
+  to *derive* an expected value. They only compare against the fixtures.
+
+## Size budget
+
+| fixture | bytes |
+|---|---|
+| `gpt2_vocab.json` | 1 350 992 |
+| `tiny_gguf.gguf` | 1 185 376 |
+| `quant_golden.json` | 274 424 |
+| `tiny_gguf_expectations.json` | 23 273 |
+| `q6_k_blocks.bin` | 3 360 |
+| `q4_k_blocks.bin` | 2 304 |
+| `stories260k_vocab.json` | 6 349 |
+| `gpt2_tokenizer_golden.json` | 3 090 |
+| `stories260k_tokenizer_golden.json` | 922 |
+| `q4_0_blocks.bin` | 576 |
+| **total** | **2 847 668** (2.7 MiB) |
+
+Every fixture is ≤ 2 MB and the total is ≤ 10 MB, as the rules require.
+
+### A note on `git add`
+
+The repository's `.gitignore` excludes `*.bin` and `*.gguf` — the patterns for
+model weights, not for fixtures. The four binary fixtures above are therefore
+committed with `git add -f`:
+
+```bash
+git add -f tests/fixtures/*.bin tests/fixtures/*.gguf
+```
+
+A plain `git add tests/fixtures/` would **silently skip** them, which would
+leave the golden tests failing on a fresh clone with no visible cause. The
+provenance check (`audit/evidence/G1/7A-3/verify-provenance.py`) compares the
+files on disk against this registry, so a fixture that was not committed shows
+up as a missing file rather than as a silent gap.
+
