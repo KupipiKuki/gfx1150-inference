@@ -1,9 +1,10 @@
 # BLOCKER-7A4-1 — the GGUF parser recurses on nested metadata arrays
 
-**Status:** open. **Found by:** Phase 7A-4 (deterministic GGUF fuzz).
+**Status:** **fixed by Phase 7A-9** (`wp/7A-9-gguf-array-fix`; see
+`audit/evidence/G1/7A-9/`). **Found by:** Phase 7A-4 (deterministic GGUF fuzz).
 **Filed:** 2026-11-04. **Branch:** `wp/7A-4-fuzz`.
-**Not fixed here:** Phase 7A-4 does not touch `src/`. The fix is a new work
-package.
+**Not fixed here:** Phase 7A-4 does not touch `src/`. The fix landed in the
+new work package 7A-9.
 
 ---
 
@@ -58,9 +59,10 @@ parser raise an exception it does not document.
 ## 3. Why it matters
 
 1. **The contract is broken.** A caller that catches `ValueError` — which is
-   what the parser's own documentation and every caller in this repository do
-   — does not catch `RecursionError`. The malformed file escapes as an
-   unexpected exception.
+   what the parser's documented contract is (asserted by the test suite) and
+   what its callers in this repository and any external consumers following
+   the documented contract do — does not catch `RecursionError`. The
+   malformed file escapes as an unexpected exception.
 2. **It is a stack-exhaustion path.** The parser's work is proportional to the
    input, but here the *interpreter's* stack is the limit: the depth is chosen
    by the attacker, not by the file size. A server that parses untrusted
