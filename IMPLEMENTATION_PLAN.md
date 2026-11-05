@@ -252,6 +252,8 @@ class WeightStreamer:
 - The GPU workflow (7A-7) is `continue-on-error` only until the self-hosted runner registers; **7F-1 makes it required**. The claims checker (7A-6) runs baseline-aware in CI and becomes **release-blocking at G6 with an empty `audit/claims_baseline.txt`**.
 - A gate failure triggers the stop conditions and blocker report defined in the handoff document; do not "fix forward" silently.
 
+> **G1 status (2026-11-04):** **signed with conditions** — all 7A packages accepted; see `audit/G1_SIGNOFF_2026-11-04.md`. The P0 parser fix **7A-9 (BLOCKER-7A4-1)** and **7B tokenizer** are authorized in parallel. The release remains blocked on 7A-9, and the parser must not be claimed fail-closed until it lands.
+
 ---
 
 ### ⚪ Phase 8 (Stretch, post-v0.7.0): AMD Radeon 780M / `gfx1103` Portability *(PROPOSED — NOT COMMITTED)*

@@ -10,6 +10,11 @@ SHA; confirm with `git log -1 --oneline` and `git rev-parse HEAD`.
 **Status:** 7A-1, 7A-6, 7A-7, and 7A-8 are authorized. **7B is not authorized** until G1 is
 signed and the 7A-3 goldens exist.
 
+> **Update 2026-11-04:** G1 is signed and the 7A-3 goldens exist. 7B is now authorized
+> under [`PHASE7_7B_TOKENIZER_BRIEF.md`](PHASE7_7B_TOKENIZER_BRIEF.md); the P0 parser fix
+> is [`PHASE7_7A-9_PARSER_FIX_BRIEF.md`](PHASE7_7A-9_PARSER_FIX_BRIEF.md). This file is
+> retained as the historical 7A brief.
+
 ---
 
 ## 0. Read first

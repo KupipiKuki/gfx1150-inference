@@ -264,10 +264,26 @@ python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci-gpu.yml'))
 
 ---
 
+### 7A-9 (Post-G1 P0): BLOCKER-7A4-1 parser fix
+
+**Status:** G1 is signed (2026-11-04); this is the P0 carry-forward from the 7A-4 fuzz. It is not part of the G1 package but must land before any fail-closed parser claim or G6 release.
+
+**Allowed files:** `src/gguf_parser.py`, `tests/**` (remove the pinned xfail, add direct boundary tests), `audit/evidence/G1/7A-9/**`, docs (`IMPLEMENTATION_PLAN.md` claim correction, `BLOCKER.md` wording). No CMake, packaging, CI, ledger, or unrelated source changes.
+
+**Required:** reject a metadata array whose element type is `ARRAY` with the parser’s documented `ValueError` at the point where the element type is read. A valid GGUF has no nested arrays, so the scalar check is sufficient; a recursion limit is optional defence only. Remove the `xfail` from `test_nested_arrays_are_rejected_with_a_value_error`, assert `ValueError` for the pinned 11,962-byte example and for a below-threshold depth, and keep the fuzz/direct tests green. Soften the `BLOCKER.md` “every caller catches ValueError” wording (QF-1). Remove the exception from the `IMPLEMENTATION_PLAN.md` fail-closed claim once fixed.
+
+**Acceptance:** pinned test passes without xfail; depth-300 and depth-1000 nested-array cases both raise `ValueError`; CPU/GPU lanes green; fuzz 10k unchanged; no parser regression; public claim no longer carries the exception; evidence bundle under `audit/evidence/G1/7A-9/`.
+
+**Stop:** Stop for QAQC/auditor. 7B may run in parallel from the same base; release G6 remains blocked until this lands.
+
+---
+
 ### 7B — Tokenizer correctness (Gate G2)
 
+> **G1 is signed (2026-11-04); 7B is authorized.** The 7A-9 parser fix is P0 and may run in parallel; 7B must not depend on it. The 7A-3 goldens are the acceptance vectors.
+
 **Audit trace:** C-2 (partial), N-2, T-3; v0.6.2 §6 P0-1.
-**Allowed files:** `src/tokenizer.py`, `src/inference.py` (BOS call sites only), `tests/**` tokenizer tests, docs, evidence.
+**Allowed files:** `src/tokenizer.py`, `src/inference.py` (BOS call sites only), `tests/**` tokenizer tests, `tests/fixtures/**` only if a golden needs correction (do not rewrite 7A-3 goldens), `README.md` (tokenizer/claims wording), docs, `audit/evidence/G2/7B/**`.
 
 **Work packages**
 
@@ -275,12 +291,13 @@ python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci-gpu.yml'))
 |---|---|---|
 | 7B-1 | Special-token split on **encode**: longest-match trie over control/user-defined tokens; special IDs emitted directly; no byte mapping inside a special token; no splitting inside ordinary text | `encode("<\|im_start\|>")` → `[special_id]`; mixed text `"hi<\|im_start\|>there"` splits correctly; plain text unchanged |
 | 7B-2 | Read `tokenizer.ggml.add_bos_token`; precedence: explicit `add_bos` argument > metadata > default; `generate()` / `generate_batch_ids()` stop hardcoding `True` | Tests for metadata true/false/absent; no duplicate BOS; Qwen2/GPT-2-style no-BOS model behaves correctly |
-| 7B-3 | Replace the `\w`/`\d` pre-tokenizer with the GPT-2 spec regex (Unicode `\p{L}`/`\p{N}`) or a golden-verified equivalent | Golden vectors for `Hello123`, `café123`, `a_b`, contractions, double spaces, emoji all match llama.cpp |
+| 7B-3 | Replace the `\w`/`\d` pre-tokenizer with the GPT-2 spec regex (Unicode `\p{L}`/`\p{N}`) or a golden-verified equivalent; resolve the SentencePiece golden mismatches or explicitly re-scope them | 7A-3 goldens pass for GPT-2 and SentencePiece: `Hello123`, `café123`, `a_b`, contractions, double spaces, emoji, control tokens; no remaining tokenizer `xfail` without auditor approval |
 | 7B-4 | Uniform unmappable-byte handling in both branches: try `<0xXX>` before raising; never silently drop | Probe with minimal vocabs (GPT-2 and SentencePiece); missing byte raises `ValueError` with byte value |
 
 **Required checks**
 ```bash
 python -m pytest -m "not gpu" -q -k "tokenizer or bpe or golden"
+python -m pytest -m "not gpu" -q --runxfail -k "tokenizer or bpe or golden"
 python tests/test_cpu_only.py
 python -O tests/test_cpu_only.py
 # independent probe: special token, mixed text, add_bos true/false/absent
@@ -293,12 +310,15 @@ python -O tests/test_cpu_only.py
 - Text that looks like a special token but must not be treated as one (e.g. escaped/user text), if the tokenizer spec requires it.
 - Multi-byte UTF-8, lone surrogate handling, empty string.
 - Decode round-trip with `skip_special_tokens` true/false.
+- The 7A-3 golden vectors: zero tokenizer failures under `--runxfail`.
 
 **Exit criteria (G2)**
-- [ ] Goldens pass; special-token and `add_bos` tests pass.
+- [ ] 7A-3 goldens pass; special-token and `add_bos` tests pass.
 - [ ] No silent character/byte loss.
-- [ ] Existing SentencePiece tests still pass.
-- [ ] README tokenizer claim updated.
+- [ ] SentencePiece goldens pass, or a documented, auditor-approved scope reduction exists.
+- [ ] No tokenizer `xfail` remains except explicitly approved 7C scope.
+- [ ] README tokenizer/claims are updated and the claims checker is green.
+- [ ] 7A-9 is not required for 7B, but release remains blocked until 7A-9 lands.
 
 **Stop:** Do not start 7C until G2 is signed.
 
