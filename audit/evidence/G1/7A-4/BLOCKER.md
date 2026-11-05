@@ -1,7 +1,9 @@
 # BLOCKER-7A4-1 — the GGUF parser recurses on nested metadata arrays
 
-**Status:** **fixed by Phase 7A-9** (`wp/7A-9-gguf-array-fix`; see
-`audit/evidence/G1/7A-9/`). **Found by:** Phase 7A-4 (deterministic GGUF fuzz).
+**Status:** **fixed by Phase 7A-9 and accepted by independent audit 2026-11-04**
+(`wp/7A-9-gguf-array-fix`; work `1bce3d0`, tip `9493cf8`; see
+`audit/evidence/G1/7A-9/` and `audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`).
+**Found by:** Phase 7A-4 (deterministic GGUF fuzz).
 **Filed:** 2026-11-04. **Branch:** `wp/7A-4-fuzz`.
 **Not fixed here:** Phase 7A-4 does not touch `src/`. The fix landed in the
 new work package 7A-9.
@@ -114,3 +116,11 @@ cannot crash the parser". This package delivers that evidence and it is
 specific way, and the crash is now pinned and reported rather than
 undocumented. G1 should treat the parser as **not yet fail-closed** until
 BLOCKER-7A4-1 is fixed in a new package.
+
+**Post-fix update (7A-9, 2026-11-04):** the fix landed in the new package as
+proposed — `_read_value` rejects an `ARRAY` element type with `ValueError`
+before reading values. The audit independently reproduced rejection at depths
+1/2/5/300/992/1000/5000, the hash-pinned 992 example, unchanged valid-array
+behaviour, and green CPU/GPU/CI. The strict xfail is now a passing test with two
+boundary tests. The parser is fail-closed for the malformed classes the suite
+covers, and this blocker is closed.
