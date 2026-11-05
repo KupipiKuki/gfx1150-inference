@@ -164,6 +164,8 @@ class GGUFParser:
             return self._read_string()
         if vtype == GGUFValueType.ARRAY:
             elem_type, count = self._read_fmt("<IQ")
+            if elem_type == GGUFValueType.ARRAY:
+                raise ValueError("GGUF array element type must not be an array")
             remaining = len(self._buf) - self._pos
             if count > remaining:
                 raise ValueError(

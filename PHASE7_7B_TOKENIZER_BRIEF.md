@@ -5,7 +5,7 @@
 **Date:** 2026-11-04
 **Branch:** `wp/7B-tokenizer`
 **Base:** `vibe/phase7-220201` @ `e9b6b80` (G1 signed; 7A-3 goldens merged)
-**Gate:** G2. **7B is authorized**; the P0 parser fix 7A-9 may run in parallel. 7C is not authorized until G2 is signed.
+**Gate:** G2. **7B is authorized**; the P0 parser fix 7A-9 has landed and is accepted, so 7B is independent of it. 7C is not authorized until G2 is signed.
 
 The acceptance vectors already exist in `tests/fixtures/` from 7A-3. This package makes
 the tokenizer match them and removes the tokenizer `xfail`s.

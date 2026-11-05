@@ -7,6 +7,10 @@
 **Base:** `vibe/phase7-220201` @ `e9b6b80` (G1 signed; 7A-4 merged)
 **Gate:** post-G1 **P0** fix. G1 is already signed; the release remains blocked until this lands.
 
+> **Status 2026-11-04: ACCEPTED.** Work commit `1bce3d0`, tip `9493cf8`; audit
+> `audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`. BLOCKER-7A4-1 and C-G1-1/C-G1-2
+> are closed. This brief is retained as the package record.
+
 This is the one-line `src/` fix the 7A-4 fuzz found. Do not bundle 7B or other work into
 it.
 

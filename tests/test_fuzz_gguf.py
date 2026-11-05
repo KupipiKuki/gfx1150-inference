@@ -17,17 +17,21 @@ The run is deterministic: ``derandomize=True`` fixes the seed and
 ``database=None`` keeps the result independent of any local ``.hypothesis``
 database, so two runs produce the same examples in the same order.
 
-Known defect
-------------
+Known defect, fixed
+-------------------
 
-``test_nested_arrays_are_rejected_with_a_value_error`` pins a defect this
+``test_nested_arrays_are_rejected_with_a_value_error`` pinned a defect this
 fuzz uncovered: a header whose metadata array has an ``ARRAY`` element type
-makes the parser recurse until the interpreter's stack is exhausted, so it
-raises ``RecursionError`` instead of rejecting the file. It is reported as
-**BLOCKER-7A4-1** (see ``audit/evidence/G1/7A-4/BLOCKER.md``) and is a strict
-xfail, so the fix cannot land unnoticed. The fuzz itself keeps the GGUF
-format's own rule -- an array's element type is a scalar -- because the
-element type is not a field the fuzz is allowed to invent.
+made the parser recurse until the interpreter's stack was exhausted, so it
+raised ``RecursionError`` instead of rejecting the file. It was reported as
+**BLOCKER-7A4-1** (see ``audit/evidence/G1/7A-4/BLOCKER.md``) and held as a
+strict xfail so the fix could not land unnoticed. Phase 7A-9 added the
+element-type check to ``GGUFParser._read_value``; the test now asserts the
+documented behaviour directly, and the boundary cases (a below-threshold
+depth and the minimized 992-level example from the blocker report) are
+checked as well. The fuzz itself keeps the GGUF format's own rule -- an
+array's element type is a scalar -- because the element type is not a field
+the fuzz is allowed to invent.
 
 The module is in the CPU lane and the fuzz test is marked ``slow``: the
 packaging job deselects ``slow`` so that building and installing the sdist
@@ -37,6 +41,7 @@ stays fast, while the CPU job owns the 10,000-example run.
 from __future__ import annotations
 
 import gc
+import hashlib
 import mmap
 import os
 import struct
@@ -572,36 +577,73 @@ def _nested_array_header(depth: int) -> bytes:
     return GGUF_MAGIC + struct.pack("<IQQ", 3, 0, 1) + metadata
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="BLOCKER-7A4-1: a nested GGUF array recurses until the stack is exhausted",
-)
 def test_nested_arrays_are_rejected_with_a_value_error() -> None:
     """A nested metadata array must be rejected, not crash the parser.
 
-    This is the defect the fuzz uncovered. The GGUF format does not allow an
-    array whose element type is an array, so the parser has to reject the
-    file; instead it recurses once per nesting level and raises
-    ``RecursionError`` on a header of about 12 KiB.
-
-    The assertion states the behaviour the parser *should* have, so the test
-    fails today and passes when the defect is fixed. ``strict=True`` means the
-    suite fails if the test starts passing while the xfail is still in place.
+    This is the defect the fuzz uncovered (BLOCKER-7A4-1, fixed by Phase
+    7A-9). The GGUF format does not allow an array whose element type is an
+    array, so the parser has to reject the file; before the fix it recursed
+    once per nesting level and raised ``RecursionError`` on a header of about
+    12 KiB.
     """
     buffer = _nested_array_header(1000)
     try:
         GGUFParser(buffer)
     except ValueError:
         return
-    except RecursionError as exc:
-        raise AssertionError(
-            "the parser recursed until the interpreter's stack was exhausted "
-            f"instead of rejecting the nested array: {exc}"
-        ) from exc
     raise AssertionError(
         "the parser accepted a header with a nested metadata array, which the "
         "GGUF format does not allow"
     )
+
+
+def test_a_nested_array_below_the_recursion_threshold_is_rejected() -> None:
+    """A nested header shallower than the old recursion threshold is rejected.
+
+    At depth 300 (3.6 KiB) the old parser did not exhaust the stack: it
+    *accepted* the invalid file. The element-type check rejects it before any
+    recursion happens, so the invalid class is refused at every depth, not
+    only the ones that happen to exhaust the stack.
+    """
+    buffer = _nested_array_header(300)
+    try:
+        GGUFParser(buffer)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError(
+            "the parser accepted a nested metadata array below the old "
+            "recursion threshold (depth 300), which the GGUF format does not "
+            "allow"
+        )
+
+
+def test_the_minimized_nested_array_example_is_rejected() -> None:
+    """The minimized example from BLOCKER-7A4-1 is rejected.
+
+    Depth 992 is the shallowest example that exhausted the stack at the
+    default recursion limit when the blocker was measured: 11,962 bytes,
+    sha256 ``28fe58bf…`` (the full digest is in
+    ``audit/evidence/G1/7A-4/BLOCKER.md``; the hash here guards the example
+    against a silent change of shape).
+    """
+    buffer = _nested_array_header(992)
+    assert len(buffer) == 11_962, (
+        f"the minimized example is no longer 11,962 bytes: {len(buffer)}"
+    )
+    digest = hashlib.sha256(buffer).hexdigest()
+    assert digest == "28fe58bf8fee9e0d9e0987b3cc2e09922ffb968f9f8809de34c7305d086bbebb", (
+        f"the minimized example changed: sha256 {digest}"
+    )
+    try:
+        GGUFParser(buffer)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError(
+            "the parser accepted the minimized nested-array example, which the "
+            "GGUF format does not allow"
+        )
 
 
 # ---------------------------------------------------------------------------

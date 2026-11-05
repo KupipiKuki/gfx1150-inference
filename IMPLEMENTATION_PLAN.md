@@ -204,7 +204,7 @@ class WeightStreamer:
 | 6C.3 | Fused `rmsnorm_residual` + `residual_add` kernels (`6C-i`) and C++-owned device-resident layer pipeline `forward_layer_cached` with D2D KV-cache writes (`6C-ii` / `P-1`) | Argon | ✅ | 6C.1–6C.2 |
 
 #### **Success Criteria**
-- [x] Truncated or malformed GGUF files raise `ValueError` at parse time with zero `SIGBUS` or leaked file descriptors — **except the nested metadata-array class tracked as BLOCKER-7A4-1; the parser is not fail-closed for that class until a new `src/` fix lands.**
+- [x] Truncated or malformed GGUF files raise `ValueError` at parse time with zero `SIGBUS` or leaked file descriptors — the nested metadata-array class tracked as BLOCKER-7A4-1 was fixed by 7A-9 (`audit/evidence/G1/7A-9/`); the parser is fail-closed for every malformed class the suite covers
 - [x] `TILE_M = 4` quantized prefill kernels match `M = 1` Wave32 kernels with `max_diff == 0.0` across `Q4_0`, `Q8_0`, and `Q4_K`
 - [x] C++-owned device-resident layer pipeline (`forward_layer_cached`) increases end-to-end throughput on `tests/test_full_model.py` from `~224 tok/s` to **`983.4 tok/s` (`decode: 1107.9 tok/s`)**
 - [x] Self-contained CPU-only test suite ([tests/test_cpu_only.py](tests/test_cpu_only.py)) passes under both `python3` and `python3 -O`
@@ -252,7 +252,7 @@ class WeightStreamer:
 - The GPU workflow (7A-7) is `continue-on-error` only until the self-hosted runner registers; **7F-1 makes it required**. The claims checker (7A-6) runs baseline-aware in CI and becomes **release-blocking at G6 with an empty `audit/claims_baseline.txt`**.
 - A gate failure triggers the stop conditions and blocker report defined in the handoff document; do not "fix forward" silently.
 
-> **G1 status (2026-11-04):** **signed with conditions** — all 7A packages accepted; see `audit/G1_SIGNOFF_2026-11-04.md`. The P0 parser fix **7A-9 (BLOCKER-7A4-1)** and **7B tokenizer** are authorized in parallel. The release remains blocked on 7A-9, and the parser must not be claimed fail-closed until it lands.
+> **G1 status (2026-11-04):** **signed with conditions** — all 7A packages accepted; see `audit/G1_SIGNOFF_2026-11-04.md`. The post-G1 P0 parser fix **7A-9 (BLOCKER-7A4-1)** landed and was independently accepted (`audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`); **C-G1-1/C-G1-2 are closed**, and the parser may be described as fail-closed for the malformed classes the suite covers. **7B tokenizer** is authorized and independent. Remaining G1 carry-forwards: **C-G1-3** (GPU runner via 7F-1) and **C-G1-4** (tokenizer xfails via 7B/7C). Release/G6 remains gated by G2/G3 and the later phases.
 
 ---
 

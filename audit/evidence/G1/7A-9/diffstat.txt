@@ -1,0 +1,32 @@
+# G1 / 7A-9 diffstat
+# Captured: 2026-11-05T01:49:44Z
+# parent:    3af32d4ee422796e83349338afad841189d554d8  (brief-prep commit; code identical to the G1 base e9b6b80)
+# candidate: 1bce3d05fb20a6bdd0600a50b8c3502a6de85c74  (the work commit under review)
+
+=== files changed (name-status) ===
+M	IMPLEMENTATION_PLAN.md
+M	audit/evidence/G1/7A-4/BLOCKER.md
+M	src/gguf_parser.py
+M	tests/test_fuzz_gguf.py
+
+=== diffstat ===
+ IMPLEMENTATION_PLAN.md            |  2 +-
+ audit/evidence/G1/7A-4/BLOCKER.md | 14 +++---
+ src/gguf_parser.py                |  2 +
+ tests/test_fuzz_gguf.py           | 94 ++++++++++++++++++++++++++++-----------
+ 4 files changed, 79 insertions(+), 33 deletions(-)
+
+=== src/ diff (the entire functional change) ===
+diff --git a/src/gguf_parser.py b/src/gguf_parser.py
+index c62d336..e6c1e57 100644
+--- a/src/gguf_parser.py
++++ b/src/gguf_parser.py
+@@ -164,6 +164,8 @@ class GGUFParser:
+             return self._read_string()
+         if vtype == GGUFValueType.ARRAY:
+             elem_type, count = self._read_fmt("<IQ")
++            if elem_type == GGUFValueType.ARRAY:
++                raise ValueError("GGUF array element type must not be an array")
+             remaining = len(self._buf) - self._pos
+             if count > remaining:
+                 raise ValueError(

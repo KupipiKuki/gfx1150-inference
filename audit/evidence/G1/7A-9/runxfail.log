@@ -1,0 +1,223 @@
+# G1 / 7A-9 — the CPU lane with --runxfail on the candidate
+# Captured: 2026-11-05T01:48:31Z
+# candidate: 1bce3d05fb20a6bdd0600a50b8c3502a6de85c74
+# The xfail pins are run as real tests: only the four tokenizer 7B/7C pins
+# fail; the parser shows no failure.
+
+=== command ===
+python3 -m pytest --runxfail -m 'not gpu' -q
+
+=== output ===
+.......................................................FF.........FF.... [ 62%]
+...........................................                              [100%]
+=================================== FAILURES ===================================
+_____________ test_add_bos_default_matches_the_reference_tokenizer _____________
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS",
+    )
+    def test_add_bos_default_matches_the_reference_tokenizer() -> None:
+        """The default BOS handling must match the reference (known bug, 7B).
+    
+        The vocabulary has no ``tokenizer.ggml.add_bos_token`` metadata, so the
+        reference adds no BOS token. This repository's tokenizer always prepends
+        one, which is the open bug this test pins.
+        """
+        case = _GPT2_CASES["add_bos_default"]
+        tokenizer = _build_tokenizer(_GPT2_VOCAB)
+>       assert tokenizer.encode(case["prompt"]) == case["token_ids"], (
+            "the tokenizer must not add a BOS token when the vocabulary's metadata "
+            "does not ask for one"
+        )
+E       AssertionError: the tokenizer must not add a BOS token when the vocabulary's metadata does not ask for one
+E       assert [50256, 15496, 995] == [15496, 995]
+E         
+E         At index 0 diff: 50256 != 15496
+E         Left contains one more item: 995
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         +     50256,
+E               15496,
+E               995,
+E           ]
+
+tests/test_goldens_tokenizer.py:158: AssertionError
+___________________ test_special_token_is_encoded_as_its_id ____________________
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="7B: special tokens in the input are not encoded as their own token IDs",
+    )
+    def test_special_token_is_encoded_as_its_id() -> None:
+        """A special token in the text must be encoded as that token's ID (7B).
+    
+        The reference parses special tokens and emits their ID; this repository's
+        tokenizer treats the text as ordinary characters.
+        """
+        case = _GPT2_CASES["special_token_eot"]
+        tokenizer = _build_tokenizer(_GPT2_VOCAB)
+>       assert tokenizer.encode(case["prompt"], add_bos=False) == case["token_ids"], (
+            "a special token in the input must be encoded as its own token ID"
+        )
+E       AssertionError: a special token in the input must be encoded as its own token ID
+E       assert [27, 91, 437,...5239, 91, ...] == [50256]
+E         
+E         At index 0 diff: 27 != 50256
+E         Left contains 6 more items, first extra item: 91
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E         -     50256,
+E         +     27,
+E         +     91,
+E         +     437,
+E         +     1659,
+E         +     5239,
+E         +     91,
+E         +     29,
+E           ]
+
+tests/test_goldens_tokenizer.py:176: AssertionError
+__________ test_spm_known_mismatches_are_pinned[spm_contraction_dont] __________
+
+case_id = 'spm_contraction_dont'
+
+    @pytest.mark.parametrize("case_id", _SPM_XFAIL_CASES)
+    def test_spm_known_mismatches_are_pinned(case_id: str) -> None:
+        """The SentencePiece cases the repository does not match yet (7B/7C).
+    
+        They are part of the golden, so the family is covered; the assertions
+        state what the reference does, and the repository's tokenizer does not do
+        it yet. ``strict=True`` means the suite fails if one of them starts
+        passing, so the fix cannot land unnoticed.
+        """
+        case = _SPM_CASES[case_id]
+        tokenizer = _build_tokenizer(_SPM_VOCAB)
+>       assert tokenizer.encode(case["prompt"], add_bos=case["add_bos"]) == case["token_ids"], (
+            f"token IDs for {case['prompt']!r} differ from llama.cpp's reference"
+        )
+E       AssertionError: token IDs for "don't" differ from llama.cpp's reference
+E       assert [1, 400, 416, 439, 413] == [1, 279, 289, 439, 413]
+E         
+E         At index 1 diff: 400 != 279
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E               1,
+E         -     279,
+E         -     289,
+E         +     400,
+E         +     416,
+E               439,
+E               413,
+E           ]
+
+tests/test_goldens_tokenizer.py:222: AssertionError
+________ test_spm_known_mismatches_are_pinned[spm_control_token_parsed] ________
+
+case_id = 'spm_control_token_parsed'
+
+    @pytest.mark.parametrize("case_id", _SPM_XFAIL_CASES)
+    def test_spm_known_mismatches_are_pinned(case_id: str) -> None:
+        """The SentencePiece cases the repository does not match yet (7B/7C).
+    
+        They are part of the golden, so the family is covered; the assertions
+        state what the reference does, and the repository's tokenizer does not do
+        it yet. ``strict=True`` means the suite fails if one of them starts
+        passing, so the fix cannot land unnoticed.
+        """
+        case = _SPM_CASES[case_id]
+        tokenizer = _build_tokenizer(_SPM_VOCAB)
+>       assert tokenizer.encode(case["prompt"], add_bos=case["add_bos"]) == case["token_ids"], (
+            f"token IDs for {case['prompt']!r} differ from llama.cpp's reference"
+        )
+E       AssertionError: token IDs for '<s>' differ from llama.cpp's reference
+E       assert [1, 410, 504, 419, 505] == [1, 1]
+E         
+E         At index 1 diff: 410 != 1
+E         Left contains 3 more items, first extra item: 504
+E         
+E         Full diff: (-: missing in left side, +: extra in left side)
+E           [
+E               1,
+E         -     1,
+E         +     410,
+E         ?     + +
+E         +     504,
+E         +     419,
+E         +     505,
+E           ]
+
+tests/test_goldens_tokenizer.py:222: AssertionError
+=============================== warnings summary ===============================
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - AssertionError: the tokenizer must not add a BOS token when the vocabulary's metadata does not ask for one
+assert [50256, 15496, 995] == [15496, 995]
+  
+  At index 0 diff: 50256 != 15496
+  Left contains one more item: 995
+  
+  Full diff: (-: missing in left side, +: extra in left side)
+    [
+  +     50256,
+        15496,
+        995,
+    ]
+FAILED tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - AssertionError: a special token in the input must be encoded as its own token ID
+assert [27, 91, 437,...5239, 91, ...] == [50256]
+  
+  At index 0 diff: 27 != 50256
+  Left contains 6 more items, first extra item: 91
+  
+  Full diff: (-: missing in left side, +: extra in left side)
+    [
+  -     50256,
+  +     27,
+  +     91,
+  +     437,
+  +     1659,
+  +     5239,
+  +     91,
+  +     29,
+    ]
+FAILED tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont] - AssertionError: token IDs for "don't" differ from llama.cpp's reference
+assert [1, 400, 416, 439, 413] == [1, 279, 289, 439, 413]
+  
+  At index 1 diff: 400 != 279
+  
+  Full diff: (-: missing in left side, +: extra in left side)
+    [
+        1,
+  -     279,
+  -     289,
+  +     400,
+  +     416,
+        439,
+        413,
+    ]
+FAILED tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed] - AssertionError: token IDs for '<s>' differ from llama.cpp's reference
+assert [1, 410, 504, 419, 505] == [1, 1]
+  
+  At index 1 diff: 410 != 1
+  Left contains 3 more items, first extra item: 504
+  
+  Full diff: (-: missing in left side, +: extra in left side)
+    [
+        1,
+  -     1,
+  +     410,
+  ?     + +
+  +     504,
+  +     419,
+  +     505,
+    ]
+4 failed, 111 passed, 24 deselected, 14 warnings in 47.62s
+exit: 0

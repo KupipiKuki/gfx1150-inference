@@ -1,0 +1,30 @@
+# G1 / 7A-9 — the deterministic 10k GGUF fuzz on the candidate
+# Captured: 2026-11-05T01:46:20Z
+# candidate: 1bce3d05fb20a6bdd0600a50b8c3502a6de85c74
+# The fuzz (7A-4) is unchanged by this package; it is re-run to show the
+# candidate keeps rejecting every mutation class with the documented ValueError.
+
+=== command ===
+python3 -m pytest tests/test_fuzz_gguf.py::test_fuzz_gguf_headers tests/test_fuzz_gguf.py::test_fuzz_gguf_headers_are_deterministic -v
+
+=== output ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'ci' -> database=None, deadline=None, print_blob=True, derandomize=True, suppress_health_check=(HealthCheck.too_slow,)
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 2 items
+
+tests/test_fuzz_gguf.py::test_fuzz_gguf_headers PASSED                   [ 50%]
+tests/test_fuzz_gguf.py::test_fuzz_gguf_headers_are_deterministic PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 2 passed, 13 warnings in 41.52s ========================
+exit: 0

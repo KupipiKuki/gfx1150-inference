@@ -266,7 +266,9 @@ python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci-gpu.yml'))
 
 ### 7A-9 (Post-G1 P0): BLOCKER-7A4-1 parser fix
 
-**Status:** G1 is signed (2026-11-04); this is the P0 carry-forward from the 7A-4 fuzz. It is not part of the G1 package but must land before any fail-closed parser claim or G6 release.
+**Status:** **ACCEPTED (2026-11-04)** — work commit `1bce3d0`, tip `9493cf8`; audit
+`audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`. The parser blocker is closed; no
+conditions. G6 still depends on the later gates.
 
 **Allowed files:** `src/gguf_parser.py`, `tests/**` (remove the pinned xfail, add direct boundary tests), `audit/evidence/G1/7A-9/**`, docs (`IMPLEMENTATION_PLAN.md` claim correction, `BLOCKER.md` wording). No CMake, packaging, CI, ledger, or unrelated source changes.
 
@@ -276,11 +278,18 @@ python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci-gpu.yml'))
 
 **Stop:** Stop for QAQC/auditor. 7B may run in parallel from the same base; release G6 remains blocked until this lands.
 
+> **Update 2026-11-04:** 7A-9 landed (`1bce3d0`) and was accepted by the primary audit
+> with no conditions. C-G1-1 and C-G1-2 are closed. This section is retained as the
+> package record; the parser may now be described as fail-closed for the malformed
+> classes the suite covers.
+
 ---
 
 ### 7B — Tokenizer correctness (Gate G2)
 
-> **G1 is signed (2026-11-04); 7B is authorized.** The 7A-9 parser fix is P0 and may run in parallel; 7B must not depend on it. The 7A-3 goldens are the acceptance vectors.
+> **G1 is signed (2026-11-04); 7B is authorized.** The 7A-9 parser fix has landed and is
+> accepted, so 7B is fully independent of the parser work. The 7A-3 goldens are the
+> acceptance vectors.
 
 **Audit trace:** C-2 (partial), N-2, T-3; v0.6.2 §6 P0-1.
 **Allowed files:** `src/tokenizer.py`, `src/inference.py` (BOS call sites only), `tests/**` tokenizer tests, `tests/fixtures/**` only if a golden needs correction (do not rewrite 7A-3 goldens), `README.md` (tokenizer/claims wording), docs, `audit/evidence/G2/7B/**`.
@@ -318,7 +327,7 @@ python -O tests/test_cpu_only.py
 - [ ] SentencePiece goldens pass, or a documented, auditor-approved scope reduction exists.
 - [ ] No tokenizer `xfail` remains except explicitly approved 7C scope.
 - [ ] README tokenizer/claims are updated and the claims checker is green.
-- [ ] 7A-9 is not required for 7B, but release remains blocked until 7A-9 lands.
+- [ ] 7A-9 is not required for 7B; it has landed and is accepted. Release remains blocked by G2/G3 and the later gates.
 
 **Stop:** Do not start 7C until G2 is signed.
 
