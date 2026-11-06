@@ -252,7 +252,7 @@ class WeightStreamer:
 - The GPU workflow (7A-7) is `continue-on-error` only until the self-hosted runner registers; **7F-1 makes it required**. The claims checker (7A-6) runs baseline-aware in CI and becomes **release-blocking at G6 with an empty `audit/claims_baseline.txt`**.
 - A gate failure triggers the stop conditions and blocker report defined in the handoff document; do not "fix forward" silently.
 
-> **G1 status (2026-11-04):** **signed with conditions** — all 7A packages accepted; see `audit/G1_SIGNOFF_2026-11-04.md`. The post-G1 P0 parser fix **7A-9 (BLOCKER-7A4-1)** landed and was independently accepted (`audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`); **C-G1-1/C-G1-2 are closed**, and the parser may be described as fail-closed for the malformed classes the suite covers. **7B tokenizer** is authorized and independent. Remaining G1 carry-forwards: **C-G1-3** (GPU runner via 7F-1) and **C-G1-4** (tokenizer xfails via 7B/7C). Release/G6 remains gated by G2/G3 and the later phases.
+> **G1 status (2026-11-04; revised 2026-11-06):** **signed with conditions** — all 7A packages accepted; see `audit/G1_SIGNOFF_2026-11-04.md`. The post-G1 P0 parser fix **7A-9 (BLOCKER-7A4-1)** landed and was independently accepted (`audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`); **C-G1-1/C-G1-2 are closed**, and the parser may be described as fail-closed for the malformed classes the suite covers. **7B tokenizer is G2-signed (2026-11-06)** after the reference-faithful greedy-merge remediation (`audit/G2_SIGNOFF_2026-11-06.md`); **C-G1-4 is closed**. The only remaining G1 carry-forward is **C-G1-3** (GPU runner via 7F-1). Release/G6 remains gated by G3 and the later phases.
 
 ---
 
