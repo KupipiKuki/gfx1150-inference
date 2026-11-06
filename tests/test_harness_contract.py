@@ -328,6 +328,11 @@ EXPECTED_LANES = {
     # Phase 7A-4: the deterministic GGUF header fuzz. It is CPU-lane; the fuzz
     # test itself is marked ``slow`` so that the packaging job can deselect it.
     "test_fuzz_gguf.py": "cpu",
+    # Phase 7C (G3): the model-spec validator fail-fast suite is pure
+    # parser/spec code (CPU lane), while the Phi-3/Gemma engine and
+    # llama-regression tests need the HIP extension (GPU lane).
+    "test_model_spec.py": "cpu",
+    "test_model_families.py": "gpu",
 }
 
 

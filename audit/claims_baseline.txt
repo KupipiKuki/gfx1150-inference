@@ -8,9 +8,10 @@
 # report (not hide) every unqualified row. Remove entries as 7B/7C/7D/7F qualify the
 # claims in place.
 #
-# ID 6 and 10: unqualified occurrence in a different bullet than the qualifier.
+# ID 6: unqualified occurrence in a different bullet than the qualifier.
+# (Removed by 7C-4: "10 README.md qwen2" — the L129 bullet now qualifies
+# qwen2 in place, so the baseline tolerance for ID 10 is no longer needed.)
 6 README.md Q4_K_M
-10 README.md qwen2
 #
 # ID 13: PLAN L209 is unqualified (L266 is qualified); the literal also covers ID 27.
 13 IMPLEMENTATION_PLAN.md 983

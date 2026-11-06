@@ -1,0 +1,35 @@
+# llama-regression.log — fixed-prompt logits/token-ID stability across 7C
+
+The same self-contained probe (qaqc-probes/probe_llama_regression.py) runs on
+the parent 8426ec6 and on the 7C candidate. Byte-identical output (logits
+sha256 + greedy chain + generate_ids) proves the llama-family path is unchanged.
+
+## Parent 8426ec6 (worktree /tmp/7c-parent)
+```
+=== llama fixed-prompt regression probe ===
+prompt_ids = [1, 7, 10, 11]
+logits_sha256 (fp32 bytes of unordered fp16 logits) = a31dfc6f224d495966da14f2d06161ae2b18bf93ed7a6d5cbe8009c56f32441b
+logits_head = 0.48315430, -0.87841797, 0.57226562, 1.03710938, 1.07128906, -1.05761719
+greedy_ids = [9, 15, 9, 0, 3, 9, 14, 9]
+generate_ids = [9, 15, 9, 0, 3, 9, 14, 9]
+VERDICT: see parent/candidate comparison
+```
+
+## 7C candidate (this worktree)
+```
+=== llama fixed-prompt regression probe ===
+prompt_ids = [1, 7, 10, 11]
+logits_sha256 (fp32 bytes of unordered fp16 logits) = a31dfc6f224d495966da14f2d06161ae2b18bf93ed7a6d5cbe8009c56f32441b
+logits_head = 0.48315430, -0.87841797, 0.57226562, 1.03710938, 1.07128906, -1.05761719
+greedy_ids = [9, 15, 9, 0, 3, 9, 14, 9]
+generate_ids = [9, 15, 9, 0, 3, 9, 14, 9]
+VERDICT: see parent/candidate comparison
+```
+
+## Diff (excluding the VERDICT line)
+```
+IDENTICAL — llama-family logits and token IDs unchanged by 7C
+```
+
+The repo test tests/test_model_families.py::test_llama_regression_fixed_prompt pins
+these goldens (logits sha256 a31dfc6f224d495966da14f2d06161ae2b18bf93ed7a6d5cbe8009c56f32441b / ids [9, 15, 9, 0, 3, 9, 14, 9]).
