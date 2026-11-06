@@ -174,3 +174,49 @@ python audit/evidence/G2/7B/qaqc-probes/probe_tokenizer.py   # ALL PROBES PASS (
 Stopped at G2 per §7. 7C is **not** started. The release remains blocked
 until 7A-9 and G2 are both accepted (7A-9 already passed its audit; it is
 merged in the parent of this branch).
+
+---
+
+## Remediation (2026-11-06, after the FAIL audit)
+
+The 2026-11-05 audit (`audit/AUDIT_7B_TOKENIZER_DEEP_2026-11-05.md`) failed the
+first candidate (`70c5ab2`) on **BLOCKER-7B-1** (SPM dummy `▁` prefix omitted
+around special tokens) and **BLOCKER-7B-2** (Viterbi vs the reference's
+greedy bigram merge). Remediation candidate: **`25e9088`** on
+`wp/7B-remediation` (brief: `PHASE7_7B_REMEDIATION_BRIEF.md`).
+
+Fixes, both in `src/tokenizer.py`:
+
+- `encode()` drives the special/raw fragment loop with the reference's
+  `is_prev_special` rule: every raw fragment that starts the input or follows
+  a special token gets a leading space, escaped to `▁`.
+- The SPM path is the reference score-priority greedy bigram merge
+  (`_greedy_merge_symbols`, max score / ties leftmost = the
+  `llm_bigram_spm` comparator) over UTF-8 chars with the fixture's unigram
+  scores; the Viterbi is removed. Surviving non-token symbols emit as `<0xXX>`
+  byte tokens or raise `ValueError` naming the byte (7B-4 kept). A `▁`-word
+  fallback only rescues minimal synthetic vocabularies that lack byte tokens
+  (the phase5 test vocab); real vocabs never reach it — no piece in either
+  committed vocab contains an internal `▁`, so word-splitting cannot diverge
+  from the whole-text reference merge.
+- QF-1: short `token_types` raises at construction. QF-2: SPM mixed-text tests
+  assert the pinned reference values; a new 310-case differential golden
+  (`tests/fixtures/stories260k_differential_golden.json`, generated with the
+  pinned `llama-tokenize` via `make_fixtures.py spm-differential`, PROVENANCE
+  row added) replays in the suite.
+
+Stop-gate QAQC (`remediation-*.log`, `qaqc-probes/qaqc-*.log`):
+
+| check | failed 70c5ab2 | remediation 25e9088 |
+|---|---|---|
+| differential corpus (310 cases) | **75 mismatches** | **0** |
+| auditor's 11 probe cases | **10 differ** | **all match** |
+| 2,000-prompt seeded differential vs pinned binary | (7,529/20,000 per audit) | **0 mismatches** |
+| tokenizer slice `--runxfail` | 75 passed (goldens only) | **386 passed**, 0 xfail |
+| CPU / GPU / cpu-only / claims | 128 / 24 / 12+12 / PASS | **439 / 24 / 12+12 / PASS** |
+
+Parent red (the four xfails failing under `--runxfail` on `8426ec6`) is in
+`remediation-red-green.log` alongside the failed-candidate red.
+
+Stopped at the G2 stop-gate: ready for the primary auditor's re-review.
+7C remains blocked; do not merge until G2 is signed.
