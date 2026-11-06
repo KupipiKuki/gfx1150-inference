@@ -1,14 +1,17 @@
 """
-Single Llama Transformer Layer execution pipeline (`TransformerLayer`) for gfx1150-inference.
+Model-spec driven Transformer Layer execution (`TransformerLayer`) for
+gfx1150-inference.
 
 Streams `blk.{layer_idx}.*` weights directly from SSD via `WeightStreamer`, executes
-fused `Q4_0` projections, RMSNorm, RoPE, Grouped-Query Attention (GQA), and SwiGLU MLP
-on the AMD gfx1150 GPU, and evicts completed layer pages via `MADV_DONTNEED`.
+fused `Q4_0` projections, RMSNorm, RoPE, Grouped-Query Attention (GQA), and the
+per-family FFN (SwiGLU for llama/qwen2/phi3, GeGLU for gemma; Phi-3 fused
+`attn_qkv` / fused gate+up `ffn_up` layouts) on the AMD gfx1150 GPU, and evicts
+completed layer pages via `MADV_DONTNEED`. The executed graph is selected by the
+resolved `ModelSpec` (Phase 7C), never by hardcoded `llama.*` tensor names.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import os
 import sys
@@ -23,6 +26,7 @@ if _SRC_DIR not in sys.path:
 from gguf_parser import GGMLType, GGUFTensorInfo
 from weight_loader import WeightStreamer
 from kv_cache import KVCacheManager
+from model_spec import ModelSpec, _NEOX_ROPE_ARCHS, get_arch_meta
 
 try:
     import matmul_module
@@ -39,66 +43,38 @@ except ImportError:
         ) from exc
 
 
-_NEOX_ROPE_ARCHS = frozenset({"qwen2", "stablelm", "falcon", "gptneox", "phi2", "phi3", "starcoder2"})
+# Backward-compatible alias: the former `LlamaLayerConfig` is now the
+# data-driven `ModelSpec` (same resolved values for the llama family plus the
+# new per-family fields; `from_gguf_metadata` keeps its semantics).
+LlamaLayerConfig = ModelSpec
 
 
-def _get_arch_meta(metadata: Dict[str, object], arch: str, suffix: str, default: object = None) -> object:
-    arch_key = f"{arch}.{suffix}"
-    if arch_key in metadata:
-        return metadata[arch_key]
-    llama_key = f"llama.{suffix}"
-    if llama_key in metadata:
-        return metadata[llama_key]
-    if default is not None:
-        return default
-    raise KeyError(f"Missing required GGUF metadata key '{arch_key}' (or '{llama_key}')")
+# ggml-cpu reference GELU constants (tanh approximation, cf. ggml_gelu_f32):
+# 0.5*x*(1 + tanh(sqrt(2/pi)*x*(1 + 0.044715*x^2)))
+_GELU_TANH_COEF_A = 0.044715
+_GELU_SQRT_2_OVER_PI = 0.7978845608028654
 
 
-@dataclass(frozen=True)
-class LlamaLayerConfig:
-    hidden_size: int
-    intermediate_size: int
-    num_heads: int
-    num_kv_heads: int
-    head_dim: int
-    rms_norm_eps: float = 1e-5
-    rope_freq_base: float = 10000.0
-    rope_neox: bool = False
+def geglu_host(gate_fp16: np.ndarray, up_fp16: np.ndarray) -> np.ndarray:
+    """
+    GeGLU (gemma FFN): `gelu_tanh(gate) * up` in FP32, cast back to FP16.
 
-    @classmethod
-    def from_gguf_metadata(
-        cls,
-        metadata: Dict[str, object],
-        rope_neox: Optional[bool] = None,
-    ) -> "LlamaLayerConfig":
-        arch = str(metadata.get("general.architecture", "llama")).lower()
-        hidden_size = int(_get_arch_meta(metadata, arch, "embedding_length"))
-        intermediate_size = int(_get_arch_meta(metadata, arch, "feed_forward_length"))
-        num_heads = int(_get_arch_meta(metadata, arch, "attention.head_count"))
-        num_kv_heads = int(_get_arch_meta(metadata, arch, "attention.head_count_kv", num_heads))
-        head_dim = int(_get_arch_meta(metadata, arch, "rope.dimension_count", hidden_size // num_heads))
-        rms_norm_eps = float(_get_arch_meta(metadata, arch, "attention.layer_norm_rms_epsilon", 1e-5))
-        rope_freq_base = float(_get_arch_meta(metadata, arch, "rope.freq_base", 10000.0))
+    Matches the reference layout `build_ffn(..., LLM_FFN_GELU, LLM_FFN_PAR)` /
+    `ggml_vec_geglu_f32` (tanh-approximation GELU on the gate output) from the
+    pinned llama.cpp (`src/models/gemma.cpp`).
 
-        if rope_neox is None:
-            neox_key = f"{arch}.rope.neox"
-            if neox_key in metadata:
-                rope_neox = bool(metadata[neox_key])
-            elif "llama.rope.neox" in metadata:
-                rope_neox = bool(metadata["llama.rope.neox"])
-            else:
-                rope_neox = arch in _NEOX_ROPE_ARCHS
+    Limitation (documented in the README compatibility matrix): GeGLU runs on
+    the host in NumPy FP32; the 7C package deliberately adds no new GPU kernel
+    (a GeGLU/HIP kernel is future performance work, out of 7C scope).
+    """
+    g = gate_fp16.astype(np.float32)
+    gelu = 0.5 * g * (1.0 + np.tanh(_GELU_SQRT_2_OVER_PI * g * (1.0 + _GELU_TANH_COEF_A * g * g)))
+    return (gelu * up_fp16.astype(np.float32)).astype(np.float16)
 
-        return cls(
-            hidden_size=hidden_size,
-            intermediate_size=intermediate_size,
-            num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            head_dim=head_dim,
-            rms_norm_eps=rms_norm_eps,
-            rope_freq_base=rope_freq_base,
-            rope_neox=bool(rope_neox),
-        )
+
+def add_bias_fp32(x_fp16: np.ndarray, bias_fp16: np.ndarray) -> np.ndarray:
+    """Apply a bias with the engine's FP32-add-then-FP16 accumulator behavior."""
+    return (x_fp16.astype(np.float32) + bias_fp16.astype(np.float32)).astype(np.float16)
 
 
 def _prepare_weight_for_device(
@@ -176,7 +152,7 @@ class TransformerLayer:
     SSD-streamed weights from `WeightStreamer`.
     """
 
-    def __init__(self, config: LlamaLayerConfig):
+    def __init__(self, config: ModelSpec):
         self.cfg = config
         self.scale = 1.0 / math.sqrt(config.head_dim)
 
@@ -191,6 +167,12 @@ class TransformerLayer:
         """
         Run one transformer layer given already-mapped `layer_weights` dict for `layer_idx`.
 
+        The executed graph is selected by the `ModelSpec` and the tensors
+        actually present in the layer: fused `attn_qkv` (Phi-3/Gemma per header)
+        or separate `attn_q/k/v` projections with optional biases, then RoPE,
+        GQA attention with explicit key/value head dims, and the per-family
+        FFN (SwiGLU on separate/fused gate+up, or GeGLU for gemma).
+
         Supports two KV cache modes:
         1. `KVCacheManager` (recommended for Phase 4+): GPU-resident offset-addressed KV cache;
            writes only the new `seq_len` K/V rows directly to device offset `pos_offset`
@@ -201,24 +183,45 @@ class TransformerLayer:
         x = np.ascontiguousarray(hidden_states, dtype=np.float16)
         seq_len, hidden_size = x.shape
         cfg = self.cfg
+        if hidden_size != cfg.hidden_size:
+            raise ValueError(
+                f"TransformerLayer hidden size mismatch: input has {hidden_size}, "
+                f"spec '{cfg.arch}' expects {cfg.hidden_size}"
+            )
         prefix = f"blk.{layer_idx}."
 
-        q_dim = cfg.num_heads * cfg.head_dim
-        kv_dim = cfg.num_kv_heads * cfg.head_dim
+        q_dim = cfg.q_dim
+        kv_dim = cfg.kv_dim
+        head_dim = cfg.head_dim
 
         attn_norm_w = norm_weight_fp16(layer_weights[prefix + "attn_norm.weight"])
         ffn_norm_w = norm_weight_fp16(layer_weights[prefix + "ffn_norm.weight"])
 
+        fused_qkv_weight = (prefix + "attn_qkv.weight") in layer_weights
         has_bias = any(
             (prefix + bname) in layer_weights
-            for bname in ("attn_q.bias", "attn_k.bias", "attn_v.bias", "attn_output.bias")
+            for bname in (
+                "attn_qkv.bias",
+                "attn_q.bias",
+                "attn_k.bias",
+                "attn_v.bias",
+                "attn_output.bias",
+            )
         )
 
-        # Fast C++-owned device-resident pipeline when using GPU-resident KVCacheManager
-        # (and layer has no QKV biases):
-        # Performs 1 H2D activation copy, keeps all layer intermediates on-GPU, writes
-        # K/V to the pool via D2D hipMemcpy, fuses residual+RMSNorm, and does 1 D2H copy.
-        if isinstance(kv_cache, KVCacheManager) and kv_cache.mode == "gpu" and not has_bias:
+        # Fast C++-owned device-resident pipeline when using GPU-resident KVCacheManager.
+        # Only valid for the llama-family layout: separate Q/K/V weights, no biases,
+        # separate SwiGLU gate/up (no fused Phi-3 ffn_up); fused/gemma layouts use the
+        # spec-driven path below.
+        if (
+            isinstance(kv_cache, KVCacheManager)
+            and kv_cache.mode == "gpu"
+            and not has_bias
+            and not fused_qkv_weight
+            and cfg.ffn_act == "swiglu"
+            and not cfg.ffn_fused_gate_up
+            and (prefix + "ffn_gate.weight") in layer_weights
+        ):
             kv_cache.record_gpu_layer_step(layer_idx, seq_len, pos_offset)
             wq_buf, wq_type = _prepare_weight_for_device(
                 layer_weights[prefix + "attn_q.weight"], q_dim, hidden_size
@@ -266,34 +269,67 @@ class TransformerLayer:
         normed_x = np.empty_like(x)
         matmul_module.rmsnorm(x, attn_norm_w, normed_x, seq_len, hidden_size, cfg.rms_norm_eps)
 
-        # 2. Q, K, V Projections (Fused Q4_0/Q8_0/Q4_K/Q6_K or FP16 NT) + optional QKV biases (C-3)
-        q_proj = linear_project(normed_x, layer_weights[prefix + "attn_q.weight"], q_dim)
-        k_proj = linear_project(normed_x, layer_weights[prefix + "attn_k.weight"], kv_dim)
-        v_proj = linear_project(normed_x, layer_weights[prefix + "attn_v.weight"], kv_dim)
+        # 2. Q, K, V projections.
+        # Fused QKV (Phi-3/Gemma per header): one projection with N = q_dim+2*kv_dim
+        # rows, then exact column slicing of the (M, q+2kv) output. This is valid for
+        # quantized fused tensors too: the weight stays a single matmul operand and
+        # is never reshaped as three separate tensors.
+        if fused_qkv_weight:
+            qkv_rows = q_dim + 2 * kv_dim
+            qkv = linear_project(
+                normed_x, layer_weights[prefix + "attn_qkv.weight"], qkv_rows
+            )
+            if (prefix + "attn_qkv.bias") in layer_weights:
+                qkv = add_bias_fp32(qkv, norm_weight_fp16(layer_weights[prefix + "attn_qkv.bias"]))
+            elif (prefix + "attn_q.bias") in layer_weights or (prefix + "attn_k.bias") in layer_weights or (prefix + "attn_v.bias") in layer_weights:
+                # Fused weights may coexist with separate Q/K/V biases (legacy files).
+                q_bias = (
+                    norm_weight_fp16(layer_weights[prefix + "attn_q.bias"])
+                    if (prefix + "attn_q.bias") in layer_weights
+                    else np.zeros(q_dim, dtype=np.float16)
+                )
+                k_bias = (
+                    norm_weight_fp16(layer_weights[prefix + "attn_k.bias"])
+                    if (prefix + "attn_k.bias") in layer_weights
+                    else np.zeros(kv_dim, dtype=np.float16)
+                )
+                v_bias = (
+                    norm_weight_fp16(layer_weights[prefix + "attn_v.bias"])
+                    if (prefix + "attn_v.bias") in layer_weights
+                    else np.zeros(kv_dim, dtype=np.float16)
+                )
+                fused_bias = np.concatenate([q_bias, k_bias, v_bias]).astype(np.float16)
+                qkv = add_bias_fp32(qkv, fused_bias)
+            q_proj = np.ascontiguousarray(qkv[:, :q_dim])
+            k_proj = np.ascontiguousarray(qkv[:, q_dim:q_dim + kv_dim])
+            v_proj = np.ascontiguousarray(qkv[:, q_dim + kv_dim:])
+        else:
+            # Separate Q/K/V path (Fused Q4_0/Q8_0/Q4_K/Q6_K or FP16 NT) + optional
+            # QKV biases (C-3).
+            q_proj = linear_project(normed_x, layer_weights[prefix + "attn_q.weight"], q_dim)
+            k_proj = linear_project(normed_x, layer_weights[prefix + "attn_k.weight"], kv_dim)
+            v_proj = linear_project(normed_x, layer_weights[prefix + "attn_v.weight"], kv_dim)
 
-        if (prefix + "attn_q.bias") in layer_weights:
-            q_bias = norm_weight_fp16(layer_weights[prefix + "attn_q.bias"])
-            q_proj = (q_proj.astype(np.float32) + q_bias.astype(np.float32)).astype(np.float16)
-        if (prefix + "attn_k.bias") in layer_weights:
-            k_bias = norm_weight_fp16(layer_weights[prefix + "attn_k.bias"])
-            k_proj = (k_proj.astype(np.float32) + k_bias.astype(np.float32)).astype(np.float16)
-        if (prefix + "attn_v.bias") in layer_weights:
-            v_bias = norm_weight_fp16(layer_weights[prefix + "attn_v.bias"])
-            v_proj = (v_proj.astype(np.float32) + v_bias.astype(np.float32)).astype(np.float16)
+            if (prefix + "attn_q.bias") in layer_weights:
+                q_proj = add_bias_fp32(q_proj, norm_weight_fp16(layer_weights[prefix + "attn_q.bias"]))
+            if (prefix + "attn_k.bias") in layer_weights:
+                k_proj = add_bias_fp32(k_proj, norm_weight_fp16(layer_weights[prefix + "attn_k.bias"]))
+            if (prefix + "attn_v.bias") in layer_weights:
+                v_proj = add_bias_fp32(v_proj, norm_weight_fp16(layer_weights[prefix + "attn_v.bias"]))
 
-        q_heads = q_proj.reshape(seq_len, cfg.num_heads, cfg.head_dim)
-        k_heads = k_proj.reshape(seq_len, cfg.num_kv_heads, cfg.head_dim)
-        v_heads = v_proj.reshape(seq_len, cfg.num_kv_heads, cfg.head_dim)
+        q_heads = q_proj.reshape(seq_len, cfg.num_heads, head_dim)
+        k_heads = k_proj.reshape(seq_len, cfg.num_kv_heads, head_dim)
+        v_heads = v_proj.reshape(seq_len, cfg.num_kv_heads, head_dim)
 
         # 3. Rotary Positional Embeddings (RoPE) on Q and K
         q_rot = np.empty_like(q_heads)
         k_rot = np.empty_like(k_heads)
         matmul_module.rope(
-            q_heads, q_rot, seq_len, cfg.num_heads, cfg.head_dim,
+            q_heads, q_rot, seq_len, cfg.num_heads, head_dim,
             pos_offset, cfg.rope_freq_base, cfg.rope_neox
         )
         matmul_module.rope(
-            k_heads, k_rot, seq_len, cfg.num_kv_heads, cfg.head_dim,
+            k_heads, k_rot, seq_len, cfg.num_kv_heads, head_dim,
             pos_offset, cfg.rope_freq_base, cfg.rope_neox
         )
 
@@ -350,19 +386,48 @@ class TransformerLayer:
             x, attn_proj, ffn_norm_w, h, normed_h, seq_len, hidden_size, cfg.rms_norm_eps
         )
 
-        # 8. SwiGLU Feed-Forward Network (gate_proj, up_proj -> SwiGLU -> down_proj)
-        gate = linear_project(
-            normed_h, layer_weights[prefix + "ffn_gate.weight"], cfg.intermediate_size
-        )
-        up = linear_project(
-            normed_h, layer_weights[prefix + "ffn_up.weight"], cfg.intermediate_size
-        )
-        swiglu_out = np.empty_like(gate)
-        matmul_module.swiglu(gate, up, swiglu_out, seq_len * cfg.intermediate_size)
+        # 8. Feed-Forward Network, selected by the family spec:
+        # - gemma: GeGLU over separate gate/up (gelu_tanh(gate) * up; host FP32 path)
+        # - phi3:  fused gate+up `ffn_up` (rows = 2*intermediate) -> SwiGLU on the
+        #          split halves (same math as separate llama SwiGLU)
+        # - llama/qwen2: separate gate/up -> SwiGLU (unchanged)
+        if cfg.ffn_act == "geglu":
+            gate = linear_project(
+                normed_h, layer_weights[prefix + "ffn_gate.weight"], cfg.intermediate_size
+            )
+            up = linear_project(
+                normed_h, layer_weights[prefix + "ffn_up.weight"], cfg.intermediate_size
+            )
+            ffn_act_out = geglu_host(gate, up)
+        elif cfg.ffn_fused_gate_up:
+            gate_up = linear_project(
+                normed_h, layer_weights[prefix + "ffn_up.weight"], 2 * cfg.intermediate_size
+            )
+            if (prefix + "ffn_up.bias") in layer_weights:
+                gate_up = add_bias_fp32(
+                    gate_up, norm_weight_fp16(layer_weights[prefix + "ffn_up.bias"])
+                )
+            gate = np.ascontiguousarray(gate_up[:, : cfg.intermediate_size])
+            up = np.ascontiguousarray(gate_up[:, cfg.intermediate_size :])
+            ffn_act_out = np.empty_like(gate)
+            matmul_module.swiglu(gate, up, ffn_act_out, seq_len * cfg.intermediate_size)
+        else:
+            gate = linear_project(
+                normed_h, layer_weights[prefix + "ffn_gate.weight"], cfg.intermediate_size
+            )
+            up = linear_project(
+                normed_h, layer_weights[prefix + "ffn_up.weight"], cfg.intermediate_size
+            )
+            ffn_act_out = np.empty_like(gate)
+            matmul_module.swiglu(gate, up, ffn_act_out, seq_len * cfg.intermediate_size)
 
         down = linear_project(
-            swiglu_out, layer_weights[prefix + "ffn_down.weight"], hidden_size
+            ffn_act_out, layer_weights[prefix + "ffn_down.weight"], hidden_size
         )
+        if (prefix + "ffn_down.bias") in layer_weights:
+            down = add_bias_fp32(
+                down, norm_weight_fp16(layer_weights[prefix + "ffn_down.bias"])
+            )
 
         # 9. Second Residual Connection on GPU
         out_hidden = np.empty_like(h)
