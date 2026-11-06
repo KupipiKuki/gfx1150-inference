@@ -290,6 +290,13 @@ conditions. G6 still depends on the later gates.
 > **G1 is signed (2026-11-04); 7B is authorized.** The 7A-9 parser fix has landed and is
 > accepted, so 7B is fully independent of the parser work. The 7A-3 goldens are the
 > acceptance vectors.
+>
+> **G2 status (2026-11-05): NOT SIGNED.** The first 7B candidate
+> (`wp/7B-tokenizer` @ `e091fcf`, work `70c5ab2`) closes the four xfails and passes all
+> 23 goldens, but the SPM path does not match the pinned llama.cpp reference on mixed
+> text around special tokens (**BLOCKER-7B-1**) or on ordinary common words
+> (**BLOCKER-7B-2**). See `audit/AUDIT_7B_TOKENIZER_DEEP_2026-11-05.md` and
+> `audit/G2_SIGNOFF_2026-11-05.md`. Do not merge the branch; 7C remains blocked.
 
 **Audit trace:** C-2 (partial), N-2, T-3; v0.6.2 §6 P0-1.
 **Allowed files:** `src/tokenizer.py`, `src/inference.py` (BOS call sites only), `tests/**` tokenizer tests, `tests/fixtures/**` only if a golden needs correction (do not rewrite 7A-3 goldens), `README.md` (tokenizer/claims wording), docs, `audit/evidence/G2/7B/**`.
