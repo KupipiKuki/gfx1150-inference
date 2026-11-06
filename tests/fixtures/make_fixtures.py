@@ -287,6 +287,7 @@ def cmd_tokenizer(args: argparse.Namespace) -> int:
     reader = gguf.GGUFReader(str(args.spm_gguf))
     spm_tokens = list(reader.fields["tokenizer.ggml.tokens"].contents())
     spm_types = list(reader.fields["tokenizer.ggml.token_type"].contents())
+    spm_scores = [float(s) for s in reader.fields["tokenizer.ggml.scores"].contents()]
     spm_bos = int(reader.fields["tokenizer.ggml.bos_token_id"].contents())
     spm_eos = int(reader.fields["tokenizer.ggml.eos_token_id"].contents())
     spm_special = {
@@ -303,6 +304,11 @@ def cmd_tokenizer(args: argparse.Namespace) -> int:
         "eos_token_id": spm_eos,
         "n_tokens": len(spm_tokens),
         "n_merges": 0,
+        # The unigram scores the reference tokenizer segments with. Without
+        # them a unigram Viterbi is degenerate (the greedy segmentations of
+        # `don't` and `we're` differ), so they are part of the vocabulary
+        # fixture, not of the golden.
+        "scores": spm_scores,
         "token_type_default": 1,
         "token_types": spm_special,
         "tokens": spm_tokens,

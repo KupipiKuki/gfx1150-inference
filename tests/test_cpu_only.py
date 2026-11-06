@@ -322,7 +322,10 @@ class TestCPUOnlySuite(unittest.TestCase):
             "\u2581w", "\u2581wo", "\u2581wor", "\u2581worl", "\u2581world",
             "<0xCE>", "<0xA9>",
         ]
-        scores = [float(i) for i in range(len(tokens))]
+        # Unigram scores, ordered like real log probabilities: the longer a
+        # piece the better its score, so the Viterbi segmentation prefers
+        # '▁hello' over '▁h'+'e'+'l'+'l'+'o'.
+        scores = [-float(i) for i in range(len(tokens))]
         tok = GGUFTokenizer(tokens=tokens, scores=scores, bos_token_id=1, eos_token_id=2)
 
         ids = tok.encode("hello world", add_bos=True)

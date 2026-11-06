@@ -12,7 +12,7 @@
     "upstream": "ggml-org/models",
     "upstream_revision": "ggml-org/models@main:tinyllamas/stories260K.gguf",
     "source_gguf_sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
-    "fixture_sha256": "83087209d2555019d790b98408e307e8693d51441a91c253b367e9c9c0fbe7e7",
+    "fixture_sha256": "8577a797fcaa086c9386894e7bcb78cf6aed74541e9b86bb9e155d9ba7ab2002",
     "n_tokens": 512,
     "add_bos_token_metadata": "absent"
   },

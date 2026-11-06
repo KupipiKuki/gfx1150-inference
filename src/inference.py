@@ -398,7 +398,7 @@ class LlamaInferenceEngine:
         """Encode `prompt`, generate up to `max_new_tokens`, and decode back to text."""
         if self.tokenizer is None:
             raise RuntimeError("GGUF file does not contain tokenizer metadata; use generate_ids().")
-        prompt_ids = self.tokenizer.encode(prompt, add_bos=True)
+        prompt_ids = self.tokenizer.encode(prompt)
         new_ids, metrics = self.generate_ids(
             prompt_ids=prompt_ids,
             max_new_tokens=max_new_tokens,
@@ -472,7 +472,7 @@ class LlamaInferenceEngine:
         """Encode and generate completions for a batch of text prompts."""
         if self.tokenizer is None:
             raise RuntimeError("GGUF file does not contain tokenizer metadata; use generate_batch_ids().")
-        encoded = [self.tokenizer.encode(p, add_bos=True) for p in prompts]
+        encoded = [self.tokenizer.encode(p) for p in prompts]
         out_ids, metrics = self.generate_batch_ids(
             batch_prompt_ids=encoded,
             max_new_tokens=max_new_tokens,
