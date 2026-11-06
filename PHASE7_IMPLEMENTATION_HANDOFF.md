@@ -290,6 +290,16 @@ conditions. G6 still depends on the later gates.
 > **G1 is signed (2026-11-04); 7B is authorized.** The 7A-9 parser fix has landed and is
 > accepted, so 7B is fully independent of the parser work. The 7A-3 goldens are the
 > acceptance vectors.
+>
+> **G2 status (2026-11-06): SIGNED.** The first 7B candidate
+> (`wp/7B-tokenizer` @ `e091fcf`, work `70c5ab2`) failed on the SPM mixed-text
+> prefix and the Viterbi-vs-greedy algorithm (BLOCKER-7B-1/-2). The remediation
+> (`wp/7B-remediation` @ `1be1ad4`, work `25e9088`) fixes both and is accepted:
+> `is_prev_special` prefixing, the reference score-priority greedy merge, a
+> 310-case reference-generated differential corpus, and independent 310/11/2,000
+> differentials. See `audit/AUDIT_7B_REMEDIATION_DEEP_2026-11-06.md` and
+> `audit/G2_SIGNOFF_2026-11-06.md`. **C-G1-4 is closed; 7C is unblocked.**
+> Release/G6 remains gated by 7C–7F and the GPU runner.
 
 **Audit trace:** C-2 (partial), N-2, T-3; v0.6.2 §6 P0-1.
 **Allowed files:** `src/tokenizer.py`, `src/inference.py` (BOS call sites only), `tests/**` tokenizer tests, `tests/fixtures/**` only if a golden needs correction (do not rewrite 7A-3 goldens), `README.md` (tokenizer/claims wording), docs, `audit/evidence/G2/7B/**`.

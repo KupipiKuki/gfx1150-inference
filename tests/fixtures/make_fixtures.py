@@ -287,6 +287,7 @@ def cmd_tokenizer(args: argparse.Namespace) -> int:
     reader = gguf.GGUFReader(str(args.spm_gguf))
     spm_tokens = list(reader.fields["tokenizer.ggml.tokens"].contents())
     spm_types = list(reader.fields["tokenizer.ggml.token_type"].contents())
+    spm_scores = [float(s) for s in reader.fields["tokenizer.ggml.scores"].contents()]
     spm_bos = int(reader.fields["tokenizer.ggml.bos_token_id"].contents())
     spm_eos = int(reader.fields["tokenizer.ggml.eos_token_id"].contents())
     spm_special = {
@@ -303,6 +304,11 @@ def cmd_tokenizer(args: argparse.Namespace) -> int:
         "eos_token_id": spm_eos,
         "n_tokens": len(spm_tokens),
         "n_merges": 0,
+        # The unigram scores the reference tokenizer segments with. Without
+        # them a unigram Viterbi is degenerate (the greedy segmentations of
+        # `don't` and `we're` differ), so they are part of the vocabulary
+        # fixture, not of the golden.
+        "scores": spm_scores,
         "token_type_default": 1,
         "token_types": spm_special,
         "tokens": spm_tokens,
@@ -365,6 +371,177 @@ def cmd_tokenizer(args: argparse.Namespace) -> int:
             "cases": spm_cases,
         },
     )
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# SPM differential corpus (Phase 7B remediation, BLOCKER-7B-2)
+#
+# The 7A-3 goldens sit in the intersection of the reference's greedy merge and
+# other segmentations; they do not cover common words or mixed special-token
+# text. This corpus is the fixed differential regression: every prompt's token
+# IDs come from the pinned llama-tokenize binary, never from this repository.
+# ---------------------------------------------------------------------------
+
+SCHEMA_DIFFERENTIAL = "gfx1150-inference/tokenizer-differential/1"
+
+#: Fixed common-word list; the corpus is deterministic (seed below).
+COMMON_WORDS: list[str] = [
+    "the", "and", "time", "said", "want", "day", "his", "her", "upon", "named",
+    "she", "big", "mom", "water", "a", "I", "was", "is", "it", "in", "on", "at",
+    "to", "of", "for", "with", "as", "that", "this", "he", "be", "have", "do",
+    "not", "but", "so", "if", "then", "than", "when", "what", "who", "how",
+    "all", "any", "can", "had", "out", "up", "down", "about", "into", "over",
+    "after", "before", "here", "there", "now", "just", "also", "very", "really",
+    "little", "girl", "boy", "man", "woman", "child", "people", "house", "home",
+    "school", "book", "story", "tree", "dog", "cat", "bird", "sun", "moon",
+    "sky", "rain", "snow", "food", "hand", "eye", "way", "word", "thing",
+    "world", "life", "year", "week", "today", "tomorrow", "yesterday", "morning",
+    "night", "happy", "sad", "good", "bad", "new", "old", "young", "long",
+    "short", "high", "low", "hot", "cold", "open", "close", "run", "walk",
+    "sit", "stand", "see", "look", "go", "come", "get", "got", "make", "made",
+    "take", "know", "think", "say", "tell", "ask", "answer", "play", "read",
+    "write", "eat", "drink", "sleep", "wake", "love", "like", "help", "try",
+    "use", "find", "give", "put", "keep", "let", "begin", "seem", "talk",
+    "turn", "start", "show", "hear", "feel", "leave", "call", "need", "mean",
+    "keep", "rain", "wind", "fire", "light", "dark", "green", "blue", "red",
+    "black", "white", "small", "large", "great", "first", "last", "next",
+    "other", "same", "different", "own", "each", "few", "many", "more", "most",
+    "some", "such", "only", "very", "just", "even", "still", "back", "around",
+    "through", "again", "once", "together", "always", "never", "often",
+    "Lily", "Tom", "Mom", "Dad", "Sam", "Ben", "dad", "sister", "brother",
+    "friend", "teacher", "class", "city", "town", "park", "street", "car",
+    "train", "ball", "game", "toy", "cake", "apple", "bread", "milk", "egg",
+]
+
+DIFF_SENTENCES: list[str] = [
+    "the quick brown fox jumps over the lazy dog",
+    "Once upon a time there was a little girl named Lily",
+    "She said she wanted to go to the park today",
+    "The big dog and the little cat are friends",
+    "Mom read a story about a brave young boy",
+    "We can go to the zoo tomorrow morning",
+    "He does not want to eat his vegetables",
+    "The sun is hot and the sky is blue",
+    "I think this is the best day ever",
+    "They went to school together every day",
+    "hello, world! 123",
+    "Hello  world",
+    "don't stop believing",
+    "we're going home now",
+    "a_b c_d",
+    "The rain in Spain falls mainly on the plain",
+    "Pack my box with five dozen liquor jugs",
+    "How vexingly quick daft zebras jump",
+    "Sphinx of black quartz, judge my vow",
+    "She sells seashells by the seashore",
+    "Peter Piper picked a peck of pickled peppers",
+    "a<s>b",
+    "hi<s>there",
+    "hello<s>there",
+    "<s>b",
+    "x<s>y",
+    "<s></s>",
+    " <s>",
+    "a </s> b",
+    "<s>Once upon a time</s> there was a girl",
+    "one <s> two <s> three",
+    "tab\tseparated\twords",
+    "line one\nline two",
+    "trailing space ",
+    " leading space",
+    "double  space",
+    "café",
+    "naïve façade",
+    "Ω",
+    "Σpondre",
+    "\U0001f600",
+    "\U0001f600\U0001f601\U0001f602",
+    "3.14159 2718 42",
+    "a" * 100,
+    "word " * 20,
+]
+
+DIFF_SEED = 20261106
+DIFF_N_RANDOM = 40
+
+
+def _differential_prompts(tokens: list[str]) -> list[tuple[str, bool, bool]]:
+    """The fixed differential corpus as (prompt, parse_special, add_bos)."""
+    import random
+
+    rng = random.Random(DIFF_SEED)
+    normal_pieces = [
+        t for t in tokens
+        if t and t not in ("<unk>", "<s>", "</s>") and not t.startswith("<0x")
+    ]
+    prompts: list[tuple[str, bool, bool]] = []
+    for w in dict.fromkeys(COMMON_WORDS):
+        prompts.append((w, False, False))
+    for s in DIFF_SENTENCES:
+        prompts.append((s, "<s>" in s or "</s>" in s, False))
+    for i in range(DIFF_N_RANDOM):
+        n = rng.randint(2, 6)
+        prompts.append(("".join(rng.choice(normal_pieces) for _ in range(n)), False, i % 4 == 0))
+    return prompts
+
+
+def cmd_spm_differential(args: argparse.Namespace) -> int:
+    """Regenerate stories260k_differential_golden.json with the pinned
+    llama-tokenize (the same binary that produced the 7A-3 goldens)."""
+    tokenize_bin = llama_bin(args.llama_cpp, "llama-tokenize")
+    out_dir: pathlib.Path = args.out
+    vocab = json.loads((out_dir / "stories260k_vocab.json").read_text(encoding="utf-8"))
+
+    cases = []
+    for i, (prompt, parse_special, add_bos) in enumerate(_differential_prompts(vocab["tokens"])):
+        flags = []
+        if not add_bos:
+            flags.append("--no-bos")
+        if not parse_special:
+            flags.append("--no-parse-special")
+        ids = run_tokenize(tokenize_bin, args.spm_gguf, prompt, flags)
+        cases.append(
+            {
+                "id": f"diff_{i:04d}",
+                "prompt": prompt,
+                "reference_flags": flags,
+                "add_bos": add_bos,
+                "token_ids": ids,
+            }
+        )
+    payload = {
+        "schema": SCHEMA_DIFFERENTIAL,
+        "id": "stories260k",
+        "reference": {
+            "project": "ggml-org/llama.cpp",
+            "tool": "llama-tokenize",
+            "commit": "149f5641b931aaf33697d70f9abc90c3e5300247",
+            "command": (
+                "llama-tokenize -m stories260K.gguf -p <prompt> --ids "
+                "[--no-bos] [--no-parse-special]"
+            ),
+        },
+        "vocab": {
+            "id": "stories260k",
+            "upstream": "ggml-org/models",
+            "upstream_revision": args.spm_revision,
+            "source_gguf_sha256": sha256(args.spm_gguf),
+            "fixture_sha256": sha256(out_dir / "stories260k_vocab.json"),
+            "n_tokens": len(vocab["tokens"]),
+            "add_bos_token_metadata": "absent",
+        },
+        "corpus": {
+            "seed": DIFF_SEED,
+            "n_common_words": len(COMMON_WORDS),
+            "n_sentences": len(DIFF_SENTENCES),
+            "n_random_piece_concatenations": DIFF_N_RANDOM,
+            "n_cases": len(cases),
+        },
+        "cases": cases,
+    }
+    write_json(out_dir / "stories260k_differential_golden.json", payload)
+    print(f"  {len(cases)} differential cases written")
     return 0
 
 
@@ -576,6 +753,16 @@ def main(argv: list[str]) -> int:
     tokenizer.add_argument("--spm-revision", required=True)
     tokenizer.add_argument("--out", required=True, type=pathlib.Path)
     tokenizer.set_defaults(func=cmd_tokenizer)
+
+    differential = sub.add_parser(
+        "spm-differential",
+        help="the stories260K differential corpus (Phase 7B remediation, BLOCKER-7B-2)",
+    )
+    differential.add_argument("--llama-cpp", required=True, type=pathlib.Path)
+    differential.add_argument("--spm-gguf", required=True, type=pathlib.Path)
+    differential.add_argument("--spm-revision", required=True)
+    differential.add_argument("--out", required=True, type=pathlib.Path)
+    differential.set_defaults(func=cmd_spm_differential)
 
     quant = sub.add_parser("quant", help="the quantized block fixtures")
     quant.add_argument("--gguf-py", default=None, help="path to llama.cpp's gguf-py package")

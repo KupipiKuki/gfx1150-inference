@@ -1,0 +1,15 @@
+tokens match GGUF:       True
+token types match GGUF:  True
+scores match GGUF:       True (n=512, first diff at None)
+bos/eos ids match:       True
+add_bos_token absent:    True
+merges empty in GGUF:    True
+golden.fixture_sha256 == sha(vocab fixture): True 8577a797fcaa086c9386894e7bcb78cf6aed74541e9b86bb9e155d9ba7ab2002
+gpt2 vocab fixture hash still matches golden: True
+PROVENANCE contains 8577a797fcaa086c... for stories260k_vocab.json: True
+PROVENANCE contains 6498a0a173db9bad... for stories260k_tokenizer_golden.json: True
+PROVENANCE contains 6d69121d9abb2915... for gpt2_vocab.json: True
+PROVENANCE contains 58200852c309ee0c... for gpt2_tokenizer_golden.json: True
+parent fixture has no scores key: True
+parent fixture sha == old golden hash: True
+candidate vocab differs from parent only by the scores key: True

@@ -1,0 +1,38 @@
+# G2 / 7B - 7B-4 unmappable bytes: <0xXX> fallback first, then a ValueError naming the byte
+# There is no red: the parent also raised on unmappable input; 7B-4 makes the
+# handling uniform (both families, lone surrogates) and pins it in tests.
+
+================================================================================
+GREEN (candidate): python -m pytest -m "not gpu" -v -k "unmappable"
+================================================================================
+
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python
+cachedir: .pytest_cache
+hypothesis profile 'ci' -> database=None, deadline=None, print_blob=True, derandomize=True, suppress_health_check=(HealthCheck.too_slow,)
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 152 items / 149 deselected / 3 selected
+
+tests/test_goldens_tokenizer.py::test_unmappable_byte_raises_in_the_gpt2_path PASSED [ 33%]
+tests/test_goldens_tokenizer.py::test_unmappable_byte_raises_in_the_spiece_path PASSED [ 66%]
+tests/test_goldens_tokenizer.py::test_unmappable_codepoint_raises_with_its_byte PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================ 3 passed, 149 deselected, 13 warnings in 0.28s ================
+exit=0
+
+================================================================================
+GREEN (candidate): the independent probe, unmappable-byte checks
+================================================================================
+
+[PASS] gpt2 minimal vocab: missing byte raises -- Unmappable character 'Ã' (byte 0xC3) not in vocabulary
+[PASS] lone surrogate raises ValueError, not UnicodeEncodeError -- Input text is not encodable as UTF-8: 'utf-8' codec can't encode character '\ud800' in position 1: surrogates not allowed
+[PASS] all 7A-3 GPT-2 golden cases match -- 0 mismatches

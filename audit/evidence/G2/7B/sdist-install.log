@@ -1,0 +1,55 @@
+# G2 / 7B - sdist build and clean-venv install (the packaging lane is unchanged by 7B)
+#
+# 7B ships pure-Python changes only; the check proves the sdist still builds,
+# installs into a clean venv, and the shipped CPU suite passes from the
+# installed tree (ending the 7A-5 flow on the candidate).
+
+================================================================================
+python setup.py sdist --dist-dir dist   (exit 0; ends: gfx1150_inference-0.6.1.tar.gz)
+================================================================================
+
+creating dist
+Creating tar archive
+removing 'gfx1150_inference-0.6.1' (and everything under it)
+exit=0
+
+================================================================================
+clean venv, CPU-only toolchain simulation:
+  python -m venv /tmp/sdist-venv-7b
+  ROCM_ROOT=/nonexistent-rocm GFX1150_SKIP_CMAKE=1 pip install dist/gfx1150_inference-0.6.1.tar.gz
+  pip install setuptools hypothesis pytest   (test-time deps of the shipped suite)
+  (exit 0; pip show: gfx1150-inference 0.6.1)
+================================================================================
+
+
+================================================================================
+the shipped unittest suite from the extracted sdist (the CI lane's CPU job):
+  ROCM_ROOT=/nonexistent-rocm /tmp/sdist-venv-7b/bin/python tests/test_cpu_only.py        -> OK (12/12)
+  ROCM_ROOT=/nonexistent-rocm /tmp/sdist-venv-7b/bin/python -O tests/test_cpu_only.py     -> OK (12/12)
+================================================================================
+
+Ran 12 tests in 0.473s
+
+OK
+Ran 12 tests in 0.446s
+
+OK
+
+================================================================================
+the shipped pytest CPU lane from the extracted sdist:
+  ROCM_ROOT=/nonexistent-rocm /tmp/sdist-venv-7b/bin/python -m pytest -m "not gpu" -q
+================================================================================
+
+ss...................................................................... [ 56%]
+........................................................                 [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_build_configure.py:102: pybind11 is not installed for this interpreter (a documented prerequisite); the discovery cannot be exercised
+SKIPPED [1] tests/test_build_configure.py:135: no ROCm/HIP toolchain on this host; the configure cannot enable the HIP language
+126 passed, 2 skipped, 24 deselected, 1 warning in 41.41s
+exit=0

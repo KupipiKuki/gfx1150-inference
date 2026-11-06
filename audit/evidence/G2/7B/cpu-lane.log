@@ -1,0 +1,50 @@
+# G2 / 7B - the CPU lane, parent and candidate, from the repository root
+
+## Expected movement (brief sect. 3): no tokenizer xfails remain; the CPU lane
+## otherwise unchanged. The parent's 4 xfails are now real passing tests and
+## the new 7B QAQC tests were added, so the totals move accordingly:
+##   parent   8426ec6: 111 passed, 4 xfailed  (115 selected)
+##   candidate 70c5ab2: 128 passed             (128 selected)
+
+================================================================================
+parent (8426ec6): python -m pytest -m "not gpu" -q
+================================================================================
+
+.......................................................xx.........xx.... [ 62%]
+...........................................                              [100%]
+=============================== warnings summary ===============================
+../../home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - 7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS
+XFAIL tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - 7B: special tokens in the input are not encoded as their own token IDs
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont] - 7B/7C: the repository's SentencePiece path is a greedy longest match; the reference segments with the unigram scores
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed] - 7B: a control token in the input is not parsed as its own token ID
+111 passed, 24 deselected, 4 xfailed, 14 warnings in 48.72s
+exit=0
+
+================================================================================
+candidate (70c5ab2): python -m pytest -m "not gpu" -q
+================================================================================
+
+........................................................................ [ 56%]
+........................................................                 [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+128 passed, 24 deselected, 14 warnings in 47.79s
+exit=0
