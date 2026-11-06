@@ -345,39 +345,67 @@ python -O tests/test_cpu_only.py
 
 ### 7C — Model-family support (Gate G3)
 
-**Audit trace:** C-3 (partial), C-4/C-5 (scope decision), N-3; v0.6.2 §6 P0-2.
-**Allowed files:** `src/layer.py`, `src/inference.py` (model spec / embedding / logits), `src/gguf_parser.py` (only if metadata access needs it), `src/kernels/**` (only if a fused-QKV kernel is required), tests, docs, evidence.
+**Status (2026-11-06): AUTHORIZED — G2 signed; 7D not authorized.**
+**Coder brief:** [`PHASE7_7C_MODEL_FAMILY_BRIEF.md`](PHASE7_7C_MODEL_FAMILY_BRIEF.md) — authoritative package detail.
+**Evidence contract:** [`audit/evidence/G3/7C/README.md`](audit/evidence/G3/7C/README.md).
 
-**Work packages**
+**Audit trace:** C-3 (partial), C-4/C-5 (scope decision), N-3; v0.6.2 §6 P0-2;
+`audit/REVIEW_v0.6.1_c75914b.md` §2.2.
+**Allowed files:** `src/model_spec.py` (new, preferred) or `src/layer.py`; `src/layer.py`;
+`src/inference.py`; `src/gguf_parser.py` only if metadata access needs it;
+`src/kernels/**` + `src/python_bindings/bindings.cpp` + `CMakeLists.txt` only for a new
+7C kernel target; `tests/**`; `tests/fixtures/**`; `README.md`;
+`audit/CLAIMS_LEDGER.md` rows 10–12 only; docs; `audit/evidence/G3/7C/**`. No 7D/7E work,
+tokenizer/parser rewrites, unrelated CI/build changes, or performance claims.
+
+**Work packages** (full acceptance criteria in the brief)
 
 | ID | Task | Acceptance |
 |---|---|---|
-| 7C-1 | Add a `ModelSpec` / tensor-name map: required tensors, optional biases, fused-QKV presence, embedding scale, logit soft-cap, key/value length; fail fast with a list of missing tensors | Unknown architecture → explicit error; llama path unchanged; unsupported quant list is fail-fast |
-| 7C-2 | Phi-3 fused `attn_qkv.weight` (+ bias): split or fused matmul path; FFN biases if present; shape validation | Synthetic Phi-3 fixture constructs and runs; logits match reference; no `KeyError` |
-| 7C-3 | Gemma: `sqrt(hidden)` embedding scale, final-logit soft-cap, `{arch}.attention.key_length` / `value_length`, correct head dim | Synthetic Gemma fixture runs; logits match reference; RoPE/reshape correct |
-| 7C-4 | Publish an honest compatibility matrix (arch × quant × context) and fix README claims | Matrix matches tests; no unsupported family listed as supported |
+| 7C-1 | `ModelSpec` / tensor map: required/optional tensors, fused-QKV/FFN flags, biases, **separate key/value dims**, embedding scale, final-logit softcap, activation, tied output; fail fast with all missing names | Unknown arch explicit error; llama path unchanged; missing required vs optional distinct; shape errors actionable |
+| 7C-2 | Phi-3: fused `attn_qkv.weight`/`.bias` **and** fused `ffn_up.weight` (gate+up) with optional FFN biases; NeoX; long-rope factors fail fast if unsupported | Synthetic Phi-3 fixture runs; logits match independent reference; fused/separate and bias/no-bias agree; no `KeyError` |
+| 7C-3 | Gemma: `sqrt(hidden)` embedding scale, **GeGLU** (not SwiGLU), **NeoX RoPE**, `attention.key_length`/`value_length` (Gemma 7B key_dim ≠ hidden/heads), final-logit softcap, tied output; gemma2/3 SWA/attn-softcap fail fast | Synthetic Gemma fixture runs; logits match independent reference; reshape/RoPE/activation correct |
+| 7C-4 | Compatibility matrix (arch × quant × context), README claims, ledger rows 10–12 | Synthetic vs real-GGUF explicit; qwen2 stays NOT YET; no unsupported family listed as supported |
 
 **Required checks**
+
 ```bash
 python -m pytest -m "not gpu" -q -k "model_spec or phi3 or gemma or compat"
 python -m pytest -m gpu -q -k "phi3 or gemma or llama_regression"
+python -m pytest -m "not gpu" -q
+python -m pytest -m gpu -q
 python tests/test_cpu_only.py && python -O tests/test_cpu_only.py
+python scripts/qa/check_claims.py
+# plus independent probes: fused/separate, bias/no-bias, unknown/missing/shape,
+# Gemma key_dim/scale/softcap/GeGLU/NeoX, llama regression
 ```
 
 **QAQC adversarial checks**
-- Tensor names taken from **real** GGUF headers, not invented; record header dumps.
-- Missing optional tensor vs missing required tensor produce different, actionable errors.
-- Head-dim math for Gemma 7B (explicit key length ≠ hidden/heads).
-- Bias path and fused path produce the same result where both exist.
-- Llama regression: identical token IDs on the fixed golden prompt.
+- Tensor names from **real** GGUF headers (text dump + source/hash); do not invent.
+- Missing required vs missing optional vs shape mismatch each fail distinctly; missing
+  required lists every missing tensor.
+- Fused/separate QKV and fused `ffn_up` paths agree; bias/no-bias agree where valid.
+- Quantized fused QKV/FFN runs, or the limitation is explicit and the file fails fast.
+- Gemma 7B key/value dims ≠ `hidden/heads`; embedding scale; GeGLU; NeoX; softcap;
+  tied output; gemma2/3-only features fail fast.
+- Phi-3 fused QKV bias, fused gate/up, optional FFN biases; long-rope factors.
+- Llama regression: identical token IDs/logits on the fixed prompt/seed.
+- Qwen2 metadata/bias regression; claim stays NOT YET.
+- Claims/matrix distinguish synthetic-fixture from real-GGUF evidence.
 
 **Exit criteria (G3)**
-- [ ] Per-arch fixtures and reference logits pass.
+- [ ] Per-arch synthetic fixtures + independent reference logits pass.
 - [ ] Llama-family behavior unchanged.
-- [ ] Compatibility matrix and README are accurate.
-- [ ] Unsupported families fail fast with a clear message.
+- [ ] Compatibility matrix and README are accurate; synthetic vs real is explicit.
+- [ ] Unsupported families/features fail fast with a clear message.
+- [ ] CPU/GPU/claims lanes green; red/green evidence recorded.
 
-**Stop:** Do not start 7D until G3 is signed. If Phi-3/Gemma cannot be evidenced, keep them explicitly unsupported and close the package as "documented limitation" — do not claim support.
+**Fallback:** if Phi-3/Gemma cannot be evidenced, keep the family explicitly unsupported,
+implement the fail-fast path, document the limitation, and stop for the auditor's scope
+decision. Do not claim support or weaken tests to close G3.
+
+**Stop:** Do not start 7D until G3 is signed; the auditor merges only after G3. Real-GGUF
+Phi-3/Gemma goldens remain 7F-2.
 
 ---
 

@@ -239,7 +239,7 @@ class WeightStreamer:
 | **7.0** | Freeze baseline; record environment; verify current green state; create evidence layout and claims ledger | **G0** | Baseline signed; tree clean; all suites recorded |
 | **7A** | Test infrastructure: pytest harness + markers, golden data with provenance, parser fuzz, CPU/sdist-install CI, GPU CI scaffold (`continue-on-error`), claims checker + baseline, clean-clone build entry point (7A-8, C-1) | **G1** | Tests provably fail on parent; CI + sdist install green; GPU workflow exists; claims checker default mode green; documented `cmake` succeeds from a fresh clone; no `src/` diff |
 | **7B** | Tokenizer P0: special-token encode, `add_bos_token`, GPT-2 spec regex, uniform byte fallback | **G2** | Golden vectors pass; no silent byte loss |
-| **7C** | Model families P0: `ModelSpec`/tensor map, Phi-3 fused QKV, Gemma scale/soft-cap/key length, honest compatibility matrix | **G3** | Per-arch fixtures + reference logits pass; llama unchanged |
+| **7C** | Model families P0: `ModelSpec`/tensor map, Phi-3 fused QKV + fused FFN gate/up + biases, Gemma embedding scale/soft-cap/`key_length`/GeGLU/NeoX, honest compatibility matrix | **G3** | Per-arch synthetic fixtures + independent reference logits pass; llama unchanged; unsupported variants fail fast |
 | **7D** | Memory honesty & robustness: `posix_fadvise`/`MADV_PAGEOUT`, budgeted residency policy, KV clamp, crash-safe files, exception masking | **G4** | Memory behavior matches docs; hostile inputs fail closed |
 | **7E** | Stream topology: compute stream + events, double-buffered staging, pinned host, sync-before-free | **G5** | Event graph reviewed; race/stress test passes; overlap evidenced |
 | **7F** | Evidence & release: promote GPU CI to required, real-GGUF golden tokens/logits, benchmark baseline, telemetry, **release-blocking claims check with empty baseline** | **G6** | CPU+GPU CI green with GPU required; claims `--strict` green; auditor release signoff |
@@ -253,6 +253,8 @@ class WeightStreamer:
 - A gate failure triggers the stop conditions and blocker report defined in the handoff document; do not "fix forward" silently.
 
 > **G1 status (2026-11-04; revised 2026-11-06):** **signed with conditions** — all 7A packages accepted; see `audit/G1_SIGNOFF_2026-11-04.md`. The post-G1 P0 parser fix **7A-9 (BLOCKER-7A4-1)** landed and was independently accepted (`audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`); **C-G1-1/C-G1-2 are closed**, and the parser may be described as fail-closed for the malformed classes the suite covers. **7B tokenizer is G2-signed (2026-11-06)** after the reference-faithful greedy-merge remediation (`audit/G2_SIGNOFF_2026-11-06.md`); **C-G1-4 is closed**. The only remaining G1 carry-forward is **C-G1-3** (GPU runner via 7F-1). Release/G6 remains gated by G3 and the later phases.
+>
+> **7C status (2026-11-06): AUTHORIZED — G2 signed; 7D not authorized.** The coder brief is [`PHASE7_7C_MODEL_FAMILY_BRIEF.md`](PHASE7_7C_MODEL_FAMILY_BRIEF.md); the evidence contract is [`audit/evidence/G3/7C/README.md`](audit/evidence/G3/7C/README.md). Synthetic-fixture logits are not real-GGUF support; real Phi-3/Gemma goldens remain 7F-2.
 
 ---
 

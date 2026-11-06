@@ -37,6 +37,6 @@ Historical audit, review, and handoff documents for gfx1150-inference, kept for 
 | [HANDOFF_PHASE2.md](HANDOFF_PHASE2.md) | Phase 2 handoff: review fixes and doc reconciliation |
 | [QAQC_FINAL_REPORT_PHASE5.md](QAQC_FINAL_REPORT_PHASE5.md) | QA/QC final report for the Phase 5 review |
 
-**Current status:** buildable and hardware-verified for text-only llama-family `Q4_0`/`Q4_K`/`Q8_0` models. The tokenizer-side chat special-token split and `add_bos_token` are implemented and G2-signed (7B); per-family chat-template handling, Phi-3/Gemma, and residency/stream honesty remain open. See [VERIFICATION_2026-11-01.md](VERIFICATION_2026-11-01.md) §4.
+**Current status:** buildable and hardware-verified for text-only llama-family `Q4_0`/`Q4_K`/`Q8_0` models. The tokenizer-side chat special-token split and `add_bos_token` are implemented and G2-signed (7B); per-family chat-template handling, Phi-3/Gemma, and residency/stream honesty remain open. **Next phase:** 7C model families (G3) is authorized — coder brief [`PHASE7_7C_MODEL_FAMILY_BRIEF.md`](../PHASE7_7C_MODEL_FAMILY_BRIEF.md), evidence contract [`evidence/G3/7C/README.md`](evidence/G3/7C/README.md); 7D is not authorized. See [VERIFICATION_2026-11-01.md](VERIFICATION_2026-11-01.md) §4.
 
 **Independent reconciliation (2026-11-02):** Mistral 4.0 reviewed the G0, 7A-1, and 7A-1 follow-up audits and found no issues; no separate report was filed. No reconciliation changes were required.
