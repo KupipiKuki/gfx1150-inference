@@ -19,10 +19,13 @@ coder's logs. Where the auditor wrote new probes, they are in
 
 ## 2. Scope / allowed-forbidden set
 
-`git diff 2eaa242..20f1165 --stat` touches exactly 12 files, all in the brief §2
-allowed set: `README.md`, `audit/CLAIMS_LEDGER.md`, `audit/claims_baseline.txt`,
-`src/inference.py`, `src/layer.py`, `src/model_spec.py` (new), `tests/**`
-(incl. the additive `EXPECTED_LANES` entries in `test_harness_contract.py`).
+`git diff 2eaa242..20f1165 --stat` touches exactly 12 files: 11 are in the brief
+§2 allowed set — `README.md`, `audit/CLAIMS_LEDGER.md`, `src/inference.py`,
+`src/layer.py`, `src/model_spec.py` (new), `tests/**` (incl. the additive
+`EXPECTED_LANES` entries in `test_harness_contract.py`) — and
+`audit/claims_baseline.txt` is the claims baseline's own maintenance removal of
+the resolved row-10 entry (QF-7C-6; future claims packages should name this file
+explicitly).
 No diff lines in `src/gguf_parser.py`, `src/kv_cache.py`, `src/kernels/**`,
 `src/python_bindings/`, `CMakeLists.txt`, CI, or the tokenizer. No removed
 asserts or pytest marks in existing tests (scanned the tests/ diff). Ledger diff
@@ -95,19 +98,20 @@ candidate gets right. No weights committed.
 
 ## 7. Claims honesty
 
-README matrix (L146–151) and ledger rows 10/11/12 agree: llama VERIFIED
-(release scope, regression-pinned); phi3/gemma **PARTIAL — synthetic-fixture
-verified** with real-GGUF explicitly deferred to 7F-2; qwen2 **NOT YET**;
-gemma2/gemma3/anything-else NOT SUPPORTED (fail fast). L129/L130 qualify in place
-(same-bullet rule satisfied; the row-10 baseline entry removal is legitimate).
-`check_claims.py` PASS with 0 findings. No synthetic result is presented as
-real-model support anywhere the auditor checked (README, matrix, ledger, notes).
+**Claims correction (audit):** the matrix/ledger initially cited the coder-fixture
+maxima (`≤2.9e-3` Phi-3, `≤2.1e-3` Gemma); the independent auditor probe observed
+`4.9e-3` (Phi-3 Q4_K/Q6_K) and `5.9e-3` (Gemma Q4_K). README, the matrix, and
+ledger rows 11/12 now cite the **6e-3 test tolerance and the observed maxima**,
+not the smaller coder-fixture numbers. This was the only claims-accuracy issue
+found; the status/scope (PARTIAL synthetic, qwen2 NOT YET, 7F-2 for real GGUFs)
+is unchanged. `check_claims.py` remains PASS.
 
 ## 8. QFs / carry-forwards (non-blocking)
 
 - **QF-7C-1:** gemma-2b-it has `key_length == hidden//heads` (256); the
   divergent-dims path rests on the synthetic fixture only. Real Gemma 7B files
-  (key_length 128, hidden 3072) remain 7F-2 evidence — noted, not a gap for G3.
+  (`key_length 256`, `hidden//heads 192`) remain 7F-2 evidence — noted, not a gap
+  for G3.
 - **QF-7C-2:** GeGLU is host-side NumPy (documented in the matrix); a HIP GeGLU
   kernel is performance work, out of 7C scope.
 - **QF-7C-3:** `key_length != value_length` files fail fast; extending the KV
@@ -115,6 +119,15 @@ real-model support anywhere the auditor checked (README, matrix, ledger, notes).
 - **QF-7C-4:** `red.log`'s gemma parent failures include cleanup `BufferError`s
   masking the primary wrong-logits assertion on two tests; the primary causes
   (head_dim 24 vs 32, no scale/GeGLU/softcap) are documented and reproduced.
+- **QF-7C-5 (claims accuracy, fixed in audit):** the matrix/ledger initially
+  cited the coder-fixture maxima (`≤2.9e-3` Phi-3, `≤2.1e-3` Gemma); the
+  independent probe observed `4.9e-3` (Phi-3 Q4_K/Q6_K) and `5.9e-3` (Gemma
+  Q4_K). Corrected to the 6e-3 test tolerance/observed maxima in README,
+  `compat-matrix.md`, and ledger rows 11/12. No status change.
+- **QF-7C-6 (process):** `audit/claims_baseline.txt` was edited to remove the
+  resolved `10 README.md qwen2` entry; this is the baseline's own maintenance
+  rule, but the 7C brief's allowed-file list did not name it. Acceptable here;
+  future claims packages should list the baseline explicitly.
 
 ## 9. Gate state
 
