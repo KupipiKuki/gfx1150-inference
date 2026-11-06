@@ -92,9 +92,11 @@
   a31dfc6f224d495966da14f2d06161ae2b18bf93ed7a6d5cbe8009c56f32441b, greedy ids
   [9, 15, 9, 0, 3, 9, 14, 9]); the repo test pins those parent goldens.
 - Tolerances: engine runs FP16 activations vs the FP32 reference; family logits
-  tolerance 6e-3 absolute (recorded max errs: phi3 F16 2.7e-3, phi3 Q4_K/Q6_K
-  2.9e-3, gemma F16 2.0e-3/Q4_K 2.1e-3 scale of the logit — see green.log and
-  the test prints).
+  tolerance 6e-3 absolute. Coder-fixture max errs: phi3 F16 2.7e-3, phi3
+  Q4_K/Q6_K 2.9e-3, gemma F16 2.0e-3/Q4_K 2.1e-3. The independent auditor probe
+  (different fixture) observed phi3 F16 3.4e-3, phi3 Q4_K/Q6_K 4.9e-3, gemma
+  F16 3.5e-3, gemma Q4_K 5.9e-3; the README/ledger cite the 6e-3 tolerance and
+  the observed maxima, not the smaller coder-fixture numbers.
 
 ## Self-checks (allowed/forbidden set)
 
