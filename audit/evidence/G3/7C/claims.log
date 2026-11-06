@@ -1,0 +1,7 @@
+# claims.log — scripts/qa/check_claims.py (default, baseline-aware)
+```
+--- findings ---
+  none
+
+RESULT: PASS - 0 new violation(s), 16 baselined, 0 expired baseline entry(ies), 0 finding(s)
+```

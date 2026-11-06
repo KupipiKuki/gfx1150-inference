@@ -1,0 +1,5 @@
+# gpu-lane.log — pytest -m gpu -q
+```
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+34 passed, 461 deselected, 13 warnings in 1.88s
+```

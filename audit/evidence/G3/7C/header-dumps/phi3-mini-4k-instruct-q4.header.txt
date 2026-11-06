@@ -1,0 +1,61 @@
+# slice: /tmp/llamacpp/hdr/phi3-mini-q4.slice
+sha256(slice) = 9905adb5856e99ecce77b4e4f75800e92eb36987c56028368d28a4b7d10af853
+# gguf version: 3; alignment: 32; slice bytes: 4194304
+data_offset = 737504 (slice covers the complete header: yes)
+kv_count = 24; tensor_count = 195
+
+## Metadata
+general.architecture = STRING('phi3')
+general.file_type = UINT32(15)
+general.name = STRING('Phi3')
+general.quantization_version = UINT32(2)
+phi3.attention.head_count = UINT32(32)
+phi3.attention.head_count_kv = UINT32(32)
+phi3.attention.layer_norm_rms_epsilon = FLOAT32(9.999999747378752e-06)
+phi3.block_count = UINT32(32)
+phi3.context_length = UINT32(4096)
+phi3.embedding_length = UINT32(3072)
+phi3.feed_forward_length = UINT32(8192)
+phi3.rope.dimension_count = UINT32(96)
+tokenizer.chat_template = STRING("{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') %}{{'<|user|>' + '\n' + message['content'] + '<|end|>' + '\n' + '<|assistant|>' + '\n'}}{% elif (message['role'] == 'assistant') %}{{message['content'] + '<|end|>' + '\n'}}{% endif %}{% endfor %}")
+tokenizer.ggml.add_bos_token = BOOL(True)
+tokenizer.ggml.add_eos_token = BOOL(False)
+tokenizer.ggml.bos_token_id = UINT32(1)
+tokenizer.ggml.eos_token_id = UINT32(32000)
+tokenizer.ggml.model = STRING('llama')
+tokenizer.ggml.padding_token_id = UINT32(32000)
+tokenizer.ggml.pre = STRING('default')
+tokenizer.ggml.scores = ARRAY<ARRAY>([32064 items; first: 0.0, ...])
+tokenizer.ggml.token_type = ARRAY<ARRAY>([32064 items; first: 2, ...])
+tokenizer.ggml.tokens = ARRAY<ARRAY>([32064 items; first: '<unk>', ...])
+tokenizer.ggml.unknown_token_id = UINT32(0)
+
+## Tensors (ne dims in GGUF order: ne[0] is innermost/contiguous)
+### Global tensors
+token_embd.weight: dims=(3072, 32064) type=Q4_K
+output.weight: dims=(3072, 32064) type=Q6_K
+output_norm.weight: dims=(3072,) type=F32
+### blk.0 tensors
+blk.0.attn_norm.weight: dims=(3072,) type=F32
+blk.0.ffn_down.weight: dims=(8192, 3072) type=Q6_K
+blk.0.ffn_up.weight: dims=(3072, 16384) type=Q4_K
+blk.0.ffn_norm.weight: dims=(3072,) type=F32
+blk.0.attn_output.weight: dims=(3072, 3072) type=Q4_K
+blk.0.attn_qkv.weight: dims=(3072, 9216) type=Q5_K
+### blk.1 tensors
+blk.1.attn_norm.weight: dims=(3072,) type=F32
+blk.1.ffn_down.weight: dims=(8192, 3072) type=Q6_K
+blk.1.ffn_up.weight: dims=(3072, 16384) type=Q4_K
+blk.1.ffn_norm.weight: dims=(3072,) type=F32
+blk.1.attn_output.weight: dims=(3072, 3072) type=Q4_K
+blk.1.attn_qkv.weight: dims=(3072, 9216) type=Q5_K
+### Unique tensor suffix histogram (blk.* -> suffix)
+attn_norm.weight: count=32
+attn_output.weight: count=32
+attn_qkv.weight: count=32
+ffn_down.weight: count=32
+ffn_norm.weight: count=32
+ffn_up.weight: count=32
+output.weight: count=1
+output_norm.weight: count=1
+token_embd.weight: count=1
