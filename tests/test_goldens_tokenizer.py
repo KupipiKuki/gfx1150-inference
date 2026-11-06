@@ -79,6 +79,7 @@ _GPT2_VOCAB = _load_json("gpt2_vocab.json")
 _GPT2_GOLDEN = _load_json("gpt2_tokenizer_golden.json")
 _SPM_VOCAB = _load_json("stories260k_vocab.json")
 _SPM_GOLDEN = _load_json("stories260k_tokenizer_golden.json")
+_SPM_DIFFERENTIAL = _load_json("stories260k_differential_golden.json")
 
 _GPT2_CASES = {case["id"]: case for case in _GPT2_GOLDEN["cases"]}
 _SPM_CASES = {case["id"]: case for case in _SPM_GOLDEN["cases"]}
@@ -194,6 +195,23 @@ def test_spm_token_ids_match_the_reference_tokenizer(case_id: str) -> None:
     )
 
 
+@pytest.mark.parametrize("case_id", [c["id"] for c in _SPM_DIFFERENTIAL["cases"]])
+def test_spm_differential_corpus_matches_the_pinned_reference(case_id: str) -> None:
+    """Every case of the differential corpus (generated with the pinned
+    llama-tokenize, see PROVENANCE.md) must replay byte for byte. This is the
+    BLOCKER-7B-2 regression net: common words, sentences, mixed special-token
+    text, and seeded random piece concatenations — not just the 23 7A-3
+    goldens, which sit in the intersection of several segmentations."""
+    case = next(c for c in _SPM_DIFFERENTIAL["cases"] if c["id"] == case_id)
+    tokenizer = _build_tokenizer(_SPM_VOCAB)
+    assert tokenizer.encode(
+        case["prompt"], add_bos=case["add_bos"], parse_special=_parse_special(case)
+    ) == case["token_ids"], (
+        f"differential case {case['id']} ({case['prompt']!r}) differs from the "
+        "pinned llama-tokenize reference"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Phase 7B QAQC: the tokenizer behaviours the goldens do not pin directly.
 # ---------------------------------------------------------------------------
@@ -256,19 +274,22 @@ def test_lookalike_text_is_not_treated_as_a_special_token() -> None:
 
 def test_empty_and_whitespace_special_splitting() -> None:
     """A special token adjacent to whitespace and punctuation splits without
-    losing the neighbouring text."""
+    losing the neighbouring text, with the reference's dummy-▁ prefix on the
+    raw fragment that follows the special (llama.cpp is_prev_special)."""
     tokenizer = _build_tokenizer(_SPM_VOCAB)
+    # " <s>" with BOS: the leading-space fragment opens the input and gets the
+    # prefix, so it is two ▁ pieces; pinned reference: [1, 410, 410, 1].
     ids_space = tokenizer.encode(" <s>", add_bos=True, parse_special=True)
-    # BOS + the leading-space chunk (" " -> a single ▁ piece) + the <s> ID
-    assert ids_space == [1, 410, 1]
-    # The special IDs are droppable on decode; the lone ▁ decodes to nothing
-    # after the SentencePiece leading-space strip.
-    assert tokenizer.decode(ids_space, skip_special_tokens=True) == ""
+    assert ids_space == [1, 410, 410, 1]
+    assert tokenizer.decode(ids_space, skip_special_tokens=True) == " "
 
+    # "a<s>b": both raw fragments get the dummy prefix; pinned reference
+    # (--no-bos): [261, 1, 268] = ▁a, <s>, ▁b.
     ids_punct = tokenizer.encode("a<s>b", add_bos=False, parse_special=True)
+    assert ids_punct == [261, 1, 268]
     assert ids_punct.count(tokenizer.bos_token_id) == 1
     decoded = tokenizer.decode(ids_punct, skip_special_tokens=False)
-    assert decoded == "a<s>b"
+    assert decoded == "a<s> b"  # ▁ decodes to a space; the leading one is stripped
 
 
 def _metadata_for(tokens: List[str], token_types: List[int], add_bos_token: Any = KeyError) -> Dict[str, Any]:
@@ -290,7 +311,6 @@ def _metadata_for(tokens: List[str], token_types: List[int], add_bos_token: Any 
 _MINI_TOKENS = ["<unk>", "<s>", "</s>", "<0x00>", "<0x01>", "<0xFF>", "\u2581", "\u2581b", "b"]
 _MINI_TYPES = [2, 3, 3, 6, 6, 6, 1, 1, 1]
 _MINI_PIECE = 7  # "▁b"
-_MINI_WORD = 8  # "b"
 
 
 def test_add_bos_precedence_argument_metadata_default() -> None:
@@ -322,10 +342,36 @@ def test_no_duplicate_bos_is_added_on_top_of_a_leading_special_token() -> None:
     tok = GGUFTokenizer.from_gguf_metadata(
         _metadata_for(_MINI_TOKENS, _MINI_TYPES, add_bos_token=True)
     )
-    # BOS (metadata) + "<s>" (special) + "b" following the special: no dummy
-    # ▁ prefix, so the bare word piece.
+    # BOS (metadata) + "<s>" (special) + "b": the raw fragment after the
+    # special gets the dummy ▁ prefix, so it is the "▁b" piece.
     ids = tok.encode("<s>b", parse_special=True)
-    assert ids == [1, 1, _MINI_WORD]
+    assert ids == [1, 1, _MINI_PIECE]
+
+
+def test_spm_mixed_text_matches_the_pinned_reference() -> None:
+    """SPM mixed text around special tokens, with the dummy-▁ prefix on every
+    raw fragment that starts the input or follows a special token. All values
+    below are outputs of the pinned llama.cpp@149f5641 llama-tokenize
+    (--no-bos), recorded in audit/evidence/G2/7B/audit-probes/probe_commands.log
+    and reproduced by tests/fixtures/stories260k_differential_golden.json."""
+    tokenizer = _build_tokenizer(_SPM_VOCAB)
+    cases = [
+        # (prompt, parse_special, reference token ids with --no-bos)
+        ("a<s>b", True, [261, 1, 268]),
+        ("a<s>b", False, [261, 504, 419, 505, 430]),
+        ("hi<s>there", True, [270, 417, 1, 383]),
+        ("hello<s>there", True, [281, 306, 414, 1, 383]),
+        ("<s>b", True, [1, 268]),
+        ("x<s>y", True, [410, 444, 1, 348]),
+        ("x<s>y", False, [410, 444, 504, 419, 505, 422]),
+        ("<s></s>", True, [1, 2]),
+        ("the", False, [265]),
+        ("and", False, [269]),
+        ("time", False, [378]),
+    ]
+    for prompt, parse_special, expected in cases:
+        got = tokenizer.encode(prompt, add_bos=False, parse_special=parse_special)
+        assert got == expected, f"{prompt!r} parse_special={parse_special}: {got} != {expected}"
 
 
 def test_unmappable_byte_raises_in_the_gpt2_path() -> None:

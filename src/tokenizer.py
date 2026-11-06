@@ -44,10 +44,6 @@ _GPT2_PRETOKENIZE_RE = re.compile(
     r"'s|'t|'re|'ve|'m|'ll|'d| ?[^\W\d_]+| ?\d+| ?(?:[^\s\w]|_)+|\s+(?!\S)|\s+"
 )
 
-#: The SentencePiece unk penalty: fallback byte tokens always score below
-#: every real unigram piece, the way the reference tokenizer treats them.
-_UNK_PENALTY = 10.0
-
 
 def _gpt2_bytes_to_unicode() -> Tuple[Dict[int, str], Dict[str, int]]:
     bs = (
@@ -111,9 +107,11 @@ class GGUFTokenizer:
         self.add_bos_token: Optional[bool] = (
             None if add_bos_token is None else bool(add_bos_token)
         )
-        self._token_types: Optional[List[int]] = (
-            [int(t) for t in token_types] if token_types is not None else None
-        )
+        if token_types is not None and len(token_types) < self.vocab_size:
+            raise ValueError(
+                f"token_types has {len(token_types)} entries but the vocabulary "
+                f"has {self.vocab_size} tokens"
+            )
 
         self.merge_ranks: Dict[Tuple[str, str], int] = {}
         if merges:
@@ -177,13 +175,6 @@ class GGUFTokenizer:
             add_bos_token=bool(add_bos_token) if add_bos_token is not None else None,
         )
 
-    def _is_normal_piece(self, idx: int) -> bool:
-        """A Viterbi candidate: a NORMAL token (or any non-special token when
-        the GGUF carries no `tokenizer.ggml.token_type` array)."""
-        if self._token_types is not None:
-            return idx < self.vocab_size and self._token_types[idx] == 1
-        return idx not in self._special_token_ids
-
     def _default_add_bos(self) -> bool:
         """The family default the reference tokenizer applies when the GGUF
         carries no `tokenizer.ggml.add_bos_token` key: a BOS for
@@ -191,14 +182,25 @@ class GGUFTokenizer:
         return self._uses_spiece
 
     def _bpe_merge_symbols(self, symbols: List[str]) -> List[int]:
+        out_ids: List[int] = []
+        for sym in self._greedy_merge_symbols(list(symbols)):
+            tid = self.token_to_id.get(sym)
+            if tid is None:
+                raise ValueError(f"Merged symbol {sym!r} not found in vocabulary")
+            out_ids.append(tid)
+        return out_ids
+
+    def _greedy_merge_symbols(self, symbols: List[str]) -> List[str]:
+        """The reference merge loop (`llm_tokenizer_spm_session` /
+        `llm_tokenizer_bpe_session`): repeatedly merge the adjacent pair whose
+        concatenation is a token with the best priority — merge rank for BPE,
+        `-score` for unigram (highest score first; ties: leftmost) — exactly
+        the reference comparator `(l.score < r.score) || (l.score == r.score
+        && l.left > r.left)`. Returns the surviving symbol strings."""
+        symbols = list(symbols)
         n = len(symbols)
-        if n == 0:
-            return []
-        if n == 1:
-            tok_id = self.token_to_id.get(symbols[0])
-            if tok_id is None:
-                raise ValueError(f"Token {symbols[0]!r} not found in vocabulary")
-            return [tok_id]
+        if n <= 1:
+            return symbols
 
         prev_idx = [i - 1 for i in range(n)]
         next_idx = [i + 1 if i + 1 < n else -1 for i in range(n)]
@@ -251,16 +253,12 @@ class GGUFTokenizer:
             _try_push(prev_idx[left], left)
             _try_push(left, nxt)
 
-        out_ids: List[int] = []
+        out: List[str] = []
         cur = 0
         while cur != -1:
-            sym = symbols[cur]
-            tid = self.token_to_id.get(sym)
-            if tid is None:
-                raise ValueError(f"Merged symbol {sym!r} not found in vocabulary")
-            out_ids.append(tid)
+            out.append(symbols[cur])
             cur = next_idx[cur]
-        return out_ids
+        return out
 
     def _chars_to_symbols(self, piece: str) -> List[str]:
         symbols: List[str] = []
@@ -322,27 +320,27 @@ class GGUFTokenizer:
             return ids
 
         if parse_special and self._special_token_to_id:
-            for chunk, offset, special_id in self._split_special_tokens(text):
+            # The reference fragment loop (llama.cpp SPM path): a raw fragment
+            # that starts the input OR follows a special token gets a leading
+            # space, escaped to ▁ (is_prev_special).
+            prev_special = True
+            for chunk, special_id in self._split_special_tokens(text):
                 if special_id is not None:
                     ids.append(special_id)
+                    prev_special = True
                 elif chunk:
-                    # Only a chunk at offset 0 opens the input: only it gets
-                    # the SentencePiece dummy `▁` prefix. A chunk that follows
-                    # a special token continues the text.
-                    ids.extend(self._encode_plain(chunk, prepend_dummy=offset == 0))
+                    ids.extend(self._encode_plain(chunk, prepend_dummy=prev_special))
+                    prev_special = False
         else:
             ids.extend(self._encode_plain(text, prepend_dummy=True))
         return ids
 
-    def _split_special_tokens(self, text: str) -> List[Tuple[Optional[str], int, Optional[int]]]:
-        """Split `text` into `(ordinary chunk, chunk offset, special ID)` runs.
-
-        Ordinary chunks (`special_id is None`) report where they start; a
-        special ID run reports the position of the token. Longest match: a
-        special token that is a proper prefix of another special token loses
-        to the longer one.
-        """
-        out: List[Tuple[Optional[str], int, Optional[int]]] = []
+    def _split_special_tokens(self, text: str) -> List[Tuple[Optional[str], Optional[int]]]:
+        """Split `text` into `(ordinary chunk, special ID)` runs. Ordinary
+        chunks have `special_id is None`; special runs have `chunk is None`.
+        Longest match: a special token that is a proper prefix of another
+        special token loses to the longer one."""
+        out: List[Tuple[Optional[str], Optional[int]]] = []
         buf: List[str] = []
         smap = self._special_token_to_id
         max_len = self._special_max_len
@@ -361,11 +359,11 @@ class GGUFTokenizer:
                 i += 1
                 continue
             if buf:
-                out.append(("".join(buf), i - len(buf), None))
+                out.append(("".join(buf), None))
                 buf = []
-            out.append((None, i, matched_id))
+            out.append((None, matched_id))
         if buf:
-            out.append(("".join(buf), i - len(buf), None))
+            out.append(("".join(buf), None))
         return out
 
     def _encode_plain(self, text: str, prepend_dummy: bool = True) -> List[int]:
@@ -392,82 +390,52 @@ class GGUFTokenizer:
         return ids
 
     def _encode_spiece(self, text: str, prepend_dummy: bool = True) -> List[int]:
-        """SentencePiece unigram segmentation: Viterbi over the byte string
-        of the normalized text, maximizing the sum of the GGUF unigram
-        scores, with `<0xXX>` byte tokens as the penalized fallback."""
+        """SentencePiece unigram path: normalize (a leading space — escaped to
+        `▁` — when the fragment opens the input or follows a special token,
+        and every space escaped to `▁`) and segment with the reference greedy
+        merge."""
+        if prepend_dummy:
+            text = " " + text
         normalized = text.replace(" ", SPIECE_UNDERLINE)
-        if prepend_dummy and not normalized.startswith(SPIECE_UNDERLINE):
-            normalized = SPIECE_UNDERLINE + normalized
-        return self._viterbi_unigram(normalized)
-
-    def _viterbi_unigram(self, text: str) -> List[int]:
-        data = text.encode("utf-8")
-        n = len(data)
-        neg_inf = float("-inf")
-
-        # Candidates: NORMAL pieces, grouped by byte length.
-        candidates: Dict[int, Dict[bytes, int]] = {}
-        max_len = 1
-        normal_scores: List[float] = []
-        for idx in range(self.vocab_size):
-            if not self._is_normal_piece(idx):
-                continue
-            piece = self.id_to_token[idx].encode("utf-8")
-            candidates.setdefault(len(piece), {})[piece] = idx
-            max_len = max(max_len, len(piece))
-            normal_scores.append(self.scores[idx])
-
-        min_normal = min(normal_scores) if normal_scores else 0.0
-        byte_score = min_normal - _UNK_PENALTY
-
-        dp = [neg_inf] * (n + 1)
-        prev: List[Optional[Tuple[int, int]]] = [None] * (n + 1)
-        dp[0] = 0.0
-        for i in range(n):
-            if dp[i] == neg_inf:
-                continue
-            base = dp[i]
-            top = min(max_len, n - i)
-            for length in range(1, top + 1):
-                table = candidates.get(length)
-                if not table:
+        try:
+            return self._spm_segment(normalized)
+        except ValueError:
+            # Minimal synthetic vocabularies without full byte coverage (the
+            # reference itself cannot encode those inputs): fall back to
+            # ▁-words, emitting a word directly when it is a single token.
+            # Nothing is dropped; genuinely unmappable input still raises in
+            # the per-word segment below.
+            ids: List[int] = []
+            for word in re.split(f"(?={SPIECE_UNDERLINE})", normalized):
+                if not word:
                     continue
-                tid = table.get(data[i : i + length])
-                if tid is None:
-                    continue
-                score = base + self.scores[tid]
-                if score > dp[i + length]:
-                    dp[i + length] = score
-                    prev[i + length] = (i, tid)
-            # Penalized `<0xXX>` byte fallback for every byte of the input.
-            byte_token = self.token_to_id.get(f"<0x{data[i]:02X}>")
-            if byte_token is not None and byte_token not in self._special_token_ids:
-                score = base + byte_score
-                if score > dp[i + 1]:
-                    dp[i + 1] = score
-                    prev[i + 1] = (i, byte_token)
+                if word in self.token_to_id:
+                    ids.append(self.token_to_id[word])
+                else:
+                    ids.extend(self._spm_segment(word))
+            return ids
 
-        if dp[n] == neg_inf:
-            # The segmentation stalled at the last reachable position; report
-            # the byte that could not be covered (never a byte before one that
-            # could, so a multi-byte codepoint is named by the byte that
-            # actually stopped the walk, not by an earlier boundary).
-            last = 0
-            for i in range(1, n + 1):
-                if dp[i] != neg_inf:
-                    last = i
-            ch = data[last:].decode("utf-8", errors="ignore")[:1]
-            raise ValueError(
-                f"Unmappable character {ch!r} (byte 0x{data[last]:02X}) not in vocabulary"
-            )
-
+    def _spm_segment(self, text: str) -> List[int]:
+        """The reference `llm_tokenizer_spm_session`: split into UTF-8
+        characters, repeatedly merge the adjacent pair whose concatenation is
+        a token with the highest score (ties: leftmost), then emit each
+        surviving symbol as its token — or, if it never became a token, as
+        its `<0xXX>` byte tokens, raising `ValueError` naming the byte when
+        even that is missing (no silent loss)."""
+        merged = self._greedy_merge_symbols(list(text))
         ids: List[int] = []
-        cur = n
-        while cur > 0:
-            at, tid = prev[cur]  # type: Tuple[int, int]
-            ids.append(tid)
-            cur = at
-        ids.reverse()
+        for sym in merged:
+            tid = self.token_to_id.get(sym)
+            if tid is not None:
+                ids.append(tid)
+                continue
+            for b in sym.encode("utf-8"):
+                byte_id = self.token_to_id.get(f"<0x{b:02X}>")
+                if byte_id is None:
+                    raise ValueError(
+                        f"Unmappable character {sym!r} (byte 0x{b:02X}) not in vocabulary"
+                    )
+                ids.append(byte_id)
         return ids
 
     def decode(self, token_ids: Iterable[int], skip_special_tokens: bool = True) -> str:
