@@ -1,0 +1,28 @@
+# G2 / 7B diffstat - parent 8426ec6 .. candidate 70c5ab2
+# The src/ change is confined to tokenizer.py and the two BOS call sites in
+# inference.py, exactly the files the brief allows. The fixture change is the
+# stories260k vocab regeneration (unigram scores added; the golden records the
+# new fixture hash). No parser, CMake, packaging, or CI file is touched.
+
+ README.md                                        |   4 +-
+ audit/CLAIMS_LEDGER.md                           |   6 +-
+ src/inference.py                                 |   4 +-
+ src/tokenizer.py                                 | 255 +++++++++++++++--
+ tests/fixtures/PROVENANCE.md                     |   6 +-
+ tests/fixtures/make_fixtures.py                  |   6 +
+ tests/fixtures/stories260k_tokenizer_golden.json |   2 +-
+ tests/fixtures/stories260k_vocab.json            |   2 +-
+ tests/test_cpu_only.py                           |   5 +-
+ tests/test_goldens_tokenizer.py                  | 343 +++++++++++++++++------
+ 10 files changed, 510 insertions(+), 123 deletions(-)
+
+M	README.md
+M	audit/CLAIMS_LEDGER.md
+M	src/inference.py
+M	src/tokenizer.py
+M	tests/fixtures/PROVENANCE.md
+M	tests/fixtures/make_fixtures.py
+M	tests/fixtures/stories260k_tokenizer_golden.json
+M	tests/fixtures/stories260k_vocab.json
+M	tests/test_cpu_only.py
+M	tests/test_goldens_tokenizer.py
