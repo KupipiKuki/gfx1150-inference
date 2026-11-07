@@ -1,0 +1,50 @@
+=== kv-hardening.log (7D-3): cgroup, full disk, symlink, block_count, duplicates ===
+date: Sat Nov  7 04:23:02 PM UTC 2026
+
+== pytest: KV hardening + hostile input tests ==
+...........                                                              [100%]
+=============================== warnings summary ===============================
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+11 passed, 526 deselected, 13 warnings in 0.33s
+
+== independent qaqc-probes/kv_probes.py ==
+QAQC KV probes; workdir /tmp/7d-kv-skg6u9tb
+=== KV user cap refusal (max_kv_bytes smaller than request) ===
+  refused: Requested KV cache size (17179869184 bytes) exceeds the effective KV budget (943719 bytes, 10% safety margin). Budget sources used: max_kv_bytes=1048576, gtt_sysfs=49195196416, host_memavailable=91128250368. Reduce max_s
+=== KV cgroup-limited refusal (monkeypatched cgroup source) ===
+  refused: Requested KV cache size (268435456 bytes) exceeds the effective KV budget (943719 bytes, 10% safety margin). Budget sources used: max_kv_bytes=34359738368, cgroup=1048576, host_memavailable=1099511627776. Reduce max_seq_
+=== cgroup fake trees (v2 then v1) ===
+  v2 limited tree: memory.max=1048576, current=262144 -> 786432 (expected 786432)
+  v2 'max' (unlimited) -> None (expected None)
+  v1 limited tree -> 1572864 (expected 1572864)
+=== full-disk refusal (statvfs monkeypatched tiny) ===
+  refused: Insufficient disk space for the mmap-backed KV cache: requires 262144 bytes, but '/tmp/7d-kv-skg6u9tb/kvfull' has 4096 bytes free
+  files left in the dir after refusal: []
+=== symlink at the target path rejected ===
+  refused (FileExistsError: [Errno 17] File exists: '/tmp/7d-kv-skg6u9tb/kvsym/kv_cache_k_12345_dead.mmap')
+  bystander untouched: b'important_user_data'
+=== unlink-before-map: crash before close() leaves no files ===
+  files on disk while manager alive (pre-crash): [] (expected [])
+  mapping usable through fd after unlink: True
+  files on disk after close(): [] (expected [])
+=== block_count cross-check (999 declared vs 2 found) ===
+  refused: llama.block_count (999) disagrees with the tensor table: found 2 blk.N.* tensor groups (min=0, max=1). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.
+=== duplicate tensor names ===
+  refused: Duplicate tensor name in GGUF tensor table: 'blk.0.attn_norm.weight'
+=== live-view close: warn, fd closed; ctor error preserved ===
+  close() warned instead of raising: ['RuntimeWarning']; fd closed=True
+  engine ctor original exception preserved: ValueError, mentions budget=True, first 120 chars: Requested KV cache size (4096 bytes) exceeds the effective KV budget (1 bytes, 10% safety margin). Budget sources used: 
+ALL KV PROBES COMPLETED
+
+== REAL cgroup probe under systemd-run -p MemoryMax=256M (where available: this host) ==
+$ systemd-run --user --scope -p MemoryMax=256M python3 <probe: own-cgroup reader>
+Running as unit: run-rcae4429fb99c48329adb14a5313668de.scope
+  cgroup lines: 0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-rcae4429fb99c48329adb14a5313668de.scope
+  v2 headroom: 257544192 (memory.max honored: ~245.6 MiB)
+  PROBE-OK: cgroup-limited process sees its own budget
+
+$ systemd-run --user --scope -p MemoryMax=256M python3 <probe: real KV budget refusal>
+  small KV accepted: 4194304 bytes; budget 222094541
+  refused under real cgroup limit: Requested KV cache size (536870912 bytes) exceeds the effective KV budget (222094541 bytes, 10% safety margin). Budget sources used: max_kv_bytes=34359738368, gtt_sysfs=49193099264, host_memavailable=91201490944, cgroup=...
+  PROBE-OK: real cgroup-limited KV request refused with sources named

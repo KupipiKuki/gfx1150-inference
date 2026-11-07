@@ -1,0 +1,19 @@
+=== exception.log (7D-3): live-view/ctor/close exception preservation ===
+date: Sat Nov  7 04:23:21 PM UTC 2026
+
+== pytest: exception-preservation tests ==
+.....
+=============================== warnings summary ===============================
+
+tests/test_memory_residency.py::TestExceptionPreservationAndLeaks::test_no_fd_or_mmap_leak_1000x
+  /home/kupipi/Documents/git/gfx1150-inference/src/weight_loader.py:478: RuntimeWarning: WeightStreamer.close(): the weight mapping still has live views and could not be released now (cannot close exported pointers exist); dropping the reference (the mapping releases when the last view dies) and closing the file descriptor anyway.
+    self.close()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 532 deselected, 14 warnings in 0.71s
+
+== independent probes (live-view close warning + ctor origin preservation) ==
+=== live-view close: warn, fd closed; ctor error preserved ===
+  close() warned instead of raising: ['RuntimeWarning']; fd closed=True
+  engine ctor original exception preserved: ValueError, mentions budget=True, first 120 chars: Requested KV cache size (4096 bytes) exceeds the effective KV budget (1 bytes, 10% safety margin). Budget sources used: 
+ALL KV PROBES COMPLETED

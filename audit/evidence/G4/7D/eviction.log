@@ -1,0 +1,23 @@
+=== eviction.log (7D-1): fadvise/PAGEOUT/fallback probes ===
+date: Sat Nov  7 04:22:43 PM UTC 2026
+
+== pytest: eviction honesty tests ==
+......                                                                   [100%]
+=============================== warnings summary ===============================
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+6 passed, 531 deselected, 13 warnings in 0.32s
+
+== independent qaqc-probes/mem_probes.py (eviction sections) ==
+=== eviction syscall trace (STREAM vs PIN) ===
+  STREAM release_layer -> 1 fadvise calls, first: [('posix_fadvise', 0, 4)] (advice == POSIX_FADV_DONTNEED=4)
+  PIN release_layer   -> 0 fadvise calls (expected 0)
+=== missing syscall fallback (posix_fadvise + MADV_PAGEOUT removed) ===
+  still_streaming=True; warnings=['EvictionFallbackWarning']
+    first warning: Neither posix_fadvise(POSIX_FADV_DONTNEED) nor MADV_PAGEOUT is available on this host; falling back to a MADV_DONTNEED PTE drop only (best-effort: it removes the read-only mapping's page table entries but is NOT page-cache eviction). Inference continues; memory use is not bounded by this fallback.
+  NOTE: the fallback is a PTE-drop only (best-effort, not page-cache eviction) and inference continued without crashing.
+=== measured residency: PIN vs STREAM (synthetic 64 MiB model) ===
+  PIN:   touched 67109184 bytes; dRSS=65544 kB; warm re-touch majflt=0
+  STREAM: dRSS=0 kB; re-touch of evicted layer 0 majflt=1 (>0 => pages really left the page cache)
+  difference: PIN dRSS - STREAM dRSS = 65544 kB (RSS source: /proc/self/status VmRSS; faults: /proc/self/stat)
+=== policy decisions (engine-level, synthetic model) ===

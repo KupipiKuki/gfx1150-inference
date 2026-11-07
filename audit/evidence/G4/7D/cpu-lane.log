@@ -1,0 +1,26 @@
+=== cpu-lane.log: pytest -m "not gpu" -q at candidate c9c484a ===
+date: Sat Nov  7 04:24:24 PM UTC 2026
+
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 42%]
+........................................................................ [ 57%]
+........................................................................ [ 71%]
+........................................................................ [ 85%]
+.......................................................................  [100%]
+=============================== warnings summary ===============================
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_c1_r1_load_time_tensor_validation_and_close_safety
+  /home/kupipi/Documents/git/gfx1150-inference/tests/test_cpu_only.py:309: RuntimeWarning: WeightStreamer.close(): the weight mapping still has live views and could not be released now (cannot close exported pointers exist); dropping the reference (the mapping releases when the last view dies) and closing the file descriptor anyway.
+    ws.close()
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+tests/test_memory_residency.py::TestExceptionPreservationAndLeaks::test_no_fd_or_mmap_leak_1000x
+  /home/kupipi/Documents/git/gfx1150-inference/src/weight_loader.py:478: RuntimeWarning: WeightStreamer.close(): the weight mapping still has live views and could not be released now (cannot close exported pointers exist); dropping the reference (the mapping releases when the last view dies) and closing the file descriptor anyway.
+    self.close()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+503 passed, 34 deselected, 16 warnings in 49.90s
