@@ -16,26 +16,13 @@
 # ID 13: PLAN L209 is unqualified (L266 is qualified); the literal also covers ID 27.
 13 IMPLEMENTATION_PLAN.md 983
 #
-# ID 14: bounded-RAM wording; corrected in 7D.
-14 README.md bounded memory
-14 IMPLEMENTATION_PLAN.md bounded memory
-#
-# ID 18: 7B-70B without OOM; residency/70B evidence pending.
-18 README.md 7B–70B
-18 IMPLEMENTATION_PLAN.md 7B–70B
-#
-# ID 19: 8-hour unattended runtime; no soak test yet.
-19 README.md 8-hour runtimes
-19 IMPLEMENTATION_PLAN.md 8-hour runtimes
-#
-# ID 20: Active RAM Cap table; target values, not measured.
-20 IMPLEMENTATION_PLAN.md Active RAM Cap
+# IDs 14, 18, 19, 20, 30: removed by 7D (Gate G4). 14 was withdrawn (REMOVED);
+# 18 and 21's successors are qualified in place or VERIFIED; 19/20/30 are now
+# qualified in place (endurance/Active-RAM-cap/500-MB statements carry their
+# UNVERIFIED caveats in the same line).
 #
 # IDs 26-29: published performance figures; delete or re-record in 7F-3.
 26 IMPLEMENTATION_PLAN.md 1.12 TFLOPS
 27 IMPLEMENTATION_PLAN.md 983.4 tok/s
 28 IMPLEMENTATION_PLAN.md 0.50 ms
 29 IMPLEMENTATION_PLAN.md 2.76 ms
-#
-# ID 30: resident RAM delta < 500 MB; never measured.
-30 IMPLEMENTATION_PLAN.md 500 MB

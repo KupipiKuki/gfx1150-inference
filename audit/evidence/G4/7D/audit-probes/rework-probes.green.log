@@ -1,0 +1,9 @@
+== probe 1: negative block_count with zero blk tensors ==
+PASS: rejected with ValueError: Invalid llama.block_count -1: must be >= 0
+== probe 2: engine AUTO with no readable budget source ==
+effective=ResidencyPolicy.STREAM weight_budget=None
+reason=AUTO without a budget: no readable source; failed safe to STREAM
+warnings=['NoBudgetFallbackWarning']
+PASS: NoBudgetFallbackWarning, STREAM, weight_budget=None
+
+RESULT: PASS - both rework fixes present

@@ -79,6 +79,13 @@ Required:
 - `MADV_DONTNEED` must not be presented as page-cache eviction. If kept as a
   last-resort fallback when neither fadvise nor pageout exists, emit a clear
   one-time warning and document that it is best-effort/PTE-only.
+
+> **Audit adjudication (2026-11-07):** on Linux, `posix_fadvise` alone is inert
+> for spans still mapped by the process; a PTE drop (`MADV_PAGEOUT` when
+> available, else `MADV_DONTNEED`) **before** the fadvise is an accepted
+> enabler, not page-cache eviction. README/PLAN/claims must state the enabler
+> role (they do). This supersedes the “last-resort fallback only” wording above;
+> see `audit/AUDIT_7D_DEEP_2026-11-07.md` §4.
 - Unavailable syscalls must not crash inference; a deterministic fallback and a
   warning are required. Tests must monkeypatch/remove `os.posix_fadvise` and
   `mmap.MADV_PAGEOUT` to cover both paths.

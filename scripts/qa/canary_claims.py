@@ -31,8 +31,8 @@ Canaries
     ``--strict`` must fail on the seeded baseline, i.e. it must ignore the
     baseline rather than tolerate it.
 ``baseline_is_exact``
-    The seeded baseline must have exactly 15 entries, each resolving to a real
-    unqualified site, with no wildcards.
+    The seeded baseline must hold exactly ``EXPECTED_BASELINE_ENTRIES`` entries,
+    each resolving to a real unqualified site, with no wildcards.
 
 Usage::
 
@@ -59,9 +59,11 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CHECKER = os.path.join(REPO_ROOT, "scripts", "qa", "check_claims.py")
 
 #: The seeded baseline is expected to hold exactly these entries.
-#: 7C-4 removed the resolved "10 README.md qwen2" entry (15 -> 14); update this
-#: constant whenever a claim is qualified/removed and its baseline entry is deleted.
-EXPECTED_BASELINE_ENTRIES = 14
+#: 7C-4 removed the resolved "10 README.md qwen2" entry (15 -> 14); 7D removed the
+#: resolved rows 14/18/19/20/30 entries (14 -> 6) after qualifying them in place or
+#: withdrawing the claim. Update this constant whenever a claim is qualified/removed
+#: and its baseline entry is deleted.
+EXPECTED_BASELINE_ENTRIES = 6
 
 #: Directories that are never needed in a canary tree.
 IGNORED_TREE_ITEMS = shutil.ignore_patterns(

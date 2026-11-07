@@ -1,0 +1,42 @@
+=== red.log: the new 7D memory/KV/residency tests fail on the parent 003f4e5 for the expected reasons ===
+date: Sat Nov  7 04:22:05 PM UTC 2026
+
+--- parent worktree ---
+git worktree add /tmp/7d-parent 003f4e5; tests/test_memory_residency.py copied over (the 7D test suite does not exist at the parent; bringing the file in is what makes the red observable)
+
+== pytest at parent (import of the new memory_budget module fails: 7D-2 absent) ==
+$ cd /tmp/7d-parent && python -m pytest tests/test_memory_residency.py -q -m "not slow"
+
+==================================== ERRORS ====================================
+_______________ ERROR collecting tests/test_memory_residency.py ________________
+ImportError while importing test module '/tmp/7d-parent/tests/test_memory_residency.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_memory_residency.py:47: in <module>
+    import memory_budget  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'memory_budget'
+=============================== warnings summary ===============================
+../../home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/test_memory_residency.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+13 warnings, 1 error in 0.32s
+
+== parent defect probes (why each 7D work package is needed) ==
+=== parent (003f4e5) 7D defect probes ===
+WeightStreamer.__init__ signature: ['self', 'model_path', 'cache_weights', 'validate_types']
+  parent has no policy parameter (7D-2 absent)
+  parent release_layer posix_fadvise calls: 0 (0 => MADV_DONTNEED-only PTE drop, no page-cache eviction => 7D-1 absent)
+  parent accepted block_count=999 over 2 actual layers: num_layers = 999 (no cross-check => 7D-3 absent)
+  parent mechanism (MADV_DONTNEED only): re-touch majflt delta=0 (0/low => page cache still warm: PTE-drop alone never evicted page cache;
+    combined with fadvise-alone being inert for mapped spans, the parent
+    eviction story did neither bound RSS nor evict page cache)
+PARENT DEFECT PROBES COMPLETE
