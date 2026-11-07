@@ -31,6 +31,7 @@ import importlib
 import io
 import os
 import py_compile
+import re
 import struct
 import subprocess
 import sys
@@ -505,8 +506,25 @@ class TestCPUOnlySuite(unittest.TestCase):
             content = f.read()
         self.assertIn("cmake>=3.21", content)
         self.assertIn('gfx1150-infer = "inference:main"', content)
-        for mod in ("gguf_parser", "weight_loader", "layer", "kv_cache", "tokenizer", "inference"):
+        for mod in ("gguf_parser", "weight_loader", "layer", "model_spec", "kv_cache", "tokenizer", "inference"):
             self.assertTrue(os.path.isfile(os.path.join(_SRC_DIR, f"{mod}.py")))
+
+        # Every top-level src/*.py module must be declared in pyproject.toml's
+        # py-modules, or a clean/sdist install cannot import it (the 7C
+        # model_spec omission that broke the clean-install CI).
+        match = re.search(r"py-modules\s*=\s*\[(.*?)\]", content, re.S)
+        self.assertIsNotNone(match, "pyproject.toml has no py-modules list")
+        declared = set(re.findall(r'"([^"]+)"', match.group(1)))
+        source_modules = {
+            fn[:-3]
+            for fn in os.listdir(_SRC_DIR)
+            if fn.endswith(".py") and fn != "__init__.py"
+        }
+        self.assertEqual(
+            declared,
+            source_modules,
+            "pyproject.toml py-modules must list every top-level src/*.py module",
+        )
 
         # B-1: Build sdist into a temp dir and verify CMakeLists.txt, .hip, .h, and bindings.cpp are packaged
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -525,6 +543,7 @@ class TestCPUOnlySuite(unittest.TestCase):
             expected_suffixes = [
                 "CMakeLists.txt",
                 "MANIFEST.in",
+                "src/model_spec.py",
                 "src/python_bindings/bindings.cpp",
                 "src/kernels/matmul.h",
                 "src/kernels/matmul.hip",

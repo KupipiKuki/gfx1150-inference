@@ -1,0 +1,17 @@
+# packaging-fix.log — BLOCKER-7C-1 verification
+# 2026-11-07T00:06:32Z
+
+$ python3 setup.py sdist --dist-dir /tmp/opencode/sdist-7c2
+exit=0; archive contains src/model_spec.py
+
+$ python3 -m venv /tmp/opencode/venv-7c
+$ GFX1150_SKIP_CMAKE=1 pip install /tmp/opencode/sdist-7c2/*.tar.gz
+exit=0
+
+$ python -c 'import model_spec; print(model_spec.__file__, sorted(model_spec.SUPPORTED_ARCHS))'
+/tmp/opencode/venv-7c/lib/python3.14/site-packages/model_spec.py ['gemma', 'llama', 'phi3']
+
+$ python3 tests/test_cpu_only.py
+OK (12 tests)
+$ python3 -O tests/test_cpu_only.py
+OK (12 tests)

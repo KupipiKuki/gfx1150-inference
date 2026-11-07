@@ -26,3 +26,8 @@ audit/CLAIMS_LEDGER.md (rows 10/11/12 only), audit/claims_baseline.txt
 (removal of the resolved row-10 entry), audit/evidence/G3/7C/**. NOT changed:
 src/gguf_parser.py, src/kv_cache.py, src/kernels/**, CMake, packaging, CI,
 tokenizer.
+
+# Post-audit BLOCKER-7C-1 fix (clean/sdist install):
+#   pyproject.toml        + model_spec in [tool.setuptools] py-modules
+#   tests/test_cpu_only.py  py-modules/sdist regression (CPU-only lane)
+# See BLOCKER-7C-1.md.
