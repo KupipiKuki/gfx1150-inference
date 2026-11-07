@@ -1,0 +1,1 @@
+003f4e5 Prepare 7D: memory/robustness brief, evidence contract, gate status (branch base / G3-signed tip carrying the 7D brief)

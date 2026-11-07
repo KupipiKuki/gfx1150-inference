@@ -1,0 +1,43 @@
+=== diffstat parent..candidate (003f4e5..c9c484a) ===
+ IMPLEMENTATION_PLAN.md         |   31 +-
+ README.md                      |   16 +-
+ audit/CLAIMS_LEDGER.md         |   30 +-
+ audit/claims_baseline.txt      |   21 +-
+ pyproject.toml                 |    1 +
+ scripts/qa/canary_claims.py    |   12 +-
+ src/inference.py               |  184 +++++++-
+ src/kv_cache.py                |  164 ++++++-
+ src/layer.py                   |    5 +-
+ src/memory_budget.py           |  428 +++++++++++++++++
+ src/weight_loader.py           |  379 +++++++++++++--
+ tests/test_cpu_only.py         |   15 +-
+ tests/test_harness_contract.py |    4 +
+ tests/test_memory_residency.py | 1018 ++++++++++++++++++++++++++++++++++++++++
+ tests/test_phase5_scale.py     |    6 +-
+ 15 files changed, 2175 insertions(+), 139 deletions(-)
+
+=== changed files ===
+M	IMPLEMENTATION_PLAN.md
+M	README.md
+M	audit/CLAIMS_LEDGER.md
+M	audit/claims_baseline.txt
+M	pyproject.toml
+M	scripts/qa/canary_claims.py
+M	src/inference.py
+M	src/kv_cache.py
+M	src/layer.py
+A	src/memory_budget.py
+M	src/weight_loader.py
+M	tests/test_cpu_only.py
+M	tests/test_harness_contract.py
+A	tests/test_memory_residency.py
+M	tests/test_phase5_scale.py
+
+=== allowed-files audit (brief section 2) ===
+src/weight_loader.py src/kv_cache.py src/inference.py src/memory_budget.py (new) pyproject.toml tests/** audit/CLAIMS_LEDGER.md audit/claims_baseline.txt scripts/qa/canary_claims.py README.md IMPLEMENTATION_PLAN.md — all inside the 7D allowed set (canary constant per the 7C BLOCKER-7C-2 lesson; src/layer.py docstring-only mechanism wording).
+
+=== forbidden-set audit (brief section 2) ===
+No 7E/7F/7G work: no HIP kernel/binding changes (git diff 003f4e5 c9c484a --stat -- src/kernels src/python_bindings CMakeLists.txt .github => empty below)
+(empty => none)
+No tokenizer/model-spec changes:
+(empty => none)
