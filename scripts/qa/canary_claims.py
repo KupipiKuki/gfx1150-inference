@@ -59,7 +59,9 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CHECKER = os.path.join(REPO_ROOT, "scripts", "qa", "check_claims.py")
 
 #: The seeded baseline is expected to hold exactly these entries.
-EXPECTED_BASELINE_ENTRIES = 15
+#: 7C-4 removed the resolved "10 README.md qwen2" entry (15 -> 14); update this
+#: constant whenever a claim is qualified/removed and its baseline entry is deleted.
+EXPECTED_BASELINE_ENTRIES = 14
 
 #: Directories that are never needed in a canary tree.
 IGNORED_TREE_ITEMS = shutil.ignore_patterns(
@@ -277,7 +279,7 @@ def canary_baseline_is_exact(tree: Tree) -> tuple[bool, str]:
         )
     if not payload.get("ok"):
         return False, f"checker reported not-ok:\n{output}"
-    return True, "15 exact entries, all resolving"
+    return True, f"{EXPECTED_BASELINE_ENTRIES} exact entries, all resolving"
 
 
 def canary_expired_baseline_entry(tree: Tree) -> tuple[bool, str]:

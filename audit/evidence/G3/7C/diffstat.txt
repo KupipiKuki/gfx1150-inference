@@ -31,3 +31,7 @@ tokenizer.
 #   pyproject.toml        + model_spec in [tool.setuptools] py-modules
 #   tests/test_cpu_only.py  py-modules/sdist regression (CPU-only lane)
 # See BLOCKER-7C-1.md.
+
+# Post-audit BLOCKER-7C-2 fix (claims canary after row-10 baseline removal):
+#   scripts/qa/canary_claims.py  EXPECTED_BASELINE_ENTRIES 15 -> 14
+# See BLOCKER-7C-2.md and canary.log.

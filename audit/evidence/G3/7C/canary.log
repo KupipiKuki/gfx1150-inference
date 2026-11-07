@@ -1,0 +1,14 @@
+PASS not_yet_claim: the mutation was detected
+PASS unqualified_q4_k_m: the mutation was detected
+PASS unqualified_qwen2: the mutation was detected
+PASS missing_evidence: the mutation was detected
+PASS generic_literal: the mutation was detected
+PASS strict_detects_baseline: the mutation was detected
+PASS baseline_is_exact: the mutation was detected
+PASS expired_baseline_entry: the mutation was detected
+PASS wrong_lane: the mutation was detected
+PASS nested_bullet: the mutation was detected
+PASS strict_clean: the mutation was detected
+PASS id3_claim_removed: the mutation was detected
+
+RESULT: PASS - all 12 canaries behaved as required
