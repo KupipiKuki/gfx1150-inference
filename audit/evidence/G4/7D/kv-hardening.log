@@ -48,3 +48,7 @@ $ systemd-run --user --scope -p MemoryMax=256M python3 <probe: real KV budget re
   small KV accepted: 4194304 bytes; budget 222094541
   refused under real cgroup limit: Requested KV cache size (536870912 bytes) exceeds the effective KV budget (222094541 bytes, 10% safety margin). Budget sources used: max_kv_bytes=34359738368, gtt_sysfs=49193099264, host_memavailable=91201490944, cgroup=...
   PROBE-OK: real cgroup-limited KV request refused with sources named
+
+> **Provenance note (rework):** the transcribed systemd-run outputs above were
+> superseded by the raw capture in `qaqc-probes/qaqc-run.log`, and re-run green
+> after the rework (exit 0, see `rework-green.log`).

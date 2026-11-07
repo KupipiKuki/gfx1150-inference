@@ -1,1 +1,4 @@
-c9c484ae5396373d8351c172261f851a5e53d19a (7D implementation work commit; evidence bundle added in the following commit on the same branch)
+a3800032623ee8e49b00e465294183581b3c28c1
+Rework candidate (per PHASE7_7D_REWORK_BRIEF.md, base 1ad01c9):
+git work commit a380003 + evidence-bundle commits on wp/7D-memory-robustness
+(original 7D work commit under review: c9c484a; audit/QAQC: 0b36b26/1ad01c9)

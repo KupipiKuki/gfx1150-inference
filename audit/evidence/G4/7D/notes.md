@@ -109,3 +109,37 @@
   claimed (weights are H2D per projection in every policy).
 - The leak probe tolerates ±2 fds / ±4 model-related maps to absorb
   unrelated runtime noise; per-checkpoint deltas observed were 0–1.
+
+## Rework record (2026-11-07, per PHASE7_7D_REWORK_BRIEF.md)
+
+Base: `1ad01c9` (auditor's NOT-SIGNED review). Work commit: `a380003`.
+
+- **Fix 1 (QAQC-7D-1, negative block_count).** `_cross_check_block_count`
+  (`src/weight_loader.py`) now rejects `declared_count < 0` explicitly
+  ("must be >= 0") before the index-set compare: `llama.block_count = INT32(-1)`
+  with zero `blk.*` tensors previously slipped through (`list(range(-1))` is
+  empty) and produced `num_layers = -1`. Two new tests cover the -1/zero-tensor
+  and -1/with-tensors cases (red at `1ad01c9` in `rework-red.log`, green at
+  `a380003`).
+- **Fix 2 (engine no-source AUTO provenance).**
+  `LlamaInferenceEngine._apply_residency_policy` (`src/inference.py`) now
+  passes `weight_budget=None` to `decide_residency` when no source was readable
+  (`available_bytes is None`), preserving the `sources` argument so the
+  `NoBudgetFallbackWarning` names them and the decision reason reads
+  "no readable source". The previous behavior (effective STREAM, but
+  `weight_budget=0` with the reason "exceed the budget (0)" and **no**
+  warning) contradicted the documented "AUTO never invents a budget". New
+  engine-level test asserts the warning, effective STREAM, `weight_budget is
+  None`, and the reason text.
+- **Adjudication QAQC-7D-3 (accepted, no code change).** Per the auditor
+  (`audit/AUDIT_7D_DEEP_2026-11-07.md`): the `MADV_DONTNEED` PTE-drop used as
+  an enabler before `posix_fadvise(POSIX_FADV_DONTNEED)` (when `MADV_PAGEOUT`
+  is absent) is **accepted**; the docs/ledger present DONTNEED as an enabler,
+  never as page-cache eviction, and fadvise-only is not presented as
+  equivalent on this host (evidence: `red.log` — fadvise alone leaves RSS and
+  page cache untouched). The mechanism is unchanged.
+- **Scope:** claims statuses and the baseline count (6) are untouched; lanes
+  CPU 506 / GPU 34, CPU-only both modes, claims checker, all 12 canaries, and
+  the two bundle probes are green on the reworked candidate
+  (`rework-green.log`, `qaqc-probes/qaqc-run.log` predates the rework and is
+  superseded for the cgroup sections by this run: both probe scripts exit 0).
