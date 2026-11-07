@@ -3,6 +3,10 @@
 
 #include <cstdint>
 
+// Identical to hip_runtime.h's typedef so this header stays includable from
+// non-HIP C++ translation units. Redundant typedefs are legal C++.
+typedef struct ihipStream_t* hipStream_t;
+
 // Standard GGML Q4_0 block size: 32 weights per 18-byte block (2B FP16 scale + 16B nibbles)
 constexpr int QK4_0 = 32;
 constexpr int BLOCK_Q4_0_BYTES = 18;
@@ -94,14 +98,18 @@ void launch_matmul_q6_k(
     int K
 );
 
-// Device-resident fused quantized matmul launchers (all pointers in GPU memory)
+// Device-resident fused quantized matmul launchers (all pointers in GPU memory).
+// The trailing `stream` parameter is the compute stream the kernels launch on
+// (7E explicit-stream topology; default 0 keeps the synchronous host wrappers
+// unchanged).
 void launch_matmul_q4_0_device(
     const void* d_A_fp16,
     const void* d_B_q4,
     void* d_C_fp16,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream = 0
 );
 
 void launch_matmul_q8_0_device(
@@ -110,7 +118,8 @@ void launch_matmul_q8_0_device(
     void* d_C_fp16,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream = 0
 );
 
 void launch_matmul_q4_k_device(
@@ -119,7 +128,8 @@ void launch_matmul_q4_k_device(
     void* d_C_fp16,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream = 0
 );
 
 void launch_matmul_q6_k_device(
@@ -128,7 +138,8 @@ void launch_matmul_q6_k_device(
     void* d_C_fp16,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream = 0
 );
 
 #endif // DEQUANTIZE_H

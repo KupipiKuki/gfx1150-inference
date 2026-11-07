@@ -1,6 +1,10 @@
 #ifndef ATTENTION_H
 #define ATTENTION_H
 
+// Identical to hip_runtime.h's typedef so this header stays includable from
+// non-HIP C++ translation units. Redundant typedefs are legal C++.
+typedef struct ihipStream_t* hipStream_t;
+
 // Host-callable Grouped-Query Attention (GQA) launcher with online softmax.
 // Shapes (all row-major FP16):
 //   Q:   (q_len, num_heads, head_dim)
@@ -53,9 +57,12 @@ void launch_gqa_attention_cached_fp16(
     bool causal
 );
 
-// Device-resident variant: copies `d_K_new` and `d_V_new` via D2D (`hipMemcpyDeviceToDevice`)
-// into the GPU-resident KV cache pool at `(layer_idx, start_pos)`, then runs GQA attention
-// from `d_Q` into `d_Out` without any host-device activation transfers.
+// Device-resident variant: enqueues `hipMemcpyAsync` D2D copies of `d_K_new` and
+// `d_V_new` into the GPU-resident KV cache pool at `(layer_idx, start_pos)` on
+// `stream` (ordered with the attention kernel on the same stream), then runs GQA
+// attention from `d_Q` into `d_Out` with no host-device activation transfers.
+// `stream` is the compute stream (7E explicit-stream topology; default 0 keeps
+// the synchronous behavior for legacy callers).
 void launch_gqa_attention_cached_fp16_device(
     const void* d_Q,
     const void* d_K_new,
@@ -68,7 +75,8 @@ void launch_gqa_attention_cached_fp16_device(
     int num_kv_heads,
     int head_dim,
     float scale,
-    bool causal
+    bool causal,
+    hipStream_t stream = 0
 );
 
 // C++-owned device-resident transformer layer pipeline (Stage 6C-ii / P-1):

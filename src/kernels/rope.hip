@@ -120,7 +120,8 @@ void launch_rope_fp16_device(
     int head_dim,
     int pos_offset,
     float freq_base,
-    bool neox_style
+    bool neox_style,
+    hipStream_t stream
 ) {
     if (head_dim <= 0 || head_dim % 2 != 0) {
         throw std::invalid_argument("head_dim must be a positive even integer for RoPE.");
@@ -137,7 +138,7 @@ void launch_rope_fp16_device(
         dim3(static_cast<unsigned int>(blocks)),
         dim3(static_cast<unsigned int>(threads)),
         0,
-        0,
+        stream,
         static_cast<const half*>(d_in),
         ws.d_inv_freq,
         static_cast<half*>(d_out),

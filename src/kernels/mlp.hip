@@ -63,7 +63,8 @@ void launch_swiglu_fp16_device(
     const void* d_gate,
     const void* d_up,
     void* d_out,
-    int num_elements
+    int num_elements,
+    hipStream_t stream
 ) {
     const int threads = 256;
     const int blocks = (num_elements + threads - 1) / threads;
@@ -73,7 +74,7 @@ void launch_swiglu_fp16_device(
         dim3(blocks),
         dim3(threads),
         0,
-        0,
+        stream,
         static_cast<const half*>(d_gate),
         static_cast<const half*>(d_up),
         static_cast<half*>(d_out),

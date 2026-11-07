@@ -101,3 +101,17 @@ set_target_properties(matmul_module PROPERTIES
     HIP_STANDARD_REQUIRED ON
     BUILD_RPATH "${ROCM_ROOT}/lib"
 )
+
+# --- Phase 7E: per-thread default-stream test build ---
+# Test-only compile definition: rebuilds the extension with
+# HIP_API_PER_THREAD_DEFAULT_STREAM=1 so the remaining implicit "stream 0"
+# launch sites (the synchronous host wrappers) use per-thread default streams
+# instead of the legacy blocking NULL stream. The layer path itself launches
+# exclusively on explicit streams, so a green suite under this build is
+# evidence there is no legacy NULL-stream reliance.
+#   cmake -B build-ptds -DCMAKE_BUILD_TYPE=Release -DGFX1150_7E_PTDS_TEST=ON
+option(GFX1150_7E_PTDS_TEST "Build with HIP_API_PER_THREAD_DEFAULT_STREAM=1 (7E per-thread default-stream test build)" OFF)
+if(GFX1150_7E_PTDS_TEST)
+    target_compile_definitions(matmul_module PRIVATE HIP_API_PER_THREAD_DEFAULT_STREAM=1)
+    message(STATUS "7E test build: HIP_API_PER_THREAD_DEFAULT_STREAM=1 (per-thread default stream)")
+endif()
