@@ -289,8 +289,17 @@ class LlamaInferenceEngine:
                 "measured sources: "
                 + (", ".join(self.weight_budget.sources.used_sources) or "none")
             )
+            # When no source could be read (available_bytes is None) the
+            # decision must be made with weight_budget=None so AUTO fails safe
+            # to STREAM through the NoBudgetFallbackWarning path — a budget of
+            # 0 would instead read as "exceed the budget (0)" and invent a
+            # budget that was never measured (rework brief fix 2).
+            if self.weight_budget.available_bytes is None:
+                budget_for_decision: Optional[int] = None
+            else:
+                budget_for_decision = self.weight_budget.weight_budget
             self.residency_decision = decide_residency(
-                requested, weight_bytes, self.weight_budget.weight_budget, sources
+                requested, weight_bytes, budget_for_decision, sources
             )
         self.streamer.set_decision(self.residency_decision)
 

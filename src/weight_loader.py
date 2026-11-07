@@ -100,6 +100,13 @@ def _cross_check_block_count(gguf: GGUFParser) -> int:
         raise ValueError(
             f"Invalid {arch}.block_count value: {declared!r} (expected an integer)"
         )
+    if declared_count < 0:
+        # Negative counts with zero blk.* tensors would otherwise slip through
+        # the index-set compare (list(range(-1)) is empty) and yield
+        # num_layers = -1 (QAQC-7D-1).
+        raise ValueError(
+            f"Invalid {arch}.block_count {declared_count}: must be >= 0"
+        )
     if found != list(range(declared_count)):
         found_desc = (
             f"found {len(found)} blk.N.* tensor groups "

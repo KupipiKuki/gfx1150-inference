@@ -596,6 +596,56 @@ class TestKVHardening:
             WeightStreamer(model)
         assert "disagrees" in str(ctx_bz.value)
 
+    def test_block_count_negative_with_zero_tensors_rejected(self, tmp_path) -> None:
+        """Rework QAQC-7D-1: block_count = INT32(-1) with zero blk.* tensors
+        must fail closed (list(range(-1)) is empty, so the index-set compare
+        alone cannot catch it); not be accepted with num_layers = -1."""
+        from weight_loader import WeightStreamer
+
+        b = __import__("io").BytesIO()
+        rng = np.random.default_rng(3)
+        raw = rng.standard_normal(64, dtype=np.float32).astype(np.float16).tobytes()
+        write_synthetic_gguf(
+            b,
+            metadata={
+                "general.architecture": (GGUFValueType.STRING, "llama"),
+                "llama.block_count": (GGUFValueType.INT32, -1),
+            },
+            tensors=[("token_embd.weight", (64,), GGMLType.F16, raw)],
+        )
+        path = str(tmp_path / "negative.gguf")
+        with open(path, "wb") as fh:
+            fh.write(b.getvalue())
+        with pytest.raises(ValueError) as ctx_neg:
+            WeightStreamer(path)
+        msg = str(ctx_neg.value)
+        assert "block_count" in msg and ">= 0" in msg, (
+            "negative block_count must be rejected explicitly"
+        )
+
+    def test_block_count_negative_with_tensors_rejected(self, tmp_path) -> None:
+        """INT32(-1) declared over real tensors: rejected by the explicit
+        non-negative guard (the index-set compare alone cannot catch -1)."""
+        from weight_loader import WeightStreamer
+
+        b = __import__("io").BytesIO()
+        rng = np.random.default_rng(4)
+        raw = rng.standard_normal(64, dtype=np.float32).astype(np.float16).tobytes()
+        write_synthetic_gguf(
+            b,
+            metadata={
+                "general.architecture": (GGUFValueType.STRING, "llama"),
+                "llama.block_count": (GGUFValueType.INT32, -1),
+            },
+            tensors=[("blk.0.big.weight", (64,), GGMLType.F16, raw)],
+        )
+        path = str(tmp_path / "negative_layers.gguf")
+        with open(path, "wb") as fh:
+            fh.write(b.getvalue())
+        with pytest.raises(ValueError) as ctx_neg2:
+            WeightStreamer(path)
+        assert ">= 0" in str(ctx_neg2.value)
+
     def test_honest_block_count_loads(self, tmp_path) -> None:
         from weight_loader import WeightStreamer
 
@@ -906,6 +956,33 @@ class TestEngineResidency:
             ) as eng:
                 assert eng.streamer.policy == ResidencyPolicy.PIN_ALL
                 assert eng.residency_decision.over_budget is True
+
+    def test_engine_auto_without_sources_warns_and_streams(
+        self, kv_modules, tmp_path, monkeypatch
+    ) -> None:
+        """Rework QAQC (fix 2): with no readable budget source, engine AUTO
+        must fail safe to STREAM via the NoBudgetFallbackWarning path — the
+        decision's weight_budget is None (no invented budget of 0) and the
+        reason says "no readable source", not "budget (0)"."""
+        _, inference = kv_modules
+        model = str(tmp_path / "nosources.gguf")
+        _engine_model(model)
+
+        def no_sources():
+            return BudgetSources()
+
+        monkeypatch.setattr(inference, "read_budget_sources", no_sources)
+        with pytest.warns(NoBudgetFallbackWarning, match="no memory-budget source"):
+            with inference.LlamaInferenceEngine(
+                model, max_seq_len=32, offload_kv_to_cpu=True, residency="auto"
+            ) as eng:
+                decision = eng.residency_decision
+        assert decision.effective == ResidencyPolicy.STREAM, (
+            "no-source AUTO must fail safe to STREAM"
+        )
+        assert decision.weight_budget is None, "no budget is invented when no source is readable"
+        assert "no readable source" in decision.reason
+        assert eng.weight_budget.available_bytes is None
 
     def test_resolve_residency_policy_mapping(self, kv_modules) -> None:
         _, inference = kv_modules
