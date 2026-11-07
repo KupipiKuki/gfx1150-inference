@@ -1,0 +1,90 @@
+=== QAQC independent re-run, Sat Nov  7 04:37:54 PM UTC 2026 ===
+
+== mem_probes.py ==
+  self.residency_decision = decide_residency(
+  with inference.LlamaInferenceEngine(
+  self.close()
+QAQC mem probes; workdir /tmp/7d-probes-154u9wkp
+repo: /home/kupipi/Documents/git/gfx1150-inference
+=== budget sources readable on this host ===
+  source gtt_sysfs: 49193099264 bytes
+  source host_memavailable: 91194052608 bytes
+  available = min(sources) = 49193099264
+  activation estimate example (hidden=8192, seq=4096, vocab=32000): 335608320 bytes (320.1 MiB)
+  weight budget example (kv=2 GiB): 46173136384 bytes
+=== eviction syscall trace (STREAM vs PIN) ===
+  STREAM release_layer -> 1 fadvise calls, first: [('posix_fadvise', 0, 4)] (advice == POSIX_FADV_DONTNEED=4)
+  PIN release_layer   -> 0 fadvise calls (expected 0)
+=== missing syscall fallback (posix_fadvise + MADV_PAGEOUT removed) ===
+    first warning: Neither posix_fadvise(POSIX_FADV_DONTNEED) nor MADV_PAGEOUT is available on this host; falling back to a MADV_DONTNEED PTE drop only (best-effort: it removes the read-only mapping's page table entries but is NOT page-cache eviction). Inference continues; memory use is not bounded by this fallback.
+  NOTE: the fallback is a PTE-drop only (best-effort, not page-cache eviction) and inference continued without crashing.
+=== measured residency: PIN vs STREAM (synthetic 64 MiB model) ===
+  PIN:   touched 67109184 bytes; dRSS=65544 kB; warm re-touch majflt=0
+  STREAM: dRSS=0 kB; re-touch of evicted layer 0 majflt=1 (>0 => pages really left the page cache)
+  difference: PIN dRSS - STREAM dRSS = 65544 kB (RSS source: /proc/self/status VmRSS; faults: /proc/self/stat)
+=== policy decisions (engine-level, synthetic model) ===
+  AUTO + override budget 4096 MB: requested=auto -> effective=pin_all; over_budget=False; origin=budget override residency_budget_mb=4096 (budget 4294967296 bytes)
+  AUTO + override budget 0 MB (never fits): requested=auto -> effective=stream; over_budget=False; origin=budget override residency_budget_mb=0 (budget 0 bytes)
+  explicit STREAM: requested=stream -> effective=stream; over_budget=False; origin=measured sources: gtt_sysfs, host_memavailable
+  explicit PIN: requested=pin_all -> effective=pin_all; over_budget=True; origin=budget override residency_budget_mb=0 (budget 0 bytes)
+  deprecated cache_weights=True: requested=pin_all -> effective=pin_all; over_budget=False; origin=measured sources: gtt_sysfs, host_memavailable
+=== fd/mmap leak probe: 1000x open/close ===
+  baseline after warm-up: fds=4, model-related maps=0
+  after 100 cycles: fds=5 (delta 1), model-related maps=1 (delta 1)
+  after 600 cycles: fds=5 (delta 1), model-related maps=1 (delta 1)
+  after 1100 cycles: fds=5 (delta 1), model-related maps=1 (delta 1)
+=== cgroup budget sources ===
+  /proc/self/cgroup = ['0::/user.slice/user-1000.slice/session-c2.scope']
+  v2 headroom=None (None => memory.max is 'max'/unlimited or unreadable)
+  v1 headroom=None (None => no v1 limit)
+ALL PROBES COMPLETED
+
+== kv_probes.py ==
+QAQC KV probes; workdir /tmp/7d-kv-4v7149ik
+=== KV user cap refusal (max_kv_bytes smaller than request) ===
+  refused: Requested KV cache size (17179869184 bytes) exceeds the effective KV budget (943719 bytes, 10% safety margin). Budget sources used: max_kv_bytes=1048576, gtt_sysfs=49197293568, host_memavailable=90987577344. Reduce max_s
+=== KV cgroup-limited refusal (monkeypatched cgroup source) ===
+  refused: Requested KV cache size (268435456 bytes) exceeds the effective KV budget (943719 bytes, 10% safety margin). Budget sources used: max_kv_bytes=34359738368, cgroup=1048576, host_memavailable=1099511627776. Reduce max_seq_
+=== cgroup fake trees (v2 then v1) ===
+  v2 limited tree: memory.max=1048576, current=262144 -> 786432 (expected 786432)
+  v2 'max' (unlimited) -> None (expected None)
+  v1 limited tree -> 1572864 (expected 1572864)
+=== full-disk refusal (statvfs monkeypatched tiny) ===
+  refused: Insufficient disk space for the mmap-backed KV cache: requires 262144 bytes, but '/tmp/7d-kv-4v7149ik/kvfull' has 4096 bytes free
+  files left in the dir after refusal: []
+=== symlink at the target path rejected ===
+  refused (FileExistsError: [Errno 17] File exists: '/tmp/7d-kv-4v7149ik/kvsym/kv_cache_k_12345_dead.mmap')
+  bystander untouched: b'important_user_data'
+=== unlink-before-map: crash before close() leaves no files ===
+  files on disk while manager alive (pre-crash): [] (expected [])
+  mapping usable through fd after unlink: True
+  files on disk after close(): [] (expected [])
+=== block_count cross-check (999 declared vs 2 found) ===
+  refused: llama.block_count (999) disagrees with the tensor table: found 2 blk.N.* tensor groups (min=0, max=1). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.
+=== duplicate tensor names ===
+  refused: Duplicate tensor name in GGUF tensor table: 'blk.0.attn_norm.weight'
+=== live-view close: warn, fd closed; ctor error preserved ===
+  close() warned instead of raising: ['RuntimeWarning']; fd closed=True
+  engine ctor original exception preserved: ValueError, mentions budget=True, first 120 chars: Requested KV cache size (4096 bytes) exceeds the effective KV budget (1 bytes, 10% safety margin). Budget sources used: 
+ALL KV PROBES COMPLETED
+
+== REAL cgroup probes (systemd-run --user --scope -p MemoryMax=256M), raw output, Sat Nov  7 04:38:41 PM UTC 2026 ==
+
+$ systemd-run --user --scope -p MemoryMax=256M python3 /tmp/cg_probe_inner.py
+Running as unit: run-r46dc660d2de5447a9edfe21ac8e8bc76.scope; invocation ID: 275d5679e5f6470181217df29ed42756
+cgroup lines: 0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-r46dc660d2de5447a9edfe21ac8e8bc76.scope
+v2 headroom: 258740224
+PROBE-OK: cgroup-limited process sees its own budget
+exit=0
+
+$ systemd-run --user --scope -p MemoryMax=256M python3 /tmp/cg_probe_kv.py
+Running as unit: run-r73721fa8ef1747da93066216b22c6b53.scope; invocation ID: 6a2dd9a221474cac8e8bdc2ac04b90b8
+small KV accepted: 4194304 bytes; budget 222595892
+refused under real cgroup limit: Requested KV cache size (536870912 bytes) exceeds the effective KV budget (222603264 bytes, 10% safety margin). Budget sources used: max_kv_bytes=34359738368, gtt_sysfs=49195196416, host_memavailable=91179323392, cgroup=
+PROBE-OK: real cgroup-limited KV request refused with sources named
+exit=0
+
+== edge probes (QAQC) ==
+EDGE-1: block_count=-1 with 0 blk tensors -> ACCEPTED, num_layers = -1
+EDGE-2: rejected: llama.block_count (-1) disagrees with the tensor table: found 2 blk.N.* tensor groups (min=0, max=1)
+EDGE-3: huge dims rejected: Truncated GGUF file: data_offset 160 exceeds buffer size 141
