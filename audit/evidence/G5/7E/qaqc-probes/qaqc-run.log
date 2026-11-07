@@ -1,0 +1,31 @@
+=== QAQC 7E independent re-run at tip 98b08c5, Sat Nov  7 11:35:02 PM UTC 2026 ===
+
+== battery ==
+pytest -m gpu -q            -> 39 passed, 510 deselected (2.09s, real gfx1150)
+pytest -m 'not gpu' -q      -> 510 passed, 39 deselected (48.3s)
+tests/test_cpu_only.py      -> OK ;  python -O -> OK
+check_claims.py             -> PASS (0 new, 8 baselined, 0 findings)
+canary_claims.py            -> PASS (12/12)
+
+== source scan (qaqc-probes/stream_source_scan.py) ==
+  OK: no hipStreamWaitEvent(0, ...)
+  OK: all launch_*_device kernel launches use an explicit stream token
+  OK: D2D KV writes use hipMemcpyAsync on the given stream
+RESULT: PASS
+hipStreamWaitEvent(0 occurrences in src/: 0
+
+== correctness anchors re-run ==
+prefill_logits_sha256=a8547f8c65687a598d9c9a3526b42c748c3ad9b4a4114029a941def6ef4e2b31
+greedy_ids=[27, 31, 27, 31, 17, 27, 4, 24]
+decode_logits_sha256=49da87dfa668f1f4cb13d3f5b2d7616d20d47b5d00433455615651436c400464
+
+== PTDS build currency ==
+build-ptds/matmul_module.so mtime 17:17:07 > src/kernels/attention.hip mtime 17:11:04 (PTDS build is current)
+flags.make defines: CXX_DEFINES and HIP_DEFINES both contain -DHIP_API_PER_THREAD_DEFAULT_STREAM=1
+module sha256[:12] now: 9e3f5253635f == per-thread.log recorded 9e3f5253635f
+
+== red.log integrity ==
+FAIL lines in committed red.log: 20 (parent scan reported 20 findings)
+
+== destructor exit-order probe ==
+forward_layer_cached + exit WITHOUT kv_cache_free: exit code 0 on this host (HIP context still alive at static destruction); latent issue recorded as QAQC-7E-1.
