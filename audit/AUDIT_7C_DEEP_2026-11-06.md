@@ -3,19 +3,42 @@
 **Auditor:** DeepSeek V4.1 Flash (primary auditor)
 **Date:** 2026-11-06
 **Gate:** G3 (Phase 7C model families)
-**Target:** `wp/7C-model-families` @ `4b930ec` (work commit `20f1165`; evidence commit `4b930ec`; red parent `8426ec6`)
+**Target:** `wp/7C-model-families` @ work `20f1165` / evidence `4b930ec`, plus the post-audit CI fixes `d64ad48` (packaging) and `1c53afd` (claims canary); final integration `vibe/phase7-220201`
 **Brief:** `PHASE7_7C_MODEL_FAMILY_BRIEF.md`; **contract:** `audit/evidence/G3/7C/README.md`
 
 ---
 
 ## 1. Verdict summary
 
-**G3: PASS — all exit criteria met.** Signed in `audit/G3_SIGNOFF_2026-11-06.md`.
+**G3: PASS — signed after the two CI blockers below were found and fixed.**
+The first local-only signoff was premature: the source-tree lanes were green, but
+the clean-install and claims-canary jobs were not. The final state is CI-green
+(CPU + clean-clone; GPU queued as C-G1-3).
 
 Every check below was re-run by the auditor on the candidate, not only read from the
 coder's logs. Where the auditor wrote new probes, they are in
 `audit/evidence/G3/7C/qaqc-probes/probe_auditor_7c.py` (+ `.log`,
 `probe_auditor_parent_red.log`, `*.auditor-rerun.txt`).
+
+### 1.1 CI blockers found after the first signoff (both fixed)
+
+- **BLOCKER-7C-1 — clean/sdist install missing `model_spec`.** The first pushed
+  merge (`6820932`) failed CPU/sdist/clean-clone CI because
+  `pyproject.toml` `[tool.setuptools] py-modules` did not list the new
+  `model_spec.py`. Source-tree tests could not catch this. Fixed in `d64ad48`:
+  add `model_spec` to `py-modules`; extend `tests/test_cpu_only.py` V-8 to require
+  every top-level `src/*.py` module in `py-modules` and `src/model_spec.py` in the
+  sdist. Local sdist install + `import model_spec` verified.
+- **BLOCKER-7C-2 — claims canary expected the old baseline count.** After the
+  resolution of row 10, the reviewed baseline has 14 entries, but
+  `scripts/qa/canary_claims.py` still expected 15; the CPU canary step failed on
+  `eab3771`. Fixed in `1c53afd`: constant 15→14 (and the success message uses
+  the constant). `canary_claims.py` now passes 12/12.
+
+Final CI on `1aa4e75` (canary-fixed merge): CPU `42317321414` **success**,
+Clean-Clone `42317321409` **success**, Self-Hosted GPU `42317321450` **queued**
+(expected — C-G1-3). See `BLOCKER-7C-1.md`, `BLOCKER-7C-2.md`,
+`packaging-fix.log`, and `canary.log`.
 
 ## 2. Scope / allowed-forbidden set
 
@@ -32,6 +55,14 @@ asserts or pytest marks in existing tests (scanned the tests/ diff). Ledger diff
 is rows 10/11/12 only; the `claims_baseline.txt` diff removes only the resolved
 `10 README.md qwen2` entry with the header comment's own removal rule cited.
 No new kernel target was added (GeGLU is a documented host FP32 path — allowed).
+
+**Post-audit CI fixes (justified scope exceptions):** `pyproject.toml` was
+touched only to add `model_spec` to `py-modules` (BLOCKER-7C-1), and
+`scripts/qa/canary_claims.py` only to update the reviewed baseline count 15→14
+after the row-10 resolution (BLOCKER-7C-2). Both are packaging/claims
+infrastructure required for the new module and the legitimate baseline removal;
+neither adds feature scope. `tests/test_cpu_only.py` was extended for the
+py-modules/sdist regression.
 
 ## 3. Lanes (auditor re-run on candidate `4b930ec` working tree)
 
@@ -129,8 +160,19 @@ is unchanged. `check_claims.py` remains PASS.
   rule, but the 7C brief's allowed-file list did not name it. Acceptable here;
   future claims packages should list the baseline explicitly.
 
+### Blockers found by CI after the first signoff (fixed)
+
+- **BLOCKER-7C-1 (fixed, `d64ad48`):** clean/sdist install could not import
+  `model_spec`; `pyproject.toml` `py-modules` omitted it. Fixed plus a CPU-only
+  `py-modules`/sdist regression. Local sdist install and clean-clone CI green.
+- **BLOCKER-7C-2 (fixed, `1c53afd`):** the claims canary still expected 15
+  baseline entries after the resolved row-10 entry was removed (actual 14).
+  Fixed; `canary_claims.py` 12/12 PASS. CPU CI green on `1aa4e75`.
+
 ## 9. Gate state
 
-G3 signed. 7C accepted at synthetic-fixture scope. 7D remains unauthorized until
-the auditor merges; real-GGUF Phi-3/Gemma goldens are 7F-2; release/G6 still
-blocked by 7D/7E/7F and the GPU runner (C-G1-3).
+G3 signed after the CI fixes (`1aa4e75`: CPU `42317321414` + clean-clone
+`42317321409` success; GPU `42317321450` queued as C-G1-3). 7C is accepted at
+synthetic-fixture scope. 7D is unblocked after this merge; real-GGUF
+Phi-3/Gemma goldens are 7F-2; release/G6 still blocked by 7D/7E/7F and the GPU
+runner.
