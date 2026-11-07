@@ -411,7 +411,15 @@ Phi-3/Gemma goldens remain 7F-2.
 
 ### 7D — Memory honesty and robustness (Gate G4)
 
-**Status (2026-11-07): AUTHORIZED — G3 signed; 7E not authorized.**
+**Status (2026-11-07): IMPLEMENTED — G4 REVIEW NOT SIGNED; rework required.**
+**Audit:** [`audit/AUDIT_7D_DEEP_2026-11-07.md`](audit/AUDIT_7D_DEEP_2026-11-07.md).
+**Rework brief:** [`PHASE7_7D_REWORK_BRIEF.md`](PHASE7_7D_REWORK_BRIEF.md).
+**QAQC:** [`audit/QAQC_7D_DEEP_2026-11-07.md`](audit/QAQC_7D_DEEP_2026-11-07.md).
+G4 is held by two Low production fixes: negative `block_count` accepted with
+zero layer tensors, and the engine no-source AUTO path recording a fabricated
+0-byte budget without `NoBudgetFallbackWarning`. The `MADV_DONTNEED` PTE-drop
+enabler design is accepted by audit adjudication (QAQC-7D-3). 7E remains
+blocked until G4 signs.
 **Coder brief:** [`PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md`](PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md) — authoritative package detail.
 **Evidence contract:** [`audit/evidence/G4/7D/README.md`](audit/evidence/G4/7D/README.md).
 

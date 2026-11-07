@@ -1,0 +1,9 @@
+== probe 1: negative block_count with zero blk tensors ==
+FAIL: accepted with num_layers=-1 (expected ValueError)
+== probe 2: engine AUTO with no readable budget source ==
+effective=ResidencyPolicy.STREAM weight_budget=0
+reason=AUTO: weight bytes (19264) exceed the budget (0); streaming
+warnings=[]
+FAIL: expected NoBudgetFallbackWarning + STREAM + weight_budget=None
+
+RESULT: FAIL - at least one rework fix is missing
