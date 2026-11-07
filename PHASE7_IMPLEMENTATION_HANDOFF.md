@@ -411,40 +411,69 @@ Phi-3/Gemma goldens remain 7F-2.
 
 ### 7D — Memory honesty and robustness (Gate G4)
 
-**Audit trace:** D-1, P-2, S-1 residual, R-1/R-2 residual; v0.6.2 §6 P0-3 and P1-5.
-**Allowed files:** `src/weight_loader.py`, `src/kv_cache.py`, `src/inference.py` (residency/init/close), tests, docs, evidence.
+**Status (2026-11-07): AUTHORIZED — G3 signed; 7E not authorized.**
+**Coder brief:** [`PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md`](PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md) — authoritative package detail.
+**Evidence contract:** [`audit/evidence/G4/7D/README.md`](audit/evidence/G4/7D/README.md).
 
-**Work packages**
+**Audit trace:** D-1, P-2, S-1 residual, R-1/R-2 residual; v0.6.2 §6 P0-3 and
+P1-5; `audit/REVIEW_v0.6.1_c75914b.md` §2.3–§2.6.
+**Allowed files:** `src/weight_loader.py`, `src/kv_cache.py`, `src/inference.py`
+(residency/init/close/CLI); `src/memory_budget.py` (new, preferred; add to
+`pyproject.toml` `py-modules`); `src/gguf_parser.py` only for duplicate-name or
+block-count helpers; `src/python_bindings/bindings.cpp` + `CMakeLists.txt` only
+if a HIP memory query is required (sysfs/proc preferred); `tests/**`;
+`README.md`; `IMPLEMENTATION_PLAN.md`; `audit/CLAIMS_LEDGER.md` rows
+14/18/19/20/21/30; `audit/claims_baseline.txt` + `scripts/qa/canary_claims.py`
+count; docs; `audit/evidence/G4/7D/**`. No 7E/7F/7G, tokenizer/model-family
+changes, CI workflow changes, or unrelated refactors.
+
+**Work packages** (full acceptance in the brief)
 
 | ID | Task | Acceptance |
 |---|---|---|
-| 7D-1 | Replace the `MADV_DONTNEED` claim with the correct mechanism: `posix_fadvise(POSIX_FADV_DONTNEED)` (best-effort) and/or `MADV_PAGEOUT` where available; keep `MADV_WILLNEED` prefetch | Docs match behavior; tests cover unavailable-syscall fallback; no false "bounded RAM" claim |
-| 7D-2 | Implement a budgeted residency policy: `AUTO` (pin if it fits), `PIN_ALL`, `STREAM`; budget = free GTT/RAM − KV − activations − safety; make `cache_weights` map to a real policy or deprecate it | `AUTO` pins a fitting model; `STREAM` streams; measured GTT/RSS reflects the policy; CLI exposes it |
-| 7D-3 | KV/allocation hardening: clamp to `min(free_mem/2, cgroup_limit, cap)`; cross-check `block_count` vs `blk.N.*` prefixes; unlink-before-map on POSIX; disk-space check; `close()`/constructor preserve the original exception | Hostile header tests pass; cgroup-limited run refuses cleanly; repeated open/close leaks no fd/mmap; original exception is not masked |
+| 7D-1 | Page-cache eviction honesty: `posix_fadvise(POSIX_FADV_DONTNEED)` primary, `MADV_PAGEOUT` optional, `MADV_WILLNEED` prefetch; no false `MADV_DONTNEED` page-cache claim; missing-syscall fallback | Syscall probes; STREAM evicts, PIN does not; safe fallback; docs corrected |
+| 7D-2 | Budgeted residency: `AUTO`/`PIN_ALL`/`STREAM`, budget = min(free GTT, host available, cgroup) − KV − activations − safety; `cache_weights` mapping/deprecation; CLI; measured RSS/page-cache | Small model AUTO→PIN; over-budget AUTO→STREAM; explicit PIN/STREAM honored; RSS/page-cache reflects policy; no silent fallback; GTT pinning not claimed without a device cache |
+| 7D-3 | KV/allocation hardening: available/cgroup cap, block_count cross-check, duplicate names, unlink-before-map, disk-space check, symlink, exception preservation, fd/mmap leaks | Hostile/cgroup/full-disk cases fail closed; 1000× open/close clean; live-view close warns, fd closes, original error survives |
+| 7D-4 | Memory claims/docs: README L10/L12/L123/L124, PLAN L15/L17/L79/L221, ledger rows 14/18/19/20/21/30 | No false bounded-RAM/70B/8-hour/active-RAM claim; policy documented; claims checker + canaries green |
 
 **Required checks**
+
 ```bash
 python -m pytest -m "not gpu" -q -k "memory or kv or residency or parser"
 python -m pytest -m gpu -q -k "residency or kv"
+python -m pytest -m "not gpu" -q
+python -m pytest -m gpu -q
 python tests/test_cpu_only.py && python -O tests/test_cpu_only.py
-# cgroup-limited probe, e.g. systemd-run --scope -p MemoryMax=...
-# fd/mmap leak probe: repeat open/close 1000x, check /proc/self/fd and maps
+python scripts/qa/check_claims.py
+python scripts/qa/canary_claims.py
+# fd/mmap 1000x, cgroup-limited, syscall-fallback, RSS/page-cache/GTT probes
 ```
 
 **QAQC adversarial checks**
-- `general.alignment=0`, truncation, huge `block_count`, negative/zero dims, duplicate names.
-- `block_count` says 999 but only 2 `blk.*` prefixes exist.
-- KV directory on a full filesystem; symlink at the target path; crash/kill before close.
-- `close()` with a live view: mapping is released or a clear warning is emitted; fd is closed; original constructor error survives.
-- Residency: model smaller than budget → pinned; model larger → streamed; no silent fallback.
+- fadvise/pageout are actually used in STREAM; PIN skips them; missing syscalls
+  fall back safely without a false page-cache claim.
+- AUTO/PIN/STREAM decisions and measurements; no silent fallback; over-budget
+  PIN warns.
+- `block_count` 999 vs 2 layers, duplicate names, huge dims, alignment=0,
+  truncation, cgroup limit, full disk, symlink, crash-before-close.
+- Live-view close: fd closed, mapping released/warned, original exception
+  survives; 1,000× open/close no fd/mmap growth.
+- Claims: no unsupported 70B/8-hour/active-RAM/bounded-RAM entries; baseline and
+  canary count updated together.
 
 **Exit criteria (G4)**
-- [ ] Memory behavior matches the documented policy.
-- [ ] Hostile inputs fail closed.
-- [ ] No fd/mmap leaks; exception masking fixed.
-- [ ] 70B "bounded RAM" claim either evidenced or removed.
+- [ ] Memory behavior matches the documented policy; no false bounded-RAM claim.
+- [ ] AUTO/PIN/STREAM implemented and measured; CLI exposes it.
+- [ ] Hostile inputs fail closed; no fd/mmap leaks; exception masking fixed.
+- [ ] 70B bounded-RAM claim evidenced or removed/qualified.
+- [ ] CPU/GPU/CPU-only/claims/canaries green; evidence complete.
 
-**Stop:** Do not start 7E until G4 is signed.
+**Fallback:** if a real 70B/GTT measurement is unavailable, remove/qualify the
+claim and record the limitation; if a budget source is unavailable, fail safe to
+STREAM and document the basis. Do not fake 70B/8-hour evidence; that is
+7F-2/7F-3/7F-4.
+
+**Stop:** Do not start 7E until G4 is signed; the auditor merges only after G4.
 
 ---
 
