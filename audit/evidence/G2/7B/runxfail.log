@@ -1,0 +1,17 @@
+# G2 / 7B - --runxfail on the candidate: nothing is xfailed any more
+#
+# On the parent this run fails 4 tests (see tokenizer-golden.log); on the
+# candidate it is a clean pass with zero xfails left in the suite:
+#   $ python -m pytest -m "not gpu" -q --runxfail -k "tokenizer or bpe or golden"
+#   $ grep -ci xfail <this log's payload> -> 0
+
+........................................................................ [ 96%]
+...                                                                      [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+75 passed, 77 deselected, 13 warnings in 0.85s
+exit=0

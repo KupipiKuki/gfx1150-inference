@@ -1,0 +1,395 @@
+# G1 / 7A-6 follow-up gate commands — every command run, with exit codes
+# Captured: 2026-11-02T22:25:10Z  HEAD: 88cc19b98c9689a7bd704ce7f50357fbda46555d
+
+### [1] $ git status --porcelain
+ M audit/CLAIMS_LEDGER.md
+ M audit/evidence/G1/7A-6/diffstat.txt
+ M audit/evidence/G1/7A-6/notes.md
+ M audit/evidence/G1/7A-6/qaqc-probes/probe-commands.log
+ M audit/evidence/G1/7A-6/qaqc-probes/qaqc-report.md
+ M scripts/qa/canary_claims.py
+ M scripts/qa/check_claims.py
+?? audit/evidence/G1/7A-6-followup/
+?? audit/evidence/G1/7A-6/PROVENANCE-ERRATUM.md
+--- exit code: 0 ---
+
+### [2] $ python3 scripts/qa/check_claims.py
+=== Claims ledger check ===
+mode:        default (baseline-aware)
+claims:      30 rows parsed
+
+--- unqualified public claims (the ratchet) ---
+  claim 6 [BASELINED]: Real `Q4_K_M` GGUF end-to-end
+      README.md:10  'Q4_K_M'  (baselined)
+  claim 10 [BASELINED]: Qwen2 support
+      README.md:110  'qwen2'  (baselined)
+  claim 13 [BASELINED]: 983 tok/s / 4.4× E2E speedup
+      IMPLEMENTATION_PLAN.md:209  '983'  (baselined)
+  claim 14 [BASELINED]: Bounded RAM for 70B models
+      README.md:12  'bounded memory'  (baselined)
+      IMPLEMENTATION_PLAN.md:17  'bounded memory'  (baselined)
+  claim 18 [BASELINED]: 7B–70B models on gfx1150 without OOM
+      README.md:10  '7B–70B'  (baselined)
+      IMPLEMENTATION_PLAN.md:12  '7B–70B'  (baselined)
+  claim 19 [BASELINED]: 8-hour unattended runtimes
+      README.md:12  '8-hour runtimes'  (baselined)
+      IMPLEMENTATION_PLAN.md:15  '8-hour runtimes'  (baselined)
+  claim 20 [BASELINED]: Active RAM caps for 7B–70B (≤1.5–4.5 GB)
+      IMPLEMENTATION_PLAN.md:221  'Active RAM Cap'  (baselined)
+  claim 26 [BASELINED]: 1.12 TFLOPS matmul throughput
+      IMPLEMENTATION_PLAN.md:45  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:53  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:261  '1.12 TFLOPS'  (baselined)
+  claim 27 [BASELINED]: 983.4 tok/s / 1107.9 tok/s decode E2E
+      IMPLEMENTATION_PLAN.md:209  '983.4 tok/s'  (baselined)
+  claim 28 [BASELINED]: Fused Q4_0 matmul 0.50 ms @ 1×4096×4096
+      IMPLEMENTATION_PLAN.md:81  '0.50 ms'  (baselined)
+  claim 29 [BASELINED]: Q4_K 1×1024×8192 in 2.76 ms
+      IMPLEMENTATION_PLAN.md:178  '2.76 ms'  (baselined)
+  claim 30 [BASELINED]: Resident RAM delta < 500 MB while streaming
+      IMPLEMENTATION_PLAN.md:79  '500 MB'  (baselined)
+
+--- baseline entries that no longer match a violation ---
+  none
+
+--- warnings ---
+  claim 21: flag is 'partial' with no unqualified site; the caveat wording is incomplete (a wording task, not a ratchet item)
+
+--- findings ---
+  none
+
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+--- exit code: 0 ---
+
+### [3] $ python3 scripts/qa/check_claims.py --strict
+=== Claims ledger check ===
+mode:        strict (baseline ignored)
+claims:      30 rows parsed
+
+--- unqualified public claims (the ratchet) ---
+  claim 6 [BASELINED]: Real `Q4_K_M` GGUF end-to-end
+      README.md:10  'Q4_K_M'  (baselined)
+  claim 10 [BASELINED]: Qwen2 support
+      README.md:110  'qwen2'  (baselined)
+  claim 13 [BASELINED]: 983 tok/s / 4.4× E2E speedup
+      IMPLEMENTATION_PLAN.md:209  '983'  (baselined)
+  claim 14 [BASELINED]: Bounded RAM for 70B models
+      README.md:12  'bounded memory'  (baselined)
+      IMPLEMENTATION_PLAN.md:17  'bounded memory'  (baselined)
+  claim 18 [BASELINED]: 7B–70B models on gfx1150 without OOM
+      README.md:10  '7B–70B'  (baselined)
+      IMPLEMENTATION_PLAN.md:12  '7B–70B'  (baselined)
+  claim 19 [BASELINED]: 8-hour unattended runtimes
+      README.md:12  '8-hour runtimes'  (baselined)
+      IMPLEMENTATION_PLAN.md:15  '8-hour runtimes'  (baselined)
+  claim 20 [BASELINED]: Active RAM caps for 7B–70B (≤1.5–4.5 GB)
+      IMPLEMENTATION_PLAN.md:221  'Active RAM Cap'  (baselined)
+  claim 26 [BASELINED]: 1.12 TFLOPS matmul throughput
+      IMPLEMENTATION_PLAN.md:45  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:53  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:261  '1.12 TFLOPS'  (baselined)
+  claim 27 [BASELINED]: 983.4 tok/s / 1107.9 tok/s decode E2E
+      IMPLEMENTATION_PLAN.md:209  '983.4 tok/s'  (baselined)
+  claim 28 [BASELINED]: Fused Q4_0 matmul 0.50 ms @ 1×4096×4096
+      IMPLEMENTATION_PLAN.md:81  '0.50 ms'  (baselined)
+  claim 29 [BASELINED]: Q4_K 1×1024×8192 in 2.76 ms
+      IMPLEMENTATION_PLAN.md:178  '2.76 ms'  (baselined)
+  claim 30 [BASELINED]: Resident RAM delta < 500 MB while streaming
+      IMPLEMENTATION_PLAN.md:79  '500 MB'  (baselined)
+
+--- baseline entries that no longer match a violation ---
+  none
+
+--- warnings ---
+  claim 21: flag is 'partial' with no unqualified site; the caveat wording is incomplete (a wording task, not a ratchet item)
+
+--- findings ---
+  none
+
+RESULT: FAIL - 17 unqualified occurrence(s) (strict mode ignores the baseline)
+--- exit code: 1 ---
+
+### [4] $ python3 scripts/qa/check_claims.py --json
+{
+  "claims": 30,
+  "expired_baseline": [],
+  "findings": [],
+  "mode": "default",
+  "ok": true,
+  "violations": [
+    {
+      "baselined": true,
+      "claim_id": 6,
+      "kind": "unqualified",
+      "line": 10,
+      "literal": "Q4_K_M",
+      "path": "README.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 10,
+      "kind": "unqualified",
+      "line": 110,
+      "literal": "qwen2",
+      "path": "README.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 13,
+      "kind": "unqualified",
+      "line": 209,
+      "literal": "983",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 14,
+      "kind": "unqualified",
+      "line": 12,
+      "literal": "bounded memory",
+      "path": "README.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 14,
+      "kind": "unqualified",
+      "line": 17,
+      "literal": "bounded memory",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 18,
+      "kind": "unqualified",
+      "line": 10,
+      "literal": "7B\u201370B",
+      "path": "README.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 18,
+      "kind": "unqualified",
+      "line": 12,
+      "literal": "7B\u201370B",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 19,
+      "kind": "unqualified",
+      "line": 12,
+      "literal": "8-hour runtimes",
+      "path": "README.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 19,
+      "kind": "unqualified",
+      "line": 15,
+      "literal": "8-hour runtimes",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 20,
+      "kind": "unqualified",
+      "line": 221,
+      "literal": "Active RAM Cap",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 26,
+      "kind": "unqualified",
+      "line": 45,
+      "literal": "1.12 TFLOPS",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 26,
+      "kind": "unqualified",
+      "line": 53,
+      "literal": "1.12 TFLOPS",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 26,
+      "kind": "unqualified",
+      "line": 261,
+      "literal": "1.12 TFLOPS",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 27,
+      "kind": "unqualified",
+      "line": 209,
+      "literal": "983.4 tok/s",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 28,
+      "kind": "unqualified",
+      "line": 81,
+      "literal": "0.50 ms",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 29,
+      "kind": "unqualified",
+      "line": 178,
+      "literal": "2.76 ms",
+      "path": "IMPLEMENTATION_PLAN.md"
+    },
+    {
+      "baselined": true,
+      "claim_id": 30,
+      "kind": "unqualified",
+      "line": 79,
+      "literal": "500 MB",
+      "path": "IMPLEMENTATION_PLAN.md"
+    }
+  ],
+  "warnings": [
+    "claim 21: flag is 'partial' with no unqualified site; the caveat wording is incomplete (a wording task, not a ratchet item)"
+  ]
+}
+--- exit code: 0 ---
+
+### [5] $ python3 scripts/qa/canary_claims.py
+PASS not_yet_claim: the mutation was detected
+PASS unqualified_q4_k_m: the mutation was detected
+PASS unqualified_qwen2: the mutation was detected
+PASS missing_evidence: the mutation was detected
+PASS generic_literal: the mutation was detected
+PASS strict_detects_baseline: the mutation was detected
+PASS baseline_is_exact: the mutation was detected
+PASS expired_baseline_entry: the mutation was detected
+PASS wrong_lane: the mutation was detected
+PASS nested_bullet: the mutation was detected
+PASS strict_clean: the mutation was detected
+PASS id3_claim_removed: the mutation was detected
+
+RESULT: PASS - all 12 canaries behaved as required
+--- exit code: 0 ---
+
+### [6] $ python3 audit/evidence/G1/7A-6-followup/reproduce-probes.py
+# 7A-6 QAQC probe reproduction — full transcript
+# Produced by audit/evidence/G1/7A-6-followup/reproduce-probes.py
+# tree: /home/kupipi/Documents/git/gfx1150-inference
+# HEAD: 88cc19b98c9689a7bd704ce7f50357fbda46555d
+
+--- B1 default mode ---
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+exit: 0
+--- B2 strict mode ---
+RESULT: FAIL - 17 unqualified occurrence(s) (strict mode ignores the baseline)
+exit: 1
+--- B3 json mode ---
+ok=True claims=30 violations=17 baselined=17 unaccounted=0 expired=0 findings=0 warnings=1
+exit: 0
+--- B4 canaries ---
+RESULT: PASS - all 12 canaries behaved as required
+exit: 0
+--- B5 pytest lanes ---
+  37 passed, 18 deselected, 1 warning in 0.83s
+  exit: 0
+  18 passed, 37 deselected in 1.62s
+  exit: 0
+  55 passed, 1 warning in 2.14s
+  exit: 0
+--- B6 cpu suite unittest ---
+  OK
+  exit: 0
+  OK
+  exit: 0
+--- B7 ci-cpu.yml YAML ---
+valid; 8 steps in cpu-smoke
+--- B8 baseline byte-identical to the 7A-6 candidate ---
+  no diff
+exit: 0
+--- B9 true diffstat of the follow-up ---
+  2 files changed, 141 insertions(+)
+  exit: 0
+
+--- A1 live NOT-YET canary (handoff §7): inject -> fail -> restore -> green ---
+  exit: 1 (expect 1)
+  NEW VIOLATION lines: 1
+  after restore exit: 0
+  README byte-identical after restore: True
+--- A2 line-precision attack (2nd unqualified qwen2 in a baselined path) ---
+        README.md:116  'qwen2'  (NEW VIOLATION (not inventoried in the ledger))
+  RESULT: FAIL - 1 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+  exit: 1 (expect 1)
+--- A3 baseline is load-bearing (delete entry 10) ---
+        README.md:110  'qwen2'  (NEW VIOLATION)
+  RESULT: FAIL - 1 new violation(s), 16 baselined, 0 expired baseline entry(ies), 0 finding(s)
+  exit: 1 (expect 1)
+--- A4 wildcard baseline entry ---
+  check_claims: /tmp/probe-_vd9hj37/audit/claims_baseline.txt:41: wildcard entries are not allowed: '10 README.md q*en2'
+  exit: 2 (expect 2)
+--- A5 malformed baseline entry ---
+  check_claims: /tmp/probe-nnrz3i06/audit/claims_baseline.txt:41: malformed baseline entry (expected '<claim-id> <path> <literal>'): 'not a valid entry'
+  exit: 2 (expect 2)
+--- A6 invalid status in a ledger row ---
+    [invalid-status] claim 13: unknown status 'SOMETIMES' (expected one of VERIFIED, PARTIAL, NOT YET, UNVERIFIED, REMOVED)
+  RESULT: FAIL - 0 new violation(s), 16 baselined, 0 expired baseline entry(ies), 1 finding(s)
+  exit: 1 (expect 1)
+--- A7 duplicate claim ID ---
+  check_claims: /tmp/probe-k6davdhg/audit/CLAIMS_LEDGER.md:63: duplicate claim ID 30
+  exit: 2 (expect 2)
+--- A8 escaped-pipe (\|) literal cell parses to 7 columns ---
+  claims parsed: 30 (expect 30)
+  exit: 1 (1: the substituted literal does not resolve)
+--- A9 drift: line inserted at README top ---
+  drift warnings: 13
+  RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+  exit: 0 (expect 0)
+--- A10 qualifier-bullet deletion in a copy ---
+  lines removed: 1
+  stale-scope findings: 5
+  unresolved-literal findings: 1
+  total findings: 6
+  RESULT: FAIL - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 6 finding(s)
+  exit: 1 (expect 1)
+--- A11 claims-check.log vs the run it documents ---
+  recorded body == the 7A-6 candidate's output: True
+  recorded body == the follow-up tree's output: False
+  (the follow-up tree differs: prep commit efe34fc added one line
+   to the README project tree, so the recorded line numbers moved)
+
+--- C canary mutation-test ---
+  mutation 'force exit 0': canaries failing: 9
+    FAIL not_yet_claim
+    FAIL unqualified_q4_k_m
+    FAIL unqualified_qwen2
+    FAIL missing_evidence
+    FAIL generic_literal
+    FAIL strict_detects_baseline
+    FAIL wrong_lane
+    FAIL nested_bullet
+    FAIL id3_claim_removed
+  exit: 1 (expect 1)
+  mutation 'always report FAIL': canaries failing: 1
+    FAIL strict_clean
+  exit: 1 (expect 1)
+  mutation 'checker does nothing': canaries failing: 12
+    FAIL not_yet_claim
+    FAIL unqualified_q4_k_m
+    FAIL unqualified_qwen2
+    FAIL missing_evidence
+    FAIL generic_literal
+    FAIL strict_detects_baseline
+    FAIL baseline_is_exact
+    FAIL expired_baseline_entry
+    FAIL wrong_lane
+    FAIL nested_bullet
+    FAIL strict_clean
+    FAIL id3_claim_removed
+  exit: 1 (expect 1)
+--- exit code: 0 ---
+

@@ -1,0 +1,43 @@
+# G1 / 7A-8 diffstat
+# Captured: 2026-11-02T22:51:14Z
+# parent:   4bcffeb35862c3d0b12fa54aac2f2d27bdc9ec60 (the branch base)
+# candidate: 9c049129e2f39ac2022442416d8fcb0feb7b465f (the work commit)
+#
+# This file describes the WORK COMMIT's delta, i.e. the code, documentation and
+# CI delta of the package. The evidence bundle itself is listed separately
+# below: it is added by this commit and by the follow-up commit that records
+# the candidate SHA, so a 'total' figure here would be self-referential.
+
+=== work commit: files changed (name-status) ===
+A	.github/workflows/ci-build.yml
+M	CMakeLists.txt
+M	README.md
+A	audit/evidence/G1/7A-8/parent-sha.txt
+A	tests/test_build_configure.py
+M	tests/test_harness_contract.py
+
+=== work commit: diffstat ===
+ .github/workflows/ci-build.yml        |  80 ++++++++++++++++
+ CMakeLists.txt                        |  58 +++++++++++-
+ README.md                             |  19 ++++
+ audit/evidence/G1/7A-8/parent-sha.txt |   1 +
+ tests/test_build_configure.py         | 169 ++++++++++++++++++++++++++++++++++
+ tests/test_harness_contract.py        |   3 +
+ 6 files changed, 327 insertions(+), 3 deletions(-)
+
+=== scope check: no src/, setup.py, pyproject.toml, MANIFEST.in, packaging or runtime change ===
+  none — confirmed
+
+=== the 7A-6 surfaces are untouched (scripts/qa/**, the ledger, the baseline, the 7A-6 evidence) ===
+  none — confirmed
+
+=== the evidence bundle (added by this commit and the SHA-recording commit) ===
+  cpu-suite.log
+  diffstat.txt
+  env.txt
+  gate-commands.log
+  gpu-suite.log
+  notes.md
+  parent-sha.txt
+  red.log
+  sdist-install.log

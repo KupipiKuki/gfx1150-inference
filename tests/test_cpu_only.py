@@ -31,6 +31,7 @@ import importlib
 import io
 import os
 import py_compile
+import re
 import struct
 import subprocess
 import sys
@@ -63,6 +64,16 @@ from gguf_parser import (
 )
 from weight_loader import WeightStreamer
 from tokenizer import GGUFTokenizer, embed_tokens
+
+try:
+    import pytest
+except ImportError:  # pragma: no cover - pytest is optional for unittest-only runs
+    pytest = None
+
+if pytest is not None:
+    # Phase 7A-1: this suite is the CPU lane. It must be selected by
+    # ``pytest -m "not gpu"`` and deselected by ``pytest -m gpu`` (AUD-2).
+    pytestmark = pytest.mark.cpu
 
 
 class TestCPUOnlySuite(unittest.TestCase):
@@ -312,7 +323,10 @@ class TestCPUOnlySuite(unittest.TestCase):
             "\u2581w", "\u2581wo", "\u2581wor", "\u2581worl", "\u2581world",
             "<0xCE>", "<0xA9>",
         ]
-        scores = [float(i) for i in range(len(tokens))]
+        # Unigram scores, ordered like real log probabilities: the longer a
+        # piece the better its score, so the Viterbi segmentation prefers
+        # '▁hello' over '▁h'+'e'+'l'+'l'+'o'.
+        scores = [-float(i) for i in range(len(tokens))]
         tok = GGUFTokenizer(tokens=tokens, scores=scores, bos_token_id=1, eos_token_id=2)
 
         ids = tok.encode("hello world", add_bos=True)
@@ -492,8 +506,25 @@ class TestCPUOnlySuite(unittest.TestCase):
             content = f.read()
         self.assertIn("cmake>=3.21", content)
         self.assertIn('gfx1150-infer = "inference:main"', content)
-        for mod in ("gguf_parser", "weight_loader", "layer", "kv_cache", "tokenizer", "inference"):
+        for mod in ("gguf_parser", "weight_loader", "layer", "model_spec", "kv_cache", "tokenizer", "inference"):
             self.assertTrue(os.path.isfile(os.path.join(_SRC_DIR, f"{mod}.py")))
+
+        # Every top-level src/*.py module must be declared in pyproject.toml's
+        # py-modules, or a clean/sdist install cannot import it (the 7C
+        # model_spec omission that broke the clean-install CI).
+        match = re.search(r"py-modules\s*=\s*\[(.*?)\]", content, re.S)
+        self.assertIsNotNone(match, "pyproject.toml has no py-modules list")
+        declared = set(re.findall(r'"([^"]+)"', match.group(1)))
+        source_modules = {
+            fn[:-3]
+            for fn in os.listdir(_SRC_DIR)
+            if fn.endswith(".py") and fn != "__init__.py"
+        }
+        self.assertEqual(
+            declared,
+            source_modules,
+            "pyproject.toml py-modules must list every top-level src/*.py module",
+        )
 
         # B-1: Build sdist into a temp dir and verify CMakeLists.txt, .hip, .h, and bindings.cpp are packaged
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -512,6 +543,7 @@ class TestCPUOnlySuite(unittest.TestCase):
             expected_suffixes = [
                 "CMakeLists.txt",
                 "MANIFEST.in",
+                "src/model_spec.py",
                 "src/python_bindings/bindings.cpp",
                 "src/kernels/matmul.h",
                 "src/kernels/matmul.hip",

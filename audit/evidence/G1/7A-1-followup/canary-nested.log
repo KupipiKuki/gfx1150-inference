@@ -1,0 +1,43 @@
+# G1 / 7A-1 follow-up — CANARY 2: nested-raise module (C-7A1-2)
+# Captured: 2026-11-02T01:03:42Z
+#
+# A test whose ONLY 'raise' sits inside a nested, never-called helper has
+# no top-level failure path — it cannot fail. The old check descended into
+# nested definitions and accepted it (AUD-7A1-2).
+# The strengthened meta-test must REJECT it.
+
+--- canary file: tests/test_audit_nested.py ---
+import pytest
+
+pytestmark = pytest.mark.cpu
+
+
+def test_nested_raise_canary() -> None:
+    def _helper():
+        raise AssertionError("never called")
+    x = 1
+
+=== RED — OLD code (408fcab, before the follow-up): the check PASSES (defect) ===
+--- cd $RED && pytest tests/test_harness_contract.py::test_every_test_function_asserts_or_raises -q -k test_audit_nested ---
+.                                                                        [100%]
+1 passed, 7 deselected in 0.14s
+exit: 0
+  EXPECTED (defect): 1 passed, exit 0 — the old check descends into nested defs.
+
+=== GREEN — NEW code (ea8e84a): the check FAILS (fixed) ===
+--- pytest tests/test_harness_contract.py::test_every_test_function_asserts_or_raises -q -k test_audit_nested ---
+E       AssertionError: Every test function must assert or raise at its own top level (a raise inside a nested helper does not count):
+E           test_audit_nested.py:6 test_nested_raise_canary()
+E       assert not ['test_audit_nested.py:6 test_nested_raise_canary()']
+
+tests/test_harness_contract.py:300: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_audit_nested.py]
+1 failed, 7 deselected in 0.17s
+exit: 1
+  EXPECTED: 1 failed, exit != 0 — the test has no top-level failure path.
+
+=== GREEN — remove the canary, the suite is green again ===
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+37 passed, 18 deselected, 1 warning in 0.85s
+exit: 0

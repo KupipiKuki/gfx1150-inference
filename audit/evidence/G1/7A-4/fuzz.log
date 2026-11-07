@@ -1,0 +1,83 @@
+# G1 / 7A-4 — the fuzz run
+# Captured: 2026-11-04T02:31:07Z
+#
+# The fuzz runs 10,000 examples per test with derandomize=True and
+# database=None: the examples are the same on every run and on every
+# machine, and no local .hypothesis database is involved.
+
+=== the run ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 6 items
+
+tests/test_fuzz_gguf.py::test_fuzz_gguf_headers PASSED                   [ 16%]
+tests/test_fuzz_gguf.py::test_fuzz_gguf_headers_are_deterministic PASSED [ 33%]
+tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error XFAIL [ 50%]
+tests/test_fuzz_gguf.py::test_the_layer_span_is_split_by_an_interleaved_foreign_tensor PASSED [ 66%]
+tests/test_fuzz_gguf.py::test_a_duplicate_tensor_name_is_rejected PASSED [ 83%]
+tests/test_fuzz_gguf.py::test_parsing_from_a_file_releases_the_descriptor PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ Hypothesis Statistics =============================
+tests/test_fuzz_gguf.py::test_fuzz_gguf_headers:
+
+  - during generate phase (20.55 seconds):
+    - Typical runtimes: ~ 0-2 ms, of which ~ 0-1 ms in data generation
+    - 10000 passing examples, 0 failing examples, 1473 invalid examples
+
+  - Stopped because settings.max_examples=10000
+
+
+tests/test_fuzz_gguf.py::test_fuzz_gguf_headers_are_deterministic:
+
+  - during generate phase (20.79 seconds):
+    - Typical runtimes: ~ 0-2 ms, of which ~ 0-1 ms in data generation
+    - 10000 passing examples, 0 failing examples, 1495 invalid examples
+
+  - Stopped because settings.max_examples=10000
+
+
+=========================== short test summary info ============================
+XFAIL tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error - BLOCKER-7A4-1: a nested GGUF array recurses until the stack is exhausted
+================== 5 passed, 1 xfailed, 13 warnings in 42.48s ==================
+
+================================================================================
+WHAT THE FUZZ EXERCISES
+================================================================================
+
+The counts below come from measure-fuzz-coverage.py, which draws the same
+examples with the same settings and classifies them.
+
+=== the mutation classes, over 10,000 drawn descriptions ===
+  dimensions                   9560
+  duplicate tensor name        3022
+  general.alignment             570
+  kv_count                     1052
+  n_dims                       1270
+  reserved ggml_type            801
+  string/array length           708
+  tensor name length           1128
+  tensor offset                 763
+  tensor_count                 1456
+  unknown ggml_type            2275
+  version                      2215
+
+=== how the parser answered 10,000 drawn buffers ===
+    accepted with a tensor table                  929
+  accepted                                       3614
+  rejected with the documented ValueError        6386
+
+=== the truncation class ===
+  the strategy truncates at the header, metadata, tensor-index and data
+  boundaries, and at arbitrary positions inside them; the boundary
+  offsets are in the module's _Built.boundaries.

@@ -1,0 +1,64 @@
+# QAQC 7B - independent transcript (this review's own runs, clean worktrees)
+# Date: 2026-11-06 (UTC)
+# Parent worktree:   /tmp/qaqc-7b-parent @ 8426ec6 (pre-7B)
+# Candidate worktree: /tmp/qaqc-7b-cand  @ 70c5ab2 (the work commit under review)
+# Main tree: 4b4fdfb on wp/7B-tokenizer (src/ identical to the candidate; used for
+#   the claims checker because it has the committed evidence dir; the GPU lane uses
+#   the main tree's gitignored build/matmul_module.so via PYTHONPATH in worktrees)
+
+## A. Freeze and scope
+  git status --porcelain                          -> empty
+  git diff --name-status 8426ec6 70c5ab2
+      M README.md, audit/CLAIMS_LEDGER.md, src/inference.py, src/tokenizer.py,
+        tests/fixtures/PROVENANCE.md, tests/fixtures/make_fixtures.py,
+        tests/fixtures/stories260k_tokenizer_golden.json,
+        tests/fixtures/stories260k_vocab.json, tests/test_cpu_only.py,
+        tests/test_goldens_tokenizer.py
+    -> exactly the brief's allowed set; src/inference.py diff is only the two
+       BOS call sites; no gguf_parser/CMake/packaging/CI/ledger-arithmetic file.
+  git diff 70c5ab2 4b4fdfb                        -> audit/evidence/G2/7B/** only
+  grep xfail tests/test_goldens_tokenizer.py      -> no xfail marker remains
+
+## B. Independent red/green (fresh worktrees, not the coder's logs)
+  cd /tmp/qaqc-7b-parent && python -m pytest -m "not gpu" -q --runxfail -k "tokenizer or bpe or golden"
+    -> "4 failed, 58 passed" (RED: the four pinned tokenizer bugs)
+  cd /tmp/qaqc-7b-parent && python -m pytest -m "not gpu" -q -k "tokenizer or bpe or golden"
+    -> "58 passed, 4 xfailed" (the strict pins, with the 7B reasons)
+  cd /tmp/qaqc-7b-cand && ... --runxfail ...       -> exit 0, "75 passed", 0 xfail mentions
+  cd /tmp/qaqc-7b-cand && ... (default)           -> exit 0, "75 passed", 0 xfail mentions
+
+## C. Fixture provenance (provenance-check.log)
+  fresh download of ggml-org/models:tinyllamas/stories260K.gguf:
+    sha256 == 270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d (the PROVENANCE pin)
+  fixture vs GGUF parsed with the PARENT's gguf_parser (independent of the candidate):
+    tokens identical, token_type identical, scores identical (512, exact),
+    bos/eos identical, tokenizer.ggml.add_bos_token absent in the GGUF,
+    merges empty
+  git diff 8426ec6 70c5ab2 -- stories260k_tokenizer_golden.json
+    -> exactly one line: vocab.fixture_sha256 updated to the new fixture hash;
+       every token_ids vector is byte-identical; gpt2 fixtures untouched
+  golden.vocab.fixture_sha256 == sha256(stories260k_vocab.json) at the candidate
+  PROVENANCE.md registry hashes all match the files on disk
+  candidate vocab == parent vocab + the scores key, nothing else
+
+## D. Adversarial probes (probe_qaqc_7b.py, written for this review)
+  python3 probe_qaqc_7b.py /tmp/qaqc-7b-cand candidate -> 31/31 [OK], exit 0
+  python3 probe_qaqc_7b.py /tmp/qaqc-7b-parent parent  -> 10 feature probes ABSENT
+    (expected red), B2 BAD on the parent (the old always-add-BOS behavior),
+    no other BAD, exit 1
+  coverage: overlapping specials (triple), consecutive/at-edge specials, mixed
+  text, look-alikes, parse_special=False, empty-string special token (no loop),
+  determinism, 3x3 add_bos metadata x argument matrix, real-GGUF metadata path,
+  byte fallback, 100-char word, zero-score vocab, byte-only vocab, stall
+  mid-codepoint (names the stalling byte), empty/whitespace-only input, lone
+  surrogate -> ValueError, all six contraction suffixes, tabs/newlines,
+  underscores, minimal gpt2 chunk path, unmappable raise, all 23 goldens
+  recomputed independently, decode(encode(x)) round-trip on every literal golden
+
+## E. Lanes reproduced
+  parent    CPU -m "not gpu": 111 passed, 24 deselected, 4 xfailed   exit 0
+  candidate CPU -m "not gpu": 128 passed, 24 deselected              exit 0
+  parent    GPU -m gpu (PYTHONPATH=main build/): 24 passed           exit 0
+  candidate GPU -m gpu (PYTHONPATH=main build/): 24 passed           exit 0
+  candidate tests/test_cpu_only.py: OK (12/12)   -O: OK (12/12)
+  claims checker on branch head 4b4fdfb: PASS (0 findings); on parent: PASS

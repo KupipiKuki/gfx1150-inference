@@ -204,7 +204,7 @@ class WeightStreamer:
 | 6C.3 | Fused `rmsnorm_residual` + `residual_add` kernels (`6C-i`) and C++-owned device-resident layer pipeline `forward_layer_cached` with D2D KV-cache writes (`6C-ii` / `P-1`) | Argon | ✅ | 6C.1–6C.2 |
 
 #### **Success Criteria**
-- [x] Truncated or malformed GGUF files raise `ValueError` at parse time with zero `SIGBUS` or leaked file descriptors
+- [x] Truncated or malformed GGUF files raise `ValueError` at parse time with zero `SIGBUS` or leaked file descriptors — the nested metadata-array class tracked as BLOCKER-7A4-1 was fixed by 7A-9 (`audit/evidence/G1/7A-9/`); the parser is fail-closed for every malformed class the suite covers
 - [x] `TILE_M = 4` quantized prefill kernels match `M = 1` Wave32 kernels with `max_diff == 0.0` across `Q4_0`, `Q8_0`, and `Q4_K`
 - [x] C++-owned device-resident layer pipeline (`forward_layer_cached`) increases end-to-end throughput on `tests/test_full_model.py` from `~224 tok/s` to **`983.4 tok/s` (`decode: 1107.9 tok/s`)**
 - [x] Self-contained CPU-only test suite ([tests/test_cpu_only.py](tests/test_cpu_only.py)) passes under both `python3` and `python3 -O`
@@ -237,10 +237,10 @@ class WeightStreamer:
 | Phase | Focus | Gate | Stop after |
 |---|---|---|---|
 | **7.0** | Freeze baseline; record environment; verify current green state; create evidence layout and claims ledger | **G0** | Baseline signed; tree clean; all suites recorded |
-| **7A** | Test infrastructure: pytest harness + markers, golden data with provenance, parser fuzz, CPU/sdist-install CI, GPU CI scaffold (`continue-on-error`), claims checker + baseline | **G1** | Tests provably fail on parent; CI + sdist install green; GPU workflow exists; claims checker default mode green; no `src/` diff |
+| **7A** | Test infrastructure: pytest harness + markers, golden data with provenance, parser fuzz, CPU/sdist-install CI, GPU CI scaffold (`continue-on-error`), claims checker + baseline, clean-clone build entry point (7A-8, C-1) | **G1** | Tests provably fail on parent; CI + sdist install green; GPU workflow exists; claims checker default mode green; documented `cmake` succeeds from a fresh clone; no `src/` diff |
 | **7B** | Tokenizer P0: special-token encode, `add_bos_token`, GPT-2 spec regex, uniform byte fallback | **G2** | Golden vectors pass; no silent byte loss |
-| **7C** | Model families P0: `ModelSpec`/tensor map, Phi-3 fused QKV, Gemma scale/soft-cap/key length, honest compatibility matrix | **G3** | Per-arch fixtures + reference logits pass; llama unchanged |
-| **7D** | Memory honesty & robustness: `posix_fadvise`/`MADV_PAGEOUT`, budgeted residency policy, KV clamp, crash-safe files, exception masking | **G4** | Memory behavior matches docs; hostile inputs fail closed |
+| **7C** | Model families P0: `ModelSpec`/tensor map, Phi-3 fused QKV + fused FFN gate/up + biases, Gemma embedding scale/soft-cap/`key_length`/GeGLU/NeoX, honest compatibility matrix | **G3** | Per-arch synthetic fixtures + independent reference logits pass; llama unchanged; unsupported variants fail fast |
+| **7D** | Memory honesty & robustness: `posix_fadvise`/`MADV_PAGEOUT` page-cache eviction, budgeted AUTO/PIN/STREAM residency, KV/cgroup/disk/block-count hardening, unlink-before-map, exception-preserving cleanup, honest memory claims | **G4** | Memory behavior matches docs; hostile/cgroup/full-disk inputs fail closed; no fd/mmap leaks; 70B bounded-RAM claim evidenced or removed |
 | **7E** | Stream topology: compute stream + events, double-buffered staging, pinned host, sync-before-free | **G5** | Event graph reviewed; race/stress test passes; overlap evidenced |
 | **7F** | Evidence & release: promote GPU CI to required, real-GGUF golden tokens/logits, benchmark baseline, telemetry, **release-blocking claims check with empty baseline** | **G6** | CPU+GPU CI green with GPU required; claims `--strict` green; auditor release signoff |
 | **7G** | Post-release P2 polish (packaging, flash attention, RoPE scaling/SWA, batching) — **deferred** | **G7** | Only after v0.7.0 ships |
@@ -248,9 +248,52 @@ class WeightStreamer:
 #### Merge discipline
 - Only the auditor-approved SHA is merged; QAQC reviews a frozen commit and does not accept force-pushes mid-gate.
 - One work package per branch/PR (`wp/<id>-<slug>`); no bundling of P0 correctness with P2 performance work.
-- Release notes carry the verified scope verbatim: **text-only llama-family `Q4_0`/`Q4_K`/`Q8_0` GGUFs on gfx1150**; no Qwen2/Llama-3-chat, Phi-3, or Gemma claims until G2/G3 evidence exists, and no throughput numbers until G6.
+- Release notes carry the verified scope verbatim: **text-only llama-family `Q4_0`/`Q4_K`/`Q8_0` GGUFs on gfx1150**; no Qwen2/Llama-3-chat, Phi-3, or Gemma claims beyond the gate evidence (G2/G3 signed; real Phi-3/Gemma remains 7F-2), and no throughput numbers until G6.
 - The GPU workflow (7A-7) is `continue-on-error` only until the self-hosted runner registers; **7F-1 makes it required**. The claims checker (7A-6) runs baseline-aware in CI and becomes **release-blocking at G6 with an empty `audit/claims_baseline.txt`**.
 - A gate failure triggers the stop conditions and blocker report defined in the handoff document; do not "fix forward" silently.
+
+> **G1 status (2026-11-04; revised 2026-11-06):** **signed with conditions** — all 7A packages accepted; see `audit/G1_SIGNOFF_2026-11-04.md`. The post-G1 P0 parser fix **7A-9 (BLOCKER-7A4-1)** landed and was independently accepted (`audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`); **C-G1-1/C-G1-2 are closed**, and the parser may be described as fail-closed for the malformed classes the suite covers. **7B tokenizer is G2-signed (2026-11-06)** after the reference-faithful greedy-merge remediation (`audit/G2_SIGNOFF_2026-11-06.md`); **C-G1-4 is closed**. The only remaining G1 carry-forward is **C-G1-3** (GPU runner via 7F-1). Release/G6 remains gated by G4 and the later phases.
+>
+> **7C status (2026-11-06): G3 SIGNED** — Phi-3/Gemma synthetic-fixture verified only; real-GGUF goldens = 7F-2; C-G1-4 closed earlier by 7B. 7C audit/CI fixes are in `audit/AUDIT_7C_DEEP_2026-11-06.md` / `audit/G3_SIGNOFF_2026-11-06.md`.
+>
+> **7D status (2026-11-07): AUTHORIZED — G3 signed; 7E not authorized.** The coder brief is [`PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md`](PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md); the evidence contract is [`audit/evidence/G4/7D/README.md`](audit/evidence/G4/7D/README.md). 7D cannot evidence real 70B/8-hour runs; those remain 7F-2/7F-3/7F-4 unless measured.
+
+---
+
+### ⚪ Phase 8 (Stretch, post-v0.7.0): AMD Radeon 780M / `gfx1103` Portability *(PROPOSED — NOT COMMITTED)*
+
+**Status:** stretch goal only. It is **not** part of v0.7.0, does not affect G1/G6, and starts only after v0.7.0 ships and the owner prioritizes it. No hardware, performance, or CI claim is made until the acceptance evidence below exists.
+
+**Why:** ROCm now exposes `gfx1103` (Radeon 780M, RDNA3 integrated GPU). The engine currently hardcodes `gfx1150` in `CMakeLists.txt`, but the kernels are largely Wave32 and architecture-neutral. A port should be mostly build-target selection, portability auditing, validation, and retuning — not a rewrite.
+
+**Target:** Radeon 780M / `gfx1103` (Ryzen 7040/8040-class APUs). Confirm the exact ROCm distribution/version that lists `gfx1103` at implementation time. Prefer the native target; if a documented fallback such as `HSA_OVERRIDE_GFX_VERSION` is ever required, document it explicitly rather than using it silently.
+
+#### Proposed work packages
+
+| ID | Task | Acceptance |
+|---|---|---|
+| 8.1 | Build-target selection: add a `GFX_ARCH` cache variable (default `gfx1150`) feeding `CMAKE_HIP_ARCHITECTURES`; support `gfx1103` and optional multi-arch (`gfx1150;gfx1103`). Keep the existing default and documented command working unchanged. | Clean configure with `-DGFX_ARCH=gfx1103` and no ambient `pybind11_DIR`; `rocminfo` reports `gfx1103`; the default `gfx1150` build is unchanged. |
+| 8.2 | Kernel portability audit: check workgroup assumptions, Wave32 shuffles, LDS/occupancy, CU-count/tile thresholds, cache behavior, and any `gfx1150`-specific constants or intrinsics. Use `__gfx1103__`/architecture guards only where a measured difference requires them. | Every kernel compiles for both targets; no silent arch fallback; a written portability matrix names any guarded code and why. |
+| 8.3 | Validation: run the CPU suite, all five GPU suites, quantization paths, GGUF/claims checks on a 780M host; compare correctness with the gfx1150 baseline and CPU references. | On `gfx1103`: GPU lane **18 passed / 0 skipped**, CPU 12/12, claims checker green. The full `gfx1150` suite still passes (no regression). Evidence is recorded per gate. |
+| 8.4 | Performance: retune tile sizes, workgroup counts, and memory thresholds for the 780M (fewer CUs and different clocks/bandwidth than the 890M). Record a separate 780M baseline; do not reuse gfx1150 throughput figures or claim a cross-GPU ratio. | Warm-up + ≥20-iteration medians/p95 per 7F-3 discipline; 780M numbers recorded separately; no unverified performance claim in README. |
+| 8.5 | CI and docs: add an optional gfx1103 runner/manual gate (or document a manual hardware gate until one exists); publish an honest compatibility matrix (arch × quant × context) and build instructions. | Matrix names exactly what was tested on gfx1103 vs gfx1150; no CI claim without a registered runner; `gfx1150` remains the primary target. |
+| 8.6 | Optional packaging: multi-arch fat binary or target-specific wheels, if the multi-arch build is practical; otherwise document the single-target build. | Packaging decision recorded; sdist/app install still works for the default target. |
+
+#### Acceptance criteria (all required before any support claim)
+
+- [ ] `cmake -B build -DCMAKE_BUILD_TYPE=Release -DGFX_ARCH=gfx1103` succeeds from a clean clone with only documented prerequisites, and the resulting extension loads on a 780M.
+- [ ] All five GPU suites pass on `gfx1103` with **no skips**; CPU suite and claims checker unchanged.
+- [ ] The full `gfx1150` suite still passes; no gfx1150 release regression.
+- [ ] No hardcoded `gfx1150` remains outside the documented default; `gfx1103` is a first-class build target.
+- [ ] Compatibility matrix and README are honest about what was actually run.
+- [ ] Performance is recorded on the 780M separately; no gfx1150 number is presented as a 780M result.
+- [ ] Evidence bundle and independent audit/QAQC signoff follow the same Phase 7 handoff discipline.
+
+#### Risks and non-goals
+
+- **Risks:** ROCm/package support for `gfx1103` varies by distribution; RDNA3 and RDNA3.5 are close but not identical (CU count, clocks, bandwidth, cache/occupancy); gfx1150-tuned tiles may be suboptimal or incorrect on 780M; a 780M CI runner may not exist; multi-arch binaries are larger; thermal/power behavior differs on laptops.
+- **Non-goals:** NPU (`aie2p`) support, multi-GPU, 780M-specific maximum-performance tuning, other RDNA3 iGPUs, or expanding the supported model/quant scope. Those would need separate proposals.
+- **Entry/exit:** only after v0.7.0 ships; new branch/work packages and a G8 gate; `gfx1150` remains the release baseline throughout.
 
 ---
 
@@ -265,3 +308,4 @@ class WeightStreamer:
 | Phase 5   | K-Quants (`Q4_K_M` / `Q8_0`), 70B Scaling, KV Offload & Packaging | ✅ Complete |
 | Phase 6 (`v0.6.0`) | Audit Remediation, Security Hardening, Device-Resident Pipeline & CPU CI | ✅ Complete (983.4 tok/s synthetic E2E, owner-verified) |
 | Phase 7 (`v0.6.2`→v0.7.0) | Testing phase: pytest conversion, golden data, fuzz, sdist-install CI, self-hosted gfx1150 gate, P0/P1 fixes gated by tests | 🟡 In progress |
+| Phase 8 (stretch) | AMD Radeon 780M / `gfx1103` portability: configurable build target, kernel portability audit, dual-GPU validation, separate 780M performance baseline, honest compatibility matrix | ⚪ Proposed (post-v0.7.0; not committed) |

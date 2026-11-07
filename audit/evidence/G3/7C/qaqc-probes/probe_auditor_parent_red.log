@@ -1,0 +1,40 @@
+# auditor re-run of the family tests on parent 8426ec6 (worktree /tmp/7c-audit-parent, 7C test files copied in, no src changes)
+```
+=========================== short test summary info ============================
+FAILED tests/test_model_families.py::test_phi3_fused_logits_match_independent_reference - AttributeError: 'LlamaInferenceEngine' object has no attribute 'spec'
+FAILED tests/test_model_families.py::test_phi3_quantized_fused_matches_reference - KeyError: 'blk.0.attn_q.weight'
+FAILED tests/test_model_families.py::test_phi3_fused_and_separate_equivalence - KeyError: 'blk.0.attn_q.weight'
+FAILED tests/test_model_families.py::test_phi3_zero_bias_equals_no_bias - KeyError: 'blk.0.attn_q.weight'
+FAILED tests/test_model_families.py::test_phi3_generation_smoke - KeyError: 'blk.0.attn_q.weight'
+FAILED tests/test_model_families.py::test_gemma_logits_match_independent_reference - AttributeError: 'LlamaInferenceEngine' object has no attribute 'spec'
+FAILED tests/test_model_families.py::test_gemma_absent_softcap_is_no_cap - BufferError: cannot close exported pointers exist
+FAILED tests/test_model_families.py::test_gemma_quantized_matches_reference - AssertionError: gemma q4 max err 8.71566104888916
+assert 8.71566104888916 < 0.006
+FAILED tests/test_model_families.py::test_gemma_geglu_differs_from_swiglu - BufferError: cannot close exported pointers exist
+9 failed, 1 passed, 13 warnings in 0.60s
+```
+
+## spec suite collection on parent
+```
+ERROR tests/test_model_spec.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+13 warnings, 1 error in 0.19s
+```
+
+## probe_red_families.py on parent (expect rc=1)
+```
+[phi3] engine-forward: FAIL (engine refused/raised) -> KeyError: 'blk.0.attn_q.weight'
+[gemma] engine-forward: FAIL (engine refused/raised) -> BufferError: cannot close exported pointers exist
+probe families: RED
+```
+
+## probe_llama_regression.py on parent (sha must equal candidate a31dfc6f...)
+```
+=== llama fixed-prompt regression probe ===
+prompt_ids = [1, 7, 10, 11]
+logits_sha256 (fp32 bytes of unordered fp16 logits) = a31dfc6f224d495966da14f2d06161ae2b18bf93ed7a6d5cbe8009c56f32441b
+logits_head = 0.48315430, -0.87841797, 0.57226562, 1.03710938, 1.07128906, -1.05761719
+greedy_ids = [9, 15, 9, 0, 3, 9, 14, 9]
+generate_ids = [9, 15, 9, 0, 3, 9, 14, 9]
+VERDICT: see parent/candidate comparison
+```

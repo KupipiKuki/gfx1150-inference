@@ -1,0 +1,37 @@
+Work commit 20f1165 (candidate-sha.txt) vs base 2eaa242 (brief commit; red-parent is 8426ec6 per parent-sha.txt):
+
+ README.md                      |  22 +-
+ audit/CLAIMS_LEDGER.md         |   6 +-
+ audit/claims_baseline.txt      |   5 +-
+ src/inference.py               |  45 ++--
+ src/layer.py                   | 271 +++++++++++++---------
+ src/model_spec.py              | 500 +++++++++++++++++++++++++++++++++++++++++
+ tests/family_fixtures.py       | 356 +++++++++++++++++++++
+ tests/model_spec_helpers.py    | 147 +++++++
+ tests/reference_model.py       | 327 +++++++++++++++++++++++
+ tests/test_harness_contract.py |   5 +
+ tests/test_model_families.py   | 397 ++++++++++++++++++++++++++++++++
+ tests/test_model_spec.py       | 227 +++++++++++++++++++
+ 12 files changed, 2184 insertions(+), 124 deletions(-)
+
+Evidence bundle (this commit, audit/evidence/G3/7C/): env.txt, parent-sha.txt,
+candidate-sha.txt, diffstat.txt, red.log, green.log, model-spec.log, phi3.log,
+gemma.log, llama-regression.log, compat-matrix.md, cpu-lane.log, gpu-lane.log,
+cpu-only.log, claims.log, notes.md, header-dumps/, qaqc-probes/, README.md.
+
+Allowed/forbidden sets (brief §2): only permitted files were touched —
+src/model_spec.py (new), src/layer.py, src/inference.py, tests/** (incl.
+tests/test_harness_contract.py EXPECTED_LANES), README.md,
+audit/CLAIMS_LEDGER.md (rows 10/11/12 only), audit/claims_baseline.txt
+(removal of the resolved row-10 entry), audit/evidence/G3/7C/**. NOT changed:
+src/gguf_parser.py, src/kv_cache.py, src/kernels/**, CMake, packaging, CI,
+tokenizer.
+
+# Post-audit BLOCKER-7C-1 fix (clean/sdist install):
+#   pyproject.toml        + model_spec in [tool.setuptools] py-modules
+#   tests/test_cpu_only.py  py-modules/sdist regression (CPU-only lane)
+# See BLOCKER-7C-1.md.
+
+# Post-audit BLOCKER-7C-2 fix (claims canary after row-10 baseline removal):
+#   scripts/qa/canary_claims.py  EXPECTED_BASELINE_ENTRIES 15 -> 14
+# See BLOCKER-7C-2.md and canary.log.

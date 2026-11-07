@@ -1,0 +1,39 @@
+# Auditor probe transcript — 7A-4
+# Auditor: DeepSeek V4.1 Flash, 2026-11-04
+# Candidate: a14fcfa · Tip: 5795107
+
+### CI
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/actions/runs/41762204487
+head_sha: a14fcfa5e0be1ad4a118a2c0b171881559dc2b04
+conclusion: success
+
+### Lanes
+$ PYTHONPATH=build pytest -m "not gpu" -q
+108 passed, 24 deselected, 5 xfailed
+$ PYTHONPATH=build pytest -m gpu -q
+24 passed, 113 deselected
+
+### runxfail
+$ pytest -m "not gpu" -q --runxfail
+FAILED tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error
+FAILED tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer
+FAILED tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id
+FAILED tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont]
+FAILED tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed]
+5 failed, 108 passed, 24 deselected
+
+### Fuzz logs
+fuzz.log / fuzz-rerun.log: 10,000 examples each; 6,386 ValueError, 3,614 accepted, 0 other exceptions; identical modulo timings.
+
+### BLOCKER-7A4-1
+$ _nested_array_header(992)
+len 11962
+sha256 28fe58bf8fee9e0d9e0987b3cc2e09922ffb968f9f8809de34c7305d086bbebb
+$ GGUFParser(...) at depth 300 -> parsed (invalid file accepted)
+$ GGUFParser(...) at depth 1000 -> RecursionError
+# exact threshold stack-depth-dependent; hash-pinned example stable
+# src/gguf_parser.py _read_value ARRAY branch has no scalar check.
+
+### Scope
+$ git diff --stat 758e500..5795107 -- src CMakeLists.txt setup.py pyproject.toml README.md IMPLEMENTATION_PLAN.md scripts/qa audit/CLAIMS_LEDGER.md audit/claims_baseline.txt
+(empty)

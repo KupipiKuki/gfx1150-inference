@@ -20,11 +20,187 @@ jobs:
           python-version: "3.12"
 
       - name: Install test dependencies
-        run: python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel
+        run: python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel pytest hypothesis
 
       - name: Run self-contained CPU test suite (standard mode)
         run: python tests/test_cpu_only.py
 
       - name: Run self-contained CPU test suite (optimized -O mode)
         run: python -O tests/test_cpu_only.py
+
+      - name: Run the pytest CPU lane
+        # The CPU lane of the pytest harness: every test that does not need the
+        # HIP extension. On a host without ROCm the build-configure test skips
+        # visibly -- a skip is never a silent pass.
+        run: python -m pytest -m "not gpu" -q
+
+      - name: Check the claims ledger (default mode, ratchet baseline-aware)
+        # Blocking. The baseline tolerates only the exact unqualified sites the
+        # auditor reviewed; any new unqualified public claim fails the build.
+        run: python scripts/qa/check_claims.py
+
+      - name: Check the claims checker canaries
+        # Proves the checker still detects injected unqualified claims, a
+        # missing evidence file and a generic (non claim-specific) literal.
+        run: python scripts/qa/canary_claims.py
+
+      - name: Check the claims ledger (strict mode, advisory until G6)
+        # Advisory: --strict is the G6 release gate, where the baseline must be
+        # empty and every unqualified site must be gone. Until G6 the seeded
+        # baseline is still populated, so this step is allowed to fail.
+        continue-on-error: true
+        run: python scripts/qa/check_claims.py --strict
+
+  sdist-install:
+    name: Sdist Install (CPU-only path, GFX1150_SKIP_CMAKE=1)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the packaging prerequisites
+        run: python -m pip install --upgrade pip "setuptools>=64" wheel
+
+      - name: Build the sdist
+        run: |
+          set -euo pipefail
+          python setup.py sdist --dist-dir dist
+          ls -l dist/
+
+      - name: Assert the sdist ships the pytest harness (C-7A1-5)
+        # The sdist must carry tests/conftest.py. Without it the shipped suite
+        # has no `matmul_module` fixture, so the GPU lane *errors* instead of
+        # skipping and pytest exits non-zero on a clean CPU-only host.
+        run: |
+          set -euo pipefail
+          SDIST="$(ls -1 dist/*.tar.gz | head -1)"
+          echo "sdist: ${SDIST}"
+          tar -tzf "${SDIST}" > sdist-contents.txt
+          cat sdist-contents.txt
+          for required in tests/conftest.py tests/test_harness_contract.py; do
+            if ! grep -qE "^[^/]+/${required}$" sdist-contents.txt; then
+              echo "FAIL: the sdist does not contain ${required}"
+              exit 1
+            fi
+            echo "ok: the sdist contains ${required}"
+          done
+          # Every Python file under tests/ must ship: a test that is missing
+          # from the sdist cannot run against an installed package.
+          for path in tests/*.py; do
+            if ! grep -qE "^[^/]+/${path}$" sdist-contents.txt; then
+              echo "FAIL: the sdist does not contain ${path}"
+              exit 1
+            fi
+          done
+          echo "ok: every tests/*.py in the repository is in the sdist"
+
+      - name: Install the sdist into a clean venv (CPU-only path)
+        # A real install, not an archive listing. GFX1150_SKIP_CMAKE=1 selects
+        # the CPU-only path: no ROCm toolchain is needed and the HIP extension
+        # is not built. It is exported, not prefixed, so that the build backend
+        # (which pip runs in a subprocess) inherits it.
+        run: |
+          set -euo pipefail
+          rm -rf .venv-sdist
+          python -m venv .venv-sdist
+          # shellcheck disable=SC1091
+          . .venv-sdist/bin/activate
+          python -m pip install --upgrade pip
+          # setuptools is needed in the venv, not just for the install: the
+          # shipped suite's packaging test (test_v8_b1_pyproject_and_sdist_
+          # contents) builds an sdist with the interpreter that runs the tests.
+          python -m pip install pytest "setuptools>=64" hypothesis
+          export GFX1150_SKIP_CMAKE=1
+          python -m pip install dist/*.tar.gz
+          python -m pip list
+
+      - name: Assert the installed module split (CPU imports; GPU modules raise)
+        # The assertions run from a neutral directory, so they exercise the
+        # *installed* package in the venv, not the repository's source tree.
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          . .venv-sdist/bin/activate
+          cd "$(mktemp -d)"
+          python - <<'PY'
+          import importlib
+          import pathlib
+          import sys
+
+          CPU_MODULES = ("gguf_parser", "tokenizer", "weight_loader")
+          GPU_MODULES = ("kv_cache", "layer", "inference")
+
+          # The extension must genuinely be absent, or the GPU assertions below
+          # would be vacuous.
+          try:
+              importlib.import_module("matmul_module")
+          except ImportError:
+              print("ok: 'matmul_module' is not importable (the CPU-only path)")
+          else:
+              print("FAIL: 'matmul_module' is importable; the GPU assertions would be vacuous")
+              sys.exit(1)
+
+          prefix = pathlib.Path(sys.prefix).resolve()
+          for name in CPU_MODULES:
+              module = importlib.import_module(name)
+              location = pathlib.Path(module.__file__).resolve()
+              if prefix not in location.parents:
+                  print(f"FAIL: {name} was imported from {location}, not from the installed venv")
+                  sys.exit(1)
+              print(f"ok: {name} imports cleanly from the installed venv ({location})")
+
+          for name in GPU_MODULES:
+              try:
+                  importlib.import_module(name)
+              except ImportError as exc:
+                  message = str(exc)
+                  if "matmul_module" not in message:
+                      print(f"FAIL: {name} raised an ImportError that is not actionable:")
+                      print(f"      {message}")
+                      sys.exit(1)
+                  print(f"ok: {name} raises an actionable ImportError")
+                  print(f"      {message.splitlines()[0]}")
+              else:
+                  print(f"FAIL: {name} imported cleanly; the CPU/GPU module split is broken")
+                  sys.exit(1)
+
+          print("PASS: the installed package exposes the CPU modules and rejects the GPU modules")
+          PY
+
+      - name: Run the shipped CPU lane in the extracted sdist tree
+        # The sdist as a user receives it: the extracted tree must collect and
+        # run the CPU lane with no conftest/collection error.
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          . .venv-sdist/bin/activate
+          rm -rf extracted
+          mkdir extracted
+          tar -xzf dist/*.tar.gz -C extracted
+          TREE="$(ls -d extracted/*/)"
+          echo "extracted tree: ${TREE}"
+          cd "${TREE}"
+          # "slow" is deselected: the deterministic GGUF fuzz (Phase 7A-4) is
+          # marked slow, and the CPU job owns its 10,000-example run. Packaging
+          # stays fast, and the fuzz still has to *import* here, which is why
+          # the venv installs hypothesis.
+          python -m pytest -m "not gpu and not slow" -q
+
+      - name: Run the full shipped lane in the extracted sdist tree (C-7A1-5 guard)
+        # The CPU lane alone does NOT detect C-7A1-5: tests/test_cpu_only.py
+        # puts src/ on sys.path itself, so it passes with or without conftest.py.
+        # The full lane is the regression guard -- without tests/conftest.py the
+        # GPU tests ERROR (no `matmul_module` fixture) instead of skipping, so
+        # this step fails. The skips must stay visible, never silent.
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          . .venv-sdist/bin/activate
+          cd "$(ls -d extracted/*/)"
+          python -m pytest -m "not slow" -q -rs
 

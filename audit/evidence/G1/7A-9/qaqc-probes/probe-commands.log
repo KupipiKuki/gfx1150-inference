@@ -1,0 +1,79 @@
+# QAQC 7A-9 — independent probe transcript
+# Date: 2026-11-05
+# Parent worktree: /tmp/7a9-parent @ 3af32d4 (pre-fix)
+# Candidate worktree: /tmp/7a9-cand @ 1bce3d0 (the work commit under review)
+# Main tree: d83a052 on wp/7A-9-gguf-array-fix (code identical to the candidate;
+#            used for the GPU lane because the built extension lives in the
+#            gitignored build/ directory)
+
+## A. Freeze and scope
+
+  git status --porcelain            -> empty (clean)
+  git diff --name-status 3af32d4 1bce3d0
+      M IMPLEMENTATION_PLAN.md
+      M audit/evidence/G1/7A-4/BLOCKER.md
+      M src/gguf_parser.py
+      M tests/test_fuzz_gguf.py
+  git diff 3af32d4 1bce3d0 -- src/  -> exactly the 2-line ARRAY element-type check;
+      no CMakeLists/setup.py/pyproject/MANIFEST/.github/scripts/ledger/baseline/7B/tokenizer
+      file appears in the candidate diff.
+  tests diff: only the xfail marker is removed; 27 deletions vs 69 additions;
+      no test deleted, skipped or weakened.
+
+## B. Independent red/green (clean worktrees, not the coder's logs)
+
+  cd /tmp/7a9-parent && python3 -m pytest tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error --runxfail -q
+    -> 1 failed — "the parser recursed until the interpreter's stack was exhausted
+       ... maximum recursion depth exceeded"  (RED confirmed, exit 1)
+  cd /tmp/7a9-cand && python3 -m pytest tests/test_fuzz_gguf.py -k nested -q
+    -> 3 passed, 5 deselected  (GREEN confirmed: depth 1000, depth 300, minimized 992)
+
+## C. Adversarial probes (qaqc-probes/probe_nested_array.py, written for this review)
+
+  python3 probe_nested_array.py /tmp/7a9-parent parent    -> 21/21 OK, exit 0
+  python3 probe_nested_array.py /tmp/7a9-cand  candidate -> 21/21 OK, exit 0
+
+  Key results:
+  - parent: depths 1/2/5 and count=0 nested arrays are ACCEPTED (the invalid
+    class was not enforced below the stack threshold); depth 992 and 5000
+    raise RecursionError.
+  - candidate: depths 1/2/5/992/5000 and count=0 all raise
+    ValueError("GGUF array element type must not be an array") — the check
+    fires before the count is used, and no recursion happens at any depth.
+  - the minimized example is exactly 11,962 bytes, sha256
+    28fe58bf8fee9e0d9e0987b3cc2e09922ffb968f9f8809de34c7305d086bbebb
+    (matches ../7A-4/BLOCKER.md §2).
+  - regression: valid arrays of int32/string/uint64/bool/float32/uint32 and
+    the empty array still parse with correct values.
+  - pre-existing rejection classes unchanged: huge count -> "exceeds remaining
+    buffer" ValueError; unknown element type 99 -> "Unsupported" ValueError;
+    truncated array body -> ValueError; truncated header -> ValueError;
+    bad magic -> ValueError. No RecursionError anywhere on the candidate.
+
+## D. Lanes re-run from the clean candidate worktree
+
+  cd /tmp/7a9-cand
+  python3 -m pytest -m "not gpu" -q     -> 111 passed, 24 deselected, 4 xfailed
+  python3 tests/test_cpu_only.py         -> OK (12 tests)
+  python3 -O tests/test_cpu_only.py      -> OK (12 tests)
+  python3 scripts/qa/check_claims.py     -> RESULT: PASS - 0 new violation(s),
+                                            17 baselined, 0 expired, 0 findings
+
+## E. GPU lane and --runxfail (main tree; code == candidate)
+
+  python3 -m pytest -m gpu -q                  -> 24 passed, 115 deselected
+  python3 -m pytest --runxfail -m "not gpu" -q -> 4 failed, 111 passed, 24 deselected
+      FAILED only the four tokenizer 7B/7C pins:
+        test_add_bos_default_matches_the_reference_tokenizer
+        test_special_token_is_encoded_as_its_id
+        test_spm_known_mismatches_are_pinned[spm_contraction_dont]
+        test_spm_known_mismatches_are_pinned[spm_control_token_parsed]
+      no parser failure.
+
+## F. Docs claims
+
+  audit/evidence/G1/7A-4/BLOCKER.md: status header = "fixed by Phase 7A-9";
+      §3.1 states the parser's documented contract. IMPLEMENTATION_PLAN.md
+      success criterion no longer carries the BLOCKER-7A4-1 exception.
+  Claims ledger: no parser row exists (grep: no SIGBUS/malformed row), so
+      leaving it untouched is correct per the brief. check_claims.py PASS.

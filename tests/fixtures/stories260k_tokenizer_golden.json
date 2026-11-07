@@ -1,0 +1,195 @@
+{
+  "schema": "gfx1150-inference/tokenizer-golden/1",
+  "id": "stories260k",
+  "reference": {
+    "project": "ggml-org/llama.cpp",
+    "tool": "llama-tokenize",
+    "command": "llama-tokenize -m stories260K.gguf -p <prompt> --ids [--no-bos] [--no-parse-special]",
+    "add_bos": "the reference adds a BOS token for this vocabulary unless --no-bos is passed; each case records the switch it used"
+  },
+  "vocab": {
+    "id": "stories260k",
+    "upstream": "ggml-org/models",
+    "upstream_revision": "ggml-org/models@main:tinyllamas/stories260K.gguf",
+    "source_gguf_sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
+    "fixture_sha256": "8577a797fcaa086c9386894e7bcb78cf6aed74541e9b86bb9e155d9ba7ab2002",
+    "n_tokens": 512,
+    "add_bos_token_metadata": "absent"
+  },
+  "cases": [
+    {
+      "id": "spm_absent_add_bos_metadata",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        346,
+        306,
+        414,
+        263,
+        304,
+        341
+      ]
+    },
+    {
+      "id": "spm_plain_text_no_bos",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        346,
+        306,
+        414,
+        263,
+        304,
+        341
+      ]
+    },
+    {
+      "id": "spm_double_space",
+      "prompt": "Hello  world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        346,
+        306,
+        414,
+        410,
+        263,
+        304,
+        341
+      ]
+    },
+    {
+      "id": "spm_multibyte_accent",
+      "prompt": "caf\u00e9",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        280,
+        412,
+        431,
+        485
+      ]
+    },
+    {
+      "id": "spm_multibyte_greek",
+      "prompt": "\u03a9",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        209,
+        172
+      ]
+    },
+    {
+      "id": "spm_multibyte_emoji",
+      "prompt": "\ud83d\ude00",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        243,
+        162,
+        155,
+        131
+      ]
+    },
+    {
+      "id": "spm_punctuation_digits",
+      "prompt": "hello, world! 123",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        281,
+        306,
+        414,
+        432,
+        263,
+        304,
+        341,
+        443,
+        410,
+        475,
+        479,
+        472
+      ]
+    },
+    {
+      "id": "spm_contraction_were",
+      "prompt": "we're",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        382,
+        439,
+        276
+      ]
+    },
+    {
+      "id": "spm_contraction_dont",
+      "prompt": "don't",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        279,
+        289,
+        439,
+        413
+      ]
+    },
+    {
+      "id": "spm_control_token_literal",
+      "prompt": "<s>",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        504,
+        419,
+        505
+      ]
+    },
+    {
+      "id": "spm_control_token_parsed",
+      "prompt": "<s>",
+      "reference_flags": [],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        1
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+[PASS] phi3-fused-f16-vs-auditor-forward max_err=0.003432 tol=0.006
+[PASS] phi3-fused-q4km-vs-auditor-forward max_err=0.004916 tol=0.006
+[PASS] phi3-fused-vs-separate-engine max_err=0.000000
+[PASS] gemma-f16-softcap-vs-auditor-forward max_err=0.003531 tol=0.006
+[PASS] gemma-q4k-vs-auditor-forward max_err=0.005918 tol=0.006
+[PASS] unknown-arch Unsupported GGUF architecture 'bert'. Supported architectures: gemma, llama, phi3 (qwen2 resolves through the llama-fami
+[PASS] gemma2-fail-fast Unsupported gemma variant: 'gemma2'. Only architecture 'gemma' is supported (synthetic-fixture verif
+[PASS] missing-required-all-listed ModelSpec validation failed: missing required tensor(s): blk.0.ffn_down.weight, blk.1.attn_output.weight, output_norm.weight. Expected required tensors for every block + globals: output_norm.weight, t
+[PASS] missing-optional-ok 
+[PASS] shape-mismatch-actionable ModelSpec shape mismatch: tensor 'blk.0.attn_output.weight' has dims (64, 65), expected (64, 64)
+[PASS] phi3-rope-factors-fail-fast Unsupported Phi-3 feature: tensor 'blk.0.rope_factors_long.weight' (per-layer rope factors for long/
+[PASS] keyvalue-mismatch-fail-fast Unsupported model configuration for 'gemma': attention.key_length (32) != attention.value_length (24); the att
+[PASS] sliding-window-fail-fast Unsupported feature: 'phi3.attention.sliding_window' = 4096; sliding-window attention is not impleme
+[PASS] reference-model-independence imports=['__future__', 'gguf_parser', 'math', 'numpy', 'os', 'sys', 'typing']
+AUDITOR PROBE: ALL GREEN (14/14)

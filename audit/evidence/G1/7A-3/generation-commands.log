@@ -1,0 +1,172 @@
+# G1 / 7A-3 — the commands that produced the fixtures
+# Captured: 2026-11-04T00:42:14Z
+#
+# Every command below was run on this host. Nothing here imports `src/`: the
+# fixtures are produced by llama.cpp's own tools and by llama.cpp's own
+# `gguf-py` package, so that the goldens do not depend on the code they test.
+
+# ==============================================================================
+# 1. The reference: llama.cpp, built from source at a pinned commit
+# ==============================================================================
+
+$ git clone https://github.com/ggml-org/llama.cpp.git
+$ cd llama.cpp
+$ git checkout 149f5641b931aaf33697d70f9abc90c3e5300247
+149f5641b mtmd: accurate support for qwen3-vl video prompt format (#31619)
+  HEAD sha: 149f5641b931aaf33697d70f9abc90c3e5300247
+
+$ cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF \
+      -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF \
+      -DGGML_NATIVE=OFF
+-- Configuring done (1.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/opencode/llama.cpp/build
+  configure exit: 0
+
+$ cmake --build build --target llama-tokenize llama-quantize -j 8
+[100%] Linking CXX executable ../../bin/llama-quantize
+[100%] Built target llama-quantize
+  build exit: 0
+
+$ ls -la build/bin/llama-tokenize build/bin/llama-quantize
+build/bin/llama-quantize
+build/bin/llama-tokenize
+
+# ==============================================================================
+# 2. The upstream inputs
+# ==============================================================================
+
+# The GPT-2 byte-level BPE vocabulary (MIT).
+$ curl -L -o gpt2-vocab.json \
+    https://huggingface.co/openai-community/gpt2/resolve/607a30d783dfa663caf39e06633721c8d4cfcd7e/vocab.json
+$ curl -L -o gpt2-merges.txt \
+    https://huggingface.co/openai-community/gpt2/resolve/607a30d783dfa663caf39e06633721c8d4cfcd7e/merges.txt
+
+  gpt2-vocab.json  1042301 bytes  sha256 196139668be63f3b5d6574427317ae82f612a97c5d1cdaf36ed2256dbf636783
+  gpt2-merges.txt   456318 bytes  sha256 1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5
+
+# The TinyLlama models (Apache-2.0): the tiny GGUF fixture and the source of
+# the quantized blocks.
+$ curl -L -o stories260K.gguf \
+    https://huggingface.co/ggml-org/models/resolve/main/tinyllamas/stories260K.gguf
+$ curl -L -o stories15M.gguf \
+    https://huggingface.co/ggml-org/models/resolve/main/tinyllamas/stories15M.gguf
+
+  stories260K.gguf  1185376 bytes  sha256 270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d
+  stories15M.gguf  98357920 bytes  sha256 61b50d457809a5194818fd22e6724b456cd7bb9a6264c52c8110684c53f3704a
+
+# ==============================================================================
+# 3. The tokenizer fixtures
+# ==============================================================================
+
+# The generator (tests/fixtures/make_fixtures.py) reads the upstream files,
+# writes the vocabulary fixtures, builds a vocabulary-only GGUF with llama.cpp's
+# own writer, and drives llama.cpp's own tokenizer to produce the goldens.
+$ python3 make_fixtures.py tokenizer \
+      --llama-cpp /tmp/opencode/llama.cpp \
+      --gguf-py /tmp/opencode/llama.cpp/gguf-py \
+      --gpt2-vocab /tmp/opencode/upstream/gpt2-vocab.json \
+      --gpt2-merges /tmp/opencode/upstream/gpt2-merges.txt \
+      --gpt2-revision 607a30d783dfa663caf39e06633721c8d4cfcd7e \
+      --spm-gguf /tmp/opencode/upstream/stories260K.gguf \
+      --spm-revision "ggml-org/models@main:tinyllamas/stories260K.gguf" \
+      --out .
+  plain_text                       'Hello world'        -> [15496, 995]
+  double_space                     'Hello  world'       -> [15496, 220, 995]
+  multibyte_accent                 'café'               -> [66, 1878, 2634]
+  multibyte_greek                  'Ω'                  -> [138, 102]
+  multibyte_emoji                  '😀'            -> [47249, 222]
+  punctuation_digits               'hello, world! 123'  -> [31373, 11, 995, 0, 17031]
+  underscore                       'a_b'                -> [64, 62, 65]
+  contraction_dont                 "don't"              -> [9099, 470]
+  contraction_were                 "we're"              -> [732, 821]
+  add_bos_disabled                 'Hello world'        -> [15496, 995]
+  add_bos_default                  'Hello world'        -> [15496, 995]
+  special_token_eot                '<|endoftext|>'      -> [50256]
+wrote gpt2_tokenizer_golden.json (3090 bytes)
+wrote gpt2_vocab.json (1350992 bytes)
+wrote stories260k_vocab.json (6349 bytes)
+  spm_absent_add_bos_metadata      'Hello world'        -> [1, 346, 306, 414, 263, 304, 341]
+wrote stories260k_tokenizer_golden.json (922 bytes)
+
+# The reference invocation, verbatim, for one case:
+$ llama-tokenize -m gpt2-vocab.gguf -p "Hello world" --ids --no-parse-special
+[15496, 995]
+
+$ llama-tokenize -m gpt2-vocab.gguf -p "<|endoftext|>" --ids
+[50256]
+
+$ llama-tokenize -m stories260K.gguf -p "Hello world" --ids
+[1, 346, 306, 414, 263, 304, 341]
+
+# ==============================================================================
+# 4. The quantized block fixtures
+# ==============================================================================
+
+$ python3 make_fixtures.py quant \
+      --llama-cpp /tmp/opencode/llama.cpp \
+      --gguf-py /tmp/opencode/llama.cpp/gguf-py \
+      --model /tmp/opencode/upstream/stories15M.gguf \
+      --out .
+  quantizing -> Q4_0: llama-quantize --allow-requantize --output-tensor-type F16 stories15M.gguf .Q4_0.gguf Q4_0
+  wrote q4_0_blocks.bin (576 bytes)
+  quantizing -> Q4_K: llama-quantize --allow-requantize --output-tensor-type F16 stories15M.gguf .Q4_K.gguf Q4_K
+  wrote q4_k_blocks.bin (2304 bytes)
+  quantizing -> Q6_K: llama-quantize --allow-requantize --output-tensor-type F16 stories15M.gguf .Q6_K.gguf Q6_K
+  wrote q6_k_blocks.bin (3360 bytes)
+wrote quant_golden.json (274424 bytes)
+
+# llama.cpp's own quantizer, verbatim:
+$ llama-quantize --allow-requantize --output-tensor-type F16 stories15M.gguf out.gguf Q4_0
+llama_quantize: quantizing 'stories15M.gguf' to 'out.gguf' as Q4_0
+[   3/  57] token_embd.weight    - [   288,  32000,      1,      1], type =    f32, converting to q4_0
+[   7/  57] blk.0.attn_q.weight  - [   288,     288,      1,      1], type =    f32, converting to q4_0
+...
+
+$ llama-quantize --allow-requantize --output-tensor-type F16 stories15M.gguf out.gguf Q4_K
+[   9/  57] blk.0.ffn_down.weight - [   768,     288,      1,      1], type =    f32, converting to q4_K
+
+$ llama-quantize --allow-requantize --output-tensor-type F16 stories15M.gguf out.gguf Q6_K
+[   9/  57] blk.0.ffn_down.weight - [   768,     288,      1,      1], type =    f32, converting to q6_K
+
+# The provenance of the Q4_0 bytes is machine-checkable: llama.cpp's own NumPy
+# quantizer (gguf-py) re-quantizes the source tensor to byte-identical bytes.
+$ python3 -c "... gguf.Q4_0.quantize_blocks(source) == committed_bytes ..."
+  Q4_0   numpy_requantize_is_byte_identical = True
+  Q4_K   unavailable (llama.cpp has no NumPy quantizer for this type)
+  Q6_K   unavailable (llama.cpp has no NumPy quantizer for this type)
+
+# The expected dequantized values come from llama.cpp's own NumPy *dequantizer*
+# (gguf-py), applied to the bytes above:
+$ python3 -c "... gguf.Q4_0.dequantize_blocks(blocks) ..."
+  Q4_0   first expected values: [0.042236328125, -0.0633544921875, 0.07391357421875, 0.01055908203125]
+  Q4_K   first expected values: [0.004935026168823242, 0.025034785270690918, -0.015164732933044434, -0.015164732933044434]
+  Q6_K   first expected values: [0.0020148754119873047, 0.024178504943847656, -0.016119003295898438, -0.016119003295898438]
+
+# ==============================================================================
+# 5. The tiny GGUF's expectations
+# ==============================================================================
+
+$ cp stories260K.gguf tests/fixtures/tiny_gguf.gguf     # committed verbatim
+
+$ python3 make_fixtures.py gguf-expectations \
+      --gguf-py /tmp/opencode/llama.cpp/gguf-py \
+      --gguf tiny_gguf.gguf \
+      --out tiny_gguf_expectations.json
+wrote tiny_gguf_expectations.json (23273 bytes)
+
+# ==============================================================================
+# 6. The fixture hashes
+# ==============================================================================
+
+$ sha256sum tests/fixtures/*
+6d69121d9abb291574dfa7087d6c2004b35caa4f0c53deef876aedecf71f3212  gpt2_vocab.json
+58200852c309ee0cb933267dd4903df6fc992c41766ad7e3a73410946c3f8315  gpt2_tokenizer_golden.json
+83087209d2555019d790b98408e307e8693d51441a91c253b367e9c9c0fbe7e7  stories260k_vocab.json
+3ec515b072b54e876076c69e13ca723a6f4a8116b77efac78d02b6a3b75b18c5  stories260k_tokenizer_golden.json
+e7b0b06400e43fddc2fddf79c06d62bbe36476d675f6e4b1bc20c46efae84e42  q4_0_blocks.bin
+7729550d2c6028d5330afe51a5c393acfa3b2cb22125ba5c95fd65eebe52efbc  q4_k_blocks.bin
+544b0bf8f79a82fc21546d3fb3c6d87a1da3753e419a80b114d322ba5db6cec8  q6_k_blocks.bin
+176adb3d91ae7c9450ce1934cfb9a96bff7f879d92bc10ebed8baebe5365074f  quant_golden.json
+270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d  tiny_gguf.gguf
+5a8666f223c652b8adbaf3fccef06aacc9f9432c626a766715d6c4a63f87fca8  tiny_gguf_expectations.json

@@ -1,0 +1,22 @@
+# G2 / 7B diffstat — parent 8426ec6 .. remediation candidate 25e9088
+# The final source/test tree is the reference-faithful greedy-merge tokenizer
+# (BLOCKER-7B-1/-2 fixed). The QAQC stop-gate is tip 1be1ad4; the audit evidence
+# is on top of that. The src/ change remains tokenizer.py + the two BOS call
+# sites in inference.py. No parser, CMake, packaging, or CI file is touched.
+
+ README.md                                          |    4 +-
+ audit/CLAIMS_LEDGER.md                             |    6 +-
+ src/inference.py                                   |    4 +-
+ src/tokenizer.py                                   |  247 +-
+ tests/fixtures/PROVENANCE.md                       |   10 +-
+ tests/fixtures/make_fixtures.py                    |  187 +
+ .../fixtures/stories260k_differential_golden.json  | 4930 ++++++++++++++++++++
+ tests/fixtures/stories260k_tokenizer_golden.json   |    2 +-
+ tests/fixtures/stories260k_vocab.json              |    2 +-
+ tests/test_cpu_only.py                             |    5 +-
+ tests/test_goldens_tokenizer.py                    |  389 +-
+ 11 files changed, 5651 insertions(+), 135 deletions(-)
+
+# Forbidden set (diff is empty):
+#   src/gguf_parser.py, CMakeLists.txt, setup.py, pyproject.toml,
+#   .github/**, scripts/qa/**, audit/claims_baseline.txt

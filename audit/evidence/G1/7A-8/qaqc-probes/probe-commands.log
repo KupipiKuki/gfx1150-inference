@@ -1,0 +1,63 @@
+# QAQC 7A-8 probe log — independent verification
+# Date: 2026-11-02T23:04:35Z
+
+### P1 RED: parent (4bcffeb) from a fresh clone, shims-only PATH, no pybind11_DIR ###
+exit: 1 (expect 1)
+    Could not find a package configuration file provided by "pybind11" with any
+  CMake Error at CMakeLists.txt:17 (find_package):
+
+### P2 RED (the lucky case): parent with the interpreter's bin on PATH ###
+exit: 0 (expect 0 — the environment-dependent 'luck' confirmed)
+  -- Found pybind11: /home/kupipi/.pyenv/versions/3.14.10/include (found version "3.1.0")
+
+### P3 GREEN: candidate (9c04912) fresh clone, shims-only PATH, no pybind11_DIR ###
+exit: 0 (expect 0)
+  -- pybind11 CMake package: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/share/cmake/pybind11
+  -- Configuring done (2.1s)
+
+### P4 GREEN (lucky PATH): candidate with interpreter bin on PATH — still the explicit discovery ###
+exit: 0 (expect 0)
+  -- pybind11 CMake package: /home/kupipi/.pyenv/versions/3.14.10/share/cmake/pybind11
+
+### P5 explicit -Dpybind11_DIR still wins on the candidate ###
+exit: 0 (expect 0)
+  -- pybind11 CMake package: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/share/cmake/pybind11
+
+### P6 the regression guard: new test against the PARENT CMakeLists must FAIL ###
+exit: 1 (expect 1)
+          documented prerequisites the command failed at ``CMakeLists.txt`` with
+  FAILED tests/test_build_configure.py::test_documented_configure_locates_pybind11_without_an_ambient_hint
+  1 failed, 2 passed in 4.36s
+restored candidate CMakeLists: exit 0 (expect 0)
+
+### P7 build the candidate artifact and run the gpu lane with it ###
+build exit: 0
+  592488 bytes
+18 passed, 43 deselected in 1.68s
+
+### P8 lanes and unittest on the candidate ###
+43 passed, 18 deselected, 1 warning in 4.73s
+OK
+OK
+
+### P9 scope: untouched files ###
+  restricted diff lines (expect 0): 0
+  non-evidence files touched by evidence commit (expect 0): 5
+
+### P10 ci-build.yml validity + keyring fingerprint claim ###
+  YAML valid; jobs: ['clean-clone-build'] ; steps: 10
+  published key fingerprint claimed: D0F0 04A0 025A 1145 C780 7FCD 0701 EAC4 D5E0 2107
+pub   rsa4096 2026-01-26 [SCEAR] [expires: 2029-01-25]
+      D0F004A0025A1145C7807FCD0701EAC4D5E02107
+uid                      AMD MLSE DevOps <dl.MLSE.DevOps@amd.com>
+  (host keyring check; if the keyring file differs, compare fingerprints manually)
+
+# Finished: 2026-11-02T23:05:09Z
+
+### P11 sdist + full clean-venv install on the candidate tree (live) ###
+  python3 setup.py sdist: exit 0
+  pip install --no-build-isolation dist/*.tar.gz (clean venv): exit 0
+  imports: OK matmul_module gguf_parser weight_loader layer kv_cache tokenizer inference (7/7)
+  gfx1150-infer --help: exit 0
+
+# Finished: 2026-11-02T23:20:00Z (QAQC)

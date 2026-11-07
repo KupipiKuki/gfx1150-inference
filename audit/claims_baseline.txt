@@ -1,8 +1,41 @@
 # Known claim violations (ratchet baseline)
 # Format: <claim-id> <path> <literal>
-# Every entry targets G6. Default CI tolerates only exact entries; --strict ignores
+# Every entry targets G6. Default CI mode tolerates only exact entries; --strict ignores
 # this file entirely. This file MUST be empty at G6.
 #
-# The bounded-RAM wording is corrected in 7D (posix_fadvise/MADV_PAGEOUT + residency policy).
+# Seeded by the auditor on 2026-11-01 from the G0 audit (AUD-3) and the G0 ledger review.
+# 7A-6 owns verification: each entry must still resolve exactly, and the checker must
+# report (not hide) every unqualified row. Remove entries as 7B/7C/7D/7F qualify the
+# claims in place.
+#
+# ID 6: unqualified occurrence in a different bullet than the qualifier.
+# (Removed by 7C-4: "10 README.md qwen2" — the L129 bullet now qualifies
+# qwen2 in place, so the baseline tolerance for ID 10 is no longer needed.)
+6 README.md Q4_K_M
+#
+# ID 13: PLAN L209 is unqualified (L266 is qualified); the literal also covers ID 27.
+13 IMPLEMENTATION_PLAN.md 983
+#
+# ID 14: bounded-RAM wording; corrected in 7D.
 14 README.md bounded memory
 14 IMPLEMENTATION_PLAN.md bounded memory
+#
+# ID 18: 7B-70B without OOM; residency/70B evidence pending.
+18 README.md 7B–70B
+18 IMPLEMENTATION_PLAN.md 7B–70B
+#
+# ID 19: 8-hour unattended runtime; no soak test yet.
+19 README.md 8-hour runtimes
+19 IMPLEMENTATION_PLAN.md 8-hour runtimes
+#
+# ID 20: Active RAM Cap table; target values, not measured.
+20 IMPLEMENTATION_PLAN.md Active RAM Cap
+#
+# IDs 26-29: published performance figures; delete or re-record in 7F-3.
+26 IMPLEMENTATION_PLAN.md 1.12 TFLOPS
+27 IMPLEMENTATION_PLAN.md 983.4 tok/s
+28 IMPLEMENTATION_PLAN.md 0.50 ms
+29 IMPLEMENTATION_PLAN.md 2.76 ms
+#
+# ID 30: resident RAM delta < 500 MB; never measured.
+30 IMPLEMENTATION_PLAN.md 500 MB

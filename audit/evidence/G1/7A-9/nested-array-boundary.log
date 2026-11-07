@@ -1,0 +1,25 @@
+# G1 / 7A-9 — the nested-array boundary cases
+# Captured: 2026-11-05T01:45:24Z
+# candidate: 1bce3d05fb20a6bdd0600a50b8c3502a6de85c74
+
+=== command ===
+python3 -m pytest tests/test_fuzz_gguf.py -k nested -v
+
+=== output ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'ci' -> database=None, deadline=None, print_blob=True, derandomize=True, suppress_health_check=(HealthCheck.too_slow,)
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+collecting ... collected 8 items / 5 deselected / 3 selected
+
+tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error PASSED [ 33%]
+tests/test_fuzz_gguf.py::test_a_nested_array_below_the_recursion_threshold_is_rejected PASSED [ 66%]
+tests/test_fuzz_gguf.py::test_the_minimized_nested_array_example_is_rejected PASSED [100%]
+
+=============================== warnings summary ===============================
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 3 passed, 5 deselected, 13 warnings in 0.21s =================
+exit: 0

@@ -1,0 +1,127 @@
+# Auditor probe transcript — 7A-1
+# Auditor: DeepSeek V4.1 Flash, 2026-11-02
+# Clean clone: /tmp/opencode/audit-7a1
+# HEAD: cefebef9b78aa022b5ffe8d5dae13a31b3c83ef4
+# Candidate: f0ce20e0021a313d3cb23a33f9b97b2638f56176
+# tests/ + pyproject.toml diff candidate..tip: empty
+
+$ git clone --branch wp/7A-1-pytest-harness <repo> /tmp/opencode/audit-7a1
+$ cmake -S . -B /tmp/opencode/audit-7a1-build -DCMAKE_BUILD_TYPE=Release -Dpybind11_DIR=<pybind11 cmake dir>
+$ cmake --build /tmp/opencode/audit-7a1-build -j 8
+BUILD_EXIT=0
+-rwxrwxr-x 1 kupipi kupipi 592488 ... matmul_module.so
+
+### CPU with extension
+$ PYTHONPATH=/tmp/opencode/audit-7a1-build python3 -m pytest -m "not gpu" -q
+37 passed, 18 deselected, 1 warning in 0.95s
+EXIT=0
+
+### CPU without extension (clean clone, PYTHONPATH unset)
+$ python3 -m pytest -m "not gpu" -q
+37 passed, 18 deselected, 1 warning in 0.74s
+EXIT=0
+
+### GPU collection without extension
+$ python3 -m pytest -m gpu --collect-only -q
+18/55 tests collected (37 deselected) in 0.19s
+EXIT=0
+
+### GPU run without extension
+$ python3 -m pytest -m gpu -q
+SKIPPED ... the compiled HIP extension 'matmul_module' is not importable ...
+18 skipped, 37 deselected in 0.20s
+EXIT=0
+
+### GPU run with extension (gfx1150)
+$ PYTHONPATH=/tmp/opencode/audit-7a1-build python3 -m pytest -m gpu -q
+18 passed, 37 deselected in 1.81s
+EXIT=0
+
+### CPU unittest suite
+$ python3 tests/test_cpu_only.py
+Ran 12 tests ... OK
+EXIT=0
+$ python3 -O tests/test_cpu_only.py
+Ran 12 tests ... OK
+EXIT=0
+
+### Five GPU scripts standalone
+test_matmul EXIT=0
+test_gguf_and_q4 EXIT=0
+test_layer EXIT=0
+test_full_model EXIT=0
+test_phase5_scale EXIT=0
+
+### bool-returning tests
+$ grep -rn "def test_.*-> bool" tests/
+(none)
+
+### Canary (return False / True)
+# temporary tests/test_canary_return.py added
+$ pytest -m "not gpu" -q
+FAILED tests/test_canary_return.py::test_returns_false
+FAILED tests/test_canary_return.py::test_returns_true
+FAILED tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_canary_return.py]
+FAILED tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_canary_return.py]
+FAILED tests/test_harness_contract.py::test_gpu_lane_is_marked_and_cpu_lane_is_not
+5 failed, 37 passed, 18 deselected
+EXIT=1
+# canary file removed
+
+### Mutation (test_layer rmsnorm 2e-3 -> 1e-12)
+$ PYTHONPATH=... pytest -m gpu -k rmsnorm -q
+FAILED tests/test_layer.py::test_rmsnorm_kernel - AssertionError: rmsnorm (16...
+1 failed, 59 deselected
+EXIT=1
+# restored from backup; git diff --stat tests/test_layer.py = empty
+$ PYTHONPATH=... pytest -m gpu -k rmsnorm -q
+1 passed, 59 deselected
+EXIT=0
+
+### CPU marker consistency
+$ pytest -m cpu -q
+37 passed, 18 deselected, 1 warning
+EXIT=0
+
+### sdist contents
+$ python3 setup.py sdist
+$ tar tzf dist/*.tar.gz | grep -E 'tests/(conftest|test_harness_contract)\.py'
+tests/test_harness_contract.py          # PRESENT
+# tests/conftest.py                     # ABSENT
+# => QF-1 is correct: only conftest.py is excluded; test_harness_contract.py is packaged.
+
+### P-AUD-1: wrong-lane module accepted
+# tests/test_audit_wronglane.py:
+#   import pytest
+#   pytestmark = pytest.mark.cpu  # wrong: requests matmul_module
+#   def test_needs_gpu(matmul_module): assert matmul_module is not None
+$ pytest tests/test_harness_contract.py::test_gpu_lane_is_marked_and_cpu_lane_is_not -q
+1 passed
+# The lane meta-test checks only that some pytestmark exists, not its value.
+# file removed
+
+### P-AUD-2: nested, never-called raise accepted
+# tests/test_audit_nested.py:
+#   import pytest
+#   pytestmark = pytest.mark.cpu
+#   def test_nested_raise_only():
+#       def helper(): raise RuntimeError("never called")
+#       # no top-level assert/raise
+$ pytest tests/test_harness_contract.py::test_every_test_function_asserts_or_raises -q -k test_audit_nested
+1 passed
+# has_raise descends into nested defs; the test has no top-level failure path.
+# file removed
+
+### Scope
+$ git diff --stat 2659e6c..f0ce20e -- src CMakeLists.txt .github setup.py MANIFEST.in README.md IMPLEMENTATION_PLAN.md audit/CLAIMS_LEDGER.md
+(empty)
+$ git diff --name-status 2659e6c..f0ce20e
+M pyproject.toml
+A tests/conftest.py
+M tests/test_cpu_only.py
+M tests/test_full_model.py
+M tests/test_gguf_and_q4.py
+A tests/test_harness_contract.py
+M tests/test_layer.py
+M tests/test_matmul.py
+M tests/test_phase5_scale.py

@@ -143,6 +143,12 @@ output: [ ... ]
 
 A golden without provenance is not evidence.
 
+**Red/green is conditional:** `red.log` and `green.log` are required only when the package
+changes behavior (a fix, a new guard, a changed API). A non-behavioral package (baseline,
+test-harness, CI, docs) must state `red/green: N/A (no behavioral change)` in `notes.md`
+and include the green suite logs; no separate file is required. This resolves the G0
+AUD-5 discrepancy without weakening the red→green rule for behavioral work.
+
 ---
 
 ## 5. Phase map
@@ -150,7 +156,7 @@ A golden without provenance is not evidence.
 | Phase | Goal | Gate | Hardware needed |
 |---|---|---|---|
 | **7.0** | Freeze baseline, record environment, verify current green state | **G0** | Yes (manual GPU baseline on the available host) |
-| **7A** | Test infrastructure: pytest, goldens, fuzz, CPU/sdist CI, GPU CI scaffold, claims checker | **G1** | CPU CI; GPU workflow scaffold (`continue-on-error`) |
+| **7A** | Test infrastructure: pytest, goldens, fuzz, CPU/sdist CI, GPU CI scaffold, claims checker, clean-clone build entry point | **G1** | CPU CI; GPU workflow scaffold (`continue-on-error`) |
 | **7B** | Tokenizer correctness (P0-1) | **G2** | CPU; GPU optional |
 | **7C** | Model-family support (P0-2) | **G3** | CPU fixtures + GPU reference logits |
 | **7D** | Memory honesty & robustness (P0-3, P1-5) | **G4** | CPU + cgroup; GPU residency evidence |
@@ -194,25 +200,28 @@ A golden without provenance is not evidence.
 
 ### 7A — Test infrastructure (Gate G1)
 
-**Audit trace:** T-1, T-2, T-3, T-4, T-5, T-6, T-7; B-1 residual (sdist install); Phase 7A-1..7A-7.
-**Allowed files:** `tests/**`, `pyproject.toml` (pytest config only), `.github/workflows/**`, `scripts/qa/**` (new), `audit/CLAIMS_LEDGER.md`, `audit/claims_baseline.txt` (new), `README.md` (claims wording only), `audit/evidence/7A/**`, `tests/fixtures/**`, docs. **No `src/` changes.**
+**Audit trace:** T-1, T-2, T-3, T-4, T-5, T-6, T-7; B-1 residual (sdist install); G0 audit AUD-2..AUD-5; QAQC-2; Phase 7A-1..7A-8.
+**Allowed files:** `tests/**`, `pyproject.toml` (pytest config only), `.github/workflows/**`, `scripts/qa/**` (new), `audit/CLAIMS_LEDGER.md`, `audit/claims_baseline.txt`, `README.md` (claims wording; **7A-8 may edit the build section**), `CMakeLists.txt` (**7A-8 only**), `MANIFEST.in` (**7A-5 for `tests *.py`; 7A-3 for `tests/fixtures` globs only**), `audit/evidence/7A/**`, `tests/fixtures/**`, docs. **No `src/` changes.** 7A-1..7A-7 must not touch `CMakeLists.txt`; 7A-8 owns the build entry point; 7A-5 owns the test-module manifest rule; 7A-3 owns the fixture globs.
 
 **Work packages**
 
 | ID | Task | Acceptance |
 |---|---|---|
-| 7A-1 | Add `tests/conftest.py` with a `matmul_module` fixture using `pytest.importorskip`; add `gpu`/`slow` markers; convert the five GPU scripts to pytest without changing their assertions | `pytest -m "not gpu"` collects and passes on CPU; `pytest -m gpu` collects and skips cleanly on CPU; `pytest -m gpu` passes on gfx1150 |
-| 7A-2 | Add `[tool.pytest.ini_options]` (`markers`, `testpaths`, `addopts`); keep `test_cpu_only.py` runnable as unittest | `python tests/test_cpu_only.py` still 12/12; `python -O` still 12/12 |
-| 7A-3 | Commit golden data with provenance: GPT-2/SentencePiece token IDs for plain text, multibyte, double spaces, special tokens, `add_bos` on/off; Q4_0/Q4_K/Q6_K golden blocks; one tiny GGUF fixture | Goldens load offline; provenance complete; each golden has a test that currently fails where the known bug exists |
-| 7A-4 | Add deterministic `hypothesis` fuzz for GGUF headers (alignment, counts, dims, truncation, duplicates) | ≥10,000 examples, no crash; failures minimized; CI deterministic (fixed seed or `derandomize`) |
-| 7A-5 | CI: CPU pytest job; sdist-install job (`GFX1150_SKIP_CMAKE=1`, import CPU modules, run CPU suite); keep existing CI | Jobs green on PR; sdist install is a real install, not an archive listing |
-| 7A-6 | Add `scripts/qa/check_claims.py` with default CI mode and `--strict`; parse the ledger, scan `README.md` and `IMPLEMENTATION_PLAN.md`, and fail if an `UNVERIFIED`/`NOT YET` claim appears without an inline qualifier; require evidence paths for `VERIFIED` rows; add `audit/claims_baseline.txt` for known violations with a `G6` expiry. Wire default mode into CPU CI (strict is advisory until G6). | Default mode green with a reviewed baseline; `--strict` detects injected canaries; baseline entries are exact and target G6; no silent wildcard/allow-all entry |
+| 7A-1 | Add `tests/conftest.py` with a `matmul_module` fixture using `pytest.importorskip`; add `gpu`/`slow` markers; convert the five GPU scripts to pytest. **Every `test_*` function must use `assert`/raise and return `None`**; turn `PytestReturnNotNoneWarning` into an error; verify collection from a clean clone with no pre-built extension. | `pytest -m "not gpu"` collects **only CPU tests** and passes on CPU; `pytest -m gpu` collects only GPU tests, skips cleanly without the extension, and passes on gfx1150; a test returning `False` **fails**; one mutated assertion fails; no `def test_* -> bool` remains |
+| 7A-2 | Add `[tool.pytest.ini_options]` (`markers`, `testpaths`, `addopts`); keep `test_cpu_only.py` runnable as unittest. *(Implemented as part of 7A-1; this is now a verification/evidence closeout, not new code.)* | `python tests/test_cpu_only.py` still 12/12; `python -O` still 12/12 |
+| 7A-3 | **Golden data + provenance:** GPT-2/SentencePiece token IDs for plain text, multibyte, double spaces, special tokens, `add_bos` on/off; Q4_0/Q4_K/Q6_K golden blocks; one tiny GGUF fixture. Goldens must be external (llama.cpp or another independent reference), registered in `tests/fixtures/PROVENANCE.md`; add fixture globs to `MANIFEST.in`; register CPU/GPU tests in `EXPECTED_LANES`. Known open-bug goldens (tokenizer special tokens / `add_bos`) are `xfail(strict=True)` until 7B so G1 stays green; record the red evidence with `--runxfail`. | Goldens load offline; provenance complete (source/version/command/hashes); no self-referential generation; the sdist contains the fixtures; current CPU/GPU lanes green; `--runxfail` shows the known-bug goldens failing; no `src/` change |
+| 7A-4 | Add deterministic `hypothesis` fuzz for GGUF headers (alignment, counts, dims, truncation, duplicates). Install `hypothesis` in the CPU and sdist CI jobs; the fuzz test is CPU-lane and marked `slow` so the packaging job can deselect it. If fuzzing finds a parser defect, stop and file a blocker/new package — do **not** edit `src/` in 7A-4. | ≥10,000 examples, no crash; failures minimized; deterministic (fixed seed/`derandomize`, no local database); CPU lane green; no `src/` change |
+| 7A-5 | **CI + sdist install (C-7A1-5):** CPU pytest job; sdist-install job (`GFX1150_SKIP_CMAKE=1`, assert `tests/conftest.py` is present, import the three CPU modules, assert the three GPU modules raise the actionable `ImportError`, run the installed CPU suite); add `recursive-include tests *.py` to `MANIFEST.in`; keep existing CI/claims steps. | Jobs green on PR; the sdist contains `tests/conftest.py` and `tests/test_harness_contract.py`; the installed tree collects and runs `pytest -m "not gpu"` cleanly (no exit 2); a real install, not an archive listing |
+| 7A-6 | Add `scripts/qa/check_claims.py` with default CI mode and `--strict`; parse the ledger and **enforce `Qualified in place?`**, not just literal presence; use claim-specific literals; scan `README.md` and `IMPLEMENTATION_PLAN.md`; require evidence paths for `VERIFIED` rows; review the seeded `audit/claims_baseline.txt` (15 exact entries: 11 `no` rows + ID 13's unqualified L209 instance) with a `G6` expiry. Wire default mode into CPU CI (strict is advisory until G6). | Default mode green with the exact reviewed baseline; `--strict` detects injected canaries; baseline entries are exact and target G6; no generic/allow-all literal; the checker reports every unqualified row instead of "none" |
 | 7A-7 | Add `.github/workflows/ci-gpu.yml` targeting `runs-on: [self-hosted, gfx1150, rocm]`; build with CMake and run `pytest -m gpu`; upload logs/artifacts. Set `continue-on-error: true` until a runner registers, with an issue link in the workflow comment. | Workflow is valid YAML, triggers on PR/nightly, and either runs green on a registered runner or is explicitly `continue-on-error` with a tracked issue; it is **not** counted as a gate pass while skipped |
+| 7A-8 | **Clean-clone build entry point (C-1):** make the documented `cmake -B build -DCMAKE_BUILD_TYPE=Release` succeed without `pybind11_DIR` or a pre-existing cache (or correct the README to the command that works); add a CI job that runs it from a fresh clone. | Fresh clone + documented prerequisites + documented command succeeds with no ambient `pybind11_DIR` and no build cache; CI reproduces it; README command matches the verified path |
 
 **Required checks**
 ```bash
-python -m pytest -m "not gpu" -q
-python -m pytest -m gpu --collect-only -q          # CPU host: must skip, not error
+python -m pytest -m "not gpu" -q                  # must collect only CPU tests
+python -m pytest -m gpu --collect-only -q         # CPU host: must skip, not error
+python -W error::pytest.PytestReturnNotNoneWarning -m pytest -m "not gpu" -q
+if grep -R -n "def test_.*-> bool" tests/; then echo "test functions must return None"; exit 1; fi
 python tests/test_cpu_only.py
 python -O tests/test_cpu_only.py
 python scripts/qa/check_claims.py                 # default CI mode (baseline-aware)
@@ -221,35 +230,79 @@ python setup.py sdist
 # clean venv:
 pip install --no-build-isolation dist/*.tar.gz     # full build on gfx1150
 GFX1150_SKIP_CMAKE=1 pip install --no-build-isolation dist/*.tar.gz  # CPU-only runner
+# 7A-8: fresh clone, no pybind11_DIR, no build cache
+rm -rf /tmp/7a-build && cmake -S . -B /tmp/7a-build -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/7a-build -j 8
 # workflow sanity:
 python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci-gpu.yml'))"
 ```
 
 **QAQC adversarial checks**
 - Mutation test the tests: revert a known fix locally (e.g. remove the parser bound) and confirm the relevant test fails. A test that cannot fail is not a test.
+- **Canary test:** add `def test_returns_false(): return False`; `pytest` must fail (not warn/pass), then remove it.
+- Confirm `pytest -m "not gpu"` collects **zero** GPU tests and `pytest -m gpu` collects all GPU tests.
+- Confirm a clean clone with no `matmul_module` collects/skips cleanly, not exit 2.
 - Confirm goldens are external, not generated by the code under test.
 - Confirm GPU tests skip, not silently pass, on CPU.
 - Confirm no test is skipped in the CPU job without a reason.
-- Inject a canary `NOT YET` claim into `README.md` and confirm `check_claims.py` fails; restore it.
+- Inject a `NOT YET` claim into `README.md` and an unqualified `Q4_K_M`/`qwen2` canary; `check_claims.py` must fail; restore them.
+- Confirm the ledger's ID 6/10 flags are `no`/`partial` and the baseline has exact entries.
 - Confirm `ci-gpu.yml` is genuinely `continue-on-error` (not silently skipped) and that its logs are uploaded when a runner exists.
+- Confirm 7A-8's fresh-clone command works with no ambient `pybind11_DIR` and no build cache.
 
 **Exit criteria (G1)**
-- [ ] CPU and GPU collection behavior correct.
+- [ ] CPU and GPU collection behavior correct; no `test_*` returns non-`None`; a False return fails.
 - [ ] Goldens have provenance and exercise the known P0 bugs (red evidence).
 - [ ] Fuzz runs deterministically.
 - [ ] CPU + sdist CI jobs green; full sdist install verified.
-- [ ] Claims checker default mode green; baseline reviewed and exact; canary detected in strict mode.
+- [ ] Claims checker default mode green; baseline reviewed and exact; qualification and canaries detected.
 - [ ] GPU workflow exists and is valid; it is green or explicitly `continue-on-error` with a tracked runner issue. GPU correctness is **not** a G1 gate (G0's manual baseline covers the current host); it becomes required at G6.
+- [ ] **Fresh-clone documented build succeeds (C-1/7A-8) with no `pybind11_DIR` and no build cache.**
 - [ ] No `src/` diff.
 
 **Stop:** Do not start 7B until G1 is signed. 7B is gated by 7A-3 goldens.
 
 ---
 
+### 7A-9 (Post-G1 P0): BLOCKER-7A4-1 parser fix
+
+**Status:** **ACCEPTED (2026-11-04)** — work commit `1bce3d0`, tip `9493cf8`; audit
+`audit/AUDIT_7A-9_PARSER_FIX_DEEP_2026-11-04.md`. The parser blocker is closed; no
+conditions. G6 still depends on the later gates.
+
+**Allowed files:** `src/gguf_parser.py`, `tests/**` (remove the pinned xfail, add direct boundary tests), `audit/evidence/G1/7A-9/**`, docs (`IMPLEMENTATION_PLAN.md` claim correction, `BLOCKER.md` wording). No CMake, packaging, CI, ledger, or unrelated source changes.
+
+**Required:** reject a metadata array whose element type is `ARRAY` with the parser’s documented `ValueError` at the point where the element type is read. A valid GGUF has no nested arrays, so the scalar check is sufficient; a recursion limit is optional defence only. Remove the `xfail` from `test_nested_arrays_are_rejected_with_a_value_error`, assert `ValueError` for the pinned 11,962-byte example and for a below-threshold depth, and keep the fuzz/direct tests green. Soften the `BLOCKER.md` “every caller catches ValueError” wording (QF-1). Remove the exception from the `IMPLEMENTATION_PLAN.md` fail-closed claim once fixed.
+
+**Acceptance:** pinned test passes without xfail; depth-300 and depth-1000 nested-array cases both raise `ValueError`; CPU/GPU lanes green; fuzz 10k unchanged; no parser regression; public claim no longer carries the exception; evidence bundle under `audit/evidence/G1/7A-9/`.
+
+**Stop:** Stop for QAQC/auditor. 7B may run in parallel from the same base; release G6 remains blocked until this lands.
+
+> **Update 2026-11-04:** 7A-9 landed (`1bce3d0`) and was accepted by the primary audit
+> with no conditions. C-G1-1 and C-G1-2 are closed. This section is retained as the
+> package record; the parser may now be described as fail-closed for the malformed
+> classes the suite covers.
+
+---
+
 ### 7B — Tokenizer correctness (Gate G2)
 
+> **G1 is signed (2026-11-04); 7B is authorized.** The 7A-9 parser fix has landed and is
+> accepted, so 7B is fully independent of the parser work. The 7A-3 goldens are the
+> acceptance vectors.
+>
+> **G2 status (2026-11-06): SIGNED.** The first 7B candidate
+> (`wp/7B-tokenizer` @ `e091fcf`, work `70c5ab2`) failed on the SPM mixed-text
+> prefix and the Viterbi-vs-greedy algorithm (BLOCKER-7B-1/-2). The remediation
+> (`wp/7B-remediation` @ `1be1ad4`, work `25e9088`) fixes both and is accepted:
+> `is_prev_special` prefixing, the reference score-priority greedy merge, a
+> 310-case reference-generated differential corpus, and independent 310/11/2,000
+> differentials. See `audit/AUDIT_7B_REMEDIATION_DEEP_2026-11-06.md` and
+> `audit/G2_SIGNOFF_2026-11-06.md`. **C-G1-4 is closed; 7C is unblocked.**
+> Release/G6 remains gated by 7C–7F and the GPU runner.
+
 **Audit trace:** C-2 (partial), N-2, T-3; v0.6.2 §6 P0-1.
-**Allowed files:** `src/tokenizer.py`, `src/inference.py` (BOS call sites only), `tests/**` tokenizer tests, docs, evidence.
+**Allowed files:** `src/tokenizer.py`, `src/inference.py` (BOS call sites only), `tests/**` tokenizer tests, `tests/fixtures/**` only if a golden needs correction (do not rewrite 7A-3 goldens), `README.md` (tokenizer/claims wording), docs, `audit/evidence/G2/7B/**`.
 
 **Work packages**
 
@@ -257,12 +310,13 @@ python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci-gpu.yml'))
 |---|---|---|
 | 7B-1 | Special-token split on **encode**: longest-match trie over control/user-defined tokens; special IDs emitted directly; no byte mapping inside a special token; no splitting inside ordinary text | `encode("<\|im_start\|>")` → `[special_id]`; mixed text `"hi<\|im_start\|>there"` splits correctly; plain text unchanged |
 | 7B-2 | Read `tokenizer.ggml.add_bos_token`; precedence: explicit `add_bos` argument > metadata > default; `generate()` / `generate_batch_ids()` stop hardcoding `True` | Tests for metadata true/false/absent; no duplicate BOS; Qwen2/GPT-2-style no-BOS model behaves correctly |
-| 7B-3 | Replace the `\w`/`\d` pre-tokenizer with the GPT-2 spec regex (Unicode `\p{L}`/`\p{N}`) or a golden-verified equivalent | Golden vectors for `Hello123`, `café123`, `a_b`, contractions, double spaces, emoji all match llama.cpp |
+| 7B-3 | Replace the `\w`/`\d` pre-tokenizer with the GPT-2 spec regex (Unicode `\p{L}`/`\p{N}`) or a golden-verified equivalent; resolve the SentencePiece golden mismatches or explicitly re-scope them | 7A-3 goldens pass for GPT-2 and SentencePiece: `Hello123`, `café123`, `a_b`, contractions, double spaces, emoji, control tokens; no remaining tokenizer `xfail` without auditor approval |
 | 7B-4 | Uniform unmappable-byte handling in both branches: try `<0xXX>` before raising; never silently drop | Probe with minimal vocabs (GPT-2 and SentencePiece); missing byte raises `ValueError` with byte value |
 
 **Required checks**
 ```bash
 python -m pytest -m "not gpu" -q -k "tokenizer or bpe or golden"
+python -m pytest -m "not gpu" -q --runxfail -k "tokenizer or bpe or golden"
 python tests/test_cpu_only.py
 python -O tests/test_cpu_only.py
 # independent probe: special token, mixed text, add_bos true/false/absent
@@ -275,12 +329,15 @@ python -O tests/test_cpu_only.py
 - Text that looks like a special token but must not be treated as one (e.g. escaped/user text), if the tokenizer spec requires it.
 - Multi-byte UTF-8, lone surrogate handling, empty string.
 - Decode round-trip with `skip_special_tokens` true/false.
+- The 7A-3 golden vectors: zero tokenizer failures under `--runxfail`.
 
 **Exit criteria (G2)**
-- [ ] Goldens pass; special-token and `add_bos` tests pass.
+- [ ] 7A-3 goldens pass; special-token and `add_bos` tests pass.
 - [ ] No silent character/byte loss.
-- [ ] Existing SentencePiece tests still pass.
-- [ ] README tokenizer claim updated.
+- [ ] SentencePiece goldens pass, or a documented, auditor-approved scope reduction exists.
+- [ ] No tokenizer `xfail` remains except explicitly approved 7C scope.
+- [ ] README tokenizer/claims are updated and the claims checker is green.
+- [ ] 7A-9 is not required for 7B; it has landed and is accepted. Release remains blocked by G2/G3 and the later gates.
 
 **Stop:** Do not start 7C until G2 is signed.
 
@@ -288,78 +345,135 @@ python -O tests/test_cpu_only.py
 
 ### 7C — Model-family support (Gate G3)
 
-**Audit trace:** C-3 (partial), C-4/C-5 (scope decision), N-3; v0.6.2 §6 P0-2.
-**Allowed files:** `src/layer.py`, `src/inference.py` (model spec / embedding / logits), `src/gguf_parser.py` (only if metadata access needs it), `src/kernels/**` (only if a fused-QKV kernel is required), tests, docs, evidence.
+**Status (2026-11-06): AUTHORIZED — G2 signed; 7D not authorized.**
+**Coder brief:** [`PHASE7_7C_MODEL_FAMILY_BRIEF.md`](PHASE7_7C_MODEL_FAMILY_BRIEF.md) — authoritative package detail.
+**Evidence contract:** [`audit/evidence/G3/7C/README.md`](audit/evidence/G3/7C/README.md).
 
-**Work packages**
+**Audit trace:** C-3 (partial), C-4/C-5 (scope decision), N-3; v0.6.2 §6 P0-2;
+`audit/REVIEW_v0.6.1_c75914b.md` §2.2.
+**Allowed files:** `src/model_spec.py` (new, preferred) or `src/layer.py`; `src/layer.py`;
+`src/inference.py`; `src/gguf_parser.py` only if metadata access needs it;
+`src/kernels/**` + `src/python_bindings/bindings.cpp` + `CMakeLists.txt` only for a new
+7C kernel target; `tests/**`; `tests/fixtures/**`; `README.md`;
+`audit/CLAIMS_LEDGER.md` rows 10–12 only; docs; `audit/evidence/G3/7C/**`. No 7D/7E work,
+tokenizer/parser rewrites, unrelated CI/build changes, or performance claims.
+
+**Work packages** (full acceptance criteria in the brief)
 
 | ID | Task | Acceptance |
 |---|---|---|
-| 7C-1 | Add a `ModelSpec` / tensor-name map: required tensors, optional biases, fused-QKV presence, embedding scale, logit soft-cap, key/value length; fail fast with a list of missing tensors | Unknown architecture → explicit error; llama path unchanged; unsupported quant list is fail-fast |
-| 7C-2 | Phi-3 fused `attn_qkv.weight` (+ bias): split or fused matmul path; FFN biases if present; shape validation | Synthetic Phi-3 fixture constructs and runs; logits match reference; no `KeyError` |
-| 7C-3 | Gemma: `sqrt(hidden)` embedding scale, final-logit soft-cap, `{arch}.attention.key_length` / `value_length`, correct head dim | Synthetic Gemma fixture runs; logits match reference; RoPE/reshape correct |
-| 7C-4 | Publish an honest compatibility matrix (arch × quant × context) and fix README claims | Matrix matches tests; no unsupported family listed as supported |
+| 7C-1 | `ModelSpec` / tensor map: required/optional tensors, fused-QKV/FFN flags, biases, **separate key/value dims**, embedding scale, final-logit softcap, activation, tied output; fail fast with all missing names | Unknown arch explicit error; llama path unchanged; missing required vs optional distinct; shape errors actionable |
+| 7C-2 | Phi-3: fused `attn_qkv.weight`/`.bias` **and** fused `ffn_up.weight` (gate+up) with optional FFN biases; NeoX; long-rope factors fail fast if unsupported | Synthetic Phi-3 fixture runs; logits match independent reference; fused/separate and bias/no-bias agree; no `KeyError` |
+| 7C-3 | Gemma: `sqrt(hidden)` embedding scale, **GeGLU** (not SwiGLU), **NeoX RoPE**, `attention.key_length`/`value_length` (Gemma 7B key_dim ≠ hidden/heads), final-logit softcap, tied output; gemma2/3 SWA/attn-softcap fail fast | Synthetic Gemma fixture runs; logits match independent reference; reshape/RoPE/activation correct |
+| 7C-4 | Compatibility matrix (arch × quant × context), README claims, ledger rows 10–12 | Synthetic vs real-GGUF explicit; qwen2 stays NOT YET; no unsupported family listed as supported |
 
 **Required checks**
+
 ```bash
 python -m pytest -m "not gpu" -q -k "model_spec or phi3 or gemma or compat"
 python -m pytest -m gpu -q -k "phi3 or gemma or llama_regression"
+python -m pytest -m "not gpu" -q
+python -m pytest -m gpu -q
 python tests/test_cpu_only.py && python -O tests/test_cpu_only.py
+python scripts/qa/check_claims.py
+# plus independent probes: fused/separate, bias/no-bias, unknown/missing/shape,
+# Gemma key_dim/scale/softcap/GeGLU/NeoX, llama regression
 ```
 
 **QAQC adversarial checks**
-- Tensor names taken from **real** GGUF headers, not invented; record header dumps.
-- Missing optional tensor vs missing required tensor produce different, actionable errors.
-- Head-dim math for Gemma 7B (explicit key length ≠ hidden/heads).
-- Bias path and fused path produce the same result where both exist.
-- Llama regression: identical token IDs on the fixed golden prompt.
+- Tensor names from **real** GGUF headers (text dump + source/hash); do not invent.
+- Missing required vs missing optional vs shape mismatch each fail distinctly; missing
+  required lists every missing tensor.
+- Fused/separate QKV and fused `ffn_up` paths agree; bias/no-bias agree where valid.
+- Quantized fused QKV/FFN runs, or the limitation is explicit and the file fails fast.
+- Gemma 7B key/value dims ≠ `hidden/heads`; embedding scale; GeGLU; NeoX; softcap;
+  tied output; gemma2/3-only features fail fast.
+- Phi-3 fused QKV bias, fused gate/up, optional FFN biases; long-rope factors.
+- Llama regression: identical token IDs/logits on the fixed prompt/seed.
+- Qwen2 metadata/bias regression; claim stays NOT YET.
+- Claims/matrix distinguish synthetic-fixture from real-GGUF evidence.
 
 **Exit criteria (G3)**
-- [ ] Per-arch fixtures and reference logits pass.
+- [ ] Per-arch synthetic fixtures + independent reference logits pass.
 - [ ] Llama-family behavior unchanged.
-- [ ] Compatibility matrix and README are accurate.
-- [ ] Unsupported families fail fast with a clear message.
+- [ ] Compatibility matrix and README are accurate; synthetic vs real is explicit.
+- [ ] Unsupported families/features fail fast with a clear message.
+- [ ] CPU/GPU/claims lanes green; red/green evidence recorded.
 
-**Stop:** Do not start 7D until G3 is signed. If Phi-3/Gemma cannot be evidenced, keep them explicitly unsupported and close the package as "documented limitation" — do not claim support.
+**Fallback:** if Phi-3/Gemma cannot be evidenced, keep the family explicitly unsupported,
+implement the fail-fast path, document the limitation, and stop for the auditor's scope
+decision. Do not claim support or weaken tests to close G3.
+
+**Stop:** Do not start 7D until G3 is signed; the auditor merges only after G3. Real-GGUF
+Phi-3/Gemma goldens remain 7F-2.
 
 ---
 
 ### 7D — Memory honesty and robustness (Gate G4)
 
-**Audit trace:** D-1, P-2, S-1 residual, R-1/R-2 residual; v0.6.2 §6 P0-3 and P1-5.
-**Allowed files:** `src/weight_loader.py`, `src/kv_cache.py`, `src/inference.py` (residency/init/close), tests, docs, evidence.
+**Status (2026-11-07): AUTHORIZED — G3 signed; 7E not authorized.**
+**Coder brief:** [`PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md`](PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md) — authoritative package detail.
+**Evidence contract:** [`audit/evidence/G4/7D/README.md`](audit/evidence/G4/7D/README.md).
 
-**Work packages**
+**Audit trace:** D-1, P-2, S-1 residual, R-1/R-2 residual; v0.6.2 §6 P0-3 and
+P1-5; `audit/REVIEW_v0.6.1_c75914b.md` §2.3–§2.6.
+**Allowed files:** `src/weight_loader.py`, `src/kv_cache.py`, `src/inference.py`
+(residency/init/close/CLI); `src/memory_budget.py` (new, preferred; add to
+`pyproject.toml` `py-modules`); `src/gguf_parser.py` only for duplicate-name or
+block-count helpers; `src/python_bindings/bindings.cpp` + `CMakeLists.txt` only
+if a HIP memory query is required (sysfs/proc preferred); `tests/**`;
+`README.md`; `IMPLEMENTATION_PLAN.md`; `audit/CLAIMS_LEDGER.md` rows
+14/18/19/20/21/30; `audit/claims_baseline.txt` + `scripts/qa/canary_claims.py`
+count; docs; `audit/evidence/G4/7D/**`. No 7E/7F/7G, tokenizer/model-family
+changes, CI workflow changes, or unrelated refactors.
+
+**Work packages** (full acceptance in the brief)
 
 | ID | Task | Acceptance |
 |---|---|---|
-| 7D-1 | Replace the `MADV_DONTNEED` claim with the correct mechanism: `posix_fadvise(POSIX_FADV_DONTNEED)` (best-effort) and/or `MADV_PAGEOUT` where available; keep `MADV_WILLNEED` prefetch | Docs match behavior; tests cover unavailable-syscall fallback; no false "bounded RAM" claim |
-| 7D-2 | Implement a budgeted residency policy: `AUTO` (pin if it fits), `PIN_ALL`, `STREAM`; budget = free GTT/RAM − KV − activations − safety; make `cache_weights` map to a real policy or deprecate it | `AUTO` pins a fitting model; `STREAM` streams; measured GTT/RSS reflects the policy; CLI exposes it |
-| 7D-3 | KV/allocation hardening: clamp to `min(free_mem/2, cgroup_limit, cap)`; cross-check `block_count` vs `blk.N.*` prefixes; unlink-before-map on POSIX; disk-space check; `close()`/constructor preserve the original exception | Hostile header tests pass; cgroup-limited run refuses cleanly; repeated open/close leaks no fd/mmap; original exception is not masked |
+| 7D-1 | Page-cache eviction honesty: `posix_fadvise(POSIX_FADV_DONTNEED)` primary, `MADV_PAGEOUT` optional, `MADV_WILLNEED` prefetch; no false `MADV_DONTNEED` page-cache claim; missing-syscall fallback | Syscall probes; STREAM evicts, PIN does not; safe fallback; docs corrected |
+| 7D-2 | Budgeted residency: `AUTO`/`PIN_ALL`/`STREAM`, budget = min(free GTT, host available, cgroup) − KV − activations − safety; `cache_weights` mapping/deprecation; CLI; measured RSS/page-cache | Small model AUTO→PIN; over-budget AUTO→STREAM; explicit PIN/STREAM honored; RSS/page-cache reflects policy; no silent fallback; GTT pinning not claimed without a device cache |
+| 7D-3 | KV/allocation hardening: available/cgroup cap, block_count cross-check, duplicate names, unlink-before-map, disk-space check, symlink, exception preservation, fd/mmap leaks | Hostile/cgroup/full-disk cases fail closed; 1000× open/close clean; live-view close warns, fd closes, original error survives |
+| 7D-4 | Memory claims/docs: README L10/L12/L123/L124, PLAN L15/L17/L79/L221, ledger rows 14/18/19/20/21/30 | No false bounded-RAM/70B/8-hour/active-RAM claim; policy documented; claims checker + canaries green |
 
 **Required checks**
+
 ```bash
 python -m pytest -m "not gpu" -q -k "memory or kv or residency or parser"
 python -m pytest -m gpu -q -k "residency or kv"
+python -m pytest -m "not gpu" -q
+python -m pytest -m gpu -q
 python tests/test_cpu_only.py && python -O tests/test_cpu_only.py
-# cgroup-limited probe, e.g. systemd-run --scope -p MemoryMax=...
-# fd/mmap leak probe: repeat open/close 1000x, check /proc/self/fd and maps
+python scripts/qa/check_claims.py
+python scripts/qa/canary_claims.py
+# fd/mmap 1000x, cgroup-limited, syscall-fallback, RSS/page-cache/GTT probes
 ```
 
 **QAQC adversarial checks**
-- `general.alignment=0`, truncation, huge `block_count`, negative/zero dims, duplicate names.
-- `block_count` says 999 but only 2 `blk.*` prefixes exist.
-- KV directory on a full filesystem; symlink at the target path; crash/kill before close.
-- `close()` with a live view: mapping is released or a clear warning is emitted; fd is closed; original constructor error survives.
-- Residency: model smaller than budget → pinned; model larger → streamed; no silent fallback.
+- fadvise/pageout are actually used in STREAM; PIN skips them; missing syscalls
+  fall back safely without a false page-cache claim.
+- AUTO/PIN/STREAM decisions and measurements; no silent fallback; over-budget
+  PIN warns.
+- `block_count` 999 vs 2 layers, duplicate names, huge dims, alignment=0,
+  truncation, cgroup limit, full disk, symlink, crash-before-close.
+- Live-view close: fd closed, mapping released/warned, original exception
+  survives; 1,000× open/close no fd/mmap growth.
+- Claims: no unsupported 70B/8-hour/active-RAM/bounded-RAM entries; baseline and
+  canary count updated together.
 
 **Exit criteria (G4)**
-- [ ] Memory behavior matches the documented policy.
-- [ ] Hostile inputs fail closed.
-- [ ] No fd/mmap leaks; exception masking fixed.
-- [ ] 70B "bounded RAM" claim either evidenced or removed.
+- [ ] Memory behavior matches the documented policy; no false bounded-RAM claim.
+- [ ] AUTO/PIN/STREAM implemented and measured; CLI exposes it.
+- [ ] Hostile inputs fail closed; no fd/mmap leaks; exception masking fixed.
+- [ ] 70B bounded-RAM claim evidenced or removed/qualified.
+- [ ] CPU/GPU/CPU-only/claims/canaries green; evidence complete.
 
-**Stop:** Do not start 7E until G4 is signed.
+**Fallback:** if a real 70B/GTT measurement is unavailable, remove/qualify the
+claim and record the limitation; if a budget source is unavailable, fail safe to
+STREAM and document the basis. Do not fake 70B/8-hour evidence; that is
+7F-2/7F-3/7F-4.
+
+**Stop:** Do not start 7E until G4 is signed; the auditor merges only after G4.
 
 ---
 
@@ -656,7 +770,7 @@ Status as of the 2026-11-01 verification. `D` = deferred to 7G.
 |---|---|---|---|
 | B-1 | sdist missing sources | ✅ fixed + full install verified | 7.0 / 7A-5 |
 | B-2 | unused hipblas/rocblas | ✅ fixed (CMake) | — |
-| B-3 | setup.py quality | ◐ partial (pybind11_DIR fixed; preflight/bounded -j present) | 7A-5 |
+| B-3 | setup.py quality | ◐ partial (pybind11_DIR fixed; preflight/bounded -j present; clean-clone command open) | 7A-8 |
 | B-4 | PEP 639 license | ❌ open | 7G |
 | B-5 | top-level namespace | ❌ open | 7G |
 | C-1 | Q6_K unsupported | ✅ kernels + CPU; real GGUF golden pending | 7F-2 |
@@ -724,7 +838,7 @@ Status as of the 2026-11-01 verification. `D` = deferred to 7G.
 
 1. Commit/park the current verification changes and freeze the baseline (7.0).
 2. Run G0 and record the evidence bundle (manual GPU baseline; no runner required).
-3. Authorize **7A-1** (pytest harness), **7A-6** (claims checker), and **7A-7** (GPU workflow scaffold) first; they are independent and unblock the rest of 7A.
+3. Authorize **7A-1** (pytest harness), **7A-6** (claims checker), **7A-7** (GPU workflow scaffold), and **7A-8** (clean-clone build entry point) first; they are independent and unblock the rest of 7A. Use one branch per work package; start with `wp/7A-1-pytest-harness`.
 4. Do not authorize 7B until G1 is signed.
 
 The coder receives exactly one work package ID, the allowed file set, the acceptance criteria, and the evidence template. Anything else is out of scope.

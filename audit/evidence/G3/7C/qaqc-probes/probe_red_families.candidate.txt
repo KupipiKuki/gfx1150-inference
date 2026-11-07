@@ -1,0 +1,3 @@
+[phi3] engine-forward: PASS (fused QKV + fused gate/up + biases vs independent FP32 reference, max_err=0.002729, tol=0.006)
+[gemma] engine-forward: PASS (embed scale + GeGLU + NeoX + key/value dims + softcap + tied output vs independent FP32 reference, max_err=0.001982, tol=0.006)
+probe families: ALL GREEN

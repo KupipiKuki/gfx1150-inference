@@ -1,0 +1,121 @@
+# QAQC 7A-7 probe log — independent verification
+# Date: 2026-11-03T01:23:11Z
+
+### P1 validate-workflow.py (expect 20/20) ###
+
+=== 20/20 checks passed ===
+PASS: the workflow satisfies every clause checked
+
+### P2 extract the guard VERBATIM from the workflow and run all four cases ###
+  (guard extracted from the parsed workflow: 27 lines)
+--- case 1: green lane (this host, real extension) ---
+  built
+GPU lane: 18 passed, 0 skipped, 0 failed, 0 errors, 18 collected
+PASS: the GPU lane ran, with no skips
+  exit: 0 (expect 0)
+--- case 2: extension not importable (clean tree, no PYTHONPATH) ---
+  pytest exit: 0 (expect 0 — the silent pass)
+GPU lane: 0 passed, 18 skipped, 0 failed, 0 errors, 18 collected
+FAIL: the GPU lane reported no passing test
+  guard exit: 1 (expect 1)
+--- case 3: 3 passed + 1 skipped (synthetic junit) ---
+GPU lane: 3 passed, 1 skipped, 0 failed, 0 errors, 4 collected
+FAIL: the GPU lane skipped 1 test(s) -- a skip is not a pass
+  guard exit: 1 (expect 1)
+--- case 4: nothing collected (synthetic junit) ---
+GPU lane: 0 passed, 0 skipped, 0 failed, 0 errors, 0 collected
+FAIL: the GPU lane collected no tests
+  guard exit: 1 (expect 1)
+
+### P3 the grep-vs-junit claim: does the brief's grep pattern false-positive? ###
+--- brief pattern on the GREEN output ---
+  passed-grep: matches (ok)
+  skipped-grep: no match (ok)
+--- brief pattern on the RED (no-extension) output ---
+  passed-grep: no match => step fails (correct)
+  skipped-grep: matches (correct, true positive)
+  (grep line-count check: does 'skipped' appear in the RED prose beyond the summary?)
+    occurrences of 'skipped' in RED output: 9
+
+### P4 workflow steps verbatim on this host (clean checkout, rm -rf build first) ###
+  configure exit: 0
+  build exit: 0
+====================== 18 passed, 43 deselected in 1.63s =======================
+GPU lane: 18 passed, 0 skipped, 0 failed, 0 errors, 18 collected
+PASS: the GPU lane ran, with no skips
+  guard exit: 0
+
+### P5 merged-package checks on this branch ###
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+RESULT: PASS - all 12 canaries behaved as required
+43 passed, 18 deselected, 1 warning in 4.72s
+
+### P6 scope (955fa04 + correction commits) ###
+  .github/workflows/ci-gpu.yml
+  PHASE7_7A-7_BRIEF.md
+  audit/evidence/G1/7A-7/README.md
+  audit/evidence/G1/7A-7/build.log
+  audit/evidence/G1/7A-7/candidate-sha.txt
+  audit/evidence/G1/7A-7/configure.log
+  audit/evidence/G1/7A-7/diffstat.txt
+  audit/evidence/G1/7A-7/env.txt
+  audit/evidence/G1/7A-7/gpu-lane.log
+  audit/evidence/G1/7A-7/gpu-lane.xml
+  audit/evidence/G1/7A-7/notes.md
+  audit/evidence/G1/7A-7/parent-sha.txt
+  audit/evidence/G1/7A-7/skip-guard.log
+  audit/evidence/G1/7A-7/validate-workflow.py
+  audit/evidence/G1/7A-7/workflow.yml
+  audit/evidence/G1/7A-7/yaml-validation.log
+  restricted diff (expect 0): 0
+  candidate-sha.txt: 955fa04dc1b5c93c1e266816f1ce61af2b168dcc
+955fa04dc1b5c93c1e266816f1ce61af2b168dcc
+
+### P7 the correction-commit README + notes ###
+# G1 / 7A-7 — evidence bundle
+
+GPU CI scaffold: `.github/workflows/ci-gpu.yml` for a self-hosted gfx1150 runner,
+with the guard that makes a skipped GPU lane a failure rather than a pass.
+
+| file | what it is |
+|---|---|
+| `notes.md` | what was added, the skip-guard red/green, the gate state, and the two stated deviations |
+| `workflow.yml` | the shipped workflow, copied verbatim |
+| `yaml-validation.log` | the mechanical check of every clause of the brief's section 3 (20/20), by `validate-workflow.py` |
+| `validate-workflow.py` | regenerates `yaml-validation.log` |
+| `skip-guard.log` | the guard's red/green pair, with the guard extracted verbatim from the parsed workflow |
+| `gpu-lane.log` | the GPU lane executed on the gfx1150 host with the workflow's exact commands (18 passed / 0 skipped) |
+| `gpu-lane.xml` | the junit report the guard parses |
+| `configure.log` / `build.log` | the configure and build steps, same host |
+| `actions-state.log` | what the GitHub REST API knows about the workflow right now |
+| `env.txt` | environment, the runner state, and the lane result |
+| `diffstat.txt` | the package's file delta and the scope check |
+| `parent-sha.txt` | the base of the branch (`a873a9c`) |
+| `candidate-sha.txt` | the work commit under review (`955fa04`) |
+
+No self-hosted runner is registered, so the workflow was **not** executed by GitHub
+Actions; its steps were executed verbatim on the gfx1150 host instead.
+
+# Finished: 2026-11-03T01:23:40Z
+
+### P8 API-side gate-state facts (verified by QAQC against the public GitHub API) ###
+  ci-gpu.yml on the remote at wp/7A-7-gpu-ci: YES (blob a4dd9b1d, 4617 bytes,
+    byte-identical to the bundle's workflow.yml copy)
+  repo workflow list: 2 workflows only (Clean-Clone Build CI; CPU-Only CI) --
+    the GPU workflow has never registered or run (0 runs; its triggers are
+    pull_request/schedule/dispatch, so pushes do not fire it)
+  tip 8b38e99 check-runs: exactly 2 (ci-build: success; ci-cpu: success);
+    no workflow-file-error check -> the YAML is machine-acceptable
+  PR #8: open ("Phase 7: testing phase & evidence gates (G0 baseline scaffold)"),
+    names 7A-7 and C-7A1-6 under "Still open for G1" -- the tracking link is real
+  => the summary's claimed actions-state.log facts are all TRUE; the artifact
+     itself was never committed (finding QF-1).
+
+### P9 record checks ###
+  bundle workflow.yml == .github/workflows/ci-gpu.yml: byte-identical
+  diffstat.txt: parent a873a9c, candidate 955fa04 (the work commit) -- correct
+  candidate-sha sequence: 1986d38=955fa04 (correct) -> 99d3802=1986d38 (wrong)
+    -> 8b38e99=955fa04 (corrected; no force-push)
+  recorded configure/build/lane logs match my verbatim re-run on the same host
+
+# Finished: 2026-11-03T01:55Z (QAQC)

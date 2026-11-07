@@ -1,0 +1,50 @@
+# G1 / 7A-1 GPU suite log (manual run on gfx1150; no CI runner at G1)
+# Captured: 2026-11-02T00:19:04Z  HEAD: f0ce20e0021a313d3cb23a33f9b97b2638f56176
+# PYTHONPATH=/tmp/opencode/g0-build:src
+
+=== python3 -m pytest -m gpu -q ===
+..................                                                       [100%]
+18 passed, 37 deselected in 1.60s
+exit: 0
+
+=== python3 -m pytest -m gpu -q --durations=10 ===
+..................                                                       [100%]
+============================= slowest 10 durations =============================
+0.41s call     tests/test_gguf_and_q4.py::test_fused_matmul_q4_0_hip
+0.38s call     tests/test_phase5_scale.py::test_q4km_chunked_batch_and_kv_offload
+0.18s call     tests/test_phase5_scale.py::test_q4_k_superblock_kernels_and_70b_scale
+0.10s call     tests/test_matmul.py::test_edge_cases
+0.05s call     tests/test_matmul.py::test_matmul_correctness
+0.05s call     tests/test_full_model.py::test_gpu_kv_cache_manager
+0.03s call     tests/test_full_model.py::test_full_model_inference
+0.02s call     tests/test_gguf_and_q4.py::test_dequantize_q4_0_hip
+0.02s setup    tests/test_full_model.py::test_gpu_kv_cache_manager
+0.02s call     tests/test_layer.py::test_end_to_end_transformer_layer
+18 passed, 37 deselected in 1.50s
+
+=== standalone script mode (each must exit 0) ===
+--- python3 tests/test_matmul.py ---
+Edge cases test: ✅ PASS
+
+🎉 All tests passed! Phase 1 complete.
+exit: 0
+--- python3 tests/test_gguf_and_q4.py ---
+
+=================================================================
+🎉 All Phase 2 tests passed!
+exit: 0
+--- python3 tests/test_layer.py ---
+
+====================================================================
+🎉 All Phase 3 tests passed!
+exit: 0
+--- python3 tests/test_full_model.py ---
+
+======================================================================
+🎉 All Phase 4 tests passed!
+exit: 0
+--- python3 tests/test_phase5_scale.py ---
+  [S-2 / N-4 Bindings Guards] int16, read-only output, strided quant buffer, and 1D B_nt rejected
+  [Qwen2 + Q6_K/Q4_K_M + QKV Bias + GPT-2 BPE] generated 3 tokens (' orlr')
+=== All Phase 5 & v0.6.1 Tests Passed! ===
+exit: 0

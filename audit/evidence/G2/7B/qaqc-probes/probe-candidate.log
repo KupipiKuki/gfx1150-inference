@@ -1,0 +1,33 @@
+[OK] (candidate) A1 EOT alone -> its id
+[OK] (candidate) A2 mixed text
+[OK] (candidate) A3 consecutive specials
+[OK] (candidate) A4 special at very end
+[OK] (candidate) A5 special surrounded by spaces
+[OK] (candidate) A6 lookalike stays ordinary
+[OK] (candidate) A7 parse_special=False literal EOT != [id]
+[OK] (candidate) A8 determinism
+[OK] (candidate) A9 triple-overlap longest match
+[OK] (candidate) A10 empty-string special token does not loop
+[OK] (candidate) B1 3x3 add_bos precedence matrix (metadata x argument)
+[OK] (candidate) B2 gpt2 vocab default adds no BOS
+[OK] (candidate) B3 gpt2 vocab explicit add_bos=True adds exactly one
+[OK] (candidate) B4 real GGUF: add_bos_token absent -> spm default BOS
+[OK] (candidate) B5 real GGUF encode matches the golden case
+[OK] (candidate) C1 byte-only input falls back (dummy ▁ + <0x01> + <0x02>)
+[OK] (candidate) C2 leading space
+[OK] (candidate) C3 100-char word deterministic
+[OK] (candidate) C4 zero-score vocab deterministic
+[OK] (candidate) C5 byte-only vocab
+[OK] (candidate) C6 stall mid-codepoint raises naming 0xA9
+[OK] (candidate) C7 empty string
+[OK] (candidate) C8 whitespace-only no crash/loss
+[OK] (candidate) C9 lone surrogate raises ValueError
+[OK] (candidate) D1 all six contraction suffixes split
+[OK] (candidate) D2 tabs/newlines round trip
+[OK] (candidate) D3 underscores split like the reference
+[OK] (candidate) D4 minimal gpt2 chunk-token path
+[OK] (candidate) D5 minimal gpt2 unmappable raises naming 0x21
+[OK] (candidate) E1 all 23 golden cases recomputed independently
+[OK] (candidate) E2 decode(encode(x)) round-trips every literal golden prompt
+
+ALL QAQC PROBES PASS (candidate)

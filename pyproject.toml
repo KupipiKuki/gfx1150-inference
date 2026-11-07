@@ -35,7 +35,31 @@ py-modules = [
     "gguf_parser",
     "weight_loader",
     "layer",
+    "model_spec",
     "kv_cache",
     "tokenizer",
     "inference",
 ]
+
+# Phase 7A-1 (audit AUD-2 / QAQC-2): pytest harness configuration.
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    # A test function that returns a value instead of asserting is a silent
+    # pass: pytest ignores the return value and only emits a warning. Make it
+    # an error so such a test can never pass unnoticed.
+    "-W", "error::pytest.PytestReturnNotNoneWarning",
+]
+markers = [
+    "gpu: requires the compiled HIP extension 'matmul_module' and a gfx1150 GPU; skipped when unavailable",
+    "cpu: runs on any CPU-only host; part of the 'not gpu' lane",
+    "slow: long-running test; deselect with -m 'not slow'",
+]
+filterwarnings = [
+    "error::pytest.PytestReturnNotNoneWarning",
+]
+

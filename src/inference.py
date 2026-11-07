@@ -31,6 +31,7 @@ from gguf_parser import GGUFTensorInfo
 from weight_loader import WeightStreamer
 from kv_cache import KVCacheManager
 from layer import LlamaLayerConfig, TransformerLayer, linear_project, norm_weight_fp16
+from model_spec import ModelSpec, resolve_model_spec
 from tokenizer import GGUFTokenizer, embed_tokens
 
 try:
@@ -142,17 +143,15 @@ class LlamaInferenceEngine:
         self.streamer = WeightStreamer(model_path, cache_weights=cache_weights)
         try:
             self.metadata = self.streamer.gguf.metadata
-            arch = str(self.metadata.get("general.architecture", "llama")).lower()
-            block_key = f"{arch}.block_count"
-            if block_key in self.metadata:
-                self.num_layers = int(self.metadata[block_key])
-            elif "llama.block_count" in self.metadata:
-                self.num_layers = int(self.metadata["llama.block_count"])
-            else:
-                raise KeyError(f"Missing required GGUF metadata key '{block_key}' (or 'llama.block_count')")
-
-            self.layer_cfg = LlamaLayerConfig.from_gguf_metadata(self.metadata, rope_neox=rope_neox)
-            self.layer_runner = TransformerLayer(self.layer_cfg)
+            # Model-spec resolution validates the family, feature set, and the
+            # full tensor map (fail-fast: unknown arch, unsupported features,
+            # missing required tensors listed at once, shape mismatches).
+            self.spec: ModelSpec = resolve_model_spec(
+                self.metadata, self.streamer.gguf.tensors, rope_neox=rope_neox
+            )
+            self.num_layers = self.spec.num_layers
+            self.layer_cfg = self.spec
+            self.layer_runner = TransformerLayer(self.spec)
             self.max_seq_len = int(max_seq_len)
 
             self.tokenizer: Optional[GGUFTokenizer] = None
@@ -207,10 +206,17 @@ class LlamaInferenceEngine:
         skips final RMSNorm and LM Head projection to save compute and SSD bandwidth.
         """
         emb_info, emb_view = self._get_global_tensor("token_embd.weight")
-        hidden = embed_tokens(token_ids, emb_info, emb_view, self.layer_cfg.hidden_size)
+        hidden = embed_tokens(token_ids, emb_info, emb_view, self.spec.hidden_size)
         del emb_view
         # Evict touched token_embd pages before streaming transformer layers
         self.streamer.release_tensor("token_embd.weight")
+
+        # Family embedding scale (gemma): embeddings are scaled by sqrt(hidden)
+        # before layer 0 (cf. llama.cpp gemma.cpp `ggml_scale(inpL, sqrt(n_embd))`).
+        if self.spec.embedding_scale != 1.0:
+            hidden = (hidden.astype(np.float32) * self.spec.embedding_scale).astype(
+                np.float16
+            )
 
         # Kick off SSD prefetch for Layer 0 before entering the layer loop
         if self.num_layers > 0:
@@ -240,8 +246,8 @@ class LlamaInferenceEngine:
             self._out_norm_w,
             normed_last,
             1,
-            self.layer_cfg.hidden_size,
-            self.layer_cfg.rms_norm_eps,
+            self.spec.hidden_size,
+            self.spec.rms_norm_eps,
         )
 
         # LM Head projection (`output.weight` or weight-tied `token_embd.weight`) + eviction
@@ -249,6 +255,17 @@ class LlamaInferenceEngine:
         logits_2d = linear_project(normed_last, head_entry, self.vocab_size)
         del head_entry
         self.streamer.release_tensor(self._head_name)
+
+        # Family final-logit soft-capping ({arch}.final_logit_softcapping when
+        # present): logits = c * tanh(logits / c).
+        if self.spec.final_logit_softcapping is not None:
+            c = float(self.spec.final_logit_softcapping)
+            if c <= 0.0 or not np.isfinite(c):
+                raise ValueError(
+                    f"Invalid '{self.spec.arch}.final_logit_softcapping' value: {c}"
+                )
+            logits_fp32 = logits_2d.astype(np.float32)
+            logits_2d = (c * np.tanh(logits_fp32 / c)).astype(np.float16)
 
         return logits_2d.reshape(-1)
 
@@ -398,7 +415,7 @@ class LlamaInferenceEngine:
         """Encode `prompt`, generate up to `max_new_tokens`, and decode back to text."""
         if self.tokenizer is None:
             raise RuntimeError("GGUF file does not contain tokenizer metadata; use generate_ids().")
-        prompt_ids = self.tokenizer.encode(prompt, add_bos=True)
+        prompt_ids = self.tokenizer.encode(prompt)
         new_ids, metrics = self.generate_ids(
             prompt_ids=prompt_ids,
             max_new_tokens=max_new_tokens,
@@ -472,7 +489,7 @@ class LlamaInferenceEngine:
         """Encode and generate completions for a batch of text prompts."""
         if self.tokenizer is None:
             raise RuntimeError("GGUF file does not contain tokenizer metadata; use generate_batch_ids().")
-        encoded = [self.tokenizer.encode(p, add_bos=True) for p in prompts]
+        encoded = [self.tokenizer.encode(p) for p in prompts]
         out_ids, metrics = self.generate_batch_ids(
             batch_prompt_ids=encoded,
             max_new_tokens=max_new_tokens,

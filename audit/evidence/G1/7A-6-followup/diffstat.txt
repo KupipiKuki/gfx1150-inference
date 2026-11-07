@@ -1,0 +1,18 @@
+# G1 / 7A-6 follow-up diffstat
+# Captured: 2026-11-02T22:25:10Z
+# parent: efe34fc2af006c3e9b7a7bc655664307790537f7 (prep commit)
+# base:   b626c945d7fa35453ab15c22b6756cfe7be7787b (audit commit on wp/7A-6-claims-checker)
+
+=== files changed (name-status) ===
+M	audit/evidence/G1/7A-6-followup/env.txt
+M	audit/evidence/G1/7A-6-followup/gpu-suite.log
+M	audit/evidence/G1/7A-6-followup/notes.md
+
+=== diffstat ===
+ audit/evidence/G1/7A-6-followup/env.txt       |  6 ++--
+ audit/evidence/G1/7A-6-followup/gpu-suite.log | 41 +++++++++++++++++++++++----
+ audit/evidence/G1/7A-6-followup/notes.md      |  8 +++++-
+ 3 files changed, 47 insertions(+), 8 deletions(-)
+
+=== scope check: no src/, tests/, pyproject.toml, CMakeLists.txt, packaging, CI, README or PLAN change ===
+  none — confirmed
