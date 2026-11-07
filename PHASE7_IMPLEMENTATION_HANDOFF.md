@@ -411,15 +411,17 @@ Phi-3/Gemma goldens remain 7F-2.
 
 ### 7D — Memory honesty and robustness (Gate G4)
 
-**Status (2026-11-07): IMPLEMENTED — G4 REVIEW NOT SIGNED; rework required.**
+**Status (2026-11-07): G4 SIGNED — 7D accepted; 7E unblocked.**
 **Audit:** [`audit/AUDIT_7D_DEEP_2026-11-07.md`](audit/AUDIT_7D_DEEP_2026-11-07.md).
-**Rework brief:** [`PHASE7_7D_REWORK_BRIEF.md`](PHASE7_7D_REWORK_BRIEF.md).
-**QAQC:** [`audit/QAQC_7D_DEEP_2026-11-07.md`](audit/QAQC_7D_DEEP_2026-11-07.md).
-G4 is held by two Low production fixes: negative `block_count` accepted with
-zero layer tensors, and the engine no-source AUTO path recording a fabricated
-0-byte budget without `NoBudgetFallbackWarning`. The `MADV_DONTNEED` PTE-drop
-enabler design is accepted by audit adjudication (QAQC-7D-3). 7E remains
-blocked until G4 signs.
+**Signoff:** [`audit/G4_SIGNOFF_2026-11-07.md`](audit/G4_SIGNOFF_2026-11-07.md).
+**Rework brief (closed):** [`PHASE7_7D_REWORK_BRIEF.md`](PHASE7_7D_REWORK_BRIEF.md).
+**QAQC:** [`audit/QAQC_7D_DEEP_2026-11-07.md`](audit/QAQC_7D_DEEP_2026-11-07.md) and
+[`audit/QAQC_7D_REWORK_2026-11-07.md`](audit/QAQC_7D_REWORK_2026-11-07.md).
+Both Low rework defects are fixed (`a380003`): negative `block_count` rejected;
+engine no-source AUTO emits `NoBudgetFallbackWarning` and `weight_budget=None`.
+The `MADV_DONTNEED` PTE-drop enabler design is accepted by audit adjudication.
+7E (G5) is unblocked after the 7D merge; real 70B/8-hour evidence remains
+7F-2/7F-3/7F-4.
 **Coder brief:** [`PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md`](PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md) — authoritative package detail.
 **Evidence contract:** [`audit/evidence/G4/7D/README.md`](audit/evidence/G4/7D/README.md).
 

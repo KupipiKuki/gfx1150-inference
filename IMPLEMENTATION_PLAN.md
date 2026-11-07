@@ -265,7 +265,7 @@ class WeightStreamer:
 >
 > **7C status (2026-11-06): G3 SIGNED** — Phi-3/Gemma synthetic-fixture verified only; real-GGUF goldens = 7F-2; C-G1-4 closed earlier by 7B. 7C audit/CI fixes are in `audit/AUDIT_7C_DEEP_2026-11-06.md` / `audit/G3_SIGNOFF_2026-11-06.md`.
 >
-> **7D status (2026-11-07): IMPLEMENTED — G4 review NOT SIGNED; two Low fixes required.** Audit: [`audit/AUDIT_7D_DEEP_2026-11-07.md`](audit/AUDIT_7D_DEEP_2026-11-07.md); rework brief: [`PHASE7_7D_REWORK_BRIEF.md`](PHASE7_7D_REWORK_BRIEF.md). The implementation covers fadvise-based eviction (+ PTE-drop enabler), budgeted `AUTO`/`PIN`/`STREAM`, KV/cgroup/disk/block-count/duplicate hardening, unlink-before-map, exception-preserving cleanup, and qualified claims. Held by: negative `block_count` accepted with zero layer tensors; engine no-source AUTO records a fabricated 0-byte budget without `NoBudgetFallbackWarning`. The PTE-drop enabler design is accepted. 7E is not authorized until G4 is signed; real 70B/8-hour evidence remains 7F-2/7F-3/7F-4.
+> **7D status (2026-11-07): G4 SIGNED — 7D accepted; 7E unblocked.** Audit: [`audit/AUDIT_7D_DEEP_2026-11-07.md`](audit/AUDIT_7D_DEEP_2026-11-07.md); signoff: [`audit/G4_SIGNOFF_2026-11-07.md`](audit/G4_SIGNOFF_2026-11-07.md). Both rework defects are fixed (`a380003`): negative `block_count` rejected; engine no-source AUTO warns and records `weight_budget=None`; PTE-drop enabler accepted. 7E (G5) is unblocked after the 7D merge; real 70B/8-hour evidence remains 7F-2/7F-3/7F-4.
 
 ---
 

@@ -8,6 +8,10 @@
 **Audit:** `audit/AUDIT_7D_DEEP_2026-11-07.md`
 **QAQC:** `audit/QAQC_7D_DEEP_2026-11-07.md`
 
+> **CLOSED 2026-11-07:** both fixes landed in `a380003` and were independently
+> verified; G4 is **SIGNED** in `audit/G4_SIGNOFF_2026-11-07.md`. This brief is
+> retained as the rework record.
+
 The 7D work is substantively complete: lanes/CI are green, claims/canaries pass,
 and the QAQC probes reproduce the eviction/residency/KV/leak/exception results.
 Two Low production defects must be fixed before G4 signs. Do not bundle anything

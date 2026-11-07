@@ -19,6 +19,7 @@ Run:
 PYTHONPATH=src:build:tests python3 audit/evidence/G4/7D/audit-probes/rework_probes.py
 ```
 
-Current result: **exit 1** (both defects present), captured in
-`rework-probes.log`. After the coder/QAQC fixes, it must exit 0; QAQC should
-attach the green run to the rework evidence.
+Initial audit at `0b36b26`: **exit 1** (both defects present), captured in
+`rework-probes.log`. Rework at `a380003`/`09b934d`: **exit 0**, captured in
+`rework-probes.green.log`; QAQC's independent rework run is in
+`../qaqc-probes/qaqc-rework-run.log`.
