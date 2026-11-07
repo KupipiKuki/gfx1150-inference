@@ -489,39 +489,71 @@ STREAM and document the basis. Do not fake 70B/8-hour evidence; that is
 
 ### 7E — Stream topology and pipeline (Gate G5)
 
-**Audit trace:** P-1 residual; v0.6.2 §6 P1-4.
-**Allowed files:** `src/kernels/attention.hip`, `src/python_bindings/bindings.cpp`, tests, docs, evidence. **No Python API changes without approval.**
+**Status (2026-11-07): AUTHORIZED — G4 signed; 7F not authorized.**
+**Coder brief:** [`PHASE7_7E_STREAM_TOPOLOGY_BRIEF.md`](PHASE7_7E_STREAM_TOPOLOGY_BRIEF.md) — authoritative package detail.
+**Evidence contract:** [`audit/evidence/G5/7E/README.md`](audit/evidence/G5/7E/README.md).
 
-**Work packages**
+**Audit trace:** P-1 residual; v0.6.2 §6 P1-4; `audit/REVIEW_v0.6.1_c75914b.md` §2.4.
+**Allowed files:** `src/kernels/attention.hip`, `src/kernels/attention.h`;
+`src/kernels/{matmul,dequantize,mlp,rmsnorm,rope}.hip` + matching headers **only**
+for `hipStream_t` parameter plumbing (no kernel math);
+`src/python_bindings/bindings.cpp` only for internal plumbing (Python-visible
+signature unchanged); `tests/**`; `CMakeLists.txt` only for a per-thread test
+target/compile definition; `README.md`/`IMPLEMENTATION_PLAN.md` stream wording;
+`audit/CLAIMS_LEDGER.md` row 15; docs; `audit/evidence/G5/7E/**`. No tokenizer/
+model/7D memory-policy changes, 7F/7G, public Python API changes, or unrelated
+refactors.
+
+**Work packages** (full acceptance in the brief)
 
 | ID | Task | Acceptance |
 |---|---|---|
-| 7E-1 | Explicit compute stream + `compute_done` event; copy stream waits on compute; kernels launch on the compute stream; remove `hipStreamWaitEvent(0, ...)` reliance | Event graph reviewed; one synchronization per token (or documented per-layer boundary); no implicit NULL-stream dependency |
-| 7E-2 | Double-buffer weight staging (or per-projection buffers); pinned host staging (`hipHostRegister` / pinned slab); overlap copy with compute | Two in-flight weight slots; no overwrite while a kernel reads; measured overlap |
-| 7E-3 | `ensure()` / `ensure_weight()` sync before free/realloc; destructor waits or drains; per-thread default-stream test | No use-after-free under stress; no race under `HIP_LAUNCH_BLOCKING` / serialized and normal modes |
+| 7E-1 | Explicit copy/compute streams + `copy_done`/`compute_done`; kernels launch on the compute stream; no `hipStreamWaitEvent(0, ...)`; D2D KV async on compute | Event graph reviewed; no NULL-stream reliance; one layer-boundary sync measured |
+| 7E-2 | Double-buffered weight staging; pinned host (`hipHostRegister` or slab); overlap copy of slot B with compute of slot A | Two in-flight slots; no overwrite while a kernel reads; overlap measured or claim removed; pinned/fallback correct |
+| 7E-3 | `ensure`/`ensure_weight`/workspace/KV/destructor sync before free/destroy; forced realloc/exception stress; per-thread default-stream test | No use-after-free/race; correctness unchanged; stress/per-thread clean |
+| 7E-4 | Stream claims/docs: row 15, README/PLAN wording | Per-layer sync boundary documented (1/layer, N/token); no one-sync/token or throughput claim without evidence |
 
 **Required checks**
+
 ```bash
 python -m pytest -m gpu -q -k "stream or layer or e2e"
 python tests/test_layer.py
 python tests/test_full_model.py
 python tests/test_phase5_scale.py
-# stress: repeated forward passes, varying M, forced realloc, per-thread default stream
+python -m pytest -m "not gpu" -q
+python scripts/qa/check_claims.py
+python scripts/qa/canary_claims.py
+# stress: repeated forward, varying M, forced realloc, exception-after-enqueue
+# per-thread default stream build/run (or documented source/QAQC review)
+# overlap timing (hipEventElapsedTime) and sync count (1/layer, N/token)
+# source check: no hipStreamWaitEvent(0, ...) / stream-less kernels in the layer path
 ```
 
 **QAQC adversarial checks**
-- Review the event graph line by line: every async copy has a consumer wait; every free has a preceding sync.
-- Force buffer growth/shrink between calls; force an exception after enqueue; run many iterations.
-- Compare output before/after the change on the same seed; must be identical or within documented tolerance.
-- Confirm the claimed overlap with timing/event evidence, not just code shape.
+- Event graph line by line: every async copy has a consumer wait; every slot
+  reuse/free/destroy drains; no event/stream destroyed with pending work.
+- Double-buffer: copy B overlaps compute A; no slot overwritten while read;
+  forced growth/shrink/reuse safe.
+- Pinned staging path and pageable fallback both correct; no leak; no false
+  async claim.
+- Per-thread default stream: no legacy NULL-stream dependency; stress test.
+- Parent-vs-candidate token IDs/logits identical (or documented tolerance).
+- Overlap and sync counts measured, not inferred; row 15 honest.
 
 **Exit criteria (G5)**
+- [ ] Explicit compute/copy streams + events; no implicit NULL-stream reliance.
+- [ ] Double-buffered staging; overlap measured or claim removed.
+- [ ] Sync-before-free/destructor drain; stress/per-thread clean.
 - [ ] Correctness unchanged on all GPU suites.
-- [ ] No implicit NULL-stream reliance; race/stress test passes.
-- [ ] Overlap is demonstrated or the claim is removed.
-- [ ] Single sync/token (or documented exception) is measured.
+- [ ] Per-layer sync boundary measured/documented; no one-sync/token claim.
+- [ ] Claims/docs honest; CPU/GPU/claims/canaries green; evidence complete.
 
-**Stop:** Do not start 7F until G5 is signed.
+**Fallback:** if true overlap cannot be demonstrated, remove/qualify the overlap
+claim and keep the correct explicit-stream + sync-before-free work. If the
+per-thread build is infeasible, document the limitation and provide source/QAQC
+review plus non-main-thread stress. Do not claim throughput; 7F-3 owns it.
+
+**Stop:** Do not start 7F until G5 is signed; the auditor merges only after G5.
 
 ---
 
