@@ -471,10 +471,21 @@ class TestCPUOnlySuite(unittest.TestCase):
                 ) as kv:
                     self.assertEqual(len(kv.mmap_files), 2)
                     for p in kv.mmap_files:
-                        self.assertTrue(os.path.exists(p))
+                        # 7D-3 unlink-before-map: the files are unlinked
+                        # immediately after mapping (crash-safe) even though
+                        # the mapping stays usable through its open fd.
+                        self.assertFalse(
+                            os.path.exists(p),
+                            f"KV mmap file {p} must be unlinked while the mapping is live",
+                        )
                         self.assertNotEqual(os.path.abspath(p), os.path.abspath(bystander))
+                    # The mapping really is usable after the unlink.
+                    self.assertIsNotNone(kv._k_host)
+                    kv._k_host[0, 0, 0, :] = 1.0
 
-                # After close(), instance mmap files are gone, but bystander is untouched!
+
+                # After close(), no instance mmap files ever exist and the
+                # bystander is untouched.
                 self.assertTrue(os.path.exists(bystander))
                 with open(bystander, "rb") as f:
                     self.assertEqual(f.read(), b"important_user_data")

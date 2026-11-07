@@ -265,14 +265,16 @@ def test_q4km_chunked_batch_and_kv_offload(matmul_module) -> None:
         with LlamaInferenceEngine(gguf_path, max_seq_len=128, kv_mmap_dir=mmap_kv_dir) as engine_mmap:
             assert engine_mmap.kv_cache.device_bytes == 0
             created_mmaps = engine_mmap.kv_cache.mmap_files
-            assert len(created_mmaps) == 2 and all(os.path.exists(p) for p in created_mmaps)
+            # 7D-3 unlink-before-map: files are unlinked immediately after
+            # mapping (crash-safe), the mapping stays usable through its fd.
+            assert len(created_mmaps) == 2 and all(not os.path.exists(p) for p in created_mmaps)
             ids_mmap, _ = engine_mmap.generate_ids(
                 prompt_ids, max_new_tokens=6, temperature=0.0, stop_on_eos=False
             )
             print(f"  [mmap KV Offload] device_bytes=0, ids={ids_mmap}")
             assert ids_mmap == ids_full, f"mmap KV offload mismatch: {ids_mmap} != {ids_full}"
 
-        # Confirm mmap files were cleaned up on close()
+        # Confirm no mmap files ever exist after close() (already unlinked)
         assert all(not os.path.exists(p) for p in created_mmaps)
 
         # 4. CLI entry point verification

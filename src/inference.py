@@ -6,9 +6,10 @@ Coordinates:
    and memory-mapped weight streaming (`WeightStreamer`).
 2. GQA KV Cache (`KVCacheManager`) supporting GPU-resident offset pools, CPU RAM offload,
    and NVMe `mmap` offload for long-context 70B runs.
-3. Layer-wise ping-pong SSD prefetching (`MADV_WILLNEED` on Layer L+1 while GPU computes Layer L,
-   followed by `MADV_DONTNEED` page-cache reclamation advice on Layer L and global embedding/LM-head
-   tensors when `cache_weights=False`) to minimize clean file-backed page residency.
+3. Layer-wise ping-pong SSD prefetching (`MADV_WILLNEED` on Layer L+1 while GPU computes Layer L),
+   followed by best-effort page-cache eviction on Layer L and global embedding/LM-head
+   tensors when the effective residency policy is STREAM (`posix_fadvise(POSIX_FADV_DONTNEED)`
+   primary, optional `MADV_PAGEOUT`; `MADV_DONTNEED` only as a warned PTE-only fallback).
 4. Chunked prompt prefill (`prefill_chunk_size`), multi-prompt batch processing (`generate_batch`),
    and configurable Top-K / Top-P / Temperature / Repetition-Penalty token sampling.
 """
@@ -19,6 +20,7 @@ import argparse
 import os
 import sys
 import time
+import warnings
 from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
@@ -29,9 +31,16 @@ if _SRC_DIR not in sys.path:
 
 from gguf_parser import GGUFTensorInfo
 from weight_loader import WeightStreamer
-from kv_cache import KVCacheManager
+from kv_cache import KVCacheManager, DEFAULT_MAX_KV_BYTES
 from layer import LlamaLayerConfig, TransformerLayer, linear_project, norm_weight_fp16
 from model_spec import ModelSpec, resolve_model_spec
+from memory_budget import (
+    ResidencyPolicy,
+    compute_weight_budget,
+    decide_residency,
+    estimate_activation_bytes,
+    read_budget_sources,
+)
 from tokenizer import GGUFTokenizer, embed_tokens
 
 try:
@@ -121,9 +130,39 @@ def sample_next_token(
     return int(rng.choice(logits.size, p=probs))
 
 
+def resolve_residency_policy(
+    residency: Optional[str | ResidencyPolicy] = None,
+    cache_weights: bool = False,
+) -> Tuple[ResidencyPolicy, bool]:
+    """Resolve the requested residency policy from the explicit `residency`
+    argument and the deprecated `cache_weights` boolean.
+
+    Returns `(policy, used_deprecated)`. Precedence: an explicit policy wins;
+    `cache_weights=True` maps to `PIN_ALL`; `cache_weights=False` maps to the
+    new default `AUTO`. `used_deprecated` is True when `cache_weights` decided
+    the policy (the boolean API is deprecated: True maps to `PIN_ALL`, `False`
+    to `AUTO`; the mapping is documented, not silent).
+    """
+    if residency is not None:
+        return ResidencyPolicy.coerce(residency), False
+    if cache_weights:
+        return ResidencyPolicy.PIN_ALL, True
+    return ResidencyPolicy.AUTO, False
+
+
 class LlamaInferenceEngine:
     """
     Full-model SSD-offloaded LLM inference engine for AMD gfx1150 (7B–70B models).
+
+    Residency policy (7D-2): `residency='auto'` (default) keeps the model's
+    pages resident in the host page cache when the model's weight bytes fit
+    the computed budget (min of free GTT, MemAvailable, and cgroup headroom,
+    minus the KV cache, the activation estimate, and a safety margin) and
+    streams otherwise; `'pin_all'` honors the explicit request and warns when
+    the model exceeds the budget; `'stream'` streams with best-effort
+    page-cache eviction (`posix_fadvise(POSIX_FADV_DONTNEED)` primary,
+    optional `MADV_PAGEOUT`). `cache_weights=True` is a deprecated alias for
+    `'pin_all'`; `False` maps to the new default `'auto'`.
     """
 
     def __init__(
@@ -134,13 +173,30 @@ class LlamaInferenceEngine:
         kv_mmap_dir: Optional[str] = None,
         rope_neox: Optional[bool] = None,
         cache_weights: bool = False,
+        residency: Optional[str | ResidencyPolicy] = None,
+        residency_budget_mb: Optional[int] = None,
+        max_kv_bytes: Optional[int] = None,
     ):
         self.model_path = model_path
         self.streamer: Optional[WeightStreamer] = None
         self.kv_cache: Optional[KVCacheManager] = None
         self._out_norm_w: Optional[np.ndarray] = None
 
-        self.streamer = WeightStreamer(model_path, cache_weights=cache_weights)
+        requested_policy, used_deprecated = resolve_residency_policy(
+            residency, cache_weights
+        )
+        self.residency_requested = requested_policy
+        if used_deprecated:
+            warnings.warn(
+                "cache_weights=True is deprecated and maps to residency='pin_all' "
+                "(host page-cache residency, not a device weight cache). Use "
+                "--residency pin / residency='pin_all' instead. cache_weights=False "
+                "maps to the new default 'auto'.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        self.streamer = WeightStreamer(model_path)
         try:
             self.metadata = self.streamer.gguf.metadata
             # Model-spec resolution validates the family, feature set, and the
@@ -162,6 +218,14 @@ class LlamaInferenceEngine:
                 emb_info = self.streamer.gguf.tensors["token_embd.weight"]
                 self.vocab_size = emb_info.shape_row_major[0]
 
+            # 7D-2: resolve AUTO/PIN/STREAM against the budget measured from
+            # the real host sources (or the explicit test/user override) and
+            # record the decision.
+            self.residency_budget_mb = (
+                None if residency_budget_mb is None else int(residency_budget_mb)
+            )
+            self._apply_residency_policy(requested_policy)
+
             # Cache the small 1D output_norm.weight in host FP16 once and release its mmap view
             out_norm_info, out_norm_view = self._get_global_tensor("output_norm.weight")
             self._out_norm_w = norm_weight_fp16((out_norm_info, out_norm_view)).copy()
@@ -181,10 +245,54 @@ class LlamaInferenceEngine:
                 head_dim=self.layer_cfg.head_dim,
                 offload_to_cpu=offload_kv_to_cpu,
                 mmap_dir=kv_mmap_dir,
+                max_kv_bytes=(
+                    DEFAULT_MAX_KV_BYTES if max_kv_bytes is None else int(max_kv_bytes)
+                ),
             )
-        except Exception:
+        except BaseException:
             self.close()
             raise
+
+    def _apply_residency_policy(self, requested: ResidencyPolicy) -> None:
+        """Measure the host budget (unless overridden), decide the effective
+        policy, and record the decision (`self.residency_decision`, mirrored
+        on the streamer). AUTO never silently pins an over-budget model and
+        never invents a budget when no source is readable (it fails safe to
+        STREAM)."""
+        weight_bytes = self.streamer.weight_bytes
+        kv_bytes = (
+            2
+            * self.spec.num_layers
+            * self.max_seq_len
+            * self.spec.num_kv_heads
+            * self.spec.head_dim
+            * 2
+        )
+        activation_bytes = estimate_activation_bytes(
+            self.spec.hidden_size, self.max_seq_len, self.vocab_size
+        )
+        if self.residency_budget_mb is not None:
+            budget_bytes = max(0, int(self.residency_budget_mb) * (1 << 20))
+            self.residency_decision_origin = (
+                f"budget override residency_budget_mb={self.residency_budget_mb} "
+                f"(budget {budget_bytes} bytes)"
+            )
+            self.residency_decision = decide_residency(
+                requested, weight_bytes, budget_bytes
+            )
+        else:
+            sources = read_budget_sources()
+            self.weight_budget = compute_weight_budget(
+                kv_bytes, activation_bytes, sources
+            )
+            self.residency_decision_origin = (
+                "measured sources: "
+                + (", ".join(self.weight_budget.sources.used_sources) or "none")
+            )
+            self.residency_decision = decide_residency(
+                requested, weight_bytes, self.weight_budget.weight_budget, sources
+            )
+        self.streamer.set_decision(self.residency_decision)
 
     def _get_global_tensor(self, name: str) -> Tuple[GGUFTensorInfo, np.ndarray]:
         info = self.streamer.gguf.tensors[name]
@@ -200,7 +308,8 @@ class LlamaInferenceEngine:
         """
         Run a full-model forward pass for `token_ids` starting at `pos_offset`,
         streaming each transformer layer from SSD with ping-pong prefetch (`MADV_WILLNEED`)
-        and immediate page eviction (`MADV_DONTNEED`).
+        and best-effort page-cache eviction (fadvise `POSIX_FADV_DONTNEED` / optional
+        `MADV_PAGEOUT`) when the effective residency policy is STREAM.
 
         When `compute_logits=False` (used for intermediate chunks during chunked prefill),
         skips final RMSNorm and LM Head projection to save compute and SSD bandwidth.
@@ -505,11 +614,31 @@ class LlamaInferenceEngine:
         return texts, metrics
 
     def close(self) -> None:
+        """Release the KV cache and weight mapping. Never raises: a cleanup
+        failure must not mask the original constructor error — cleanup errors
+        are warned instead (7D-3)."""
         self._out_norm_w = None
-        if getattr(self, "kv_cache", None) is not None:
-            self.kv_cache.close()
-        if getattr(self, "streamer", None) is not None:
-            self.streamer.close()
+        kv = getattr(self, "kv_cache", None)
+        if kv is not None:
+            try:
+                kv.close()
+            except Exception as exc:
+                warnings.warn(
+                    f"LlamaInferenceEngine.close(): KV cache cleanup failed: {exc}",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+        st = getattr(self, "streamer", None)
+        if st is not None:
+            try:
+                st.close()
+            except Exception as exc:
+                warnings.warn(
+                    f"LlamaInferenceEngine.close(): weight streamer cleanup "
+                    f"failed: {exc}",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
     def __enter__(self) -> "LlamaInferenceEngine":
         return self
@@ -535,7 +664,35 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--offload-kv-cpu", action="store_true", help="Offload KV cache to CPU RAM")
     parser.add_argument("--kv-mmap-dir", default=None, help="Directory for SSD mmap-backed KV cache")
     parser.add_argument("--rope-neox", action="store_true", default=None, help="Use NeoX half-dim RoPE rotation")
-    parser.add_argument("--cache-weights", action="store_true", help="Keep streamed weight pages resident in OS page cache")
+    parser.add_argument(
+        "--residency",
+        choices=["auto", "pin", "stream"],
+        default=None,
+        help=(
+            "Weight page-cache residency policy: 'auto' (default) pins in the host "
+            "page cache when the model fits the measured budget, else streams; "
+            "'pin' keeps pages resident (explicit request; warns over budget); "
+            "'stream' evicts after each layer (best-effort). Not GTT pinning: "
+            "weights are still copied H2D per projection."
+        ),
+    )
+    parser.add_argument(
+        "--cache-weights",
+        action="store_true",
+        help="(deprecated alias for --residency pin; --residency wins if both given)",
+    )
+    parser.add_argument(
+        "--residency-budget-mb",
+        type=int,
+        default=None,
+        help="Override the measured weight-residency budget with MB (for reproducible tests)",
+    )
+    parser.add_argument(
+        "--max-kv-bytes",
+        type=int,
+        default=None,
+        help="User cap on the KV cache bytes (the allocation also refuses requests exceeding available GTT/host/cgroup)",
+    )
     parser.add_argument("--seed", type=int, default=42, help="RNG seed")
     args = parser.parse_args(argv)
 
@@ -545,7 +702,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         offload_kv_to_cpu=args.offload_kv_cpu,
         kv_mmap_dir=args.kv_mmap_dir,
         rope_neox=args.rope_neox,
+        residency=args.residency,
         cache_weights=args.cache_weights,
+        residency_budget_mb=args.residency_budget_mb,
+        max_kv_bytes=args.max_kv_bytes,
     ) as engine:
         text, metrics = engine.generate(
             prompt=args.prompt,

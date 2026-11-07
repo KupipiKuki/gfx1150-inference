@@ -9,19 +9,19 @@ Built with **ROCm, HIP, and memory-mapped I/O (`mmap` + `madvise`)** for overnig
 ## 🎯 Project Overview
 
 ### **Goal**
-Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., Radeon 890M, Ryzen AI 370) by **streaming quantized weights directly from NVMe SSD**, enabling inference on hardware with limited unified RAM/VRAM without OOM errors.
+Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., Radeon 890M, Ryzen AI 370) by **streaming quantized weights directly from NVMe SSD** on unified-memory hardware. 7B-class models are verified on hardware; the 70B path exists but **no real 70B GGUF has ever been run** (UNVERIFIED — ledger ID 18; real-GGUF evidence belongs to 7F-2), so no "without OOM" guarantee is claimed for 70B.
 
 ### **Target Use Case**
-- **Overnight research/fact-checking** (8-hour runtimes acceptable)
+- **Overnight research/fact-checking** (long unattended runs; the "8-hour runtimes" goal has **no endurance measurement yet** — UNVERIFIED, ledger ID 19; a timed soak with telemetry belongs to 7F-3/7F-4)
 - **Single-GPU / APU** operation (aware of unified system memory / ROCm GTT)
-- **Strictly bounded memory footprint** via layer-wise SSD streaming, page-cache eviction (`MADV_DONTNEED`), and fused 4-bit dequantization
+- **Best-effort low-memory footprint** (not a hard bound — the "bounded memory" claim was withdrawn in 7D, ledger ID 14): layer-wise SSD streaming with best-effort page-cache eviction (`posix_fadvise(POSIX_FADV_DONTNEED)` plus a mapping PTE drop, see README §Runtime Modes), a budgeted `AUTO`/`PIN`/`STREAM` residency policy against measured GTT/host/cgroup headroom, and fused 4-bit dequantization
 
 ### **Tech Stack**
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | GPU Backend | ROCm 6.1+ + HIP | AMD GPU compute (`gfx1150`, Wave32) |
 | Compute Kernels | Custom HIP C++17 | Fused Q4 matmul/GEMV, RMSNorm, RoPE, GQA, SwiGLU |
-| Weight Storage | `mmap` + `madvise` (`WILLNEED`/`DONTNEED`) | Bounded-RAM NVMe SSD streaming with prefetching |
+| Weight Storage | `mmap` + `posix_fadvise(POSIX_FADV_DONTNEED)` + `madvise` (`WILLNEED` prefetch / `PAGEOUT`-or-`DONTNEED` PTE drop) | Best-effort low-RAM NVMe SSD streaming (advice, not a hard bound; 7D-1) |
 | Model Format | **GGUF** (`Q4_0` / `Q4_K_M`) | Page-aligned quantized weights + embedded metadata/tokenizer |
 | Language | Python (frontend/orchestration) + C++/HIP (kernels) | Rapid iteration + native GPU speed |
 | Build System | CMake 3.21+ + PyBind11 (`pybind11::module`) | Native HIP language compilation |
@@ -76,18 +76,24 @@ Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., R
 
 #### **Success Criteria**
 - [x] Parse GGUF v2/v3 metadata key-values and 32-byte aligned tensor offsets accurately
-- [x] Stream layer weights via `mmap` and evict completed layers with `MADV_DONTNEED` (keeping resident RAM delta < 500 MB)
+- [x] Stream layer weights via `mmap` and evict completed layers (7D-1: best-effort `posix_fadvise(POSIX_FADV_DONTNEED)` plus a mapping PTE drop; the historical `MADV_DONTNEED`-only mechanism merely dropped PTEs). The resident-RAM-delta < 500 MB goal was **never measured** (UNVERIFIED, ledger ID 30); the 7D measured probe (`audit/evidence/G4/7D/`) covers synthetic-model RSS/major-fault deltas for PIN vs STREAM only
 - [x] `dequantize_q4_0` kernel matches CPU reference exactly (`max_error < 1e-3`, achieved `0.000000`)
 - [x] Fused `matmul_q4_0` kernel matches dequantized FP16 matmul while using 4× less weight memory traffic (`0.50 ms` for `1×4096×4096`)
 - [x] All Phase 2 unit tests (`tests/test_gguf_and_q4.py`) pass
 
 #### **Deliverables**
 - `src/gguf_parser.py` (GGUF v2/v3 header, metadata, and tensor offset parser)
-- `src/weight_loader.py` (`WeightStreamer` with `mmap` + `madvise` page-cache lifecycle control)
+- `src/weight_loader.py` (`WeightStreamer` with `mmap` page-cache lifecycle control: `posix_fadvise(POSIX_FADV_DONTNEED)` + PTE-drop eviction, `AUTO`/`PIN_ALL`/`STREAM` residency policy)
 - `src/kernels/dequantize.h` & `src/kernels/dequantize.hip` (`Q4_0` block dequantization + fused `matmul_q4_0` kernel)
-- `tests/test_gguf_and_q4.py` (GGUF parser, `madvise` streaming, and Q4 kernel test suite)
+- `tests/test_gguf_and_q4.py` (GGUF parser, `madvise` streaming, and Q4 kernel test suite); `tests/test_memory_residency.py` (7D memory honesty suite)
 
-#### **Technical Design: Bounded-RAM Streaming on Unified Memory (`gfx1150`)**
+#### **Technical Design: Best-Effort Low-RAM Streaming on Unified Memory (`gfx1150`)** *(historical sketch, superseded by the 7D implementation)*
+```python
+class WeightStreamer:
+    def __init__(self, model_path: str):
+        self.file = open(model_path, "rb")
+        self.mm = mmap.mmap(self.file.fileno(), 0, access=mmap.ACCESS_READ)
+        self.gguf = GGUFParser(self.mm)
 ```python
 class WeightStreamer:
     def __init__(self, model_path: str):
@@ -101,7 +107,8 @@ class WeightStreamer:
         self.mm.madvise(mmap.MADV_WILLNEED, offset, length)
 
     def release_layer(self, layer_idx: int) -> None:
-        """Evict completed layer pages from Linux page cache to prevent APU RAM exhaustion."""
+        """Historical sketch (pre-7D): MADV_DONTNEED only dropped PTEs, not
+        the page cache. The 7D implementation evicts via posix_fadvise."""
         offset, length = self.gguf.get_layer_byte_span(layer_idx)
         self.mm.madvise(mmap.MADV_DONTNEED, offset, length)
 ```
@@ -218,12 +225,14 @@ class WeightStreamer:
 
 ## 📊 Performance Targets
 
-| **Model** | **Quantization** | **SSD Size** | **Active RAM Cap** | **Target Tokens/sec** | **Estimated Time for 1K Tokens** |
+| **Model** | **Quantization** | **SSD Size** | **Active RAM Cap** (unmeasured design target — see caveat below) | **Target Tokens/sec** | **Estimated Time for 1K Tokens** |
 |-----------|------------------|--------------|--------------------|-----------------------|-----------------------------------|
 | 7B        | `Q4_0` / `Q4_K`  | ~3.8 GB      | < 1.5 GB           | 5–10                  | 2–4 minutes                       |
 | 13B       | `Q4_0` / `Q4_K`  | ~7.3 GB      | < 2.0 GB           | 2–5                   | 5–10 minutes                      |
 | 30B       | `Q4_0` / `Q4_K`  | ~16.5 GB     | < 3.0 GB           | 0.5–1.5               | 15–35 minutes                     |
 | 70B       | `Q4_0` / `Q4_K`  | ~38.0 GB     | < 4.5 GB           | 0.1–0.5               | 1–3 hours                         |
+
+> **Caveat (7D, ledger ID 20):** the **Active RAM Cap** column is an unmeasured design target, not a measurement — no 70B/13B/30B run on this table was ever executed, and the eviction mechanism is best-effort kernel advice that enforces **no cap**. Measured (synthetic-model) RSS/page-cache deltas for the AUTO/PIN/STREAM residency policy are recorded in `audit/evidence/G4/7D/`; real-model RAM measurements belong to 7F-3.
 
 ---
 
@@ -256,7 +265,7 @@ class WeightStreamer:
 >
 > **7C status (2026-11-06): G3 SIGNED** — Phi-3/Gemma synthetic-fixture verified only; real-GGUF goldens = 7F-2; C-G1-4 closed earlier by 7B. 7C audit/CI fixes are in `audit/AUDIT_7C_DEEP_2026-11-06.md` / `audit/G3_SIGNOFF_2026-11-06.md`.
 >
-> **7D status (2026-11-07): AUTHORIZED — G3 signed; 7E not authorized.** The coder brief is [`PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md`](PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md); the evidence contract is [`audit/evidence/G4/7D/README.md`](audit/evidence/G4/7D/README.md). 7D cannot evidence real 70B/8-hour runs; those remain 7F-2/7F-3/7F-4 unless measured.
+> **7D status (2026-11-07): IMPLEMENTED — awaiting G4 signoff.** The coder brief is [`PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md`](PHASE7_7D_MEMORY_ROBUSTNESS_BRIEF.md); the evidence bundle is [`audit/evidence/G4/7D/`](audit/evidence/G4/7D/). Implemented: `posix_fadvise(POSIX_FADV_DONTNEED)`-based eviction (+ `MADV_PAGEOUT` or a PTE drop as enabler), budgeted `AUTO`/`PIN`/`STREAM` residency (`--residency`), KV/cgroup/disk/block-count/duplicate hardening, unlink-before-map, exception-preserving cleanup, and qualified docs/claims (ledger rows 14/18/19/20/21/30; baseline entries removed with the canary count updated). 7D does **not** evidence real 70B/8-hour runs; those remain 7F-2/7F-3/7F-4 unless measured. 7E is not authorized until G4 is signed.
 
 ---
 

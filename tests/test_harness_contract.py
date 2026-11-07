@@ -333,6 +333,10 @@ EXPECTED_LANES = {
     # llama-regression tests need the HIP extension (GPU lane).
     "test_model_spec.py": "cpu",
     "test_model_families.py": "gpu",
+    # Phase 7D (G4): memory honesty & robustness. Pure Python: the streamer,
+    # the budget readers, and the KV cache in CPU/mmap offload mode (behind a
+    # matmul_module stub when the extension is absent).
+    "test_memory_residency.py": "cpu",
 }
 
 

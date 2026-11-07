@@ -6,8 +6,9 @@ Streams `blk.{layer_idx}.*` weights directly from SSD via `WeightStreamer`, exec
 fused `Q4_0` projections, RMSNorm, RoPE, Grouped-Query Attention (GQA), and the
 per-family FFN (SwiGLU for llama/qwen2/phi3, GeGLU for gemma; Phi-3 fused
 `attn_qkv` / fused gate+up `ffn_up` layouts) on the AMD gfx1150 GPU, and evicts
-completed layer pages via `MADV_DONTNEED`. The executed graph is selected by the
-resolved `ModelSpec` (Phase 7C), never by hardcoded `llama.*` tensor names.
+completed layer pages via best-effort page-cache eviction (`posix_fadvise(POSIX_FADV_DONTNEED)`
+primary, optional `MADV_PAGEOUT`) when the effective residency policy is STREAM. The executed
+graph is selected by the resolved `ModelSpec` (Phase 7C), never by hardcoded `llama.*` tensor names.
 """
 
 from __future__ import annotations
