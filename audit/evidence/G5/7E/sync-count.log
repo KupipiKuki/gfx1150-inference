@@ -1,0 +1,26 @@
+=== sync-count.log: one sync per layer, N per token (G5 boundary) ===
+date: Sat Nov  7 10:51:29 PM UTC 2026
+
+== source enumeration: every hipStreamSynchronize site in attention.hip ==
+150:                HIP_CHECK(hipStreamSynchronize(nullptr));
+158:                HIP_CHECK(hipStreamSynchronize(nullptr));
+166:                HIP_CHECK(hipStreamSynchronize(nullptr));
+174:                HIP_CHECK(hipStreamSynchronize(nullptr));
+566:        if (compute_stream) HIP_CHECK(hipStreamSynchronize(compute_stream));
+567:        if (copy_stream) HIP_CHECK(hipStreamSynchronize(copy_stream));
+1019:    HIP_CHECK(hipStreamSynchronize(ws.copy_stream));
+
+Annotation: lines 150-174 are the AttentionWorkspace::ensure realloc drains (host-wrapper workspace;
+run only when a buffer must grow) and 566-567 is DeviceLayerWorkspace::drain() (growth, exception guard,
+destructor). The steady-state layer path performs exactly ONE synchronization: line 1019,
+hipStreamSynchronize(ws.copy_stream), after the D2H waits on layer_out_ready. There is no
+per-projection or per-copy synchronization.
+
+== measured: per-layer trace summaries (2-layer model; 1 prefill + decode steps) ==
+$ python -m pytest tests/test_stream_topology.py::test_7e_trace_reports_one_sync_per_layer -q -s
+7E trace: 4 layer summaries, each boundary_syncs=1
+1 passed (each layer call asserts boundary_syncs=1; the trace summary is emitted once per layer call)
+
+A token through an N-layer model therefore performs N boundary syncs. A one-sync/token
+claim is NOT made: the Python forward_layer_cached API returns host hidden states per layer
+(brief section 1 non-goal; ledger row 15 stays NOT YET).
