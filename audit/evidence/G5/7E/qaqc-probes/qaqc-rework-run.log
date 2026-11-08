@@ -1,0 +1,26 @@
+=== QAQC 7E REWORK independent re-run at tip e823e83, Sun Nov  8 02:09:29 AM UTC 2026 ===
+
+== battery ==
+pytest -m gpu -q          -> 39 passed, 510 deselected (real gfx1150)
+pytest -m 'not gpu' -q    -> 510 passed, 39 deselected
+test_cpu_only.py (+-O)    -> OK / OK
+check_claims.py           -> PASS (0 new, 8 baselined, 0 findings)
+canary_claims.py          -> PASS (12/12)
+
+== BLOCKER-7E-1 re-measurement ==
+rocprofv3 --hip-trace fresh re-run (qaqc-probes/sync_count_probe.py + sync_count_analyze.py):
+  total hipStreamSynchronize records: 23; per-call clusters (cold, warm1, warm2): [21, 1, 1]
+in-code counters via GFX1150_STREAM_TRACE=1: warm layers boundary_syncs=1 drain_syncs=0; cold layer drain_syncs counted
+tests/test_stream_topology.py::test_7e_trace_reports_one_sync_per_layer -> PASSED (asserts measured values)
+
+== BLOCKER-7E-2 ==
+alloc-first-then-free confirmed in the diff (realloc_buf, ensure_weight_slot, realloc_attn_buf x4, pinned-slab growth)
+
+== BLOCKER-7E-3 ==
+source-contract test now scans repo/src/kernels (6 .hip files found, attention.hip asserted) -> PASSED
+CI at tip e823e83: CPU-Only Verification & Regression CI success, Clean-Clone Build CI success (Actions API)
+
+== probes ==
+stream_source_scan.py -> PASS (0 hipStreamWaitEvent(0 in src/)
+correctness_probe.py -> digests identical to parent (a8547f8c..., 49da87df..., greedy ids [27,31,27,31,17,27,4,24])
+ptds_probe.py -> PTDS module digests identical, thread stress OK
