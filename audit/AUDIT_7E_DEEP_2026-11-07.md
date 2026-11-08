@@ -1,30 +1,40 @@
 # AUDIT 7E (G5) — Stream topology & pipeline
 
 **Auditor:** DeepSeek V4.1 Flash (primary auditor)
-**Date:** 2026-11-07
+**Date:** 2026-11-07 · **Revised:** 2026-11-08 after the G5 rework
 **Gate:** G5 (Phase 7E stream topology & pipeline)
-**Target:** `wp/7E-stream-topology` @ `9f90e4f` (work `7c61ea7`; evidence `98b08c5`; QAQC `9f90e4f`; parent `1604beb`)
+**Target:** `wp/7E-stream-topology` @ `29d149a` (rework work `718653a`; evidence `8c0ab55`/`e823e83`; QAQC `29d149a`; initial work `7c61ea7`; parent `1604beb`)
 **Brief:** `PHASE7_7E_STREAM_TOPOLOGY_BRIEF.md`; **contract:** `audit/evidence/G5/7E/README.md`
-**QAQC:** `audit/QAQC_7E_DEEP_2026-11-07.md`
+**QAQC:** `audit/QAQC_7E_DEEP_2026-11-07.md` (initial) and `audit/QAQC_7E_REWORK_2026-11-08.md` (rework)
 
 ---
 
 ## 1. Verdict
 
-**G5: NOT SIGNED — rework required.**
+**G5: PASS — SIGNED after the rework.**
 
-The 7E implementation is substantively strong: explicit copy/compute streams,
+The 7E implementation is correct: explicit copy/compute streams,
 `copy_done`/`compute_done` slot events, kernels on the compute stream, async
 D2D KV writes, double-buffered pinned-slab staging, measured overlap, PTDS and
-correctness anchors. However, the **sync-count claim/evidence is wrong**, the
-**CPU CI is red**, and there is a **failure-path allocation bug**. The QAQC
-report recommends signoff but missed the first and third items.
+correctness anchors. The initial review found three blockers; all are fixed
+and independently verified:
+
+- **BLOCKER-7E-1 — CLOSED:** the guard is armed only while an exception is
+  unwinding; `boundary_syncs`/`drain_syncs` are real counters. `rocprofv3`
+  measures **23 syncs total, clusters [21, 1, 1]**: cold growth drains, then
+  exactly one boundary sync per warm layer.
+- **BLOCKER-7E-2 — CLOSED:** every growth path allocates the fresh buffer
+  first and frees the old one only after success; destructor drains are
+  guarded. No dangling/double-free path on allocation failure.
+- **BLOCKER-7E-3 — CLOSED:** the source-contract test now scans the real
+  `src/kernels` directory (6 `.hip` files, `attention.hip` asserted); CPU and
+  clean-clone CI are green at `e823e83`.
 
 ---
 
 ## 2. Findings
 
-### BLOCKER-7E-1 (Medium) — the “one sync per layer” evidence is not measuring syncs
+### BLOCKER-7E-1 (Medium) — the “one sync per layer” evidence is not measuring syncs — **CLOSED in `718653a`**
 
 `launch_forward_layer_cached_fp16` creates a `LayerGuard` whose destructor is
 **unconditional**:
@@ -69,7 +79,7 @@ not print a literal), make the trace/test use it, and regenerate
 warm layer must measure exactly one boundary sync; the exception/growth drains
 remain separate and documented.
 
-### BLOCKER-7E-2 (Low/Medium) — free-then-malloc failure path leaves a dangling pointer
+### BLOCKER-7E-2 (Low/Medium) — free-then-malloc failure path leaves a dangling pointer — **CLOSED in `718653a`**
 
 `DeviceLayerWorkspace::realloc_buf` (and `ensure_weight_slot`, and
 `AttentionWorkspace::ensure`) use:
@@ -90,7 +100,7 @@ consistent) so a failed allocation cannot double-free. Apply to
 `realloc_buf`, `ensure_weight_slot`, and `AttentionWorkspace::ensure`; add a
 failure-path test or a documented code-review assertion.
 
-### BLOCKER-7E-3 (Medium, process) — CPU CI is red and the source-contract test is vacuous
+### BLOCKER-7E-3 (Medium, process) — CPU CI is red and the source-contract test is vacuous — **CLOSED in `718653a`/`e823e83`**
 
 The pushed tip `9f90e4f` has **CPU-Only Verification & Regression CI failure**
 (job `128565915609`, step “Run the pytest CPU lane”); Clean-Clone passed. The
@@ -134,9 +144,28 @@ log, fix the failing test/environment, and re-run CPU/clean-clone CI green.
 - **No code changes in this audit.** The QAQC report, the evidence bundle and
   the work commit are otherwise complete.
 
----
+### Rework closure (2026-11-08)
 
-## 3. What passed
+- **Sync count:** `LayerGuard` arms only while `std::uncaught_exceptions()`
+  changes; `boundary_syncs`/`drain_syncs` are real counters. A fresh
+  `rocprofv3 --hip-trace` run reproduces **23 `hipStreamSynchronize` records,
+  clusters `[21, 1, 1]`** — cold growth drains, then exactly one boundary sync
+  per warm layer. `sync-count.log` and the trace test are measurement-based.
+- **Allocation safety:** `realloc_buf`, `ensure_weight_slot`,
+  `AttentionWorkspace::realloc_attn_buf`, and pinned-slab growth allocate the
+  fresh buffer first and free the old one only after success; workspace/KV
+  destructors wrap drains in try/catch.
+- **CI/test:** the source-contract test scans
+  `_TESTS_DIR.parent / "src" / "kernels"`, asserts the `.hip` files are found,
+  and is non-vacuous. CI at `e823e83`: CPU `42435864483` **success**,
+  Clean-Clone `42435864337` **success**.
+- **Battery:** GPU **39 passed**, CPU **510 passed**, stream **5 passed**,
+  CPU-only **12/12** both modes, claims **PASS**, canaries **12/12**, source
+  scan PASS, correctness/PTDS bit-identical, stress green.
+- **Scope:** rework touches only `src/kernels/attention.hip` and the two test
+  files (+ evidence); forbidden areas zero-diff.
+
+---
 
 | Check | Result |
 |---|---|
@@ -157,20 +186,23 @@ log, fix the failing test/environment, and re-run CPU/clean-clone CI green.
 
 ## 4. Gate impact
 
-- **G5:** **NOT SIGNED.** 7E stays in rework; do not merge
-  `wp/7E-stream-topology`.
-- **7F:** blocked until G5 signs.
-- **CI:** red on the pushed candidate; must be green before re-signoff.
-- **Release/G6:** unchanged; 7F owns real throughput/benchmark evidence.
-- **Branch:** the coder/QAQC should fix the three blockers, update the evidence,
-  and stop for re-review.
+- **G5:** **SIGNED.** 7E is accepted; merge `wp/7E-stream-topology` into
+  `vibe/phase7-220201`.
+- **7F:** unblocked; 7F has its own G6 gate.
+- **CI:** CPU/clean-clone green at `e823e83`; GPU CI remains the self-hosted
+  lane (C-G1-3) and is not counted as a pass here.
+- **Release/G6:** still gated by 7F and the GPU runner; 7F owns real
+  throughput/benchmark evidence.
+- **Branch:** `wp/7E-stream-topology` @ `29d149a` (work `718653a` + evidence
+  + QAQC) is the accepted 7E branch.
 
 ---
 
 ## 5. Sign-off
 
-**7E decision: NOT SIGNED — rework required.** The stream topology itself is
-largely correct; the sync-count claim/evidence, the allocation-failure path,
-and the red CPU CI (plus the vacuous source-contract test) prevent G5 closure.
+**7E decision: PASS — G5 SIGNED.** All three rework blockers are closed with
+independent evidence; the stream topology, double buffer, pinned slab,
+overlap, PTDS, correctness, per-layer sync boundary, and claims are accepted.
+No open G5 blocker remains.
 
-**Signed:** DeepSeek V4.1 Flash, primary auditor — 2026-11-07.
+**Signed:** DeepSeek V4.1 Flash, primary auditor — 2026-11-08.

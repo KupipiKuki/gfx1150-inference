@@ -267,7 +267,7 @@ class WeightStreamer:
 >
 > **7D status (2026-11-07): G4 SIGNED — 7D accepted; 7E unblocked.** Audit: [`audit/AUDIT_7D_DEEP_2026-11-07.md`](audit/AUDIT_7D_DEEP_2026-11-07.md); signoff: [`audit/G4_SIGNOFF_2026-11-07.md`](audit/G4_SIGNOFF_2026-11-07.md). Both rework defects are fixed (`a380003`): negative `block_count` rejected; engine no-source AUTO warns and records `weight_budget=None`; PTE-drop enabler accepted. 7E (G5) is unblocked after the 7D merge; real 70B/8-hour evidence remains 7F-2/7F-3/7F-4.
 >
-> **7E status (2026-11-07): IMPLEMENTED — G5 REVIEW NOT SIGNED; rework required.** Audit: [`audit/AUDIT_7E_DEEP_2026-11-07.md`](audit/AUDIT_7E_DEEP_2026-11-07.md); rework brief: [`PHASE7_7E_REWORK_BRIEF.md`](PHASE7_7E_REWORK_BRIEF.md). Explicit copy/compute streams, `copy_done`/`compute_done`, double-buffered pinned-slab staging, overlap/PTDS/correctness are accepted in principle. Held by: the unconditional `LayerGuard` drain (3 syncs/warm layer, hardcoded `boundary_syncs=1`); the free-then-malloc growth failure path; and red CPU CI plus a vacuous source-contract test path. 7F remains blocked; real throughput/benchmark evidence is 7F-3.
+> **7E status (2026-11-08): G5 SIGNED — 7E accepted; 7F unblocked.** Audit: [`audit/AUDIT_7E_DEEP_2026-11-07.md`](audit/AUDIT_7E_DEEP_2026-11-07.md); signoff: [`audit/G5_SIGNOFF_2026-11-08.md`](audit/G5_SIGNOFF_2026-11-08.md). All three rework blockers are fixed (`718653a`): armed guard + real sync counters (rocprof `[21,1,1]`, warm=1), alloc-first growth, real source-contract scan, and green CPU/clean-clone CI at `e823e83`. 7F (G6) is unblocked; real throughput/benchmark evidence remains 7F-3.
 
 ---
 
