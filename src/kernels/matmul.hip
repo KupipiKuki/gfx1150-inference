@@ -400,7 +400,8 @@ void launch_matmul_fp16_nt_device(
     void* d_C,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream
 ) {
     dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
 
@@ -411,7 +412,7 @@ void launch_matmul_fp16_nt_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A),
             static_cast<const half*>(d_B_nt),
             static_cast<half*>(d_C),
@@ -426,7 +427,7 @@ void launch_matmul_fp16_nt_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A),
             static_cast<const half*>(d_B_nt),
             static_cast<half*>(d_C),

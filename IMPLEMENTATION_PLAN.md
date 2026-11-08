@@ -144,14 +144,14 @@ class WeightStreamer:
 ---
 
 ### **🟢 Phase 4: Full Model End-to-End Inference** *(COMPLETED)*
-**Goal**: Run end-to-end token generation for a complete GGUF model with double-buffered SSD prefetching and GQA KV caching.
+**Goal**: Run end-to-end token generation for a complete GGUF model with layer-wise SSD page-cache prefetching (kernel best-effort advice) and GQA KV caching.
 
 #### **Tasks**
 | # | Task | Owner | Status | Dependencies |
 |---|------|-------|--------|--------------|
 | 4.1 | Implement GGUF tokenizer & token embedding lookup | Argon / Local 7B | ✅ | Phase 3 |
 | 4.2 | Implement GQA KV cache manager (GPU-resident offset pool, zero host copies) | Argon / GLM5.3 | ✅ | Phase 3 |
-| 4.3 | Implement ping-pong double-buffered layer pipeline (overlap SSD prefetch of Layer $L+1$ with GPU compute of Layer $L$) | You / Argon | ✅ | Phase 2, 3 |
+| 4.3 | Implement ping-pong double-buffered layer pipeline (Layer $L+1$ `MADV_WILLNEED` SSD page-cache prefetch advice while the GPU computes Layer $L$ — *kernel best-effort, not a measured GPU overlap*; the GPU copy/compute overlap is 7E/Phase-7E-G5, see the 7E row below) | You / Argon | ✅ | Phase 2, 3 |
 | 4.4 | Implement LM head projection + Top-K / Top-P / Temperature token sampler | Argon | ✅ | 4.1 |
 | 4.5 | End-to-end test & benchmark with multi-layer GGUF model (`tests/test_full_model.py`) | QA/QC / Argon | ✅ | 4.1–4.4 |
 
@@ -163,7 +163,7 @@ class WeightStreamer:
 #### **Deliverables**
 - ✅ [src/tokenizer.py](src/tokenizer.py) (GGUF metadata tokenizer, detokenizer & row-wise Q4_0 embedding lookup)
 - ✅ [src/kv_cache.py](src/kv_cache.py) (GPU-resident offset-addressed Grouped-Query Attention KV cache manager)
-- ✅ [src/inference.py](src/inference.py) (Full model generation loop with ping-pong prefetching & sampling)
+- ✅ [src/inference.py](src/inference.py) (Full model generation loop with layer-wise `MADV_WILLNEED` prefetch advice & sampling)
 - ✅ [tests/test_full_model.py](tests/test_full_model.py) (End-to-end generation and KV cache validation)
 
 ---
@@ -250,7 +250,7 @@ class WeightStreamer:
 | **7B** | Tokenizer P0: special-token encode, `add_bos_token`, GPT-2 spec regex, uniform byte fallback | **G2** | Golden vectors pass; no silent byte loss |
 | **7C** | Model families P0: `ModelSpec`/tensor map, Phi-3 fused QKV + fused FFN gate/up + biases, Gemma embedding scale/soft-cap/`key_length`/GeGLU/NeoX, honest compatibility matrix | **G3** | Per-arch synthetic fixtures + independent reference logits pass; llama unchanged; unsupported variants fail fast |
 | **7D** | Memory honesty & robustness: `posix_fadvise`/`MADV_PAGEOUT` page-cache eviction, budgeted AUTO/PIN/STREAM residency, KV/cgroup/disk/block-count hardening, unlink-before-map, exception-preserving cleanup, honest memory claims | **G4** | Memory behavior matches docs; hostile/cgroup/full-disk inputs fail closed; no fd/mmap leaks; 70B bounded-RAM claim evidenced or removed |
-| **7E** | Stream topology: explicit compute/copy streams + events, kernels on the compute stream, double-buffered/pinned staging, sync-before-free, per-layer sync measured | **G5** | Event graph reviewed; no NULL-stream reliance; race/stress passes; overlap evidenced or claim removed; per-layer boundary documented |
+| **7E** | Stream topology: explicit compute/copy streams + `copy_done`/`compute_done` events, kernels on the compute stream, double-buffered pinned-slab weight staging, sync-before-free, per-layer sync measured | **G5** | Implemented (7E): SSD layer prefetch (Phase 4, kernel advice) is distinct from the 7E GPU copy/compute overlap (measured on synthetic prefill shapes; small decode shapes are copy-bound, overlap unmeasurable there); event graph in `audit/evidence/G5/7E/event-graph.md`; stress/PTDS/correctness green |
 | **7F** | Evidence & release: promote GPU CI to required, real-GGUF golden tokens/logits, benchmark baseline, telemetry, **release-blocking claims check with empty baseline** | **G6** | CPU+GPU CI green with GPU required; claims `--strict` green; auditor release signoff |
 | **7G** | Post-release P2 polish (packaging, flash attention, RoPE scaling/SWA, batching) — **deferred** | **G7** | Only after v0.7.0 ships |
 
@@ -267,7 +267,7 @@ class WeightStreamer:
 >
 > **7D status (2026-11-07): G4 SIGNED — 7D accepted; 7E unblocked.** Audit: [`audit/AUDIT_7D_DEEP_2026-11-07.md`](audit/AUDIT_7D_DEEP_2026-11-07.md); signoff: [`audit/G4_SIGNOFF_2026-11-07.md`](audit/G4_SIGNOFF_2026-11-07.md). Both rework defects are fixed (`a380003`): negative `block_count` rejected; engine no-source AUTO warns and records `weight_budget=None`; PTE-drop enabler accepted. 7E (G5) is unblocked after the 7D merge; real 70B/8-hour evidence remains 7F-2/7F-3/7F-4.
 >
-> **7E status (2026-11-07): AUTHORIZED — G4 signed; 7F not authorized.** Brief: [`PHASE7_7E_STREAM_TOPOLOGY_BRIEF.md`](PHASE7_7E_STREAM_TOPOLOGY_BRIEF.md); evidence: [`audit/evidence/G5/7E/README.md`](audit/evidence/G5/7E/README.md). The Python per-layer `forward_layer_cached` boundary remains: document **one sync per layer (N/token)**, not one sync/token. 7E must remove NULL-stream reliance, add explicit compute/copy streams + events, double-buffer/pin staging, and sync-before-free; overlap is claimed only if measured. 7F-3 owns throughput/benchmark evidence.
+> **7E status (2026-11-08): G5 SIGNED — 7E accepted; 7F unblocked.** Audit: [`audit/AUDIT_7E_DEEP_2026-11-07.md`](audit/AUDIT_7E_DEEP_2026-11-07.md); signoff: [`audit/G5_SIGNOFF_2026-11-08.md`](audit/G5_SIGNOFF_2026-11-08.md). All three rework blockers are fixed (`718653a`): armed guard + real sync counters (rocprof `[21,1,1]`, warm=1), alloc-first growth, real source-contract scan, and green CPU/clean-clone CI at `e823e83`. 7F (G6) is unblocked; real throughput/benchmark evidence remains 7F-3.
 
 ---
 

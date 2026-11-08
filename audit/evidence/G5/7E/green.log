@@ -1,0 +1,12 @@
+=== green.log: candidate 7c61ea7 passes the probe and the stream/e2e suites ===
+date: Sat Nov  7 10:42:23 PM UTC 2026
+
+$ python3 qaqc-probes/stream_source_scan.py . (candidate tree)
+=== stream source scan (layer path) ===
+  OK: no hipStreamWaitEvent(0, ...)
+  OK: all launch_*_device kernel launches use an explicit stream token
+  OK: D2D KV writes use hipMemcpyAsync on the given stream
+RESULT: PASS
+
+$ python -m pytest -m gpu -q -k 'stream or layer or e2e'
+11 passed, 538 deselected, 13 warnings in 0.94s

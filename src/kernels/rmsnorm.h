@@ -1,6 +1,10 @@
 #ifndef RMSNORM_H
 #define RMSNORM_H
 
+// Identical to hip_runtime.h's typedef so this header stays includable from
+// non-HIP C++ translation units. Redundant typedefs are legal C++.
+typedef struct ihipStream_t* hipStream_t;
+
 // Host-callable RMSNorm launcher compiled by amdclang++ in rmsnorm.hip.
 // Computes: out[m, k] = (x[m, k] / sqrt(mean(x[m, :]^2) + eps)) * weight[k]
 // All input/output arrays are FP16 (half) of shape:
@@ -40,14 +44,18 @@ void launch_residual_add_fp16(
     int num_elements
 );
 
-// Device-resident launchers (all pointers in GPU memory)
+// Device-resident launchers (all pointers in GPU memory). The trailing
+// `stream` parameter is the compute stream the kernels launch on (7E
+// explicit-stream topology; default 0 keeps the synchronous host wrappers
+// unchanged).
 void launch_rmsnorm_fp16_device(
     const void* d_x,
     const void* d_weight,
     void* d_out,
     int M,
     int K,
-    float eps
+    float eps,
+    hipStream_t stream = 0
 );
 
 void launch_rmsnorm_residual_fp16_device(
@@ -58,14 +66,16 @@ void launch_rmsnorm_residual_fp16_device(
     void* d_norm_out,
     int M,
     int K,
-    float eps
+    float eps,
+    hipStream_t stream = 0
 );
 
 void launch_residual_add_fp16_device(
     const void* d_x,
     const void* d_residual,
     void* d_out,
-    int num_elements
+    int num_elements,
+    hipStream_t stream = 0
 );
 
 #endif // RMSNORM_H

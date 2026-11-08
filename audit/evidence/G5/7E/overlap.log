@@ -1,0 +1,37 @@
+=== overlap.log (7E-2): measured copy/compute overlap via hipEventElapsedTime trace ===
+date: Sat Nov  7 10:49:12 PM UTC 2026
+source: GFX1150_STREAM_TRACE=1 (timing events; per-projection copy windows on copy_stream and kernel windows on compute_stream; overlap = intersection of projection p's copy window with projection p-1's kernel window)
+
+== small synthetic Q4_K_M model (hidden 256; the in-suite fixture) ==
+$ GFX1150_STREAM_TRACE=1 python3 qaqc-probes/correctness_probe.py
+[7E-trace] seq=6 projections=7 copy_ms=3.5114 kern_ms=0.7929 overlap_ms=0.0397 overlap_pct_of_kern=5.01 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=6 projections=7 copy_ms=0.0980 kern_ms=0.1450 overlap_ms=0.0604 overlap_pct_of_kern=41.61 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=6 projections=7 copy_ms=0.0920 kern_ms=0.1462 overlap_ms=0.0468 overlap_pct_of_kern=32.03 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=6 projections=7 copy_ms=0.0786 kern_ms=0.1274 overlap_ms=0.0404 overlap_pct_of_kern=31.73 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.1069 kern_ms=0.1918 overlap_ms=0.0411 overlap_pct_of_kern=21.41 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0779 kern_ms=0.0769 overlap_ms=0.0242 overlap_pct_of_kern=31.42 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0958 kern_ms=0.1009 overlap_ms=0.0472 overlap_pct_of_kern=46.73 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0903 kern_ms=0.0755 overlap_ms=0.0338 overlap_pct_of_kern=44.77 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0824 kern_ms=0.0773 overlap_ms=0.0154 overlap_pct_of_kern=19.97 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0763 kern_ms=0.0716 overlap_ms=0.0302 overlap_pct_of_kern=42.22 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.1138 kern_ms=0.0897 overlap_ms=0.0476 overlap_pct_of_kern=53.06 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0694 kern_ms=0.0764 overlap_ms=0.0291 overlap_pct_of_kern=38.07 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0806 kern_ms=0.0745 overlap_ms=0.0376 overlap_pct_of_kern=50.43 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0682 kern_ms=0.0687 overlap_ms=0.0194 overlap_pct_of_kern=28.16 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0802 kern_ms=0.0966 overlap_ms=0.0316 overlap_pct_of_kern=32.72 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.1211 kern_ms=0.0710 overlap_ms=0.0188 overlap_pct_of_kern=26.47 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0852 kern_ms=0.0947 overlap_ms=0.0208 overlap_pct_of_kern=21.91 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0732 kern_ms=0.0752 overlap_ms=0.0248 overlap_pct_of_kern=33.05 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0827 kern_ms=0.0777 overlap_ms=0.0393 overlap_pct_of_kern=50.62 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0680 kern_ms=0.0718 overlap_ms=0.0347 overlap_pct_of_kern=48.38 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+
+== larger F16 prefill model (hidden 2048, inter 8192, 1 layer, 118 MiB) ==
+$ GFX1150_STREAM_TRACE=1 python3 qaqc-probes/overlap_probe.py
+[7E-trace] seq=32 projections=7 copy_ms=5.2128 kern_ms=11.4529 overlap_ms=1.2768 overlap_pct_of_kern=11.15 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=256 projections=7 copy_ms=6.6263 kern_ms=27.8186 overlap_ms=5.0276 overlap_pct_of_kern=18.07 boundary_syncs=1 hipHostRegister=0 slab_fallback=7
+model size: 118.0 MiB, seq=256
+
+== overlaps qualification (per brief section 6 fallback): ==
+- large prefill shapes (this run): measured overlap 5.03 ms per layer = 18.1% of layer kernel time (seq=256) and 1.28 ms = 11.2% (seq=32) — the double-buffered slot-B copy genuinely overlaps slot-A compute.
+- small in-suite fixture (hidden 256, seq=6): microsecond-scale kernels; the first (cold) layer shows the initial slab-staging cost, the warm layer overlaps 0.06 ms (~42% of its tiny 0.145 ms kernel budget, ~60 microseconds absolute); NO meaningful throughput or overlap claim is made for such shapes.
+- hipHostRegister never fired in these runs (synthetic tensor views are 32-byte aligned, not page aligned): the live pinned path is the per-slot pinned-slab fallback with a CPU memcpy that overlaps the previous kernel. No pageable-async claim is made.

@@ -337,6 +337,10 @@ EXPECTED_LANES = {
     # the budget readers, and the KV cache in CPU/mmap offload mode (behind a
     # matmul_module stub when the extension is absent).
     "test_memory_residency.py": "cpu",
+    # Phase 7E (G5): stream topology. The stress/trace tests need the HIP
+    # extension (gpu lane); the layer-path source contract lives in
+    # test_layer_path_explicit_stream_contract below (CPU lane, source scan).
+    "test_stream_topology.py": "gpu",
 }
 
 
@@ -450,4 +454,81 @@ def test_pytest_config_declares_required_markers() -> None:
         )
     assert "PytestReturnNotNoneWarning" in pyproject, (
         "pyproject.toml must turn PytestReturnNotNoneWarning into an error"
+    )
+
+
+def test_layer_path_explicit_stream_contract() -> None:
+    """Phase 7E source contract (CPU-lane source scan).
+
+    The layer path must not rely on legacy NULL-stream semantics: no
+    ``hipStreamWaitEvent(0, ...)``, every kernel launch inside a
+    ``launch_*_device`` helper (or the layer pipeline) passes an explicit
+    stream token as the 5th ``hipLaunchKernelGGL`` argument, and the
+    device-resident KV-attention helper stages its D2D KV writes with
+    ``hipMemcpyAsync`` on that stream instead of a blocking ``hipMemcpy``.
+
+    Rework (BLOCKER-7E-3): the scan path must resolve INSIDE the repository
+    (``_TESTS_DIR.parent / "src" / "kernels"``) and must actually find the
+    kernel sources — an empty glob made this test vacuous before.
+    """
+    kernels_dir = _TESTS_DIR.parent / "src" / "kernels"
+    hip_files = sorted(kernels_dir.glob("*.hip"))
+    assert hip_files, f"no .hip files found under {kernels_dir}: scan is vacuous"
+    assert (kernels_dir / "attention.hip").is_file(), "attention.hip missing from the scan"
+    assert len(hip_files) >= 5, f"expected at least 5 kernel .hip files, found {len(hip_files)}"
+    fail: list[str] = []
+
+    for hip in sorted(hip_files):
+        src = hip.read_text(encoding="utf-8")
+        if re.search(r"hipStreamWaitEvent\(\s*0\s*,", src):
+            fail.append(f"{hip.name}: hipStreamWaitEvent(0, ...) NULL-stream wait")
+
+        for sig in re.finditer(r"void\s+(launch_\w+_device|launch_forward_layer_cached_fp16)\s*\(", src):
+            body_start = src.index("{", sig.end())
+            i, depth = body_start, 0
+            while i < len(src):
+                if src[i] == "{":
+                    depth += 1
+                elif src[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+            body = src[body_start:i]
+            fname = sig.group(1)
+            for m in re.finditer(r"hipLaunchKernelGGL\s*\(", body):
+                # split the balanced argument list; 5th arg is the stream
+                open_idx = m.end() - 1
+                d, j = 0, open_idx
+                while j < len(body):
+                    if body[j] == "(":
+                        d += 1
+                    elif body[j] == ")":
+                        d -= 1
+                        if d == 0:
+                            break
+                    j += 1
+                args, depth2, cur = [], 0, []
+                for ch in body[open_idx + 1 : j]:
+                    if ch in "(<[":
+                        depth2 += 1
+                    elif ch in ")>]":
+                        depth2 -= 1
+                    if ch == "," and depth2 == 0:
+                        args.append("".join(cur).strip())
+                        cur = []
+                    else:
+                        cur.append(ch)
+                args.append("".join(cur).strip())
+                if len(args) < 5:
+                    fail.append(f"{hip.name}:{fname}: hipLaunchKernelGGL with <5 args")
+                elif args[4] == "0":
+                    fail.append(f"{hip.name}:{fname}: stream-less kernel launch")
+            if fname.startswith("launch_gqa_attention_cached_fp16_device"):
+                if re.search(r"hipMemcpy\(", body):
+                    fail.append(f"{hip.name}:{fname}: blocking hipMemcpy in D2D KV path")
+
+    assert not fail, (
+        "layer path must use explicit streams (Phase 7E brief §5):\n  "
+        + "\n  ".join(fail)
     )

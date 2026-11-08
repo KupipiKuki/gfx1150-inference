@@ -1,0 +1,19 @@
+=== rework-red.log: the rework tests fail on the pre-fix tree/build (3cb3007) ===
+date: Sun Nov  8 12:56:19 AM UTC 2026
+
+== BLOCKER-7E-1 red: the measured-sync test against the pre-fix build (hardcoded boundary_syncs=1, no drain_syncs field, unconditional guard drain) ==
+$ python -m pytest tests/test_stream_topology.py::test_7e_trace_reports_one_sync_per_layer -q [at pre-fix tree + build]
+        assert "SUBPROCESS-OK" in proc.stdout, f"subprocess failed: {proc.stderr[-600:]}"
+>           assert m is not None, f"unparseable trace line: {line!r}"
+E           AssertionError: unparseable trace line: '[7E-trace] seq=3 projections=7 copy_ms=3.4205 kern_ms=0.6195 overlap_ms=0.0041 overlap_pct_of_kern=0.67 boundary_syncs=1 hipHostRegister=0 slab_fallback=7'
+FAILED tests/test_stream_topology.py::test_7e_trace_reports_one_sync_per_layer - AssertionError: unparseable trace line: '[7E-trace] seq=3 projections=7 copy_ms=3.4205 kern_ms=0.6195 overlap_ms=0.0041 overlap_pct_of_kern=0.67 boundary_syncs=1 hipHostRegister=0 slab_fallback=7'
+1 failed, 13 warnings in 0.64s
+
+== BLOCKER-7E-3 red: the vacuous source-contract test path (proven by resolution) ==
+OLD path tests/../.. /src/kernels resolves to /home/kupipi/Documents/git/src/kernels:
+  exists: False | .hip files found by the OLD path: 0  (the old test passed vacuously)
+
+== BLOCKER-7E-3 red: CI run 42426539199 (job 128565915609, step 'Run the pytest CPU lane') failed at 9f90e4f;
+   the immediately-following push at 3cb3007 (identical tests + two report files) ran green on both jobs
+   (runs 42427760576 + 42427760521, conclusion success) - the failure did not reproduce and the raw
+   job log requires admin API rights (403). The fresh green CI on the rework push closes this.

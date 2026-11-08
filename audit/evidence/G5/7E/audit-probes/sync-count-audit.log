@@ -1,0 +1,32 @@
+# Auditor sync-count probe — G5 (7E), candidate 9f90e4f
+# Date: 2026-11-07
+# Purpose: prove the actual hipStreamSynchronize count on a warm layer.
+
+## Source finding
+src/kernels/attention.hip:
+  struct LayerGuard { DeviceLayerWorkspace& ws;
+      ~LayerGuard() { try { ws.drain(); } catch (...) {} } };
+  -> the destructor runs on NORMAL return, not only on exception.
+  drain(): hipStreamSynchronize(compute_stream); hipStreamSynchronize(copy_stream)
+  normal path also: hipStreamSynchronize(ws.copy_stream) at the D2H boundary.
+  => 3 syncs per warm layer call.
+  print_layer_trace prints a hardcoded "boundary_syncs=1"; it is not a counter.
+
+## API trace (rocprofv3, 2026-11-07)
+$ rocprofv3 --hip-trace --output-format csv -o /tmp/opencode/rocprof-two \
+    -- python3 /tmp/opencode/two_layer.py
+two warm matmul_module.forward_layer_cached calls (small hidden-32 fixture)
+$ grep -c hipStreamSynchronize rocprof-two_hip_api_trace.csv
+26
+# The first call includes cold workspace growth drains (ensure); the last 3
+# sync records are the second (warm) layer call.
+$ grep hipStreamSynchronize rocprof-two_hip_api_trace.csv | tail -3
+  ... correlation 318 ... 
+  ... correlation 319 ...
+  ... correlation 320 ...
+# => 3 hipStreamSynchronize calls for the warm layer, not 1.
+
+## Expected after fix
+- guard armed only on exception (or duplicate normal drain removed)
+- a real boundary-sync counter incremented at the single boundary sync
+- trace/test/sync-count.log report the actual count; warm layer = 1

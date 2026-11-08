@@ -1,0 +1,21 @@
+=== per-thread.log (7E): per-thread-default-stream build/run ===
+date: Sat Nov  7 10:56:45 PM UTC 2026
+
+Build (CMake option GFX1150_7E_PTDS_TEST, added by 7E — a test-only compile definition):
+$ cmake -B build-ptds -DCMAKE_BUILD_TYPE=Release -DGFX1150_7E_PTDS_TEST=ON
+6:CXX_DEFINES = -DHIP_API_PER_THREAD_DEFAULT_STREAM=1 -Dmatmul_module_EXPORTS
+12:HIP_DEFINES = -DHIP_API_PER_THREAD_DEFAULT_STREAM=1 -D__HIP_ROCclr__=1 -Dmatmul_module_EXPORTS
+
+Run (module verified to be the PTDS build by path and digest shown in the output):
+$ python3 qaqc-probes/ptds_probe.py
+module: /home/kupipi/Documents/git/gfx1150-inference/build-ptds/matmul_module.so
+module sha256[:12]: 9e3f5253635f
+prefill_logits_sha256=a8547f8c65687a598d9c9a3526b42c748c3ad9b4a4114029a941def6ef4e2b31
+greedy_ids=[27, 31, 27, 31, 17, 27, 4, 24]
+non-main-thread (sequential) stress: OK, no errors
+PTDS PROBE OK
+
+Interpretation: every implicit stream-0 launch site (the synchronous host wrappers) runs under
+per-thread default-stream semantics, and the layer path runs on explicit streams. The greedy IDs and
+logit digests are bit-identical to the parent build, and the sequential non-main-thread engine loops
+pass — no legacy NULL-stream reliance.
