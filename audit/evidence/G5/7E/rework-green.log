@@ -1,0 +1,44 @@
+=== rework-green.log: reworked candidate 718653a ===
+date: Sun Nov  8 12:59:11 AM UTC 2026
+
+== BLOCKER-7E-1 measured sync counts ==
+In-code counters (incremented at the actual hipStreamSynchronize sites; trace='GFX1150_STREAM_TRACE=1'):
+
+First (cold) layer of a fresh process - workspace growth drains are real and counted:
+  [7E-trace] seq=6 boundary_syncs=1 drain_syncs=22 (engine fixture; ensure()/ensure_weight_slot growth)
+Warm layers (the steady state) - the rework target:
+[7E-trace] seq=1 projections=7 copy_ms=0.0820 kern_ms=0.0857 overlap_ms=0.0354 overlap_pct_of_kern=41.28 boundary_syncs=1 drain_syncs=0 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0696 kern_ms=0.0654 overlap_ms=0.0215 overlap_pct_of_kern=32.82 boundary_syncs=1 drain_syncs=0 hipHostRegister=0 slab_fallback=7
+[7E-trace] seq=1 projections=7 copy_ms=0.0739 kern_ms=0.0669 overlap_ms=0.0313 overlap_pct_of_kern=46.85 boundary_syncs=1 drain_syncs=0 hipHostRegister=0 slab_fallback=7
+  (every warm layer measures boundary_syncs=1, drain_syncs=0)
+
+rocprofv3 --hip-trace API-level confirmation (qaqc-probes measurement, cold + 2 warm calls, cluster counts):
+  total hipStreamSynchronize records: 23; syncs per call cluster (cold, warm1, warm2): [21, 1, 1]
+
+$ python -m pytest tests/test_stream_topology.py -q
+5 passed (incl. the measured boundary_syncs=1 + warm (1,0) assertions)
+
+== BLOCKER-7E-2 (alloc-first-then-free) ==
+Code review assertion: realloc_buf/ensure_weight_slot/AttentionWorkspace::ensure/pinned-slab growth
+all hipMalloc/hipHostMalloc into a fresh pointer BEFORE freeing the old buffer; on allocation failure the
+exception is raised with the previous buffer still valid and owned, so no destructor/next-growth double
+free exists. drain() before free remains. LayerGuard is armed only during unwinding, so an ensure() failure
+at layer entry (before any async work) needs no drain: nothing is in flight. No reproduceable failure-path
+test (hipMalloc failure cannot be injected without kernel changes) - the pattern is enforced by review and
+covered by the existing exception-after-enqueue test for the enqueue-side failure.
+
+== BLOCKER-7E-3 fixed test ==
+$ python -m pytest tests/test_harness_contract.py::test_layer_path_explicit_stream_contract -q
+1 passed, 13 warnings in 0.14s
+(the scan now finds the .hip files and applies the layer-path source contract for real)
+
+== full battery at 718653a ==
+pytest -m gpu -q                -> 39 passed, 510 deselected (real gfx1150)
+pytest -m 'not gpu' -q          -> 510 passed, 39 deselected
+tests/test_cpu_only.py (+ -O)  -> OK / OK
+check_claims.py                 -> PASS (0 new, 8 baselined, 0 findings)
+canary_claims.py                -> PASS (12/12)
+qaqc-probes/stream_source_scan  -> PASS
+qaqc-probes/ptds_probe.py       -> module digest re-verified, digests bit-identical, thread stress OK
+qaqc-probes/correctness_probe   -> digests identical to parent
+tests/test_layer.py / test_full_model.py / test_phase5_scale.py -> all passed

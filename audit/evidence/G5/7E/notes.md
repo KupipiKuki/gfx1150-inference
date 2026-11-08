@@ -111,3 +111,53 @@
   workspaces are single-instance by design); concurrent multi-threaded GPU
   use remains out of scope (S-3 mutex still guards it).
 - `7c/` at the repo root is pre-existing untracked content, unrelated to 7E.
+
+## Rework record (2026-11-08, per PHASE7_7E_REWORK_BRIEF.md)
+
+Base: `3cb3007` (auditor's NOT-SIGNED review). Work commit: `718653a`.
+
+- **BLOCKER-7E-1 (real sync count / guard).** `LayerGuard` fields now capture
+  `std::uncaught_exceptions()` at construction and drain only when an
+  exception is unwinding through the layer frame — the normal path performs
+  exactly one `hipStreamSynchronize` (the layer boundary). `boundary_syncs`
+  and `drain_syncs` are real counters incremented at the actual sync sites
+  (reset per layer before `ensure()`, so first-layer growth drains count);
+  the trace prints the measured values and the rewritten trace test asserts
+  `boundary_syncs == 1` per layer call and warm-layer `(1, 0)`. API-level
+  confirmation via `rocprofv3 --hip-trace` (`qaqc-probes/sync_count_probe.py`
+  + `sync_count_analyze.py`): cold call 21 syncs (growth drains), each warm
+  call exactly 1 — the pre-rework warm call was 3. `sync-count.log`
+  regenerated from measurements, not literals.
+- **BLOCKER-7E-2 (allocation-failure double-free).** `realloc_buf`,
+  `ensure_weight_slot`, `AttentionWorkspace::ensure`
+  (`realloc_attn_buf`), and the pinned-slab growth all allocate the fresh
+  buffer FIRST and free the old one only after success (`hipMalloc` /
+  `hipHostMalloc` into a fresh pointer). On allocation failure the exception
+  propagates with the previous buffer still valid and owned — no dangling
+  pointer, no destructor/next-growth double free. Growth drains stay. A
+  failure-path unit test is not injectable without kernel changes (hipMalloc
+  failure), so the enforcement is the alloc-first pattern + the documented
+  `rework-green.log` code-review assertion + the existing
+  exception-after-enqueue test for the enqueue-side failure path. An
+  `ensure()` failure at layer entry needs no drain (LayerGuard not yet
+  created, nothing in flight).
+- **BLOCKER-7E-3 (CI + vacuous test).** The source-contract test scanned a
+  path outside the repository (`tests/../..` resolved to a nonexistent
+  directory; 0 `.hip` files — proven in `rework-red.log`) and passed
+  vacuously. It now scans `_TESTS_DIR.parent / "src" / "kernels"` and asserts
+  it found the kernel `.hip` files including `attention.hip`; the contract
+  now applies for real and passes. CI: run 42426539199 (job 128565915609,
+  "Run the pytest CPU lane") failed at `9f90e4f`; the immediately-following
+  push at `3cb3007` — identical tests plus two report files — ran green on
+  both jobs (runs 42427760576 / 42427760521), so the failure did not
+  reproduce; the raw job log needs admin API rights (403 recorded). The
+  decisive CI evidence for G5 is the fresh run on the rework push (push
+  performed by the maintainer), which must be green on both CPU jobs.
+- **QAQC-7E-1 (accepted hardening).** `~DeviceLayerWorkspace` and
+  `~DeviceKVCachePool` wrap their drains in try/catch so HIP errors during
+  static destruction cannot throw out of a destructor.
+- Scope: only `src/kernels/attention.hip` and the two test files changed;
+  all other areas zero-diff. Both lanes (39 / 510), CPU-only both modes,
+  claims checker, 12 canaries, the source scan, the PTDS probe (rebuilt
+  `build-ptds`), and the parent-identical correctness anchors are green on
+  the reworked module.

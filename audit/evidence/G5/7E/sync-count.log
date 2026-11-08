@@ -1,26 +1,54 @@
-=== sync-count.log: one sync per layer, N per token (G5 boundary) ===
-date: Sat Nov  7 10:51:29 PM UTC 2026
+=== sync-count.log: one sync per layer, N per token (G5 boundary; rework: MEASURED) ===
+date: Sun Nov 8 01:00 UTC 2026
 
-== source enumeration: every hipStreamSynchronize site in attention.hip ==
-150:                HIP_CHECK(hipStreamSynchronize(nullptr));
-158:                HIP_CHECK(hipStreamSynchronize(nullptr));
-166:                HIP_CHECK(hipStreamSynchronize(nullptr));
-174:                HIP_CHECK(hipStreamSynchronize(nullptr));
-566:        if (compute_stream) HIP_CHECK(hipStreamSynchronize(compute_stream));
-567:        if (copy_stream) HIP_CHECK(hipStreamSynchronize(copy_stream));
-1019:    HIP_CHECK(hipStreamSynchronize(ws.copy_stream));
+Rework (BLOCKER-7E-1): boundary_syncs/drain_syncs are real in-code counters
+incremented at the actual hipStreamSynchronize call sites (reset per layer,
+before ensure(), so first-layer growth drains count toward that layer). The
+LayerGuard is armed only while an exception is unwinding, so the normal path
+performs exactly ONE sync per layer call.
 
-Annotation: lines 150-174 are the AttentionWorkspace::ensure realloc drains (host-wrapper workspace;
-run only when a buffer must grow) and 566-567 is DeviceLayerWorkspace::drain() (growth, exception guard,
-destructor). The steady-state layer path performs exactly ONE synchronization: line 1019,
-hipStreamSynchronize(ws.copy_stream), after the D2H waits on layer_out_ready. There is no
-per-projection or per-copy synchronization.
+== measurement 1: in-code counters (GFX1150_STREAM_TRACE=1) ==
 
-== measured: per-layer trace summaries (2-layer model; 1 prefill + decode steps) ==
-$ python -m pytest tests/test_stream_topology.py::test_7e_trace_reports_one_sync_per_layer -q -s
-7E trace: 4 layer summaries, each boundary_syncs=1
-1 passed (each layer call asserts boundary_syncs=1; the trace summary is emitted once per layer call)
+First (cold) layer of a fresh process - growth drains are real and counted:
+  [7E-trace] seq=6 projections=7 ... boundary_syncs=1 drain_syncs=22 ...
+    (workspace/weight-slot growth on a fresh process; documented, one-off)
 
-A token through an N-layer model therefore performs N boundary syncs. A one-sync/token
-claim is NOT made: the Python forward_layer_cached API returns host hidden states per layer
-(brief section 1 non-goal; ledger row 15 stays NOT YET).
+Warm layers (the steady state; every layer after growth):
+  [7E-trace] seq=1 projections=7 copy_ms=0.0820 kern_ms=0.0857 overlap_ms=0.0354
+              overlap_pct_of_kern=41.28 boundary_syncs=1 drain_syncs=0 hipHostRegister=0 slab_fallback=7
+  [7E-trace] seq=1 ... boundary_syncs=1 drain_syncs=0 ...
+  [7E-trace] seq=1 ... boundary_syncs=1 drain_syncs=0 ...
+  (every warm layer measures boundary_syncs=1 and drain_syncs=0)
+
+Asserted by tests/test_stream_topology.py::test_7e_trace_reports_one_sync_per_layer:
+every layer call must measure exactly one boundary sync, and the last (warm)
+layer must measure (boundary_syncs=1, drain_syncs=0).
+
+== measurement 2: rocprofv3 --hip-trace (API level) ==
+
+$ rocprofv3 --hip-trace -o /tmp/rocprof_out/p7e -- python3 qaqc-probes/sync_count_probe.py
+$ python3 qaqc-probes/sync_count_analyze.py /tmp/rocprof_out/p7e_results.db
+total hipStreamSynchronize records: 23
+syncs per call cluster (index 0 = cold; rest warm): [21, 1, 1]
+
+The probe performs three consecutive forward_layer_cached calls separated by
+300ms sleeps: the cold call (cluster 0) contains the growth drains plus its
+boundary sync; each warm call (clusters 1, 2) performs EXACTLY ONE
+hipStreamSynchronize — the layer boundary. This is the API-level confirmation
+of the auditor's original 26-record finding (which showed the pre-rework warm
+call performing 3 syncs: unconditional guard drain x2 + boundary).
+
+== source enumeration (attention.hip) ==
+
+$ grep -n "hipStreamSynchronize" src/kernels/attention.hip
+(AttentionWorkspace::ensure growth drains — legacy host wrapper, realloc only)
+(DeviceLayerWorkspace::drain() — growth/exception-guard/destructor paths, counted in drain_syncs)
+(exactly one steady-state call: hipStreamSynchronize(ws.copy_stream) after the final D2H,
+ counted in boundary_syncs — one per launch_forward_layer_cached_fp16 call)
+
+== boundary semantics ==
+
+A token through an N-layer model therefore performs N boundary syncs. A
+one-sync/token claim is NOT made: the Python forward_layer_cached API returns
+host hidden states per layer (rework brief section 6; ledger row 15 stays
+NOT YET). Growth/exception drains are separate, counted, and documented.
