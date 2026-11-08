@@ -570,6 +570,13 @@ review plus non-main-thread stress. Do not claim throughput; 7F-3 owns it.
 
 ### 7F — Evidence and release gates (Gate G6)
 
+**Status (2026-11-08): AUTHORIZED — G5 signed and merged; 7F is the active next phase.**
+**Coder brief:** [`PHASE7_7F_EVIDENCE_RELEASE_BRIEF.md`](PHASE7_7F_EVIDENCE_RELEASE_BRIEF.md) — authoritative package detail.
+**Evidence contract:** [`audit/evidence/G6/7F/README.md`](audit/evidence/G6/7F/README.md).
+7F-1 (runner registration) and 7F-2 (real GGUF files / llama.cpp reference) need
+owner/host resources; if unavailable, stop and record `BLOCKED` — do not weaken
+G6. No 70B, 8-hour, or throughput claim until the matching evidence exists.
+
 **Audit trace:** T-1..T-7, B-1 residual, unverified hardware claims; v0.6.2 §6 P1-6.
 **Allowed files:** `tests/**`, `.github/workflows/**`, `scripts/bench/**` (new), `scripts/qa/**`, `audit/CLAIMS_LEDGER.md`, `README.md`, docs, evidence.
 
