@@ -28,7 +28,10 @@ and independently verified:
   guarded. No dangling/double-free path on allocation failure.
 - **BLOCKER-7E-3 — CLOSED:** the source-contract test now scans the real
   `src/kernels` directory (6 `.hip` files, `attention.hip` asserted); CPU and
-  clean-clone CI are green at `e823e83`.
+  clean-clone CI are green at `e823e83`. Post-merge the identical tree passed
+  push CPU/clean-clone and PR CPU/clean-clone at `7ba1480`; the first push run
+  at the `01bf23e` merge failed the pytest lane as a runner flake (same commit
+  green on `pull_request`, lane green 3× on 3.14 and 1× on 3.12 locally).
 
 ---
 
@@ -189,8 +192,10 @@ log, fix the failing test/environment, and re-run CPU/clean-clone CI green.
 - **G5:** **SIGNED.** 7E is accepted; merge `wp/7E-stream-topology` into
   `vibe/phase7-220201`.
 - **7F:** unblocked; 7F has its own G6 gate.
-- **CI:** CPU/clean-clone green at `e823e83`; GPU CI remains the self-hosted
-  lane (C-G1-3) and is not counted as a pass here.
+- **CI:** CPU/clean-clone green at `e823e83` and at the post-merge tree
+  (`7ba1480`, identical to `01bf23e`); the `01bf23e` push-run pytest failure is
+  recorded as a runner flake. GPU CI remains the self-hosted lane (C-G1-3) and
+  is not counted as a pass here.
 - **Release/G6:** still gated by 7F and the GPU runner; 7F owns real
   throughput/benchmark evidence.
 - **Branch:** `wp/7E-stream-topology` @ `29d149a` (work `718653a` + evidence

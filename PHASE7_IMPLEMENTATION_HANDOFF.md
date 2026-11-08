@@ -489,7 +489,7 @@ STREAM and document the basis. Do not fake 70B/8-hour evidence; that is
 
 ### 7E — Stream topology and pipeline (Gate G5)
 
-**Status (2026-11-08): G5 SIGNED — 7E accepted; 7F unblocked.**
+**Status (2026-11-08): G5 SIGNED — 7E accepted and merged; 7F unblocked.**
 **Audit:** [`audit/AUDIT_7E_DEEP_2026-11-07.md`](audit/AUDIT_7E_DEEP_2026-11-07.md).
 **Signoff:** [`audit/G5_SIGNOFF_2026-11-08.md`](audit/G5_SIGNOFF_2026-11-08.md).
 **Rework brief (closed):** [`PHASE7_7E_REWORK_BRIEF.md`](PHASE7_7E_REWORK_BRIEF.md).
@@ -497,8 +497,10 @@ STREAM and document the basis. Do not fake 70B/8-hour evidence; that is
 [`audit/QAQC_7E_REWORK_2026-11-08.md`](audit/QAQC_7E_REWORK_2026-11-08.md).
 All three rework blockers are fixed (`718653a`): armed guard + real sync counters
 (rocprof `[21,1,1]`, warm=1), alloc-first growth, real source-contract scan, and
-green CPU/clean-clone CI at `e823e83`. 7F (G6) is unblocked; real throughput/
-benchmark evidence remains 7F-3.
+green CPU/clean-clone CI at `e823e83`. Merged into `vibe/phase7-220201` at
+`01bf23e` (`--no-ff`); post-merge CI green at `7ba1480` (empty re-trigger,
+identical tree; the first `01bf23e` push run flaked on the pytest lane).
+7F (G6) is unblocked; real throughput/benchmark evidence remains 7F-3.
 **Coder brief:** [`PHASE7_7E_STREAM_TOPOLOGY_BRIEF.md`](PHASE7_7E_STREAM_TOPOLOGY_BRIEF.md) — authoritative package detail.
 **Evidence contract:** [`audit/evidence/G5/7E/README.md`](audit/evidence/G5/7E/README.md).
 
