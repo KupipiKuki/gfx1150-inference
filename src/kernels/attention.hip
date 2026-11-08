@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -140,41 +141,38 @@ struct AttentionWorkspace {
     size_t cap_V = 0;
     size_t cap_Out = 0;
 
+    // Same alloc-first-then-free discipline as DeviceLayerWorkspace
+    // (BLOCKER-7E-2): on an allocation failure the previous buffer stays
+    // valid and owned; growth drains the NULL stream before freeing.
+    static void realloc_attn_buf(half** ptr, size_t needed) {
+        half* fresh = nullptr;
+        HIP_CHECK(hipMalloc(&fresh, needed));
+        if (*ptr) {
+            HIP_CHECK(hipStreamSynchronize(nullptr));
+            (void)hipFree(*ptr);
+        }
+        *ptr = fresh;
+    }
+
     void ensure(size_t sq, size_t sk, size_t sv, size_t sout) {
         // 7E-3: the blocking host-side wrappers that share this workspace
         // synchronize their own work, but growth (free+malloc) still drains
         // the NULL stream first so a reallocated buffer is never freed while
         // a kernel may still read it.
         if (sq > cap_Q) {
-            if (d_Q) {
-                HIP_CHECK(hipStreamSynchronize(nullptr));
-                (void)hipFree(d_Q);
-            }
-            HIP_CHECK(hipMalloc(&d_Q, sq));
+            realloc_attn_buf(&d_Q, sq);
             cap_Q = sq;
         }
         if (sk > cap_K) {
-            if (d_K) {
-                HIP_CHECK(hipStreamSynchronize(nullptr));
-                (void)hipFree(d_K);
-            }
-            HIP_CHECK(hipMalloc(&d_K, sk));
+            realloc_attn_buf(&d_K, sk);
             cap_K = sk;
         }
         if (sv > cap_V) {
-            if (d_V) {
-                HIP_CHECK(hipStreamSynchronize(nullptr));
-                (void)hipFree(d_V);
-            }
-            HIP_CHECK(hipMalloc(&d_V, sv));
+            realloc_attn_buf(&d_V, sv);
             cap_V = sv;
         }
         if (sout > cap_Out) {
-            if (d_Out) {
-                HIP_CHECK(hipStreamSynchronize(nullptr));
-                (void)hipFree(d_Out);
-            }
-            HIP_CHECK(hipMalloc(&d_Out, sout));
+            realloc_attn_buf(&d_Out, sout);
             cap_Out = sout;
         }
     }
@@ -238,7 +236,9 @@ struct DeviceKVCachePool {
     }
 
     ~DeviceKVCachePool() {
-        release();
+        // QAQC-7E-1: never throw out of a destructor (static destruction may
+        // run after the HIP context is gone).
+        try { release(); } catch (...) {}
     }
 };
 
@@ -524,6 +524,14 @@ struct DeviceLayerWorkspace {
     bool slab_in_flight[2] = {false, false};
     size_t slab_stages = 0;   // trace: staging that took the pinned-slab path
 
+    // Real stream-synchronization call counts (BLOCKER-7E-1): measured, not
+    // hardcoded. `boundary_syncs` counts intended layer-boundary syncs (one
+    // per launch_forward_layer_cached_fp16 call); `drain_syncs` counts every
+    // hipStreamSynchronize issued by drain() (growth/exception/destructor).
+    // A warm layer must measure boundary_syncs == 1 and drain_syncs == 0.
+    size_t boundary_syncs = 0;
+    size_t drain_syncs = 0;
+
     // 7E: registered (page-locked) host weight spans, unregistered strictly
     // at the layer boundary after the final sync (paired, leak-free).
     std::vector<std::pair<void*, size_t>> registered_spans;
@@ -552,9 +560,15 @@ struct DeviceLayerWorkspace {
     size_t cap_kv = 0;
     size_t cap_ffn = 0;
 
+    // BLOCKER-7E-2: allocate the fresh buffer FIRST and free the old one only
+    // after the allocation succeeded. If hipMalloc fails (throws), the old
+    // pointer stays valid and owned — the destructor or the next growth can
+    // still free it exactly once; no dangling double-free path.
     static void realloc_buf(half** ptr, size_t needed) {
+        half* fresh = nullptr;
+        HIP_CHECK(hipMalloc(&fresh, needed));
         if (*ptr) HIP_CHECK(hipFree(*ptr));
-        HIP_CHECK(hipMalloc(ptr, needed));
+        *ptr = fresh;
     }
 
     // Drain every stream that can hold in-flight work touching workspace or
@@ -563,8 +577,14 @@ struct DeviceLayerWorkspace {
     // host arrays are guaranteed alive while the caller's C++ frame still
     // holds their pointers.
     void drain() {
-        if (compute_stream) HIP_CHECK(hipStreamSynchronize(compute_stream));
-        if (copy_stream) HIP_CHECK(hipStreamSynchronize(copy_stream));
+        if (compute_stream) {
+            HIP_CHECK(hipStreamSynchronize(compute_stream));
+            ++drain_syncs;
+        }
+        if (copy_stream) {
+            HIP_CHECK(hipStreamSynchronize(copy_stream));
+            ++drain_syncs;
+        }
         unregister_all();
     }
 
@@ -659,12 +679,15 @@ struct DeviceLayerWorkspace {
         }
     }
 
-    // 7E-3: growth of a weight slot also drains first.
+    // 7E-3: growth of a weight slot also drains first; alloc-first-then-free
+    // (BLOCKER-7E-2) keeps the slot valid when hipMalloc fails.
     void ensure_weight_slot(int slot, size_t w_bytes) {
         if (w_bytes > cap_w[slot]) {
             drain();
+            void* fresh = nullptr;
+            HIP_CHECK(hipMalloc(&fresh, w_bytes));
             if (d_w[slot]) HIP_CHECK(hipFree(d_w[slot]));
-            HIP_CHECK(hipMalloc(&d_w[slot], w_bytes));
+            d_w[slot] = fresh;
             cap_w[slot] = w_bytes;
         }
     }
@@ -695,8 +718,11 @@ struct DeviceLayerWorkspace {
             slab_in_flight[slot] = false;
         }
         if (pinned_cap[slot] < bytes) {
+            // BLOCKER-7E-2: alloc-first-then-free for the pinned slab too.
+            void* fresh = nullptr;
+            HIP_CHECK(hipHostMalloc(&fresh, bytes));
             if (pinned_slab[slot]) HIP_CHECK(hipHostFree(pinned_slab[slot]));
-            HIP_CHECK(hipHostMalloc(&pinned_slab[slot], bytes));
+            pinned_slab[slot] = fresh;
             pinned_cap[slot] = bytes;
         }
         memcpy(pinned_slab[slot], h_w, bytes);
@@ -706,7 +732,10 @@ struct DeviceLayerWorkspace {
     }
 
     ~DeviceLayerWorkspace() {
-        drain();  // 7E-3: no stream/event destroyed with pending work
+        // 7E-3: no stream/event destroyed with pending work. QAQC-7E-1: the
+        // drain must never throw out of a destructor (the HIP context may
+        // already be gone during static destruction), so swallow errors.
+        try { drain(); } catch (...) {}
         if (d_x) (void)hipFree(d_x);
         if (d_h) (void)hipFree(d_h);
         if (d_normed) (void)hipFree(d_normed);
@@ -871,8 +900,10 @@ void print_layer_trace(DeviceLayerWorkspace& ws, int seq_len) {
     std::fprintf(
         stderr,
         "[7E-trace] seq=%d projections=7 copy_ms=%.4f kern_ms=%.4f overlap_ms=%.4f "
-        "overlap_pct_of_kern=%.2f boundary_syncs=1 hipHostRegister=%zu slab_fallback=%zu\n",
+        "overlap_pct_of_kern=%.2f boundary_syncs=%zu drain_syncs=%zu "
+        "hipHostRegister=%zu slab_fallback=%zu\n",
         seq_len, total_copy, total_kern, overlap_ms, pct,
+        ws.boundary_syncs, ws.drain_syncs,
         ws.registered_spans.size(), ws.slab_stages
     );
     for (int p = 0; p < LAYER_PROJECTIONS; ++p) {
@@ -921,20 +952,35 @@ void launch_forward_layer_cached_fp16(
     const size_t ffn_bytes = static_cast<size_t>(seq_len) * intermediate_size * sizeof(half);
 
     auto& ws = get_layer_ws();
+    // Trace counters are per layer (real measurements, BLOCKER-7E-1); they
+    // reset BEFORE ensure() so this layer's growth drains are counted in
+    // this layer's summary.
+    ws.slab_stages = 0;
+    ws.boundary_syncs = 0;
+    ws.drain_syncs = 0;
     // 7E-3: any growth inside ensure() drains both streams first. At layer
     // entry the previous layer's boundary sync already drained everything.
     ws.ensure(hidden_bytes, norm_w_bytes, q_bytes, kv_bytes, ffn_bytes);
 
     // RAII: on any exception after async work was enqueued, drain both
     // streams and unregister staged host spans before unwinding (the host
-    // weight arrays are alive throughout this frame).
+    // weight arrays are alive throughout this frame). BLOCKER-7E-1: the
+    // guard is ARMED only while an exception is unwinding —
+    // std::uncaught_exceptions() is captured at construction and re-checked
+    // at destruction, so the normal path performs exactly one
+    // hipStreamSynchronize (the layer boundary sync below); the guard adds
+    // no duplicate drain, and a warm layer measures boundary_syncs == 1.
     struct LayerGuard {
         DeviceLayerWorkspace& ws;
-        ~LayerGuard() { try { ws.drain(); } catch (...) {} }
+        int uncaught_at_entry;
+        explicit LayerGuard(DeviceLayerWorkspace& w)
+            : ws(w), uncaught_at_entry(std::uncaught_exceptions()) {}
+        ~LayerGuard() noexcept {
+            if (std::uncaught_exceptions() != uncaught_at_entry) {
+                try { ws.drain(); } catch (...) {}
+            }
+        }
     } layer_guard{ws};
-
-    // Trace counters are per layer.
-    ws.slab_stages = 0;
 
     if (layer_trace_enabled()) {
         HIP_CHECK(hipEventRecord(ws.trace_layer_start, ws.copy_stream));
@@ -1017,6 +1063,7 @@ void launch_forward_layer_cached_fp16(
     HIP_CHECK(hipStreamWaitEvent(ws.copy_stream, ws.layer_out_ready, 0));
     HIP_CHECK(hipMemcpyAsync(h_x_out, ws.d_x, hidden_bytes, hipMemcpyDeviceToHost, ws.copy_stream));
     HIP_CHECK(hipStreamSynchronize(ws.copy_stream));
+    ++ws.boundary_syncs;  // real count (BLOCKER-7E-1): 1 per layer call
 
     print_layer_trace(ws, seq_len);
     // All in-flight work has drained; unregister any hipHostRegister'd spans.

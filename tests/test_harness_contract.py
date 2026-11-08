@@ -466,10 +466,19 @@ def test_layer_path_explicit_stream_contract() -> None:
     stream token as the 5th ``hipLaunchKernelGGL`` argument, and the
     device-resident KV-attention helper stages its D2D KV writes with
     ``hipMemcpyAsync`` on that stream instead of a blocking ``hipMemcpy``.
+
+    Rework (BLOCKER-7E-3): the scan path must resolve INSIDE the repository
+    (``_TESTS_DIR.parent / "src" / "kernels"``) and must actually find the
+    kernel sources — an empty glob made this test vacuous before.
     """
+    kernels_dir = _TESTS_DIR.parent / "src" / "kernels"
+    hip_files = sorted(kernels_dir.glob("*.hip"))
+    assert hip_files, f"no .hip files found under {kernels_dir}: scan is vacuous"
+    assert (kernels_dir / "attention.hip").is_file(), "attention.hip missing from the scan"
+    assert len(hip_files) >= 5, f"expected at least 5 kernel .hip files, found {len(hip_files)}"
     fail: list[str] = []
 
-    for hip in sorted(_TESTS_DIR.joinpath("..", "..", "src", "kernels").resolve().glob("*.hip")):
+    for hip in sorted(hip_files):
         src = hip.read_text(encoding="utf-8")
         if re.search(r"hipStreamWaitEvent\(\s*0\s*,", src):
             fail.append(f"{hip.name}: hipStreamWaitEvent(0, ...) NULL-stream wait")

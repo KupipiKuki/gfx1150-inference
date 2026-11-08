@@ -201,8 +201,15 @@ def test_7e_exception_after_enqueue_then_reuse() -> None:
 
 
 def test_7e_trace_reports_one_sync_per_layer() -> None:
-    """A traced subprocess reports one `[7E-trace]` summary per layer call
-    with boundary_syncs=1; every summary parses and names seven projections."""
+    """A traced subprocess reports one `[7E-trace]` summary per layer call.
+
+    Rework (BLOCKER-7E-1): `boundary_syncs`/`drain_syncs` are REAL in-code
+    counters (incremented at the actual `hipStreamSynchronize` sites), so
+    this asserts a measurement, not a printed literal: every layer call
+    performs exactly one boundary sync, and a warm layer (the last summary;
+    the first may legitimately include growth drains) performs no drain
+    syncs. Every summary also names seven projections and real timings.
+    """
     code = r"""
 import os, sys, tempfile
 sys.path.insert(0, "{root}/build")
@@ -228,13 +235,22 @@ print("SUBPROCESS-OK")
     assert lines, "no [7E-trace] layer summaries emitted"
     pat = re.compile(
         r"\[7E-trace\] seq=(\d+) projections=7 copy_ms=([\d.]+) kern_ms=([\d.]+) "
-        r"overlap_ms=([\d.]+) overlap_pct_of_kern=([\d.]+) boundary_syncs=(\d+)"
+        r"overlap_ms=([\d.]+) overlap_pct_of_kern=([\d.]+) boundary_syncs=(\d+) "
+        r"drain_syncs=(\d+)"
     )
+    parsed = []
     for line in lines:
         m = pat.match(line)
         assert m is not None, f"unparseable trace line: {line!r}"
-        assert m.group(6) == "1", f"must be exactly one boundary sync: {line!r}"
+        assert int(m.group(6)) == 1, (
+            f"a layer call must measure exactly one boundary sync: {line!r}"
+        )
         assert float(m.group(2)) > 0.0 and float(m.group(3)) > 0.0, f"bad timings: {line!r}"
-    # every emitted layer summary parsed (each layer call traces once)
+        parsed.append((int(m.group(6)), int(m.group(7))))
     assert len(lines) >= 2
-    print(f"\n7E trace: {len(lines)} layer summaries, each boundary_syncs=1")
+    # warm layer: no growth, no exception => zero drain syncs
+    assert parsed[-1] == (1, 0), (
+        "the last (warm) layer must measure boundary_syncs=1 and drain_syncs=0, "
+        f"got {parsed[-1]}"
+    )
+    print(f"\n7E trace: {len(lines)} layer summaries; warm layer measures (1, 0)")
