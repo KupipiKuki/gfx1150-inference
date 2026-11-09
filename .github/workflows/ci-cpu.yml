@@ -40,16 +40,24 @@ jobs:
         run: python scripts/qa/check_claims.py
 
       - name: Check the claims checker canaries
-        # Proves the checker still detects injected unqualified claims, a
-        # missing evidence file and a generic (non claim-specific) literal.
+        # Proves the checker still detects injected unqualified claims
+        # (including throughput/70B/8-hour claims), missing evidence, a
+        # generic (non claim-specific) literal, and a non-empty baseline
+        # under --strict.
         run: python scripts/qa/canary_claims.py
 
-      - name: Check the claims ledger (strict mode, advisory until G6)
-        # Advisory: --strict is the G6 release gate, where the baseline must be
-        # empty and every unqualified site must be gone. Until G6 the seeded
-        # baseline is still populated, so this step is allowed to fail.
-        continue-on-error: true
-        run: python scripts/qa/check_claims.py --strict
+      - name: Release gate: strict claims check with an EMPTY baseline (G6)
+        # BLOCKING since 7F-5 (Gate G6): the baseline must be literally empty
+        # (test ! -s, 0 bytes -- even comments are not allowed, so a ratchet
+        # entry can never hide behind a comment). --strict ignores the
+        # baseline and fails on every unqualified public claim.
+        run: |
+          set -euo pipefail
+          test ! -s audit/claims_baseline.txt || {
+            echo "FAIL: audit/claims_baseline.txt is not empty at G6"
+            exit 1
+          }
+          python scripts/qa/check_claims.py --strict
 
   sdist-install:
     name: Sdist Install (CPU-only path, GFX1150_SKIP_CMAKE=1)

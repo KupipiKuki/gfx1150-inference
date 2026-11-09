@@ -42,7 +42,7 @@ Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., R
 | 1.2 | Write FP16 matmul HIP kernels (`matmul.h` / `matmul.hip`) | GLM5.3 / Argon | ✅ | 16×16 tiled + 64×64 2D register-blocked (`4×4`/thread) |
 | 1.3 | Add PyBind11 module bindings | GLM5.3 / Argon | ✅ | `src/python_bindings/bindings.cpp` |
 | 1.4 | Configure CMake build system (`matmul_module`) | You / Argon | ✅ | `CMakeLists.txt` with `pybind11::module` & RPATH |
-| 1.5 | Write & validate test suite | Local 7B / Argon | ✅ | `tests/test_matmul.py` (1.12 TFLOPS, max error `6.1e-5`) |
+| 1.5 | Write & validate test suite | Local 7B / Argon | ✅ | `tests/test_matmul.py` (1.12 TFLOPS — historical, **UNVERIFIED** per ledger ID 26; max error `6.1e-5`) |
 | 1.6 | Document remediation & lessons learned | You / Argon | ✅ | `audit/remediation_plan.md`, `LESSONS_LEARNED.md` |
 
 #### **Success Criteria**
@@ -50,7 +50,7 @@ Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., R
 - [x] HIP kernel compiles with 0 errors and 0 warnings
 - [x] Matmul output matches FP32-accumulated reference (`max_error < 1e-3`, achieved `6.1e-5`)
 - [x] Edge cases pass (`1×1024`, `1024×1`, `1×1`, `1023×1023`, `16×16`, `1024×512×256`)
-- [x] End-to-end throughput > 1 TFLOPS (achieved **1.12 TFLOPS** including host-device transfers)
+- [x] End-to-end throughput > 1 TFLOPS (achieved **1.12 TFLOPS** including host-device transfers; historical single-run figure, **UNVERIFIED** — ledger ID 26; G0 measured 1.02 TFLOPS on this host; reproducible ≥20-iteration medians/p95 in `audit/evidence/G6/7F/bench/`)
 
 #### **Deliverables**
 - ✅ [CMakeLists.txt](CMakeLists.txt) (ROCm + PyBind11 `MODULE` config)
@@ -78,7 +78,7 @@ Run large language models (7B–70B parameters) on **AMD gfx1150 GPUs** (e.g., R
 - [x] Parse GGUF v2/v3 metadata key-values and 32-byte aligned tensor offsets accurately
 - [x] Stream layer weights via `mmap` and evict completed layers (7D-1: best-effort `posix_fadvise(POSIX_FADV_DONTNEED)` plus a mapping PTE drop; the historical `MADV_DONTNEED`-only mechanism merely dropped PTEs). The resident-RAM-delta < 500 MB goal was **never measured** (UNVERIFIED, ledger ID 30); the 7D measured probe (`audit/evidence/G4/7D/`) covers synthetic-model RSS/major-fault deltas for PIN vs STREAM only
 - [x] `dequantize_q4_0` kernel matches CPU reference exactly (`max_error < 1e-3`, achieved `0.000000`)
-- [x] Fused `matmul_q4_0` kernel matches dequantized FP16 matmul while using 4× less weight memory traffic (`0.50 ms` for `1×4096×4096`)
+- [x] Fused `matmul_q4_0` kernel matches dequantized FP16 matmul while using 4× less weight memory traffic (`0.50 ms` for `1×4096×4096` — historical single-run figure, **UNVERIFIED** per ledger ID 28; G0 measured 0.75 ms on this host)
 - [x] All Phase 2 unit tests (`tests/test_gguf_and_q4.py`) pass
 
 #### **Deliverables**
@@ -182,7 +182,7 @@ class WeightStreamer:
 
 #### **Success Criteria**
 - [x] `dequantize_q8_0` and `dequantize_q4_k` match CPU reference with `max_error = 0.000000`
-- [x] Fused Wave32 `matmul_q4_k` executes 70B hidden dimension (`1×1024×8192`) in `2.76 ms` (`max_error < 2e-3`)
+- [x] Fused Wave32 `matmul_q4_k` executes 70B hidden dimension (`1×1024×8192`) in `2.76 ms` (historical single-run figure, **UNVERIFIED** per ledger ID 29; G0 measured 1.00 ms on this host) (`max_error < 2e-3`)
 - [x] Mixed `Q4_K_M` (`Q4_K` + `Q8_0`), chunked prefill, and CPU/`mmap` KV-cache offload pass equivalence tests
 - [x] Installable via `pip install -e .` with `gfx1150-infer` CLI entry point
 
@@ -213,7 +213,7 @@ class WeightStreamer:
 #### **Success Criteria**
 - [x] Truncated or malformed GGUF files raise `ValueError` at parse time with zero `SIGBUS` or leaked file descriptors — the nested metadata-array class tracked as BLOCKER-7A4-1 was fixed by 7A-9 (`audit/evidence/G1/7A-9/`); the parser is fail-closed for every malformed class the suite covers
 - [x] `TILE_M = 4` quantized prefill kernels match `M = 1` Wave32 kernels with `max_diff == 0.0` across `Q4_0`, `Q8_0`, and `Q4_K`
-- [x] C++-owned device-resident layer pipeline (`forward_layer_cached`) increases end-to-end throughput on `tests/test_full_model.py` from `~224 tok/s` to **`983.4 tok/s` (`decode: 1107.9 tok/s`)**
+- [x] C++-owned device-resident layer pipeline (`forward_layer_cached`) increases end-to-end throughput on `tests/test_full_model.py` from `~224 tok/s` to **`983.4 tok/s` (`decode: 1107.9 tok/s`)** (historical synthetic single-run figures, **UNVERIFIED** per ledger IDs 13/27; G0 measured 849.3 tok/s (decode 866.5) on this host; reproducible ≥20-iteration medians/p95 for the synthetic lane are checked in at `scripts/bench/baseline-synthetic.json` and under `audit/evidence/G6/7F/bench/`)
 - [x] Self-contained CPU-only test suite ([tests/test_cpu_only.py](tests/test_cpu_only.py)) passes under both `python3` and `python3 -O`
 
 #### **Deliverables**
@@ -314,7 +314,7 @@ class WeightStreamer:
 
 | **Phase** | **Focus** | **Status** |
 |-----------|-----------|------------|
-| Phase 1   | Hello `gfx1150` (HIP FP16 Matmul + PyBind11) | ✅ Complete (1.12 TFLOPS) |
+| Phase 1   | Hello `gfx1150` (HIP FP16 Matmul + PyBind11) | ✅ Complete (1.12 TFLOPS — historical, **UNVERIFIED** per ledger ID 26) |
 | Phase 2   | GGUF Parser + `madvise` SSD Streaming + Fused `Q4_0` Kernels | ✅ Complete |
 | Phase 3   | Llama Layer Kernels (RMSNorm, RoPE, GQA, SwiGLU) | ✅ Complete |
 | Phase 4   | End-to-End Model Inference + KV Cache + Tokenizer | ✅ Complete |
