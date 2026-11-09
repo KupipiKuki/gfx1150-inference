@@ -106,6 +106,21 @@ jobs:
             fi
           done
           echo "ok: every tests/*.py in the repository is in the sdist"
+          # BLOCKER-7F-4: every local module a shipped test imports must be
+          # in the sdist, or the extracted-tree lane is red. The shipped CPU
+          # lane imports scripts/bench/aggregate.py (tests/test_bench_gate.py);
+          # the bench baselines gate against the checked-in JSON baselines.
+          for required in scripts/bench/aggregate.py \
+                          scripts/bench/regress.py \
+                          scripts/bench/baseline-synthetic.json \
+                          scripts/bench/baseline-7b.json; do
+            if ! grep -qE "^[^/]+/${required}$" sdist-contents.txt; then
+              echo "FAIL: the sdist does not contain ${required}"
+              echo "      (a shipped test imports it - check MANIFEST.in)"
+              exit 1
+            fi
+            echo "ok: the sdist contains ${required}"
+          done
 
       - name: Install the sdist into a clean venv (CPU-only path)
         # A real install, not an archive listing. GFX1150_SKIP_CMAKE=1 selects

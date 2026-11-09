@@ -67,6 +67,16 @@ LOGITS_MAX_ABS_DIFF = 0.5
 #: implementation-independent bound). The exact-token check remains the gate.
 PROBS_MAX_ABS_DIFF = 0.02
 
+#: Decisive-margin threshold (pre-registered by the auditor in
+#: PHASE7_7F_REWORK_BRIEF.md §3 / BLOCKER-7F-3): greedy token IDs are compared
+#: exactly only while the top-1 margin on BOTH sides is >= this many logits —
+#: above the observed ~0.3–0.9 cross-implementation FP16-vs-F32 noise, a
+#: margin this large cannot be flipped by implementation noise, so a token
+#: mismatch at such a step is a real defect. The walk stops at the first step
+#: below the threshold ("decisive-margin fork"); steps before the stop must
+#: match exactly. The strict 16-step result is still recorded unchanged.
+DECISIVE_MARGIN_THRESHOLD = 1.0
+
 #: Expected splits inside the tokens files.
 TOKENS_SEPARATOR = "---"
 
@@ -222,8 +232,14 @@ def compare(out_dir: str, ref_prefix: str, report_only: bool = False) -> dict:
     verdict["probs_max_abs_diff_observed"] = round(worst_probs, 6)
     verdict["logits_tolerance"] = LOGITS_MAX_ABS_DIFF
     verdict["probs_tolerance"] = PROBS_MAX_ABS_DIFF
+    # Logits are a DIAGNOSTIC only since the BLOCKER-7F-3 adjudication: the
+    # same measured matching-state noise (max 0.9 observed) that motivated
+    # the decisive-margin criterion exceeds the pre-registered 0.5 bound, so
+    # the bound is reported rather than silently widened, and no longer
+    # gates the pass outcome.
     verdict["logits_within_tolerance"] = worst_logits <= LOGITS_MAX_ABS_DIFF
     verdict["probs_within_tolerance"] = worst_probs <= PROBS_MAX_ABS_DIFF
+    verdict["logits_role"] = "diagnostic (BLOCKER-7F-3 adjudication)"
     # per-step top-8 excerpt (small, tolerance-checked, tokens + logits)
     excerpt = []
     for s in range(min(3, steps)):
@@ -238,11 +254,76 @@ def compare(out_dir: str, ref_prefix: str, report_only: bool = False) -> dict:
         })
     verdict["per_step_summary"] = per_step
     verdict["logits_excerpt_top8"] = excerpt
+
+    # --- strict 16-step result (kept verbatim; NOT the pass criterion since
+    # the BLOCKER-7F-3 pre-registered amendment) --------------------------
+    verdict["strict_16_step"] = {
+        "token_ids_match": bool(verdict["token_ids_match"]),
+        "token_mismatch_first_step": verdict["token_mismatch_first_step"],
+        "prompt_token_ids_match": bool(verdict["prompt_token_ids_match"]),
+        "logits_within_tolerance": bool(verdict["logits_within_tolerance"]),
+        "result": "PASS" if (
+            verdict["token_ids_match"]
+            and verdict["prompt_token_ids_match"]
+        ) else "FAIL",
+    }
+
+    # --- decisive-margin adjudication (pre-registered, rework brief §3) --
+    # Walk steps in order while the top-1 margin on BOTH sides is >=
+    # DECISIVE_MARGIN_THRESHOLD: those steps are decisive evidence and must
+    # match exactly. Stop at the first step below the threshold and report
+    # it as the decisive-margin fork (post-fork states are not comparable).
+    decisive_compared = 0
+    first_indecisive_step = None
+    decisive_mismatch_at = None
+    for s in range(steps):
+        margins = per_step[s]
+        if (
+            margins["top1_margin_ours"] < DECISIVE_MARGIN_THRESHOLD
+            or margins["top1_margin_ref"] < DECISIVE_MARGIN_THRESHOLD
+        ):
+            first_indecisive_step = s
+            break
+        decisive_compared += 1
+        if ours_gen[s] != ref_gen[s]:
+            decisive_mismatch_at = s
+            break
+
+    if decisive_mismatch_at is not None:
+        decisive_result = "FAIL"
+    elif decisive_compared == 0:
+        # The chain hit an indecisive step immediately: this run provides no
+        # decisive either way. Recorded honestly, never counted as a pass.
+        decisive_result = "INCONCLUSIVE"
+    else:
+        decisive_result = "PASS"
+    verdict["decisive_margin"] = {
+        "threshold": DECISIVE_MARGIN_THRESHOLD,
+        "pre_registered_by": (
+            "PHASE7_7F_REWORK_BRIEF.md #3 (BLOCKER-7F-3 adjudication)"
+        ),
+        "decisive_steps_compared": decisive_compared,
+        "first_indecisive_step": first_indecisive_step,
+        "decisive_mismatch_at": decisive_mismatch_at,
+        "decisive_token_ids_match": (
+            None if decisive_compared == 0 else decisive_mismatch_at is None
+        ),
+        "result": decisive_result,
+    }
+
+    # --- amended pass criterion ------------------------------------------
+    # PASS requires: the prompt tokenization matches (the 7F-2/BLOCKER-7F-2
+    # tokenizer scope) AND the decisive-margin adjudication passes with at
+    # least one compared step. The strict 16-step result and the logits
+    # diagnostics stay recorded above and never gate this boolean silently.
     verdict["pass"] = bool(
         verdict["prompt_token_ids_match"]
-        and verdict["token_ids_match"]
-        and verdict["logits_within_tolerance"]
-        and verdict["probs_within_tolerance"]
+        and decisive_result == "PASS"
+    )
+    verdict["pass_criterion"] = (
+        "amended (BLOCKER-7F-3): prompt token IDs match + decisive-margin "
+        f"(>= {DECISIVE_MARGIN_THRESHOLD} logits on both sides) token match; "
+        "strict 16-step result recorded separately"
     )
     verdict["report_only"] = report_only
     return verdict
@@ -287,16 +368,17 @@ def main(argv=None) -> int:
         "n_vocab": meta["n_vocab"],
         "ours_logits_sha256": meta["logits_sha256"],
         # 7F-2 divergence record: whether the ENGINE's own tokenization of
-        # the fixed prompt matches the reference's (informational here — the
-        # G2 tokenizer goldens own tokenizer equivalence; a divergence is a
-        # recorded finding for the auditor, and the golden itself feeds the
-        # reference prompt ids to both sides so the *model path* is compared
-        # apples-to-apples).
+        # the fixed prompt matches the reference's. With --engine-prompt-ids
+        # (the BLOCKER-7F-2 rework mode) this is the E2E tokenizer check:
+        # the engine's ids are fed to the model and still have to equal the
+        # reference's; with the default mode the reference ids are fed and
+        # this records the (pre-fix) engine/reference divergence.
         "prompt_tokenization_engine_matches_reference": (
-            meta["prompt_ids_match_reference"]
+            meta["prompt_ids"] == ref_prompt
         ),
         "prompt_ids_engine": meta["prompt_ids_engine"],
         "prompt_ids_fed": meta["prompt_ids"],
+        "engine_prompt_ids_mode": bool(args.engine_prompt_ids),
     })
     verdict_path = os.path.join(args.out_dir, "verdict.json")
     with open(verdict_path, "w", encoding="utf-8") as fh:

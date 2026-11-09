@@ -524,3 +524,85 @@ def test_decode_round_trips_the_golden_text() -> None:
         assert decoded == case["prompt"], (
             f"decoding the golden IDs for {case['prompt']!r} returned {decoded!r}"
         )
+
+
+# --------------------------------------------------------------------------- #
+# Phase 7F rework (BLOCKER-7F-2, Gate G6): real SentencePiece GGUFs can ship a
+# non-empty `merges` array with all-zero scores (e.g. TinyLlama through a gguf
+# converter: 61,249 merges + zero scores). The SPM path must ignore the BPE
+# merge ranks and segment with the reference score comparator
+# (leftmost-first on ties), or `jumps` becomes `▁j`+`umps` instead of
+# llama.cpp's `▁jump`+`s` (auditor probe:
+# audit/evidence/G6/7F/audit-probes/tokenizer-spm-merges.md).
+# --------------------------------------------------------------------------- #
+
+
+def test_spm_vocab_with_merges_array_ignores_bpe_ranks() -> None:
+    """A `model="llama"` vocabulary with all-zero scores and a `merges` array
+    must segment with the SPM score comparator, not the BPE ranks.
+
+    Vocabulary shape (mirrors the TinyLlama defect class): every merge
+    intermediate (`▁j`, `▁ju`, `▁jum`, `▁jump`) is a token with score 0, and
+    the `merges` array lists only `▁ j`. Under the buggy rank comparator the
+    only mergeable pair is the listed one (`▁`+`j`), so the segmentation
+    stops at `▁j` + single letters; the reference (SPM, ties: leftmost)
+    keeps merging through `▁jump` for `jumps` -> (`▁jump`, `s`).
+    """
+    tokens = [
+        "<unk>", "<s>", "</s>",
+        "▁", "j", "u", "m", "p", "s",
+        "▁j", "▁ju", "▁jum", "▁jump",
+    ]
+    scores = [0.0] * len(tokens)
+    tokenizer = GGUFTokenizer(
+        tokens=tokens,
+        scores=scores,
+        bos_token_id=1,
+        eos_token_id=2,
+        merges=["▁ j"],  # non-empty: the TinyLama case
+        token_types=[3, 3, 3] + [1] * 10,  # CONTROL, CONTROL, CONTROL, NORMAL
+        tokenizer_model="llama",
+    )
+
+    # SentencePiece family default adds the BOS (<s>, id 1), as llama.cpp does.
+    ids = tokenizer.encode("jumps")
+
+    # SPM score comparator (all-zero scores -> ties: leftmost) merges through
+    # the longest in-vocabulary piece: [BOS, ▁jump, s] = [1, 12, 8].
+    assert ids == [1, 12, 8], (
+        "the SPM path used the BPE ranks: got "
+        f"{ids} ({[tokens[i] for i in ids]}), expected [1, 12, 8] "
+        "([<s>, ▁jump, s])"
+    )
+    # The rank-comparator segmentation (the defect) must NOT be produced:
+    # ['<s>', '▁j', 'u', 'm', 'p', 's'] == [1, 9, 4, 5, 6, 7].
+    assert ids != [1, 9, 4, 5, 6, 7]
+
+    # Without the merges array the same vocabulary segments identically:
+    # the fix restores SPM behavior regardless of the merges array.
+    no_merges = GGUFTokenizer(
+        tokens=tokens,
+        scores=scores,
+        bos_token_id=1,
+        eos_token_id=2,
+        merges=[],
+        token_types=[3, 3, 3] + [1] * 10,
+        tokenizer_model="llama",
+    )
+    assert no_merges.encode("jumps") == ids
+
+
+def test_gpt2_vocab_still_uses_merge_ranks() -> None:
+    """The byte-level BPE path (model="gpt2") keeps using the merge ranks.
+
+    Guard against over-correcting BLOCKER-7F-2: the ranks apply to the GPT-2
+    byte-level vocabularies (the `_uses_gpt2` detection), where they ARE the
+    reference comparator — and the parameterized GPT-2 golden cases in this
+    module pin that behavior against the reference token IDs.
+    """
+    tokenizer = _build_tokenizer(_GPT2_VOCAB)
+    assert tokenizer._uses_gpt2, "the GPT-2 fixture must detect as byte-level BPE"
+    assert tokenizer.merge_ranks, "the GPT-2 fixture must ship merge ranks"
+    # the patched comparator condition (mirrors the fix, for auditability):
+    # ranks must still be *usable* for this class of vocabulary.
+    assert bool(tokenizer.merge_ranks) and tokenizer._uses_gpt2

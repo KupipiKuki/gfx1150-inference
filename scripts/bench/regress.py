@@ -2,9 +2,13 @@
 """Benchmark regression gate (7F-3): compare a bench result to the baseline.
 
 Blocking release gate against the checked-in baseline files
-(``scripts/bench/baseline-synthetic.json``, ``audit/evidence/G6/7F/bench/baseline-7b.json``):
+(``scripts/bench/baseline-synthetic.json`` for the synthetic lane and
+``scripts/bench/baseline-7b.json`` for the real 7B Q4_K_M lane — the model
+itself is external; the payload records its sha256 and the acquisition
+command lives in ``audit/evidence/G6/7F/bench/README.md``):
 
     python scripts/bench/regress.py scripts/bench/baseline-synthetic.json result.json
+    python scripts/bench/regress.py scripts/bench/baseline-7b.json real.json
 
 Rules (``scripts/bench/aggregate.py::check_regression``):
 

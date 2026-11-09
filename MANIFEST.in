@@ -11,4 +11,10 @@ recursive-include tests *.py
 # quantized blocks and the tiny GGUF) and their generator must ship with the
 # sdist, or the golden tests cannot run against an installed package.
 recursive-include tests/fixtures *
+# Phase 7F (BLOCKER-7F-4): the shipped CPU lane imports the benchmark
+# aggregation module (tests/test_bench_gate.py -> scripts/bench/aggregate.py)
+# and the checked-in synthetic baseline; without scripts/ in the sdist the
+# extracted-tree lane is red. Ship the bench tooling (.py evidence harness
+# and the baseline .json).
+recursive-include scripts/bench *.py *.json
 
