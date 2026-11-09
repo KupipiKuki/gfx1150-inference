@@ -570,12 +570,21 @@ review plus non-main-thread stress. Do not claim throughput; 7F-3 owns it.
 
 ### 7F — Evidence and release gates (Gate G6)
 
-**Status (2026-11-08): AUTHORIZED — G5 signed and merged; 7F is the active next phase.**
+**Status (2026-11-08): IMPLEMENTED — G6 REVIEW NOT SIGNED; rework required.**
+**Audit:** [`audit/AUDIT_7F_DEEP_2026-11-08.md`](audit/AUDIT_7F_DEEP_2026-11-08.md).
+**Rework brief:** [`PHASE7_7F_REWORK_BRIEF.md`](PHASE7_7F_REWORK_BRIEF.md).
+**QAQC:** [`audit/QAQC_7F_2026-11-08.md`](audit/QAQC_7F_2026-11-08.md).
 **Coder brief:** [`PHASE7_7F_EVIDENCE_RELEASE_BRIEF.md`](PHASE7_7F_EVIDENCE_RELEASE_BRIEF.md) — authoritative package detail.
 **Evidence contract:** [`audit/evidence/G6/7F/README.md`](audit/evidence/G6/7F/README.md).
-7F-1 (runner registration) and 7F-2 (real GGUF files / llama.cpp reference) need
-owner/host resources; if unavailable, stop and record `BLOCKED` — do not weaken
-G6. No 70B, 8-hour, or throughput claim until the matching evidence exists.
+Accepted as evidenced: 7F-3 benchmark harness/baseline/gate, 7F-4 prompt-safe
+telemetry, 7F-5 strict claims gate (empty baseline, 16 canaries). G6 is held
+by: (1) 7F-1 runner/required-GPU-CI owner action; (2) a real SPM tokenizer
+regression (real llama-family GGUFs with a `merges` array use BPE ranks);
+(3) the 7F-2 exact-token golden is a recorded FAIL (near-tie forks; spec
+amendment required); (4) the sdist CI lane is red (scripts/bench not shipped);
+(5) the README release-scope wording overstates the real-GGUF evidence.
+Do not merge `wp/7F-evidence-release`. No 70B, 8-hour, or throughput claim
+until the matching evidence exists.
 
 **Audit trace:** T-1..T-7, B-1 residual, unverified hardware claims; v0.6.2 §6 P1-6.
 **Allowed files:** `tests/**`, `.github/workflows/**`, `scripts/bench/**` (new), `scripts/qa/**`, `audit/CLAIMS_LEDGER.md`, `README.md`, docs, evidence.
