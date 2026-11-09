@@ -1,0 +1,4 @@
+decode tokens/s: run1 17.24 run2 16.80 variance -2.5%
+prefill s: run1 0.207 run2 0.220
+prompt-content leak check (quick/brown/fox/lazy/release): none in either payload
+CLI command reproduced in telemetry/schema.md; exit codes 0

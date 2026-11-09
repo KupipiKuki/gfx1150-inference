@@ -1,0 +1,19 @@
+# 7F diffstat against the G6 base (2d48efe11e8f4f53eb37eb15218b41a40ab5e1be) + allowed/forbidden set
+
+ .github/workflows/ci-cpu.yml          |  24 +-
+ IMPLEMENTATION_PLAN.md                |  12 +-
+ README.md                             |   4 +-
+ audit/CLAIMS_LEDGER.md                |  29 +-
+ audit/claims_baseline.txt             |  28 --
+ scripts/bench/aggregate.py            | 188 ++++++++++++
+ scripts/bench/baseline-synthetic.json | 237 ++++++++++++++++
+ scripts/bench/regress.py              |  73 +++++
+ scripts/bench/run.py                  | 370 ++++++++++++++++++++++++
+ scripts/qa/canary_claims.py           | 123 +++++++-
+ scripts/qa/check_claims.py            |  31 +-
+ scripts/qa/real_gguf_golden.py        | 311 ++++++++++++++++++++
+ src/inference.py                      | 521 ++++++++++++++++++++++++++++++++--
+ tests/test_bench_gate.py              | 153 ++++++++++
+ tests/test_harness_contract.py        |   9 +
+ tests/test_telemetry_gpu.py           | 271 ++++++++++++++++++
+ 16 files changed, 2294 insertions(+), 90 deletions(-)

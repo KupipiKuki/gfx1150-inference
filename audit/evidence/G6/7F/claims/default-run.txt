@@ -1,0 +1,14 @@
+=== Claims ledger check ===
+mode:        default (baseline-aware)
+claims:      30 rows parsed
+
+--- unqualified public claims (the ratchet) ---
+  none
+
+--- baseline entries that no longer match a violation ---
+  none
+
+--- findings ---
+  none
+
+RESULT: PASS - 0 new violation(s), 0 baselined, 0 expired baseline entry(ies), 0 finding(s)
