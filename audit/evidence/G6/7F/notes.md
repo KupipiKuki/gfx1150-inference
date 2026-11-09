@@ -101,7 +101,7 @@ No kernel math, tokenizer, model-family, or 7D-policy code was touched.
 `src/inference.py` carries telemetry plumbing only (`--stats`/`--json`,
 `perf_counter` counters, stderr tap, sysfs/GTT sampler; generation
 behavior unchanged — `generate_ids`/`generate` untouched, verified by the
-532-test CPU lane and 41-test GPU lane green).
+525-test CPU lane and 45-test GPU lane green).
 
 ## Reproducing from a clean clone
 
@@ -120,3 +120,18 @@ python3 scripts/bench/regress.py scripts/bench/baseline-synthetic.json mine.json
 The clean-clone re-verification (fresh tree, fresh build, both lanes +
 goldens + bench) is in `clean-clone/`. Real GGUFs are not committed; see
 `golden/README.md` for hashes and acquisition commands.
+
+## Rework log (2026-11-08, PHASE7_7F_REWORK_BRIEF.md — five blockers)
+
+| Blocker | Disposition |
+|---|---|
+| 7F-1 required GPU CI | **still BLOCKED** (owner action; `gpu-runner.md` unchanged) |
+| 7F-2 SPM tokenizer uses BPE ranks | **FIXED** — `src/tokenizer.py`: `use_ranks = bool(self.merge_ranks) and self._uses_gpt2`. Regression tests: `test_spm_vocab_with_merges_array_ignores_bpe_ranks` + the GPT-2-ranks guard (`tests/test_goldens_tokenizer.py`, 353 passed). Engine tokenization now reference-exact on all three real prompts (31/31, 35/35, 31/31 — `rework-tokenizer-evidence.txt`) |
+| 7F-3 golden acceptance criterion | **adjudicated as pre-registered** — `scripts/qa/real_gguf_golden.py` now records `strict_16_step` (kept FAIL) + `decisive_margin` (threshold 1.0 both sides, stop at first indecisive step, INCONCLUSIVE when 0 compared). Reruns with `--engine-prompt-ids`: Q6_K **PASS** (2 decisive steps exact), both Q4_K_M prompts **INCONCLUSIVE** (step 0 already near-tied). Logits are diagnostics; bounds unchanged |
+| 7F-4 sdist lane red | **FIXED** — `MANIFEST.in` ships `scripts/bench *.py *.json`; locally rebuilt sdist: extracted-tree lane **523 passed, 49 deselected**; new CI assertion checks every local module a shipped test imports |
+| 7F-5 release-scope wording | **FIXED** — README L132 narrowed (synthetic-hardware kernel verification for Q4_0/Q4_K/Q8_0, explicit "no real-GGUF golden"; real-GGUF result stated with the measured outcomes); ledger row 31 inventories the claim (`Verified release scope` literal, qualified in place); row 5 typo fixed; stale lane counts fixed (45 GPU / 525 CPU); `regress.py` docstring now matches the checked-in `scripts/bench/baseline-7b.json` (7B lane is now gateable; rerun PASSes it) |
+
+Rerun battery at the rework tip: CPU lane 527 passed / GPU lane 45 passed /
+cpu_only OK (both modes) / strict claims PASS (baseline still 0 bytes) /
+canaries 16/16 / bench synthetic gate PASS / bench 7B gate PASS
+(`rework-run.log`, `clean-clone/` re-verified).

@@ -5,8 +5,8 @@
     if asyncio.iscoroutinefunction(func):
 
 tests/test_phase5_scale.py::test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards
-  /tmp/g6clone2/tests/test_phase5_scale.py:513: DeprecationWarning: cache_weights=True is deprecated and maps to residency='pin_all' (host page-cache residency, not a device weight cache). Use --residency pin / residency='pin_all' instead. cache_weights=False maps to the new default 'auto'.
+  /tmp/rw-clone/tests/test_phase5_scale.py:513: DeprecationWarning: cache_weights=True is deprecated and maps to residency='pin_all' (host page-cache residency, not a device weight cache). Use --residency pin / residency='pin_all' instead. cache_weights=False maps to the new default 'auto'.
     with LlamaInferenceEngine(qwen_gguf, max_seq_len=16, cache_weights=True) as eng:
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-45 passed, 525 deselected, 14 warnings in 2.31s
+45 passed, 527 deselected, 14 warnings in 2.26s
