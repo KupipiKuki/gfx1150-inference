@@ -586,6 +586,10 @@ scope narrowed to synthetic-hardware with no real-GGUF golden claim.
 remove `continue-on-error`, require the GPU check, and demonstrate a red-suite
 block. Do not merge `wp/7F-evidence-release` until then. No 70B, 8-hour, or
 throughput claim.
+**7F-1 runbook:** [`PHASE7_7F1_RUNNER_RUNBOOK.md`](PHASE7_7F1_RUNNER_RUNBOOK.md);
+**preflight:** `scripts/qa/preflight_gpu_runner.sh` (PASS, 2 owner warnings:
+the repo is public and `ci-gpu.yml` is still advisory). The security decision
+(private repo or fork-PR approval) comes first.
 
 **Audit trace:** T-1..T-7, B-1 residual, unverified hardware claims; v0.6.2 §6 P1-6.
 **Allowed files:** `tests/**`, `.github/workflows/**`, `scripts/bench/**` (new), `scripts/qa/**`, `audit/CLAIMS_LEDGER.md`, `README.md`, docs, evidence.

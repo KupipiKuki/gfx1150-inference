@@ -1,5 +1,29 @@
 # 7F-1 — Required self-hosted GPU CI: **BLOCKED** (owner action outstanding)
 
+> **Prepared 2026-11-09:** full registration runbook at
+> [`../../../../PHASE7_7F1_RUNNER_RUNBOOK.md`](../../../../PHASE7_7F1_RUNNER_RUNBOOK.md)
+> and a read-only host check at `scripts/qa/preflight_gpu_runner.sh`.
+> Preflight on the gfx1150 host: **PASS, 0 FAIL, 2 owner-decision warnings** —
+> the repository is **public** and `ci-gpu.yml` still has
+> `continue-on-error: true`.
+>
+> **Security decision required first:** a self-hosted runner on a public repo
+> can execute fork-PR code on this host. Make the repo private for the runner
+> phase (recommended) or enable *Require approval for all outside
+> collaborators* before registering, and prefer a dedicated unprivileged
+> runner user if it stays public.
+>
+> **Provisioning fact:** `/usr/bin/python3` has no pip; the service must put
+> `/home/kupipi/.pyenv/shims` first in `PATH` (verified: Python 3.14.10 + pip +
+> numpy/pytest/pybind11 under a clean environment; the clean-env build and
+> `pytest -m gpu` lane were both green). Use `~/actions-runner/.env` or a
+> systemd drop-in.
+>
+> **Remaining owner sequence:** register labels `gfx1150,rocm` → first green
+> run (45 passed, 0 skipped) → remove `continue-on-error` → require
+> `GPU correctness (self-hosted gfx1150)` on `main` and
+> `vibe/phase7-220201` → red-team a failing GPU PR and confirm the block.
+
 ## Status
 
 `BLOCKED`. The runner registration (and making the job required) needs
