@@ -32,7 +32,7 @@ jobs:
     runs-on: [self-hosted, gfx1150, rocm]
     # Advisory until the self-hosted runner is registered (7F-1). While this is
     # true the job is queued rather than passing, and it is not a G1 gate.
-    continue-on-error: true
+#    continue-on-error: true
     timeout-minutes: 60
     steps:
       - name: Checkout repository
