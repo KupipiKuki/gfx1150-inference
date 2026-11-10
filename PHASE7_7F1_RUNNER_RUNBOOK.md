@@ -1,10 +1,14 @@
 # 7F-1 — Self-hosted gfx1150 runner: registration runbook (Gate G6)
 
 **Status:** prepared 2026-11-09. G6 is open **only** on 7F-1.
+**Decision (2026-11-09):** the repository is made **private** during the runner
+phase; the runner runs as **`kupipi`** (the verified pyenv Python 3.14.10 +
+GPU groups). This is the quick path in §2/§3 below.
 **Owner:** repository owner (GitHub admin + sudo on the gfx1150 host).
 **Auditor:** verifies the runner/labels, the first green run, the required
 check, and the red-team block; then signs G6.
 **Preflight:** `bash scripts/qa/preflight_gpu_runner.sh` (read-only).
+**Helper:** `scripts/qa/register_gpu_runner.sh` (token-safe, interactive).
 
 ---
 
@@ -64,6 +68,29 @@ Settings → General → Danger Zone → **Change repository visibility → Priv
 Only collaborators can push/PR, so untrusted fork code cannot reach the
 runner. Revisit visibility after the release; if you make it public again,
 remove the runner or enable the fork-approval gate below first.
+
+**Selected 2026-11-09.** The runner will run as `kupipi`.
+
+#### Quick path (chosen)
+
+1. Make the repository private in the GitHub UI.
+2. GitHub → Settings → Actions → Runners → New self-hosted runner → Linux/x64;
+   copy the tarball URL, the checksum, and the registration token.
+3. On the host:
+
+```bash
+cd /home/kupipi/Documents/git/gfx1150-inference
+RUNNER_URL="<tarball URL from the UI>" \
+RUNNER_SHA256="<sha256 from the UI>" \
+  bash scripts/qa/register_gpu_runner.sh
+```
+
+The helper runs the preflight, asks you to confirm the repo is private, reads
+the registration token silently, configures labels `gfx1150,rocm`, writes the
+`.env` PATH (`/home/kupipi/.pyenv/shims` first), and installs/starts the
+service as `kupipi`. It never writes the token to disk or to the repo.
+
+If you prefer to do it by hand, use §3–§5 below.
 
 ### Option B — keep it public, require approval for all outside collaborators
 
