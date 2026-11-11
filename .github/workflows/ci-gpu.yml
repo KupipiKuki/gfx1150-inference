@@ -8,12 +8,9 @@ name: Self-Hosted GPU CI
 # (condition C-7A1-6 / QF-5): the lane must report at least one passed test
 # and zero skips.
 #
-# The runner is not registered yet, so this job is `continue-on-error: true` and
-# must NOT be counted as a G1 pass in this state. Tracking:
-#   https://github.com/KupipiKuki/gfx1150-inference/pull/8  (Phase 7 gates)
-#   handoff work package 7F-1, which registers the runner with the labels
-#   `gfx1150` and `rocm` and then removes `continue-on-error` so that this lane
-#   is required on PR and nightly.
+# 7F-1: the self-hosted runner (labels `gfx1150`, `rocm`) is registered and
+# this lane is required on PRs and the nightly schedule. A skip is still never
+# a pass (the junit check below).
 #
 # No secrets are used and no prompt or model data reaches the logs: the GPU
 # suite runs on synthetic models.
@@ -30,9 +27,6 @@ jobs:
   gpu-correctness:
     name: GPU correctness (self-hosted gfx1150)
     runs-on: [self-hosted, gfx1150, rocm]
-    # Advisory until the self-hosted runner is registered (7F-1). While this is
-    # true the job is queued rather than passing, and it is not a G1 gate.
-#    continue-on-error: true
     timeout-minutes: 60
     steps:
       - name: Checkout repository
