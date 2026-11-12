@@ -570,22 +570,26 @@ review plus non-main-thread stress. Do not claim throughput; 7F-3 owns it.
 
 ### 7F — Evidence and release gates (Gate G6)
 
-**Status (2026-11-11): G6 NOT SIGNED — 7F-1 runner re-registration + two CI fixes + cleanup remain.**
+**Status (2026-11-12): REWORK CLOSED — the G6 evidence is complete; pending only the runner re-registration, the final GPU check on the release head, the G6 signoff, and the merge.**
 **Audit:** [`audit/AUDIT_7F_CI_STATUS_2026-11-11.md`](audit/AUDIT_7F_CI_STATUS_2026-11-11.md) (current), [`audit/AUDIT_7F_REWORK_2026-11-09.md`](audit/AUDIT_7F_REWORK_2026-11-09.md) (7F-2..7F-5 closed), and [`audit/AUDIT_7F_DEEP_2026-11-08.md`](audit/AUDIT_7F_DEEP_2026-11-08.md) (initial).
 **Rework brief (closed for 7F-2..7F-5):** [`PHASE7_7F_REWORK_BRIEF.md`](PHASE7_7F_REWORK_BRIEF.md).
 **QAQC:** [`audit/QAQC_7F_REWORK_2026-11-10.md`](audit/QAQC_7F_REWORK_2026-11-10.md) and [`audit/QAQC_7F_2026-11-08.md`](audit/QAQC_7F_2026-11-08.md).
 **Evidence contract:** [`audit/evidence/G6/7F/README.md`](audit/evidence/G6/7F/README.md).
 7F-2..7F-5 remain closed and audited (tokenizer, decisive-margin goldens,
-sdist, release-scope claims). The live CI state is now the blocker: (1) the
-self-hosted runner registration was **deleted server-side** (service dead; GPU
-job queued), so it must be re-registered and started; (2) the CPU lane fails
-`test_measured_rss_delta_pin_vs_stream` because the runner page cache retained
-the synthetic file (`refault majflt=0`) — add `fsync`, fall back from a failed
-`MADV_PAGEOUT` to `MADV_DONTNEED`, or record a documented skip if the kernel
-retains pages. The clean-clone free-disk fix and the stale-comment/`build-ptds`/
-`7c` cleanup are **applied in `6533a00`**; verify the next clean-clone run is
-green. Then configure the four-check ruleset, red-team a failing GPU PR, and
-obtain the auditor signoff.
+sdist, release-scope claims). The rework items are now **all done**: GPU run
+`43129386477` green with `45 passed, 0 skipped`; CPU+sdist `43129386411`;
+clean-clone `43129386536`; ruleset `26990297` (`release-gates`, active) on
+`main` + `vibe/phase7-220201` with the four required checks; red-team PR `#11`
+blocked by the required GPU check; scope cleanup and the free-disk fix in
+`6533a00`; evidence in `audit/evidence/G6/7F/gpu-runner/`.
+**Remaining:** the self-hosted runner is currently **offline** (its server-side
+registration was deleted; the local credentials are stale), so the required GPU
+check cannot run on release head `82d07fd` and PR `#10` cannot merge.
+Re-register/start the runner, then the auditor signs G6 and merges.
+**7F-1 runbook:** [`PHASE7_7F1_RUNNER_RUNBOOK.md`](PHASE7_7F1_RUNNER_RUNBOOK.md);
+**preflight:** `scripts/qa/preflight_gpu_runner.sh`.
+Do not merge `wp/7F-evidence-release` until the signoff; no 70B, 8-hour, or
+throughput claim.
 **7F-1 runbook:** [`PHASE7_7F1_RUNNER_RUNBOOK.md`](PHASE7_7F1_RUNNER_RUNBOOK.md);
 **preflight:** `scripts/qa/preflight_gpu_runner.sh`.
 Do not merge `wp/7F-evidence-release`; no 70B, 8-hour, or throughput claim.

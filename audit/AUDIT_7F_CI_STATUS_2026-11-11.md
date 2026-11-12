@@ -149,4 +149,87 @@ the ROCm install. **Pending:** confirm the next clean-clone run is green.
 6. Red-team a failing GPU PR; confirm the block.
 7. Auditor verifies and signs G6; merge.
 
-**Signed:** DeepSeek V4.1 Flash, primary auditor — 2026-11-11.
+---
+
+## 7. Re-audit (2026-11-12): rework items closed; runner now offline
+
+All five blockers from this report are closed, and the 7F-1 evidence is
+complete. The release PR is `#10` (head `wp/7F-evidence-release`, base
+`vibe/phase7-220201`).
+
+| Item | Evidence | Status |
+|---|---|---|
+| GPU lane on the self-hosted runner | run `43129386477`: `45 passed, 0 skipped` / `PASS: the GPU lane ran, with no skips` | OK |
+| No advisory bypass | `ci-gpu.yml` has no `continue-on-error` (since `6533a00`) | OK |
+| CPU lane + sdist | run `43129386411`: `525 passed, 2 skipped, 45 deselected`; sdist job success | OK |
+| Clean-clone build | run `43129386536`: ROCm installed, configure/build/sdist OK | OK |
+| Required checks | ruleset `26990297` (`release-gates`, active) requires the four checks on `main` and `vibe/phase7-220201` | OK |
+| Red-team | PR `#11`: `GPU correctness (self-hosted gfx1150)` **failed**, merge state **BLOCKED**, PR closed | OK |
+| Scope cleanup | `build-ptds/`, `7c/RESUME.md` removed; `.gitignore` updated | OK |
+| Evidence bundle | `audit/evidence/G6/7F/gpu-runner/*` (owner-recorded) | OK |
+
+**Auditor corroboration (independent of the owner summary):** this host's own
+runner worker logs (`~/actions-runner/_diag/Worker_2026-11-12-*.log`) show the
+`refs/pull/10/merge` GPU job **Succeeded** (twice) and the `refs/pull/11/merge`
+job on `red-team/gpu-required-check` **Failed** - the enforcement proof,
+recorded on the machine that ran it. Local battery at `82d07fd`: CPU
+**527 passed**, GPU **45 passed**, `--strict` claims **PASS** (baseline
+0 bytes), canaries **16/16**.
+
+### NEW BLOCKER (operational) - the self-hosted runner is offline and unregistered
+
+```
+systemctl: actions.runner...gfx1150-host.service -> inactive (dead)
+_diag Runner_20261113-033855-utc.log:
+  "Failed to create a session. The runner registration has been deleted from
+   the server, please re-configure."
+```
+
+The local `.runner`/`.credentials` are still dated **2026-11-09 20:37** - no
+re-registration was performed locally - so the server-side registration was
+removed while the local credentials stayed. The host also **reboots daily**
+(~22:38-23:08 EST = 03:38 UTC), and the enabled runner service then fails at
+every boot. Consequences:
+
+- the required `GPU correctness (self-hosted gfx1150)` check will **queue
+  indefinitely** on any new commit - including the current PR head `82d07fd`
+  (the merge ref has already moved to `f01e459`), so `#10` cannot merge now;
+- the ruleset blocks every PR to `main` / `vibe/phase7-220201` while it is down;
+- the nightly 03:00 UTC schedule fires ~38 minutes **before** the host boots.
+
+**Fix (owner, ~5 minutes):** re-register with a fresh token and restart.
+
+```bash
+cd ~/actions-runner
+./config.sh --url https://github.com/KupipiKuki/gfx1150-inference \
+  --token <NEW_TOKEN> --name gfx1150-host --labels gfx1150,rocm \
+  --work _work --unattended --replace
+# if it refuses (stale local config): rm -f .runner .credentials .credentials_rsaparams
+sudo ./svc.sh stop && sudo ./svc.sh start && sudo ./svc.sh status
+```
+
+Keep `.env`/`.path`. Verify **Idle/Online** with labels `gfx1150, rocm`, then
+confirm the queued GPU run starts. Consider aligning the nightly cron with the
+host's boot window, or keeping the machine awake.
+
+### QF (non-blocking) - the CPU residency probe is flaky
+
+`tests/test_memory_residency.py::test_measured_rss_delta_pin_vs_stream`
+failed once on a GitHub-hosted runner (`refault majflt=0`: the page cache
+retained the synthetic file) and **passed** on the rerun at the same code
+(`525 passed, 2 skipped`). No code change was made, so the flake remains:
+`fadvise(DONTNEED)` is best-effort and the synthetic file is never `fsync`ed.
+Tracked for hardening (fsync the fixture; fall back from a failed
+`MADV_PAGEOUT` to `MADV_DONTNEED`; or a documented skip when the kernel
+retains pages). The 7D claim is explicitly best-effort, so no claim changes.
+
+### Next step
+
+1. Owner re-registers/starts the runner; the queued GPU run goes green.
+2. Auditor issues the **G6 signoff**, pushes it (one more GPU run on the new
+   head), verifies all four checks green, and merges `#10`.
+
+---
+
+**Signed:** DeepSeek V4.1 Flash, primary auditor - 2026-11-11 (re-audited
+2026-11-12).
