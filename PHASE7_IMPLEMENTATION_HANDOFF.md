@@ -570,26 +570,25 @@ review plus non-main-thread stress. Do not claim throughput; 7F-3 owns it.
 
 ### 7F — Evidence and release gates (Gate G6)
 
-**Status (2026-11-09): IMPLEMENTED — G6 REWORK REVIEWED; blockers 7F-2..7F-5 CLOSED; only 7F-1 remains.**
-**Audit:** [`audit/AUDIT_7F_REWORK_2026-11-09.md`](audit/AUDIT_7F_REWORK_2026-11-09.md) (rework) and [`audit/AUDIT_7F_DEEP_2026-11-08.md`](audit/AUDIT_7F_DEEP_2026-11-08.md) (initial).
+**Status (2026-11-11): G6 NOT SIGNED — 7F-1 runner re-registration + two CI fixes + cleanup remain.**
+**Audit:** [`audit/AUDIT_7F_CI_STATUS_2026-11-11.md`](audit/AUDIT_7F_CI_STATUS_2026-11-11.md) (current), [`audit/AUDIT_7F_REWORK_2026-11-09.md`](audit/AUDIT_7F_REWORK_2026-11-09.md) (7F-2..7F-5 closed), and [`audit/AUDIT_7F_DEEP_2026-11-08.md`](audit/AUDIT_7F_DEEP_2026-11-08.md) (initial).
 **Rework brief (closed for 7F-2..7F-5):** [`PHASE7_7F_REWORK_BRIEF.md`](PHASE7_7F_REWORK_BRIEF.md).
 **QAQC:** [`audit/QAQC_7F_REWORK_2026-11-10.md`](audit/QAQC_7F_REWORK_2026-11-10.md) and [`audit/QAQC_7F_2026-11-08.md`](audit/QAQC_7F_2026-11-08.md).
-**Coder brief:** [`PHASE7_7F_EVIDENCE_RELEASE_BRIEF.md`](PHASE7_7F_EVIDENCE_RELEASE_BRIEF.md) — authoritative package detail.
 **Evidence contract:** [`audit/evidence/G6/7F/README.md`](audit/evidence/G6/7F/README.md).
-Verified at `d5f2947`: CPU **527**, GPU **45**, tokenizer **353**, claims
-strict **PASS** (empty baseline, 16 canaries), sdist lane **523/49** and CI
-CPU/clean-clone **green**. 7F-2 tokenizer fixed (real SPM prompts reference-
-exact); 7F-3 decisive-margin amendment accepted (Q6_K PASS, Q4_K_M
-INCONCLUSIVE, strict FAIL retained); 7F-4 sdist packaging fixed; 7F-5 release
-scope narrowed to synthetic-hardware with no real-GGUF golden claim.
-**Only BLOCKER-7F-1 remains:** register the self-hosted `gfx1150,rocm` runner,
-remove `continue-on-error`, require the GPU check, and demonstrate a red-suite
-block. Do not merge `wp/7F-evidence-release` until then. No 70B, 8-hour, or
-throughput claim.
+7F-2..7F-5 remain closed and audited (tokenizer, decisive-margin goldens,
+sdist, release-scope claims). The live CI state is now the blocker: (1) the
+self-hosted runner registration was **deleted server-side** (service dead; GPU
+job queued), so it must be re-registered and started; (2) the CPU lane fails
+`test_measured_rss_delta_pin_vs_stream` because the runner page cache retained
+the synthetic file (`refault majflt=0`) — add `fsync`, fall back from a failed
+`MADV_PAGEOUT` to `MADV_DONTNEED`, or record a documented skip if the kernel
+retains pages. The clean-clone free-disk fix and the stale-comment/`build-ptds`/
+`7c` cleanup are **applied in `6533a00`**; verify the next clean-clone run is
+green. Then configure the four-check ruleset, red-team a failing GPU PR, and
+obtain the auditor signoff.
 **7F-1 runbook:** [`PHASE7_7F1_RUNNER_RUNBOOK.md`](PHASE7_7F1_RUNNER_RUNBOOK.md);
-**preflight:** `scripts/qa/preflight_gpu_runner.sh` (PASS, 2 owner warnings:
-the repo is public and `ci-gpu.yml` is still advisory). The security decision
-(private repo or fork-PR approval) comes first.
+**preflight:** `scripts/qa/preflight_gpu_runner.sh`.
+Do not merge `wp/7F-evidence-release`; no 70B, 8-hour, or throughput claim.
 
 **Audit trace:** T-1..T-7, B-1 residual, unverified hardware claims; v0.6.2 §6 P1-6.
 **Allowed files:** `tests/**`, `.github/workflows/**`, `scripts/bench/**` (new), `scripts/qa/**`, `audit/CLAIMS_LEDGER.md`, `README.md`, docs, evidence.
