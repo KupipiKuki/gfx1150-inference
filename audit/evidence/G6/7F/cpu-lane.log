@@ -1,0 +1,27 @@
+........................................................................ [ 13%]
+........................................................................ [ 27%]
+........................................................................ [ 41%]
+........................................................................ [ 54%]
+........................................................................ [ 68%]
+........................................................................ [ 82%]
+........................................................................ [ 96%]
+.....................                                                    [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_c1_r1_load_time_tensor_validation_and_close_safety
+  /home/kupipi/Documents/git/gfx1150-inference/tests/test_cpu_only.py:309: RuntimeWarning: WeightStreamer.close(): the weight mapping still has live views and could not be released now (cannot close exported pointers exist); dropping the reference (the mapping releases when the last view dies) and closing the file descriptor anyway.
+    ws.close()
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+tests/test_memory_residency.py::TestExceptionPreservationAndLeaks::test_no_fd_or_mmap_leak_1000x
+  /home/kupipi/Documents/git/gfx1150-inference/src/weight_loader.py:485: RuntimeWarning: WeightStreamer.close(): the weight mapping still has live views and could not be released now (cannot close exported pointers exist); dropping the reference (the mapping releases when the last view dies) and closing the file descriptor anyway.
+    self.close()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+525 passed, 45 deselected, 16 warnings in 47.91s

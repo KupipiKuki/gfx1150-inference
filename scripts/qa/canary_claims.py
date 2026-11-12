@@ -28,11 +28,24 @@ Canaries
     (removing the claim from the document) has to fail, which a generic literal
     cannot do.
 ``strict_detects_baseline``
-    ``--strict`` must fail on the seeded baseline, i.e. it must ignore the
-    baseline rather than tolerate it.
+    ``--strict`` must fail on an injected unqualified site even when the
+    baseline is seeded to tolerate it (7F-5: the live tree is clean, so the
+    injection supplies the violation).
+``strict_requires_empty_baseline``
+    7F-5: ``--strict`` fails while ``audit/claims_baseline.txt`` holds any
+    entry — the G6 gate expects an empty file, not a silent skip.
+``unqualified_throughput_claim``
+    7F-5: an unqualified throughput literal appearing unqualified anywhere
+    in ``README.md`` fails the default check.
+``unqualified_70b_and_endurance_claim``
+    7F-5: unqualified 70B-without-OOM and 8-hour endurance literals fail
+    the default check.
+``verified_row_missing_evidence``
+    7F-5: a ``VERIFIED`` ledger row citing a nonexistent evidence path
+    fails the check.
 ``baseline_is_exact``
-    The seeded baseline must hold exactly ``EXPECTED_BASELINE_ENTRIES`` entries,
-    each resolving to a real unqualified site, with no wildcards.
+    The baseline must hold exactly ``EXPECTED_BASELINE_ENTRIES`` entries
+    (**0** at G6: empty, comments only), with no wildcards.
 
 Usage::
 
@@ -58,12 +71,11 @@ from typing import Callable, Sequence
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CHECKER = os.path.join(REPO_ROOT, "scripts", "qa", "check_claims.py")
 
-#: The seeded baseline is expected to hold exactly these entries.
-#: 7C-4 removed the resolved "10 README.md qwen2" entry (15 -> 14); 7D removed the
-#: resolved rows 14/18/19/20/30 entries (14 -> 6) after qualifying them in place or
-#: withdrawing the claim. Update this constant whenever a claim is qualified/removed
-#: and its baseline entry is deleted.
-EXPECTED_BASELINE_ENTRIES = 6
+#: The baseline must be EMPTY at G6 (7F-5): every seeded ratchet item has been
+#: qualified in place (IDs 6, 13, 26-29 qualified by 7F-5; 10, 14, 18-20, 30 by
+#: 7B/7C/7D). This constant pins the emptiness: adding a tolerance line must
+#: mean a new, reviewed ratchet decision — never bookkeeping drift.
+EXPECTED_BASELINE_ENTRIES = 0
 
 #: Directories that are never needed in a canary tree.
 IGNORED_TREE_ITEMS = shutil.ignore_patterns(
@@ -245,9 +257,94 @@ def canary_generic_literal(tree: Tree) -> tuple[bool, str]:
 
 
 def canary_strict_detects_baseline(tree: Tree) -> tuple[bool, str]:
-    """--strict must ignore the baseline and fail on the seeded violations."""
+    """--strict fails on an injected unqualified site, ignoring the baseline.
+
+    7F-5: the live tree is clean and the baseline is empty, so this canary
+    plants an unqualified assertion in a copy and checks the gate reacts:
+    --strict must fail, and the failure must name the strict mode. Seeding
+    the baseline with a matching entry must NOT soften strict mode, which is
+    the "ignores the baseline" property the brief asks to prove now that the
+    seeded violations are gone.
+    """
+    tree.append(
+        "README.md",
+        "\nThe engine reaches 983.4 tok/s end to end. On this host.\n",
+    )
+    baseline_path = os.path.join("audit", "claims_baseline.txt")
+    tree.append(baseline_path, "27 README.md 983.4 tok/s\n")
     code, output = tree.run_checker("--strict")
     detected = code != 0 and "strict" in output
+    return detected, output
+
+
+def canary_strict_requires_empty_baseline(tree: Tree) -> tuple[bool, str]:
+    """7F-5: --strict fails while the baseline is non-empty.
+
+    The release gate expects an empty baseline, not a silent skip: a leftover
+    ratchet entry at G6 must fail the gate with the dedicated finding, even
+    when the documents themselves are clean.
+    """
+    baseline_path = os.path.join("audit", "claims_baseline.txt")
+    tree.append(baseline_path, "6 README.md Q4_K_M\n")
+    code, output = tree.run_checker("--strict")
+    detected = code != 0 and "strict-baseline-nonempty" in output
+    if not detected:
+        return False, f"--strict did not demand the empty baseline:\n{output}"
+    return True, "--strict fails on a non-empty baseline (expected, not skipped)"
+
+
+def canary_unqualified_throughput_claim(tree: Tree) -> tuple[bool, str]:
+    """7F-5: an unqualified throughput claim anywhere in the README fails.
+
+    The brief requires a canary for exactly this injection: a freshly asserted
+    performance number that nobody has evidenced — here claim 27's literal in
+    a new, unqualified context — must fail the default check.
+    """
+    tree.append("README.md", "\nBenchmarks show 983.4 tok/s on the reference host.\n")
+    code, output = tree.run_checker()
+    detected = code != 0 and "983.4 tok/s" in output
+    return detected, output
+
+
+def canary_unqualified_70b_and_endurance_claim(tree: Tree) -> tuple[bool, str]:
+    """7F-5: unqualified 70B-OOM and 8-hour claims in the README must fail.
+
+    Injects claim 18's literal (`7B–70B`) and claim 19's literal
+    (`8-hour runtimes`) as a new unqualified assertion: the exact claims the
+    release wording forbids without artifacts.
+    """
+    tree.append(
+        "README.md",
+        "\nThe engine runs 7B–70B models without OOM for 8-hour runtimes.\n",
+    )
+    code, output = tree.run_checker()
+    detected = code != 0 and "7B–70B" in output and "8-hour" in output
+    return detected, output
+
+
+def canary_verified_row_missing_evidence(tree: Tree) -> tuple[bool, str]:
+    """7F-5: a VERIFIED ledger row citing a nonexistent path must fail.
+
+    The brief requires a canary for a VERIFIED row with a missing evidence
+    path (distinct from deleting an existing row's evidence): promoting a
+    claim to VERIFIED without the artifact on disk must fail the check.
+    """
+    ledger_path = os.path.join("audit", "CLAIMS_LEDGER.md")
+    injected = (
+        "| 99 | Golden canary claim | **VERIFIED** | `qwen2` | n/a |"
+        " `audit/evidence/does/not/exist/canary.log` | canary only |\n"
+    )
+    lines = tree.read(ledger_path).splitlines(keepends=True)
+    table_start = next(i for i, line in enumerate(lines) if line.startswith("| ID |"))
+    last = table_start + 1
+    for i in range(table_start + 2, len(lines)):
+        if not lines[i].startswith("|"):
+            break
+        last = i
+    lines.insert(last + 1, injected)
+    tree.write(ledger_path, "".join(lines))
+    code, output = tree.run_checker()
+    detected = code != 0 and "claim 99" in output
     return detected, output
 
 
@@ -419,6 +516,10 @@ CANARIES: tuple[tuple[str, Callable[[Tree], tuple[bool, str]], str], ...] = (
     ("missing_evidence", canary_missing_evidence, "copy"),
     ("generic_literal", canary_generic_literal, "copy"),
     ("strict_detects_baseline", canary_strict_detects_baseline, "copy"),
+    ("strict_requires_empty_baseline", canary_strict_requires_empty_baseline, "copy"),
+    ("unqualified_throughput_claim", canary_unqualified_throughput_claim, "copy"),
+    ("unqualified_70b_and_endurance_claim", canary_unqualified_70b_and_endurance_claim, "copy"),
+    ("verified_row_missing_evidence", canary_verified_row_missing_evidence, "copy"),
     ("baseline_is_exact", canary_baseline_is_exact, "copy"),
     ("expired_baseline_entry", canary_expired_baseline_entry, "copy"),
     ("wrong_lane", canary_wrong_lane, "copy"),

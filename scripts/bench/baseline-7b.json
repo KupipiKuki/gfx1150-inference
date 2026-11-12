@@ -1,0 +1,172 @@
+{
+  "config": {
+    "iterations": 20,
+    "max_seq_len": 2048,
+    "min_iterations_required": 20,
+    "residency": "auto",
+    "warmup": 2
+  },
+  "generated_utc": "2026-11-08T22:09:46.899257+00:00",
+  "git_sha": "2d48efe11e8f4f53eb37eb15218b41a40ab5e1be",
+  "hardware": {
+    "gfx_target_version": null,
+    "gpu": "AMD Ryzen AI 9 HX 370 w/ Radeon 890M",
+    "gpu_marketing": "AMD Ryzen AI 9 HX 370 w/ Radeon 890M",
+    "hip": "7.16.26385-0000000",
+    "kernel": "7.0.0-42-generic",
+    "machine": "x86_64",
+    "numpy": "2.5.4",
+    "python": "3.14.10",
+    "rocm": "hip 7.16.26385-0000000"
+  },
+  "model": {
+    "arch": "llama",
+    "config_label": "mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+    "hidden_size": 4096,
+    "num_layers": 32,
+    "path": "/home/kupipi/goldens7f/models/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+    "quant_mix": {
+      "F32": 65,
+      "Q4_K": 193,
+      "Q6_K": 33
+    },
+    "sha256": "3e0039fd0273fcbebb49228943b17831aadd55cbcbf56f0af00499be2040ccf9",
+    "vocab_size": 32000,
+    "weight_bytes": 4367704064
+  },
+  "schema": "gfx1150-bench/1",
+  "timings": {
+    "decode_tok_per_s": {
+      "max": 2.677139961356202,
+      "mean": 2.6669096144206197,
+      "median": 2.666568544594692,
+      "min": 2.658893620187423,
+      "n": 20.0,
+      "p95": 2.677139961356202
+    },
+    "disk_read_bytes_delta": {
+      "max": 0.0,
+      "mean": 0.0,
+      "median": 0.0,
+      "min": 0.0,
+      "n": 20.0,
+      "p95": 0.0
+    },
+    "layer_copy_ms_median": {
+      "max": 4.509399999999999,
+      "mean": 4.484237500000001,
+      "median": 4.484975,
+      "min": 4.4338999999999995,
+      "n": 20.0,
+      "p95": 4.509399999999999
+    },
+    "layer_kern_ms_median": {
+      "max": 3.7743,
+      "mean": 3.7496375,
+      "median": 3.745475,
+      "min": 3.7347,
+      "n": 20.0,
+      "p95": 3.7743
+    },
+    "major_faults_delta": {
+      "max": 0.0,
+      "mean": 0.0,
+      "median": 0.0,
+      "min": 0.0,
+      "n": 20.0,
+      "p95": 0.0
+    },
+    "per_projection_kern_ms_median": {
+      "down": {
+        "max": 0.8721499999999986,
+        "mean": 0.862725,
+        "median": 0.8599250000000005,
+        "min": 0.8524499999999993,
+        "n": 20.0,
+        "p95": 0.8721499999999986
+      },
+      "gate": {
+        "max": 1.0811499999999996,
+        "mean": 1.0718275,
+        "median": 1.0714749999999997,
+        "min": 1.06385,
+        "n": 20.0,
+        "p95": 1.0811499999999996
+      },
+      "k": {
+        "max": 0.15989999999999993,
+        "mean": 0.15719,
+        "median": 0.15715,
+        "min": 0.15489999999999993,
+        "n": 20.0,
+        "p95": 0.15989999999999993
+      },
+      "o": {
+        "max": 0.28069999999999995,
+        "mean": 0.278375,
+        "median": 0.2785250000000002,
+        "min": 0.27590000000000015,
+        "n": 20.0,
+        "p95": 0.28069999999999995
+      },
+      "q": {
+        "max": 0.3194,
+        "mean": 0.31740500000000005,
+        "median": 0.3173,
+        "min": 0.31565000000000004,
+        "n": 20.0,
+        "p95": 0.3194
+      },
+      "up": {
+        "max": 1.0505000000000009,
+        "mean": 1.0383625,
+        "median": 1.0379749999999999,
+        "min": 1.0275000000000007,
+        "n": 20.0,
+        "p95": 1.0505000000000009
+      },
+      "v": {
+        "max": 0.08250000000000002,
+        "mean": 0.08157,
+        "median": 0.08150000000000007,
+        "min": 0.0806,
+        "n": 20.0,
+        "p95": 0.08250000000000002
+      }
+    },
+    "prefill_tok_per_s": {
+      "max": 18.7424232387431,
+      "mean": 18.60806442470221,
+      "median": 18.629080712361763,
+      "min": 18.465505761248526,
+      "n": 20.0,
+      "p95": 18.7424232387431
+    },
+    "total_tok_per_s": {
+      "max": 1.689782921856331,
+      "mean": 1.6852857026810775,
+      "median": 1.6853916788129695,
+      "min": 1.680749632648047,
+      "n": 20.0,
+      "p95": 1.689782921856331
+    },
+    "wall_seconds": {
+      "max": 9.520783,
+      "mean": 9.4946316,
+      "median": 9.4940055,
+      "min": 9.469292,
+      "n": 20.0,
+      "p95": 9.520783
+    }
+  },
+  "workload": {
+    "max_new_tokens": 16,
+    "prompt": "The quick brown fox jumps over the lazy dog. Careful fact-checking and patient research require reading every claim, weighing the evidence, and recording what the sources actually say. In a world where automated assistants summarize knowledge, the reader who checks the originals still decides what is true. The engine below verifies each sentence.",
+    "prompt_is_synthetic_ids": false,
+    "prompt_sha256": "c494b849759f54b608b4322daa8950018c1c8567286f9446e6bb43eabe0ed4c2",
+    "prompt_tokens": 72,
+    "seed": 42,
+    "stop_on_eos": false,
+    "temperature": 0.0
+  }
+}

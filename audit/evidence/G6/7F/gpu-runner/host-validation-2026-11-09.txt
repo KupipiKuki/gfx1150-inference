@@ -1,0 +1,11 @@
+# 7F-1 host validation (preparation) — 2026-11-09
+# Clean service-like environment (env -i; PATH starts with /home/kupipi/.pyenv/shims):
+#   cmake -B /tmp/opencode/runner-build -DCMAKE_BUILD_TYPE=Release   -> exit 0
+#   cmake --build /tmp/opencode/runner-build -j                     -> exit 0
+#   PYTHONPATH=/tmp/opencode/runner-build:src python3 -m pytest -m gpu -q
+#                                                                   -> 45 passed, 527 deselected
+# Host: Linux Mint 22.3, x86_64, systemd, gfx1150, ROCm/HIP 7.16,
+#       Python 3.14.10 (pyenv), pip 26.3, numpy 2.5.4, pytest 9.2.0,
+#       pybind11 3.1.0, 406 GiB free, user in render+video.
+# /usr/bin/python3 (3.12.3) has no pip: the runner service must use the
+# pyenv shims first in PATH (or a dedicated venv). The helper writes .env.

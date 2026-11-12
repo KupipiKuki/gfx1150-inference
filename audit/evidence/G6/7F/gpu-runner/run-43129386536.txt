@@ -1,0 +1,15 @@
+Clean-clone build evidence
+
+Repository: KupipiKuki/gfx1150-inference
+Commit: 0c05c61108730bafd3242a9fd75c7cdf06f85254
+Workflow run: 43129386536
+URL: https://github.com/KupipiKuki/gfx1150-inference/actions/runs/43129386536
+Workflow: Clean-Clone Build CI
+Job: Clean-clone documented build (G0 C-1)
+Conclusion: success
+
+Relevant log lines:
+Setting up amdrocm-core-dev (10.1.0-3) ...
+Filesystem      Size  Used Avail Use% Mounted on
+-- Configuring done (9.9s)
+installed OK

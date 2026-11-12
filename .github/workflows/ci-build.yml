@@ -33,6 +33,16 @@ jobs:
           python -m pip install --upgrade pip \
             "numpy>=1.24.0" "setuptools>=64" wheel "pybind11>=2.12" pytest
 
+      - name: Free disk space for the ROCm install
+        # ubuntu-24.04 ships ~14 GB free; amdrocm-core-dev unpacks ~9 GB and
+        # the build/sdist need more. Remove preinstalled toolchains we do not
+        # use.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo apt-get clean
+          df -h /
+
       - name: Register the AMD ROCm apt repository
         # The steps AMD documents for the stable repository
         # (rocm.docs.amd.com, "Register ROCm repositories").
@@ -55,7 +65,10 @@ jobs:
       - name: Install the ROCm development packages
         # The HIP compiler, the HIP headers and the HIP runtime: everything
         # project(... LANGUAGES HIP) needs at configure and link time.
-        run: sudo apt-get install -y --no-install-recommends amdrocm-core-dev
+        run: |
+          sudo apt-get install -y --no-install-recommends amdrocm-core-dev
+          sudo apt-get clean
+          df -h /
 
       - name: Configure the project (the documented command)
         # The command the README documents. pybind11_DIR is removed from the

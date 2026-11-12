@@ -61,8 +61,10 @@ Checks
    do not enforce their claim (AUD-3, brief pitfall 3).
 
 ``--strict`` ignores the baseline entirely and fails on every unqualified
-site: that is the G6 release gate, where the baseline must be empty and every
-unqualified site must be gone.
+site: that is the G6 release gate, where the baseline must be **empty** and
+every unqualified site must be gone. A non-empty baseline makes strict mode
+fail with a ``strict-baseline-nonempty`` finding (7F-5): the gate expects an
+empty file, not a silent skip.
 
 The checker uses the standard library only, so it runs in the CPU CI job, which
 does not install pytest.
@@ -856,8 +858,14 @@ def _render_json(report: Report, strict: bool) -> str:
 # --------------------------------------------------------------------------- #
 
 
-def run(root: str) -> Report:
-    """Run the check against a tree and return the report."""
+def run(root: str, strict: bool = False) -> Report:
+    """Run the check against a tree and return the report.
+
+    In strict mode (the G6 release gate) the baseline must be *empty*: a
+    leftover entry is a finding and fails the gate. Ratcheted tolerances were
+    a 7A–7E phase device; at G6 every unqualified site must be gone, so an
+    entry left behind must never be silently ignored.
+    """
     ledger_path = os.path.join(root, LEDGER_RELPATH)
     baseline_path = os.path.join(root, BASELINE_RELPATH)
     claims = parse_ledger(ledger_path)
@@ -867,7 +875,18 @@ def run(root: str) -> Report:
         for name in PUBLIC_DOCS
         if os.path.exists(os.path.join(root, name))
     }
-    return scan_claims(claims, baseline, docs, root)
+    report = scan_claims(claims, baseline, docs, root)
+    if strict and baseline:
+        report.findings.append(
+            Finding(
+                "strict-baseline-nonempty",
+                f"strict mode (G6 release gate): {len(baseline)} baseline "
+                f"entry(ies) remain in {BASELINE_RELPATH}; the baseline must "
+                f"be empty at G6 (remove entries by qualifying or withdrawing "
+                f"the claims they tolerate)",
+            )
+        )
+    return report
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -890,7 +909,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        report = run(args.root)
+        report = run(args.root, strict=args.strict)
     except CheckerError as exc:
         print(f"check_claims: {exc}", file=sys.stderr)
         return 2

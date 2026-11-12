@@ -207,7 +207,13 @@ class GGUFTokenizer:
         alive = [True] * n
         ver = [0] * n
         heap: List[Tuple[float, int, int, int, int]] = []
-        use_ranks = bool(self.merge_ranks)
+        # BLOCKER-7F-2 (G6 rework): BPE merge ranks apply only to the
+        # byte-level BPE path (_uses_gpt2). A real SentencePiece GGUF can
+        # also ship a non-empty `merges` array (e.g. TinyLlama through a
+        # gguf converter: 61,249 merges + all-zero scores); using the ranks
+        # there segments with the wrong comparator, so `jumps` became
+        # `▁j`+`umps` instead of llama.cpp's leftmost-score `▁jump`+`s`.
+        use_ranks = bool(self.merge_ranks) and self._uses_gpt2
 
         def _try_push(left: int, right: int) -> None:
             if left < 0 or right < 0:

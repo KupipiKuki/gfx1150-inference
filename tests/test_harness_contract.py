@@ -341,6 +341,15 @@ EXPECTED_LANES = {
     # extension (gpu lane); the layer-path source contract lives in
     # test_layer_path_explicit_stream_contract below (CPU lane, source scan).
     "test_stream_topology.py": "gpu",
+    # Phase 7F (G6): telemetry and benchmark tooling. The telemetry
+    # aggregation/payload math and the bench regression-gate logic are pure
+    # Python; the telemetry dataclasses live in src/inference.py, which
+    # imports the HIP extension at module scope, so ALL telemetry tests
+    # (including the pure-math ones) are in the gpu-lane module with lazy
+    # imports; the bench-gate tests import scripts/bench/aggregate.py only
+    # and stay CPU-lane.
+    "test_telemetry_gpu.py": "gpu",
+    "test_bench_gate.py": "cpu",
 }
 
 
