@@ -349,6 +349,7 @@ EXPECTED_LANES = {
     # imports; the bench-gate tests import scripts/bench/aggregate.py only
     # and stay CPU-lane.
     "test_telemetry_gpu.py": "gpu",
+    "test_red_team_gpu_gate.py": "gpu",
     "test_bench_gate.py": "cpu",
 }
 
