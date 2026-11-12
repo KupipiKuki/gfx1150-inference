@@ -1,0 +1,18 @@
+Red-team enforcement evidence
+
+Repository: KupipiKuki/gfx1150-inference
+Red-team PR: 11
+Red-team head: b7a63cb48800cf6934761d22a1c3d0f1f48a4f5e
+Base branch: vibe/phase7-220201
+PR URL: https://github.com/KupipiKuki/gfx1150-inference/pull/11
+Workflow run: 43133144878
+Run URL: https://github.com/KupipiKuki/gfx1150-inference/actions/runs/43133144878
+GPU conclusion: failure (expected)
+PR state: closed
+PR merge state: BLOCKED
+
+The failing test was the deliberate gpu-marked sentinel:
+tests/test_red_team_gpu_gate.py::test_required_gpu_check_blocks_on_failure FAILED
+
+The required check failed:
+GPU correctness (self-hosted gfx1150)  fail
