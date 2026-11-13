@@ -53,6 +53,7 @@ bundle"), Phase 7G is split into three packages with three gates:
 | **7G-0** | G6 carry-forwards + release hygiene | G7-0 | — (maintenance) |
 | **7G-1** | **Bounded weight residency** (hybrid pin/stream with a GB/% cap) | G7-1 | 7G-0 |
 | **7G-2** | Streaming-path throughput (prefetch/overlap) + stream-lane benchmark | G7-2 | 7G-1 (uses its cap) |
+| **7G-3** | **Large-model capacity**: split the RAM/GTT budgets, add a max-model-size report, and run the stress ladder | G7-3 | 7G-1, 7G-2 |
 
 ### 7G-0 — G6 carry-forwards and release hygiene (Gate G7-0)
 
@@ -187,6 +188,100 @@ without an unqualified throughput claim; evidence complete.
 
 ---
 
+### 7G-3 — Large-model capacity (Gate G7-3)
+
+**Question this package answers:** *how large a model can this harness actually
+run, and what stops it from running a 70B/100B/220B-class GGUF?*
+
+**Measured on this host (2026-11-13, merged `main`):**
+
+| Reading | Value |
+|---|---|
+| RAM total / MemAvailable | **91.94 / 89.46 GiB** |
+| GTT free (device-visible UMA share) | **45.92 GiB** |
+| Current weight budget (`min` of the readable sources, minus KV/activations/margin) | **45.11 GiB** |
+| Bytes/param, Q4_K_M (mixed Q4_K+Q6_K) | ~0.69 |
+
+| Model (Q4_K_M) | Weights | Fits RAM (89.5 GiB)? | Fits **current** budget (45.1 GiB)? |
+|---|---|---|---|
+| 32B | 20.6 GiB | yes | yes |
+| **70B** | **45.0 GiB** | yes | *barely* |
+| **100B** | **64.3 GiB** | yes | **no** |
+| **220B** | **141.4 GiB** | **no** | no |
+
+**Root cause of the limit — it is not the hardware.** `compute_weight_budget`
+takes `available = min(GTT free, MemAvailable, cgroup)`. On a unified-memory
+APU the GTT share (~45.9 GiB) is half of RAM, so the **weights** (which live in
+the *host* page cache and are copied H2D per tensor) are budgeted against
+**device** memory. That conflates two different budgets and throws away ~44 GiB
+of usable host RAM.
+
+**Work items**
+
+1. **Split the budgets** (`src/memory_budget.py`):
+   - `host_resident_budget` — where the weights may live: `MemAvailable` /
+     cgroup (minus KV/activations/margin). This is the 7G-1 cap's basis.
+   - `device_budget` — what the GPU may hold: GTT free minus the KV pool,
+     the activation estimate, and the per-tensor staging peak.
+   - `compute_weight_budget` keeps its current `min()` semantics **only** for
+     the device-side reservation; the residency decision switches to the host
+     budget. Keep the old behaviour available behind an explicit flag for
+     reproducibility of the G0–G6 evidence.
+   - Consequence to verify: a 70B Q4_K_M must pin with headroom, and a 100B
+     Q4_K_M must become reachable with an explicit cap.
+2. **Reservation order**: size and reserve the device KV pool + activations
+   **before** pinning weights, so a big model cannot eat the GTT and then fail
+   the KV allocation late. Fail fast with the numbers.
+3. **`--max-model-size-report` (dry run)**: given a GGUF, print weights bytes,
+   bytes/param, resident requirement, per-tensor device footprint, KV size at
+   the requested context, expected SSD bytes/token and expected tok/s per
+   policy, and the host's theoretical maximum model size; refuse clearly when
+   even streaming cannot work.
+4. **Stress ladder** (evidence, one row per rung; claims ledger updated only
+   for what actually ran):
+
+   | Rung | Model | Download | Purpose |
+   |---|---|---|---|
+   | L0 | 7B Q4_K_M (done) | 0.7 GB | baseline (already recorded) |
+   | L1 | 13–20B Q4_K_M | ~14 GB | larger shapes, still fully resident |
+   | L2 | **70B** Q4_K_M | ~48 GB | the classic case; needs the budget split |
+   | L3 | **100–120B** Q4_K_M | ~70–83 GB | needs the RAM-based budget + 7G-1 cap |
+   | L4 | **220B** | ~141 GB | **streaming-only on this box — not a usable configuration** |
+
+   Protocol per rung: fixed prompt, `temperature=0`, fixed seed, ≥20
+   iterations, median/p95, plus SSD bytes/token, measured resident bytes,
+   GTT peak, and tok/s; artifact under `audit/evidence/G7/7G-3/`.
+5. **220B-scale without a 141 GiB download** — a **sparse synthetic fixture**
+   with 220B-scale *shapes* (e.g. 80 layers × hidden 8192 × intermediate
+   28672), written as a sparse file (apparent ~141 GiB, ~0 bytes on disk). It
+   exercises the parser, 64-bit offsets, per-tensor staging, KV sizing and the
+   streaming path at 220B scale. **Capacity/robustness only — no correctness
+   claim** (the weights are not a real model).
+6. **Large-model audit items**: 64-bit offset/element-count handling for >4 GiB
+   tensors and >2^31 elements; per-tensor device footprint for wide FFN
+   (hidden 8192 × intermediate 28672 fp16 ≈ 470 MB per tensor — the
+   staging peak must be reserved); `embed_tokens` for large vocabularies; KV
+   bytes/token for 80-layer GQA models (e.g. 327 KB/token → 1.3 GB at 4K
+   context, 10.5 GB at 32K).
+7. **Claims discipline**: ledger IDs 18 (70B "without OOM") and 19 (8-hour
+   endurance) stay **UNVERIFIED** until a real run exists. A streamed 220B run
+   is a *robustness* record, not a support claim.
+
+**Exit (G7-3):** the RAM/GTT budgets are split and documented; the max-model
+report is implemented and exercised; the ladder rungs that were actually run are
+recorded with their artifacts; the 220B-scale synthetic capacity test passed;
+claims reflect exactly what ran.
+
+**Note on the 220B rung.** A 220B Q4_K_M GGUF is ~141.4 GiB of weights; this
+host has 89.5 GiB of usable RAM, so even after every change it can only run
+**streaming-only**, re-reading the whole model per token (~141 GiB/token ≈
+14 s/token at ~10 GB/s NVMe ≈ 0.07 tok/s). That is a capacity/robustness
+result, not a usable configuration, and it must never be published as
+"220B-class support". The realistic ceilings on this box are **~85 GiB resident
+(≈ 120B at Q4_K_M)** once the budget split lands, and **~45 GiB today**.
+
+---
+
 ## 2. Sequencing, files, and discipline
 
 1. 7G-0 (maintenance) → 7G-1 (cap) → 7G-2 (throughput). One package per
@@ -201,6 +296,11 @@ without an unqualified throughput claim; evidence complete.
      document it), `tests/**`, `scripts/bench/**`, `audit/**`, docs.
    - **7G-2:** `src/kernels/attention.hip` (prefetch plumbing), `src/weight_loader.py`,
      `scripts/bench/**`, `tests/**`, `audit/**`, docs.
+   - **7G-3:** `src/memory_budget.py` (budget split), `src/weight_loader.py`
+     (reservation order), `src/inference.py` (report mode, CLI), `src/kv_cache.py`
+     (sizing), `scripts/bench/**`, `tests/**`, `audit/evidence/G7/7G-3/**`,
+     docs. Synthetic fixtures are generated by a script under `scripts/bench/`
+     (never committed as multi-GiB files).
    - **Forbidden everywhere:** kernel math, tokenizer/model-family/7D policy
      changes, weakening of existing tests, unqualified claims.
 3. Evidence discipline (unchanged): every claim needs a command and an
@@ -228,7 +328,16 @@ without an unqualified throughput claim; evidence complete.
 3. **Enforcement strictness:** if `mincore` is unavailable, is a tracked-only
    cap acceptable (warn + telemetry), or should the engine refuse to start?
    Recommendation: warn + telemetry, never fail the run.
-4. **Visibility of the new knobs:** a new public CLI surface — one knob
+4. **220B rung:** download a real ~141 GiB GGUF (feasible on this disk but slow
+   and streaming-only), or rely on the sparse 220B-shaped synthetic fixture for
+   capacity and reserve the real run for the 70B rung? Recommendation:
+   synthetic for 220B, real for 70B/100B.
+5. **Budget split compatibility:** the G0–G6 evidence was recorded under the
+   conflated `min()` budget. Splitting it changes what "AUTO" means — keep the
+   old behaviour behind an explicit flag, or re-record the affected baselines?
+   Recommendation: keep an explicit `--residency-budget-source {host,device,min}`
+   so the historical numbers stay reproducible.
+6. **Visibility of the new knobs:** a new public CLI surface — one knob
    (`--max-resident-mb`) plus a percentage form is enough; avoid adding
    `--residency hybrid` as a separate spelling if the cap implies it.
 

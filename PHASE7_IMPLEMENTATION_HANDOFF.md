@@ -657,7 +657,17 @@ Q4_K_M, 16 decode tokens): pinned = 2.63 tok/s and 4.19 GB read; streamed =
 stream benchmark lane; 7G-0 closes the G6 carry-forwards (G6-QF-1..4) and the
 release hygiene.
 
-**Gate:** three separate packages (7G-0/7G-1/7G-2), each with its own gate;
+**7G-3 (added 2026-11-13) — Large-model capacity:** the weight budget is
+currently `min(GTT free, MemAvailable, cgroup)` = **45.9 GiB** here, while the
+host has **89.5 GiB** usable RAM — the weights live in host RAM and are copied
+H2D per tensor, so budgeting them against the device share throws away ~44 GiB.
+7G-3 splits the host-RAM and GTT budgets, adds a `--max-model-size-report`
+dry run, and runs a stress ladder (13–20B → **70B** → 100–120B → 220B-scale
+sparse synthetic fixture). Practical ceilings after the split: **~85 GiB
+resident (≈ 120B at Q4_K_M)**; a 220B model (~141 GiB) is **streaming-only**
+on this box and must never be published as support.
+
+**Gate:** four separate packages (7G-0/7G-1/7G-2/7G-3), each with its own gate;
 do not bundle.
 
 ### 7G (prior scope) — Post-release polish items
