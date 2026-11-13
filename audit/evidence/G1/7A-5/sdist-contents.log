@@ -1,0 +1,181 @@
+# G1 / 7A-5 — the sdist contents, before and after (C-7A1-5)
+# Captured: 2026-11-03T23:29:21Z
+#
+# The red/green of this package is the sdist contents: the pytest harness must
+# ship, and before the fix `tests/conftest.py` did not.
+#
+# RED  : MANIFEST.in at the parent commit (180fc2d) -- no `tests` rule.
+# GREEN: MANIFEST.in with `recursive-include tests *.py`.
+#
+# Both sdists were built by the job's own command, `python setup.py sdist
+# --dist-dir dist`, in a fresh clone of the repository.
+
+# ===========================================================================
+# RED -- the parent commit's MANIFEST.in
+# ===========================================================================
+
+$ cat MANIFEST.in            # at 180fc2d
+include CMakeLists.txt
+include LICENSE
+include README.md
+recursive-include src/kernels *.h *.hip
+recursive-include src/python_bindings *.cpp
+
+$ python setup.py sdist --dist-dir dist
+$ tar -tzf dist/*.tar.gz
+CMakeLists.txt
+LICENSE
+MANIFEST.in
+PKG-INFO
+pyproject.toml
+README.md
+setup.py
+src/
+src/gfx1150_inference.egg-info/
+src/gfx1150_inference.egg-info/dependency_links.txt
+src/gfx1150_inference.egg-info/entry_points.txt
+src/gfx1150_inference.egg-info/PKG-INFO
+src/gfx1150_inference.egg-info/requires.txt
+src/gfx1150_inference.egg-info/SOURCES.txt
+src/gfx1150_inference.egg-info/top_level.txt
+src/gguf_parser.py
+src/inference.py
+src/kernels/
+src/kernels/attention.h
+src/kernels/attention.hip
+src/kernels/dequantize.h
+src/kernels/dequantize.hip
+src/kernels/matmul.h
+src/kernels/matmul.hip
+src/kernels/mlp.h
+src/kernels/mlp.hip
+src/kernels/rmsnorm.h
+src/kernels/rmsnorm.hip
+src/kernels/rope.h
+src/kernels/rope.hip
+src/tokenizer.py
+src/weight_loader.py
+tests/
+tests/test_build_configure.py
+tests/test_cpu_only.py
+tests/test_full_model.py
+tests/test_gguf_and_q4.py
+tests/test_harness_contract.py
+tests/test_layer.py
+tests/test_matmul.py
+tests/test_phase5_scale.py
+
+  47 entries.
+
+$ grep -c "tests/conftest.py" sdist-contents.txt
+0                                    <-- ABSENT. This is C-7A1-5.
+
+# Why the sdist looked like it shipped the tests, but did not:
+#
+#   distutils' `sdist.add_defaults()` documents its default file list as
+#   "README or README.txt / setup.py / tests/test*.py and test/test*.py / ...".
+#
+# The default is a *filename glob*, so it picks up `tests/test_*.py` and by
+# construction excludes `tests/conftest.py` -- the one file the pytest harness
+# needs. The defect was structural, not accidental: eight test modules shipped
+# and the harness did not, so the sdist looked complete.
+#
+#   $ python3 -c "import inspect; from setuptools._distutils.command import \
+#       sdist; print(inspect.getsource(sdist.sdist.add_defaults))"
+#   def add_defaults(self) -> None:
+#       """Add all the default files to self.filelist:
+#         - README or README.txt
+#         - setup.py
+#         - tests/test*.py and test/test*.py
+#         ...
+
+# ===========================================================================
+# GREEN -- MANIFEST.in with `recursive-include tests *.py`
+# ===========================================================================
+
+$ cat MANIFEST.in
+include CMakeLists.txt
+include LICENSE
+include README.md
+recursive-include src/kernels *.h *.hip
+recursive-include src/python_bindings *.cpp
+# The pytest harness must ship with the sdist: without tests/conftest.py the
+# installed tree has no `matmul_module` fixture, so the GPU lane errors instead
+# of skipping (G0 condition C-7A1-5). 7A-3 adds the fixture globs when its
+# fixtures land.
+recursive-include tests *.py
+
+$ python setup.py sdist --dist-dir dist
+$ tar -tzf dist/*.tar.gz
+CMakeLists.txt
+LICENSE
+MANIFEST.in
+PKG-INFO
+pyproject.toml
+README.md
+setup.py
+src/
+src/gfx1150_inference.egg-info/
+src/gfx1150_inference.egg-info/dependency_links.txt
+src/gfx1150_inference.egg-info/entry_points.txt
+src/gfx1150_inference.egg-info/PKG-INFO
+src/gfx1150_inference.egg-info/requires.txt
+src/gfx1150_inference.egg-info/SOURCES.txt
+src/gfx1150_inference.egg-info/top_level.txt
+src/gguf_parser.py
+src/inference.py
+src/kernels/
+src/kernels/attention.h
+src/kernels/attention.hip
+src/kernels/dequantize.h
+src/kernels/dequantize.hip
+src/kernels/matmul.h
+src/kernels/matmul.hip
+src/kernels/mlp.h
+src/kernels/mlp.hip
+src/kernels/rmsnorm.h
+src/kernels/rmsnorm.hip
+src/kernels/rope.h
+src/kernels/rope.hip
+src/tokenizer.py
+src/weight_loader.py
+tests/
+tests/conftest.py                <-- PRESENT (the fix)
+tests/test_build_configure.py
+tests/test_cpu_only.py
+tests/test_full_model.py
+tests/test_gguf_and_q4.py
+tests/test_harness_contract.py
+tests/test_layer.py
+tests/test_matmul.py
+tests/test_phase5_scale.py
+
+  48 entries (one more than the RED: tests/conftest.py).
+
+# ===========================================================================
+# The job's own assertion, run against both sdists
+# ===========================================================================
+
+# This is step 5 of the sdist-install job, executed verbatim from the
+# workflow's parsed step script.
+
+=== RED (parent MANIFEST.in) ===
+$ bash step05.sh
+sdist: dist/gfx1150_inference-0.6.1.tar.gz
+<the full listing>
+FAIL: the sdist does not contain tests/conftest.py
+----- exit code: 1 -----
+
+=== GREEN ===
+$ bash step05.sh
+sdist: dist/gfx1150_inference-0.6.1.tar.gz
+<the full listing>
+ok: the sdist contains tests/conftest.py
+ok: the sdist contains tests/test_harness_contract.py
+ok: every tests/*.py in the repository is in the sdist
+----- exit code: 0 -----
+
+# The third assertion is the durable form of the fix: it checks that *every*
+# `tests/*.py` in the repository is in the sdist, so a future test file cannot
+# silently fail to ship. (7A-3's fixtures are data files, not `*.py`, so this
+# assertion stays true when they land.)

@@ -1,0 +1,5 @@
+# cpu-lane.log — pytest -m "not gpu" -q
+```
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+461 passed, 34 deselected, 14 warnings in 48.98s
+```

@@ -1,0 +1,56 @@
+# G1 / 7A-8 — RED: the documented build command on the parent (G0 condition C-1)
+# Captured: 2026-11-02T22:51:14Z
+# Parent: 4bcffeb35862c3d0b12fa54aac2f2d27bdc9ec60
+#
+# G0 condition C-1: "the README's documented cmake -B build command fails on a
+# clean tree". The G0 audit recorded it as exit 1 at CMakeLists.txt:17
+# (pybind11 not found); this is the same failure reproduced.
+#
+# Method: a fresh clone of the parent (no build/ cache, no pybind11_DIR), then
+# the command the README documents. The tree is the parent's own; nothing is
+# patched.
+
+=== $ git -C <fresh clone> checkout 4bcffeb && ls -d build ===
+  (no build cache present)
+
+=== $ env -u pybind11_DIR cmake -B build -DCMAKE_BUILD_TYPE=Release ===
+-- The CXX compiler identification is GNU 13.3.0
+-- The HIP compiler identification is Clang 24.0.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting HIP compiler ABI info
+-- Detecting HIP compiler ABI info - done
+-- Check for working HIP compiler: /opt/rocm/bin/amdclang++ - skipped
+-- Detecting HIP compile features
+-- Detecting HIP compile features - done
+-- Found Python: /home/kupipi/.pyenv/shims/python3 (found version "3.14.10") found components: Interpreter Development.Module 
+CMake Error at CMakeLists.txt:17 (find_package):
+  By not providing "Findpybind11.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "pybind11",
+  but CMake did not find one.
+
+  Could not find a package configuration file provided by "pybind11" with any
+  of the following names:
+
+    pybind11Config.cmake
+    pybind11-config.cmake
+
+  Add the installation prefix of "pybind11" to CMAKE_PREFIX_PATH or set
+  "pybind11_DIR" to a directory containing one of the above files.  If
+  "pybind11" provides a separate development package or SDK, be sure it has
+  been installed.
+
+
+-- Configuring incomplete, errors occurred!
+--- exit code: 1 ---
+
+=== the same command with the parent's CMakeLists, on a host where the
+=== interpreter's prefix happens to be on PATH (the parent's 'lucky' case) ===
+  (recorded for completeness: the parent's build only ever worked by luck of
+   the environment, which is exactly why the command was not reproducible)
+  -- Found pybind11: /home/kupipi/.pyenv/versions/3.14.10/include (found version "3.1.0")
+  -- Configuring done (1.6s)
+  exit: 0

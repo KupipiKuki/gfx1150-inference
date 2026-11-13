@@ -1,0 +1,20 @@
+# model-spec.log — ModelSpec resolution + fail-fast probes (CPU lane)
+```
+tests/test_model_spec.py::test_model_spec_resolves_real_gemma_header_dims PASSED [  6%]
+tests/test_model_spec.py::test_model_spec_gemma7b_style_dims_reshape_correctly PASSED [ 12%]
+tests/test_model_spec.py::test_model_spec_resolves_real_phi3_header_dims PASSED [ 18%]
+tests/test_model_spec.py::test_model_spec_unknown_architecture_fails_fast PASSED [ 25%]
+tests/test_model_spec.py::test_model_spec_gemma2_gemma3_variants_fail_fast PASSED [ 31%]
+tests/test_model_spec.py::test_model_spec_missing_required_tensors_listed_once PASSED [ 37%]
+tests/test_model_spec.py::test_model_spec_missing_qkv_layout_fails_fast PASSED [ 43%]
+tests/test_model_spec.py::test_model_spec_missing_optional_tensors_do_not_error PASSED [ 50%]
+tests/test_model_spec.py::test_model_spec_shape_mismatches_are_actionable PASSED [ 56%]
+tests/test_model_spec.py::test_model_spec_phi3_rope_factors_fail_fast PASSED [ 62%]
+tests/test_model_spec.py::test_model_spec_gemma_unsupported_features_fail_fast PASSED [ 68%]
+tests/test_model_spec.py::test_model_spec_key_value_dim_mismatch_fails_fast PASSED [ 75%]
+tests/test_model_spec.py::test_model_spec_gemma_final_logit_softcap_resolves PASSED [ 81%]
+tests/test_model_spec.py::test_model_spec_qwen2_metadata_regression PASSED [ 87%]
+tests/test_model_spec.py::test_model_spec_missing_block_count_is_actionable PASSED [ 93%]
+tests/test_model_spec.py::test_compat_unsupported_architectures_rejected_with_named_set PASSED [100%]
+======================= 16 passed, 13 warnings in 0.18s ========================
+```

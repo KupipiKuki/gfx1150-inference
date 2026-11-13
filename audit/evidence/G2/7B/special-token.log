@@ -1,0 +1,51 @@
+# G2 / 7B - 7B-1 special tokens: longest-match split, mixed text, adversarial probes
+# RED: the special-token goldens on the parent (see tokenizer-golden.log):
+#   test_special_token_is_encoded_as_its_id ... FAILED
+#   test_spm_known_mismatches_are_pinned[spm_control_token_parsed] ... FAILED
+
+================================================================================
+GREEN (candidate): python -m pytest -m "not gpu" -v -k "special or lookalike or empty_and_whitespace"
+================================================================================
+
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python
+cachedir: .pytest_cache
+hypothesis profile 'ci' -> database=None, deadline=None, print_blob=True, derandomize=True, suppress_health_check=(HealthCheck.too_slow,)
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 152 items / 144 deselected / 8 selected
+
+tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id PASSED [ 12%]
+tests/test_goldens_tokenizer.py::test_special_token_split_preserves_the_ordinary_text_around_it PASSED [ 25%]
+tests/test_goldens_tokenizer.py::test_parse_special_false_treats_the_special_token_as_ordinary_text PASSED [ 37%]
+tests/test_goldens_tokenizer.py::test_longest_match_wins_between_overlapping_special_tokens PASSED [ 50%]
+tests/test_goldens_tokenizer.py::test_lookalike_text_is_not_treated_as_a_special_token PASSED [ 62%]
+tests/test_goldens_tokenizer.py::test_empty_and_whitespace_special_splitting PASSED [ 75%]
+tests/test_goldens_tokenizer.py::test_no_duplicate_bos_is_added_on_top_of_a_leading_special_token PASSED [ 87%]
+tests/test_goldens_tokenizer.py::test_encode_decode_round_trip_with_and_without_special_tokens PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================ 8 passed, 144 deselected, 13 warnings in 0.39s ================
+exit=0
+
+================================================================================
+GREEN (candidate): the independent probe, special-token checks
+    python audit/evidence/G2/7B/qaqc-probes/probe_tokenizer.py
+================================================================================
+
+[PASS] gpt2 special token encodes as its id
+[PASS] mixed text splits around the special token
+[PASS] no splitting inside ordinary text
+[PASS] spm control token parses as its id
+[PASS] spm control token literal path unchanged
+[PASS] spm control token adjacent to punctuation round-trips
+[PASS] overlapping specials: longest match wins
+[PASS] decode skips special tokens
+[PASS] decode keeps special tokens

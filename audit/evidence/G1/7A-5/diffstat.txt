@@ -1,0 +1,64 @@
+# G1 / 7A-5 diffstat
+# Captured: 2026-11-03T23:34:01Z
+# parent:    180fc2da7ff5431bba08ce2adb345b2d5b43c414  (the branch base)
+# candidate: 36351518903a2f5efd6f011f3e54e760a16a79f0  (the work commit under review)
+
+=== files changed (name-status) ===
+M	.github/workflows/ci-cpu.yml
+M	MANIFEST.in
+A	audit/evidence/G1/7A-5/README.md
+A	audit/evidence/G1/7A-5/cpu-lane.log
+A	audit/evidence/G1/7A-5/env.txt
+A	audit/evidence/G1/7A-5/notes.md
+A	audit/evidence/G1/7A-5/parent-sha.txt
+A	audit/evidence/G1/7A-5/rehearse-workflow.py
+A	audit/evidence/G1/7A-5/sdist-contents.log
+A	audit/evidence/G1/7A-5/sdist-install.log
+A	audit/evidence/G1/7A-5/verify-pytest-config.py
+=== diffstat ===
+ .github/workflows/ci-cpu.yml                   | 157 ++++-
+ MANIFEST.in                                    |   5 +
+ audit/evidence/G1/7A-5/README.md               |  23 +
+ audit/evidence/G1/7A-5/cpu-lane.log            | 376 +++++++++++
+ audit/evidence/G1/7A-5/env.txt                 |  37 ++
+ audit/evidence/G1/7A-5/notes.md                | 232 +++++++
+ audit/evidence/G1/7A-5/parent-sha.txt          |   1 +
+ audit/evidence/G1/7A-5/rehearse-workflow.py    |  99 +++
+ audit/evidence/G1/7A-5/sdist-contents.log      | 181 ++++++
+ audit/evidence/G1/7A-5/sdist-install.log       | 844 +++++++++++++++++++++++++
+ audit/evidence/G1/7A-5/verify-pytest-config.py | 173 +++++
+ 11 files changed, 2127 insertions(+), 1 deletion(-)
+
+=== scope check: the allowed set is .github/workflows/**, MANIFEST.in,
+=== pyproject.toml (pytest config only), tests/** (only if needed),
+=== audit/evidence/G1/7A-5/**, and docs. None of these changed: ===
+  none — confirmed
+
+=== the functional changes (everything else is evidence) ===
+ .github/workflows/ci-cpu.yml | 157 ++++++++++++++++++++++++++++++++++++++++++-
+ MANIFEST.in                  |   5 ++
+ 2 files changed, 161 insertions(+), 1 deletion(-)
+
+=== MANIFEST.in, in full ===
+diff --git a/MANIFEST.in b/MANIFEST.in
+index 7b5e47e..5293c83 100644
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -3,4 +3,9 @@ include LICENSE
+ include README.md
+ recursive-include src/kernels *.h *.hip
+ recursive-include src/python_bindings *.cpp
++# The pytest harness must ship with the sdist: without tests/conftest.py the
++# installed tree has no `matmul_module` fixture, so the GPU lane errors instead
++# of skipping (G0 condition C-7A1-5). 7A-3 adds the fixture globs when its
++# fixtures land.
++recursive-include tests *.py
+ 
+
+=== note on the bundle's bookkeeping files ===
+  candidate-sha.txt (this file's sibling) and diffstat.txt cannot both live in
+  the commit they describe, and ci-run.log can only exist once the branch has
+  been pushed. They are therefore added in a follow-up commit on the same
+  branch -- no force-push, per the handoff's frozen-review-SHA rule. The
+  candidate SHA named above is the work commit that adds the workflow, the
+  MANIFEST.in rule and the evidence bundle.

@@ -1,0 +1,55 @@
+# G1 / 7A-4 — the GitHub Actions run
+# Captured: 2026-11-04T02:42:06Z
+#
+# The branch push triggers the CPU workflow (on: push). The run below is the
+# authoritative execution of the two CPU jobs on ubuntu-latest with Python
+# 3.12 -- with the fuzz in the CPU job and deselected in the packaging job.
+
+=== the run ===
+  workflow:  CPU-Only Verification & Regression CI
+  run id:    41762204487
+  event:     push
+  branch:    wp/7A-4-fuzz
+  commit:    a14fcfa5e0be1ad4a118a2c0b171881559dc2b04
+  status:    completed / success
+  url:       https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41762204487
+
+=== every job and every step ===
+  job: Sdist Install (CPU-only path, GFX1150_SKIP_CMAKE=1)
+    status/conclusion: completed / success   (02:39:52 -> 02:40:23)
+    url: https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41762204487/job/126352241676
+      ok  1. Set up job                                                     success
+      ok  2. Checkout repository                                            success
+      ok  3. Set up Python 3.12                                             success
+      ok  4. Install the packaging prerequisites                            success
+      ok  5. Build the sdist                                                success
+      ok  6. Assert the sdist ships the pytest harness (C-7A1-5)            success
+      ok  7. Install the sdist into a clean venv (CPU-only path)            success
+      ok  8. Assert the installed module split (CPU imports; GPU modules raise) success
+      ok  9. Run the shipped CPU lane in the extracted sdist tree           success
+      ok 10. Run the full shipped lane in the extracted sdist tree (C-7A1-5 guard) success
+      ok 19. Post Set up Python 3.12                                        success
+      ok 20. Post Checkout repository                                       success
+      ok 21. Complete job                                                   success
+
+  job: CPU Parser, Tokenizer, Sampler & Packaging Suite
+    status/conclusion: completed / success   (02:39:51 -> 02:41:08)
+    url: https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41762204487/job/126352241803
+      ok  1. Set up job                                                     success
+      ok  2. Checkout repository                                            success
+      ok  3. Set up Python 3.12                                             success
+      ok  4. Install test dependencies                                      success
+      ok  5. Run self-contained CPU test suite (standard mode)              success
+      ok  6. Run self-contained CPU test suite (optimized -O mode)          success
+      ok  7. Run the pytest CPU lane                                        success
+      ok  8. Check the claims ledger (default mode, ratchet baseline-aware) success
+      ok  9. Check the claims checker canaries                              success
+      ok 10. Check the claims ledger (strict mode, advisory until G6)       success
+      ok 19. Post Set up Python 3.12                                        success
+      ok 20. Post Checkout repository                                       success
+      ok 21. Complete job                                                   success
+
+=== the split the CI wiring is for ===
+  The sdist-install job finished in about 31 seconds: the fuzz is
+  deselected there, so packaging stays fast. The CPU job took about 77
+  seconds: it owns the 10,000-example fuzz, and it is blocking.

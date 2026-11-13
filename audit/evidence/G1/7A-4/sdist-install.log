@@ -1,0 +1,345 @@
+# G1 / 7A-4 — the sdist-install job, rehearsed locally
+# Captured: 2026-11-04T02:31:07Z
+#
+# The job's steps were executed verbatim from the parsed workflow, in a fresh
+# clone of the repository, exactly as the runner would see them (the driver
+# is the 7A-5 package's rehearse-workflow.py). The point of the rehearsal is
+# the two changes this package makes to the job:
+#
+#   * the venv installs hypothesis, because the shipped fuzz module imports
+#     it -- without it the packaging job gets a collection error;
+#   * the two lane steps deselect 'slow', so the 10,000-example fuzz does
+#     not run in the packaging job.
+
+environment overrides: ROCM_ROOT=/nonexistent-rocm
+=== job: sdist-install (ci-cpu.yml) ===
+=== workdir: /tmp/opencode/rehearse4 ===
+
+----- step 1: Checkout repository -----
+(an actions/* step: no shell script; simulated by the caller)
+
+----- step 2: Set up Python 3.12 -----
+(an actions/* step: no shell script; simulated by the caller)
+
+----- step 3: Install the packaging prerequisites -----
+$ bash step03.sh
+Requirement already satisfied: pip in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (26.3)
+Requirement already satisfied: setuptools>=64 in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (84.2.1)
+Requirement already satisfied: wheel in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (0.48.0)
+Requirement already satisfied: packaging>=24.0 in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (from wheel) (26.3)
+----- exit code: 0 -----
+
+----- step 4: Build the sdist -----
+$ bash step04.sh
+/home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+!!
+
+        ********************************************************************************
+        Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+
+        By 2027-Feb-18, you need to update your project and remove deprecated calls
+        or your builds will no longer be supported.
+
+        See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+        ********************************************************************************
+
+!!
+  corresp(dist, value, root_dir)
+running sdist
+running egg_info
+creating src/gfx1150_inference.egg-info
+writing src/gfx1150_inference.egg-info/PKG-INFO
+writing dependency_links to src/gfx1150_inference.egg-info/dependency_links.txt
+writing entry points to src/gfx1150_inference.egg-info/entry_points.txt
+writing requirements to src/gfx1150_inference.egg-info/requires.txt
+writing top-level names to src/gfx1150_inference.egg-info/top_level.txt
+writing manifest file 'src/gfx1150_inference.egg-info/SOURCES.txt'
+reading manifest file 'src/gfx1150_inference.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'src/gfx1150_inference.egg-info/SOURCES.txt'
+running check
+creating gfx1150_inference-0.6.1
+creating gfx1150_inference-0.6.1/src
+creating gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+creating gfx1150_inference-0.6.1/src/kernels
+creating gfx1150_inference-0.6.1/src/python_bindings
+creating gfx1150_inference-0.6.1/tests
+creating gfx1150_inference-0.6.1/tests/fixtures
+copying files to gfx1150_inference-0.6.1...
+copying CMakeLists.txt -> gfx1150_inference-0.6.1
+copying LICENSE -> gfx1150_inference-0.6.1
+copying MANIFEST.in -> gfx1150_inference-0.6.1
+copying README.md -> gfx1150_inference-0.6.1
+copying pyproject.toml -> gfx1150_inference-0.6.1
+copying setup.py -> gfx1150_inference-0.6.1
+copying src/gguf_parser.py -> gfx1150_inference-0.6.1/src
+copying src/inference.py -> gfx1150_inference-0.6.1/src
+copying src/kv_cache.py -> gfx1150_inference-0.6.1/src
+copying src/layer.py -> gfx1150_inference-0.6.1/src
+copying src/tokenizer.py -> gfx1150_inference-0.6.1/src
+copying src/weight_loader.py -> gfx1150_inference-0.6.1/src
+copying src/gfx1150_inference.egg-info/PKG-INFO -> gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+copying src/gfx1150_inference.egg-info/SOURCES.txt -> gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+copying src/gfx1150_inference.egg-info/dependency_links.txt -> gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+copying src/gfx1150_inference.egg-info/entry_points.txt -> gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+copying src/gfx1150_inference.egg-info/requires.txt -> gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+copying src/gfx1150_inference.egg-info/top_level.txt -> gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+copying src/kernels/attention.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/attention.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/dequantize.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/dequantize.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/matmul.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/matmul.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/mlp.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/mlp.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/rmsnorm.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/rmsnorm.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/rope.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/rope.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/python_bindings/bindings.cpp -> gfx1150_inference-0.6.1/src/python_bindings
+copying tests/conftest.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_build_configure.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_cpu_only.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_full_model.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_fuzz_gguf.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_gguf_and_q4.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_goldens_gguf.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_goldens_gpu.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_goldens_quant.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_goldens_tokenizer.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_harness_contract.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_layer.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_matmul.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_phase5_scale.py -> gfx1150_inference-0.6.1/tests
+copying tests/fixtures/PROVENANCE.md -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/gpt2_tokenizer_golden.json -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/gpt2_vocab.json -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/make_fixtures.py -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/q4_0_blocks.bin -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/q4_k_blocks.bin -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/q6_k_blocks.bin -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/quant_golden.json -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/stories260k_tokenizer_golden.json -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/stories260k_vocab.json -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/tiny_gguf.gguf -> gfx1150_inference-0.6.1/tests/fixtures
+copying tests/fixtures/tiny_gguf_expectations.json -> gfx1150_inference-0.6.1/tests/fixtures
+Writing gfx1150_inference-0.6.1/setup.cfg
+creating dist
+Creating tar archive
+removing 'gfx1150_inference-0.6.1' (and everything under it)
+total 1712
+-rw-rw-r-- 1 kupipi kupipi 1751968 Nov  3 21:38 gfx1150_inference-0.6.1.tar.gz
+----- exit code: 0 -----
+
+----- step 5: Assert the sdist ships the pytest harness (C-7A1-5) -----
+$ bash step05.sh
+sdist: dist/gfx1150_inference-0.6.1.tar.gz
+gfx1150_inference-0.6.1/
+gfx1150_inference-0.6.1/CMakeLists.txt
+gfx1150_inference-0.6.1/LICENSE
+gfx1150_inference-0.6.1/MANIFEST.in
+gfx1150_inference-0.6.1/PKG-INFO
+gfx1150_inference-0.6.1/README.md
+gfx1150_inference-0.6.1/pyproject.toml
+gfx1150_inference-0.6.1/setup.cfg
+gfx1150_inference-0.6.1/setup.py
+gfx1150_inference-0.6.1/src/
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/PKG-INFO
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/SOURCES.txt
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/dependency_links.txt
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/entry_points.txt
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/requires.txt
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/top_level.txt
+gfx1150_inference-0.6.1/src/gguf_parser.py
+gfx1150_inference-0.6.1/src/inference.py
+gfx1150_inference-0.6.1/src/kernels/
+gfx1150_inference-0.6.1/src/kernels/attention.h
+gfx1150_inference-0.6.1/src/kernels/attention.hip
+gfx1150_inference-0.6.1/src/kernels/dequantize.h
+gfx1150_inference-0.6.1/src/kernels/dequantize.hip
+gfx1150_inference-0.6.1/src/kernels/matmul.h
+gfx1150_inference-0.6.1/src/kernels/matmul.hip
+gfx1150_inference-0.6.1/src/kernels/mlp.h
+gfx1150_inference-0.6.1/src/kernels/mlp.hip
+gfx1150_inference-0.6.1/src/kernels/rmsnorm.h
+gfx1150_inference-0.6.1/src/kernels/rmsnorm.hip
+gfx1150_inference-0.6.1/src/kernels/rope.h
+gfx1150_inference-0.6.1/src/kernels/rope.hip
+gfx1150_inference-0.6.1/src/kv_cache.py
+gfx1150_inference-0.6.1/src/layer.py
+gfx1150_inference-0.6.1/src/python_bindings/
+gfx1150_inference-0.6.1/src/python_bindings/bindings.cpp
+gfx1150_inference-0.6.1/src/tokenizer.py
+gfx1150_inference-0.6.1/src/weight_loader.py
+gfx1150_inference-0.6.1/tests/
+gfx1150_inference-0.6.1/tests/conftest.py
+gfx1150_inference-0.6.1/tests/fixtures/
+gfx1150_inference-0.6.1/tests/fixtures/PROVENANCE.md
+gfx1150_inference-0.6.1/tests/fixtures/gpt2_tokenizer_golden.json
+gfx1150_inference-0.6.1/tests/fixtures/gpt2_vocab.json
+gfx1150_inference-0.6.1/tests/fixtures/make_fixtures.py
+gfx1150_inference-0.6.1/tests/fixtures/q4_0_blocks.bin
+gfx1150_inference-0.6.1/tests/fixtures/q4_k_blocks.bin
+gfx1150_inference-0.6.1/tests/fixtures/q6_k_blocks.bin
+gfx1150_inference-0.6.1/tests/fixtures/quant_golden.json
+gfx1150_inference-0.6.1/tests/fixtures/stories260k_tokenizer_golden.json
+gfx1150_inference-0.6.1/tests/fixtures/stories260k_vocab.json
+gfx1150_inference-0.6.1/tests/fixtures/tiny_gguf.gguf
+gfx1150_inference-0.6.1/tests/fixtures/tiny_gguf_expectations.json
+gfx1150_inference-0.6.1/tests/test_build_configure.py
+gfx1150_inference-0.6.1/tests/test_cpu_only.py
+gfx1150_inference-0.6.1/tests/test_full_model.py
+gfx1150_inference-0.6.1/tests/test_fuzz_gguf.py
+gfx1150_inference-0.6.1/tests/test_gguf_and_q4.py
+gfx1150_inference-0.6.1/tests/test_goldens_gguf.py
+gfx1150_inference-0.6.1/tests/test_goldens_gpu.py
+gfx1150_inference-0.6.1/tests/test_goldens_quant.py
+gfx1150_inference-0.6.1/tests/test_goldens_tokenizer.py
+gfx1150_inference-0.6.1/tests/test_harness_contract.py
+gfx1150_inference-0.6.1/tests/test_layer.py
+gfx1150_inference-0.6.1/tests/test_matmul.py
+gfx1150_inference-0.6.1/tests/test_phase5_scale.py
+ok: the sdist contains tests/conftest.py
+ok: the sdist contains tests/test_harness_contract.py
+ok: every tests/*.py in the repository is in the sdist
+----- exit code: 0 -----
+
+----- step 6: Install the sdist into a clean venv (CPU-only path) -----
+$ bash step06.sh
+Requirement already satisfied: pip in ./.venv-sdist/lib/python3.14/site-packages (26.2.2)
+Collecting pip
+  Using cached pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+Using cached pip-26.3-py3-none-any.whl (2.0 MB)
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 26.2.2
+    Uninstalling pip-26.2.2:
+      Successfully uninstalled pip-26.2.2
+Successfully installed pip-26.3
+Collecting pytest
+  Using cached pytest-9.2.0-py3-none-any.whl.metadata (7.9 kB)
+Collecting setuptools>=64
+  Using cached setuptools-84.2.1-py3-none-any.whl.metadata (6.6 kB)
+Collecting hypothesis
+  Downloading hypothesis-6.170.14-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (5.6 kB)
+Collecting iniconfig>=2 (from pytest)
+  Using cached iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)
+Collecting packaging>=24 (from pytest)
+  Using cached packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+Collecting pluggy<2,>=1.6 (from pytest)
+  Using cached pluggy-1.7.0-py3-none-any.whl.metadata (5.0 kB)
+Collecting pygments>=2.15 (from pytest)
+  Using cached pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting sortedcontainers<3.0.0,>=2.1.0 (from hypothesis)
+  Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl.metadata (10 kB)
+Using cached pytest-9.2.0-py3-none-any.whl (411 kB)
+Using cached pluggy-1.7.0-py3-none-any.whl (27 kB)
+Using cached setuptools-84.2.1-py3-none-any.whl (876 kB)
+Downloading hypothesis-6.170.14-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 31.6 MB/s  0:00:00
+Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl (29 kB)
+Using cached iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
+Using cached packaging-26.3-py3-none-any.whl (129 kB)
+Using cached pygments-2.21.0-py3-none-any.whl (1.3 MB)
+Installing collected packages: sortedcontainers, setuptools, pygments, pluggy, packaging, iniconfig, hypothesis, pytest
+
+Successfully installed hypothesis-6.170.14 iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pygments-2.21.0 pytest-9.2.0 setuptools-84.2.1 sortedcontainers-2.4.0
+Processing ./dist/gfx1150_inference-0.6.1.tar.gz
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting numpy>=1.24.0 (from gfx1150-inference==0.6.1)
+  Using cached numpy-2.5.4-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+Using cached numpy-2.5.4-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+Building wheels for collected packages: gfx1150-inference
+  Building wheel for gfx1150-inference (pyproject.toml): started
+  Building wheel for gfx1150-inference (pyproject.toml): finished with status 'done'
+  Created wheel for gfx1150-inference: filename=gfx1150_inference-0.6.1-cp314-cp314-linux_x86_64.whl size=57489 sha256=c92c03b6d0269246c06b8f09ab7087b9b35bd7b3a6f3516ff77d044e4ec58a3d
+  Stored in directory: /home/kupipi/.cache/pip/wheels/f5/32/3b/067068d1b8ae0a35f942a1cd016379c1624766b094cb5b2e7f
+Successfully built gfx1150-inference
+Installing collected packages: numpy, gfx1150-inference
+
+Successfully installed gfx1150-inference-0.6.1 numpy-2.5.4
+Package           Version
+----------------- --------
+gfx1150-inference 0.6.1
+hypothesis        6.170.14
+iniconfig         2.3.1
+numpy             2.5.4
+packaging         26.3
+pip               26.3
+pluggy            1.7.0
+Pygments          2.21.0
+pytest            9.2.0
+setuptools        84.2.1
+sortedcontainers  2.4.0
+----- exit code: 0 -----
+
+----- step 7: Assert the installed module split (CPU imports; GPU modules raise) -----
+$ bash step07.sh
+ok: 'matmul_module' is not importable (the CPU-only path)
+ok: gguf_parser imports cleanly from the installed venv (/tmp/opencode/rehearse4/.venv-sdist/lib/python3.14/site-packages/gguf_parser.py)
+ok: tokenizer imports cleanly from the installed venv (/tmp/opencode/rehearse4/.venv-sdist/lib/python3.14/site-packages/tokenizer.py)
+ok: weight_loader imports cleanly from the installed venv (/tmp/opencode/rehearse4/.venv-sdist/lib/python3.14/site-packages/weight_loader.py)
+ok: kv_cache raises an actionable ImportError
+      Failed to import 'matmul_module' HIP extension. Build it first with:
+ok: layer raises an actionable ImportError
+      Failed to import 'matmul_module' HIP extension. Build it first with:
+ok: inference raises an actionable ImportError
+      Failed to import 'matmul_module' HIP extension. Build it first with:
+PASS: the installed package exposes the CPU modules and rejects the GPU modules
+----- exit code: 0 -----
+
+----- step 8: Run the shipped CPU lane in the extracted sdist tree -----
+$ bash step08.sh
+extracted tree: extracted/gfx1150_inference-0.6.1/
+ss.............x...................................xx.........xx........ [ 64%]
+.......................................                                  [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_build_configure.py:102: pybind11 is not installed for this interpreter (a documented prerequisite); the discovery cannot be exercised
+SKIPPED [1] tests/test_build_configure.py:135: no ROCm/HIP toolchain on this host; the configure cannot enable the HIP language
+XFAIL tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error - BLOCKER-7A4-1: a nested GGUF array recurses until the stack is exhausted
+XFAIL tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - 7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS
+XFAIL tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - 7B: special tokens in the input are not encoded as their own token IDs
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont] - 7B/7C: the repository's SentencePiece path is a greedy longest match; the reference segments with the unigram scores
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed] - 7B: a control token in the input is not parsed as its own token ID
+104 passed, 2 skipped, 26 deselected, 5 xfailed, 1 warning in 3.12s
+----- exit code: 0 -----
+
+----- step 9: Run the full shipped lane in the extracted sdist tree (C-7A1-5 guard) -----
+$ bash step09.sh
+ss.............ssx...ss........ssssss........................xx......... [ 54%]
+xx...............................................sssssssssss             [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_build_configure.py:102: pybind11 is not installed for this interpreter (a documented prerequisite); the discovery cannot be exercised
+SKIPPED [1] tests/test_build_configure.py:135: no ROCm/HIP toolchain on this host; the configure cannot enable the HIP language
+SKIPPED [2] tests/test_full_model.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+SKIPPED [2] tests/test_gguf_and_q4.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+SKIPPED [3] tests/test_goldens_gpu.py:42: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+SKIPPED [3] tests/test_goldens_gpu.py:66: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+SKIPPED [5] tests/test_layer.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+SKIPPED [1] tests/test_matmul.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+SKIPPED [5] tests/test_phase5_scale.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+104 passed, 23 skipped, 5 deselected, 5 xfailed, 1 warning in 2.64s
+----- exit code: 0 -----
+
+All steps exited 0.
+
+=== the rehearsal exit code: 0 ===

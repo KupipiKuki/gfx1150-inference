@@ -1,0 +1,58 @@
+# G1 / 7A-6 follow-up — strict-clean rendering (condition C-7A6-1)
+# Captured: 2026-11-02T22:25:10Z
+#
+# At G6 the human-readable --strict output is a release artifact, so it must
+# report the run's actual outcome. On a clean ledger the old code exited 0 but
+# printed 'RESULT: FAIL'.
+#
+# The clean tree is the one scripts/qa/canary_claims.py builds: one VERIFIED
+# claim, an empty baseline, the literal in README.md/IMPLEMENTATION_PLAN.md, and
+# its evidence file present.
+
+=== RED — parent b626c94 (the C-7A6-1 defect) ===
+--- parent b626c94 : --strict ---
+  RESULT: FAIL - 0 unqualified occurrence(s) (strict mode ignores the baseline)
+  exit: 0
+  --strict --json: ok=True violations=0 findings=0 exit=0
+
+--- candidate : --strict ---
+  RESULT: PASS - 0 unqualified occurrence(s) (strict mode ignores the baseline)
+  exit: 0
+  --strict --json: ok=True violations=0 findings=0 exit=0
+
+=== GREEN — candidate (the fix) ===
+
+  The fix: check_claims.py _render() now derives the strict result from
+  _failed(report, strict), so a clean run prints 'RESULT: PASS'. The exit code
+  was already correct (0) and is unchanged.
+
+=== the clean tree's checker output, in full (candidate) ===
+--- python3 scripts/qa/check_claims.py --strict ---
+=== Claims ledger check ===
+mode:        strict (baseline ignored)
+claims:      1 rows parsed
+
+--- unqualified public claims (the ratchet) ---
+  none
+
+--- baseline entries that no longer match a violation ---
+  none
+
+--- findings ---
+  none
+
+RESULT: PASS - 0 unqualified occurrence(s) (strict mode ignores the baseline)
+--- exit code: 0 ---
+
+--- python3 scripts/qa/check_claims.py --strict --json ---
+{
+  "claims": 1,
+  "expired_baseline": [],
+  "findings": [],
+  "mode": "strict",
+  "ok": true,
+  "violations": [],
+  "warnings": []
+}
+--- exit code: 0 ---
+

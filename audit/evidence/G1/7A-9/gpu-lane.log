@@ -1,0 +1,14 @@
+# G1 / 7A-9 — the GPU lane (unchanged by the fix; src/gguf_parser.py is CPU-side only)
+# Captured: 2026-11-05T01:45:24Z
+# candidate: 1bce3d05fb20a6bdd0600a50b8c3502a6de85c74
+
+=== command ===
+python3 -m pytest -m gpu -q
+
+=== output ===
+........................                                                 [100%]
+=============================== warnings summary ===============================
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+24 passed, 115 deselected, 13 warnings in 1.73s
+exit: 0

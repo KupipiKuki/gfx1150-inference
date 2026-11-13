@@ -1,0 +1,36 @@
+== 7F-1 self-hosted gfx1150 runner preflight ==
+repo:        /home/kupipi/Documents/git/gfx1150-inference
+runner PATH: /home/kupipi/.pyenv/shims:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+-- host --
+PASS  architecture x86_64
+PASS  OS Linux Mint 22.3
+PASS  systemd available
+PASS  free disk 406.5 GiB on / (>= 20 GiB)
+
+-- GPU / ROCm --
+PASS  rocminfo reports gfx1150
+PASS  /dev/kfd present
+PASS  /dev/dri/renderD* present
+PASS  current user is in render + video groups
+PASS  hipcc: /usr/bin/hipcc
+PASS  cmake: /usr/bin/cmake
+PASS  make: /usr/bin/make
+PASS  git: /usr/bin/git
+
+-- runner user interpreter (the service PATH, not your interactive shell) --
+      /home/kupipi/.pyenv/shims/python3
+      Python 3.14.10
+      pip 26.3 from /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pip (python 3.14)
+      packages 2.5.4 9.2.0 3.1.0
+PASS  python3 + pip + numpy/pytest/pybind11 work under the runner PATH
+
+-- GitHub / repository --
+WARN  KupipiKuki/gfx1150-inference is PUBLIC: a self-hosted runner can execute fork-PR code on this host; make it private or require approval for all outside collaborators before registering
+PASS  no existing /home/kupipi/actions-runner
+PASS  no existing actions.runner service
+WARN  ci-gpu.yml still has continue-on-error: true (expected before the first green run; remove it before G6 signoff)
+
+-- summary --
+FAIL: 0  WARN: 2
+PREFLIGHT: PASS (warnings are owner decisions, not blockers).

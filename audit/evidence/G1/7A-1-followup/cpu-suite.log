@@ -1,0 +1,37 @@
+# G1 / 7A-1 follow-up CPU suite log
+# Captured: 2026-11-02T01:03:59Z  HEAD: ea8e84a1e708ee114ae611f2b257b81eaa57c12a
+
+=== python3 -m pytest -m 'not gpu' -q ===
+.....................................                                    [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+37 passed, 18 deselected, 1 warning in 0.83s
+exit: 0
+
+=== python3 tests/test_cpu_only.py ===
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.434s
+
+OK
+exit: 0
+
+=== python3 -O tests/test_cpu_only.py ===
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.418s
+
+OK
+exit: 0
+
+=== python3 -m pytest -m 'not gpu' --collect-only -q (lane split) ===
+tests/test_harness_contract.py::test_pytest_config_declares_required_markers
+
+37/55 tests collected (18 deselected) in 0.20s
+exit: 0

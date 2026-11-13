@@ -1,0 +1,234 @@
+# G1 / 7A-3 — the tokenizer goldens
+# Captured: 2026-11-04T00:42:14Z
+
+=== the golden (tests/fixtures/gpt2_tokenizer_golden.json) ===
+{
+  "schema": "gfx1150-inference/tokenizer-golden/1",
+  "id": "gpt2",
+  "reference": {
+    "project": "ggml-org/llama.cpp",
+    "tool": "llama-tokenize",
+    "command": "llama-tokenize -m gpt2-vocab.gguf -p <prompt> --ids [--no-bos] [--no-parse-special]"
+  },
+  "vocab": {
+    "id": "gpt2",
+    "upstream": "openai-community/gpt2",
+    "upstream_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+    "vocab_json_sha256": "196139668be63f3b5d6574427317ae82f612a97c5d1cdaf36ed2256dbf636783",
+    "merges_txt_sha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+    "fixture_sha256": "6d69121d9abb291574dfa7087d6c2004b35caa4f0c53deef876aedecf71f3212",
+    "n_tokens": 50257
+  },
+  "cases": [
+    {
+      "id": "plain_text",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        15496,
+        995
+      ]
+    },
+    {
+      "id": "double_space",
+      "prompt": "Hello  world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        15496,
+        220,
+        995
+      ]
+    },
+    {
+      "id": "multibyte_accent",
+      "prompt": "caf\u00e9",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        66,
+        1878,
+        2634
+      ]
+    },
+    {
+      "id": "multibyte_greek",
+      "prompt": "\u03a9",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        138,
+        102
+      ]
+    },
+    {
+      "id": "multibyte_emoji",
+      "prompt": "\ud83d\ude00",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        47249,
+        222
+      ]
+    },
+    {
+      "id": "punctuation_digits",
+      "prompt": "hello, world! 123",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        31373,
+        11,
+        995,
+        0,
+        17031
+      ]
+    },
+    {
+      "id": "underscore",
+      "prompt": "a_b",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        64,
+        62,
+        65
+      ]
+    },
+    {
+      "id": "contraction_dont",
+      "prompt": "don't",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        9099,
+        470
+      ]
+    },
+    {
+      "id": "contraction_were",
+      "prompt": "we're",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        732,
+        821
+      ]
+    },
+    {
+      "id": "add_bos_disabled",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        15496,
+        995
+      ]
+    },
+    {
+      "id": "add_bos_default",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        15496,
+        995
+      ]
+    },
+    {
+      "id": "special_token_eot",
+      "prompt": "<|endoftext|>",
+      "reference_flags": [],
+      "token_ids": [
+        50256
+      ]
+    }
+  ]
+}
+
+=== the SentencePiece golden (the 'metadata absent' add_bos case) ===
+{
+  "schema": "gfx1150-inference/tokenizer-golden/1",
+  "id": "stories260k",
+  "reference": {
+    "project": "ggml-org/llama.cpp",
+    "tool": "llama-tokenize",
+    "command": "llama-tokenize -m stories260K.gguf -p <prompt> --ids"
+  },
+  "vocab": {
+    "id": "stories260k",
+    "upstream": "ggml-org/models",
+    "upstream_revision": "ggml-org/models@main:tinyllamas/stories260K.gguf",
+    "source_gguf_sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
+    "fixture_sha256": "83087209d2555019d790b98408e307e8693d51441a91c253b367e9c9c0fbe7e7",
+    "n_tokens": 512,
+    "add_bos_token_metadata": "absent"
+  },
+  "cases": [
+    {
+      "id": "spm_absent_add_bos_metadata",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "token_ids": [
+        1,
+        346,
+        306,
+        414,
+        263,
+        304,
+        341
+      ]
+    }
+  ]
+}
+
+=== the tokenizer golden tests ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 16 items
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[plain_text] PASSED [  6%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[double_space] PASSED [ 12%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_accent] PASSED [ 18%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_greek] PASSED [ 25%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_emoji] PASSED [ 31%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[punctuation_digits] PASSED [ 37%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[underscore] PASSED [ 43%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[contraction_dont] PASSED [ 50%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[contraction_were] PASSED [ 56%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[add_bos_disabled] PASSED [ 62%]
+tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer XFAIL [ 68%]
+tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id XFAIL [ 75%]
+tests/test_goldens_tokenizer.py::test_absent_add_bos_metadata_matches_the_reference_tokenizer PASSED [ 81%]
+tests/test_goldens_tokenizer.py::test_the_vocabulary_fixture_matches_its_recorded_hash PASSED [ 87%]
+tests/test_goldens_tokenizer.py::test_the_golden_cases_cover_the_required_inputs PASSED [ 93%]
+tests/test_goldens_tokenizer.py::test_decode_round_trips_the_golden_text PASSED [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - 7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS
+XFAIL tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - 7B: special tokens in the input are not encoded as their own token IDs
+================== 14 passed, 2 xfailed, 13 warnings in 0.62s ==================
+--- exit code: 0 ---

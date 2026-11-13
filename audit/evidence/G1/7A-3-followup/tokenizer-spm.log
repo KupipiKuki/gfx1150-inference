@@ -1,0 +1,261 @@
+# G1 / 7A-3 follow-up — the SentencePiece golden
+# Captured: 2026-11-04T01:26:21Z
+
+=== the golden (tests/fixtures/stories260k_tokenizer_golden.json) ===
+{
+  "schema": "gfx1150-inference/tokenizer-golden/1",
+  "id": "stories260k",
+  "reference": {
+    "project": "ggml-org/llama.cpp",
+    "tool": "llama-tokenize",
+    "command": "llama-tokenize -m stories260K.gguf -p <prompt> --ids [--no-bos] [--no-parse-special]",
+    "add_bos": "the reference adds a BOS token for this vocabulary unless --no-bos is passed; each case records the switch it used"
+  },
+  "vocab": {
+    "id": "stories260k",
+    "upstream": "ggml-org/models",
+    "upstream_revision": "ggml-org/models@main:tinyllamas/stories260K.gguf",
+    "source_gguf_sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
+    "fixture_sha256": "83087209d2555019d790b98408e307e8693d51441a91c253b367e9c9c0fbe7e7",
+    "n_tokens": 512,
+    "add_bos_token_metadata": "absent"
+  },
+  "cases": [
+    {
+      "id": "spm_absent_add_bos_metadata",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        346,
+        306,
+        414,
+        263,
+        304,
+        341
+      ]
+    },
+    {
+      "id": "spm_plain_text_no_bos",
+      "prompt": "Hello world",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        346,
+        306,
+        414,
+        263,
+        304,
+        341
+      ]
+    },
+    {
+      "id": "spm_double_space",
+      "prompt": "Hello  world",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        346,
+        306,
+        414,
+        410,
+        263,
+        304,
+        341
+      ]
+    },
+    {
+      "id": "spm_multibyte_accent",
+      "prompt": "caf\u00e9",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        280,
+        412,
+        431,
+        485
+      ]
+    },
+    {
+      "id": "spm_multibyte_greek",
+      "prompt": "\u03a9",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        209,
+        172
+      ]
+    },
+    {
+      "id": "spm_multibyte_emoji",
+      "prompt": "\ud83d\ude00",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        243,
+        162,
+        155,
+        131
+      ]
+    },
+    {
+      "id": "spm_punctuation_digits",
+      "prompt": "hello, world! 123",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        281,
+        306,
+        414,
+        432,
+        263,
+        304,
+        341,
+        443,
+        410,
+        475,
+        479,
+        472
+      ]
+    },
+    {
+      "id": "spm_contraction_were",
+      "prompt": "we're",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        382,
+        439,
+        276
+      ]
+    },
+    {
+      "id": "spm_contraction_dont",
+      "prompt": "don't",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        279,
+        289,
+        439,
+        413
+      ]
+    },
+    {
+      "id": "spm_control_token_literal",
+      "prompt": "<s>",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        504,
+        419,
+        505
+      ]
+    },
+    {
+      "id": "spm_control_token_parsed",
+      "prompt": "<s>",
+      "reference_flags": [],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        1
+      ]
+    }
+  ]
+}
+
+=== what each case means ===
+  spm_absent_add_bos_metadata      add_bos=True   flags=['--no-parse-special']                   plain text; the vocabulary's GGUF has no add_bos_token key, so the reference adds a BOS
+  spm_plain_text_no_bos            add_bos=False  flags=['--no-bos', '--no-parse-special']       the same text with --no-bos
+  spm_double_space                 add_bos=True   flags=['--no-parse-special']                   two spaces between the words
+  spm_multibyte_accent             add_bos=True   flags=['--no-parse-special']                   a two-byte character
+  spm_multibyte_greek              add_bos=True   flags=['--no-parse-special']                   a two-byte character outside the Latin range (byte fallback)
+  spm_multibyte_emoji              add_bos=True   flags=['--no-parse-special']                   a four-byte character (four byte-fallback tokens)
+  spm_punctuation_digits           add_bos=True   flags=['--no-parse-special']                   punctuation and digits
+  spm_contraction_were             add_bos=True   flags=['--no-parse-special']                   a contraction
+  spm_contraction_dont             add_bos=True   flags=['--no-parse-special']                   a contraction -- KNOWN MISMATCH (7B/7C)
+  spm_control_token_literal        add_bos=True   flags=['--no-parse-special']                   a control token as ordinary text
+  spm_control_token_parsed         add_bos=True   flags=[]                                       a control token parsed by the reference -- KNOWN MISMATCH (7B)
+
+=== the tokenizer golden tests ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 27 items
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[plain_text] PASSED [  3%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[double_space] PASSED [  7%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_accent] PASSED [ 11%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_greek] PASSED [ 14%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_emoji] PASSED [ 18%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[punctuation_digits] PASSED [ 22%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[underscore] PASSED [ 25%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[contraction_dont] PASSED [ 29%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[contraction_were] PASSED [ 33%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[add_bos_disabled] PASSED [ 37%]
+tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer XFAIL [ 40%]
+tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id XFAIL [ 44%]
+tests/test_goldens_tokenizer.py::test_absent_add_bos_metadata_matches_the_reference_tokenizer PASSED [ 48%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_plain_text_no_bos] PASSED [ 51%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_double_space] PASSED [ 55%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_multibyte_accent] PASSED [ 59%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_multibyte_greek] PASSED [ 62%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_multibyte_emoji] PASSED [ 66%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_punctuation_digits] PASSED [ 70%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_contraction_were] PASSED [ 74%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_control_token_literal] PASSED [ 77%]
+tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont] XFAIL [ 81%]
+tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed] XFAIL [ 85%]
+tests/test_goldens_tokenizer.py::test_the_vocabulary_fixture_matches_its_recorded_hash PASSED [ 88%]
+tests/test_goldens_tokenizer.py::test_the_golden_cases_cover_the_required_inputs PASSED [ 92%]
+tests/test_goldens_tokenizer.py::test_the_sentencepiece_golden_covers_the_required_inputs PASSED [ 96%]
+tests/test_goldens_tokenizer.py::test_decode_round_trips_the_golden_text PASSED [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - 7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS
+XFAIL tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - 7B: special tokens in the input are not encoded as their own token IDs
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont] - 7B/7C: the repository's SentencePiece path is a greedy longest match; the reference segments with the unigram scores
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed] - 7B: a control token in the input is not parsed as its own token ID
+================== 23 passed, 4 xfailed, 13 warnings in 0.64s ==================
+--- exit code: 0 ---

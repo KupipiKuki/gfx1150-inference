@@ -1,0 +1,70 @@
+# G1 / 7A-5 — the GitHub Actions run
+# Captured: 2026-11-03T23:33:43Z
+#
+# The branch push triggers the CPU workflow (on: push). The run below is the
+# authoritative execution of the two jobs this package adds, on the runner
+# the workflow targets: ubuntu-latest with Python 3.12.
+#
+# Facts read from the GitHub REST API (unauthenticated; the repository is
+# public). The raw step logs are not readable without admin rights
+# (HTTP 403 on /actions/jobs/<id>/logs), so what is recorded here is the
+# run state and every step's conclusion.
+
+=== the run ===
+  workflow:  CPU-Only Verification & Regression CI
+  run id:    41739977786
+  event:     push
+  branch:    wp/7A-5-ci-sdist
+  commit:    36351518903a2f5efd6f011f3e54e760a16a79f0
+  status:    completed / success
+  created:   2026-11-03T23:32:40Z
+  updated:   2026-11-03T23:33:08Z
+  url:       https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41739977786
+
+=== every job and every step ===
+  job: CPU Parser, Tokenizer, Sampler & Packaging Suite
+    status/conclusion: completed / success
+    url: https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41739977786/job/126278765159
+    runner: GitHub Actions 1000000102 / ['ubuntu-latest']
+      ok  1. Set up job                                                     success
+      ok  2. Checkout repository                                            success
+      ok  3. Set up Python 3.12                                             success
+      ok  4. Install test dependencies                                      success
+      ok  5. Run self-contained CPU test suite (standard mode)              success
+      ok  6. Run self-contained CPU test suite (optimized -O mode)          success
+      ok  7. Run the pytest CPU lane                                        success
+      ok  8. Check the claims ledger (default mode, ratchet baseline-aware) success
+      ok  9. Check the claims checker canaries                              success
+      ok 10. Check the claims ledger (strict mode, advisory until G6)       success
+      ok 19. Post Set up Python 3.12                                        success
+      ok 20. Post Checkout repository                                       success
+      ok 21. Complete job                                                   success
+
+  job: Sdist Install (CPU-only path, GFX1150_SKIP_CMAKE=1)
+    status/conclusion: completed / success
+    url: https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41739977786/job/126278765396
+    runner: GitHub Actions 1000000103 / ['ubuntu-latest']
+      ok  1. Set up job                                                     success
+      ok  2. Checkout repository                                            success
+      ok  3. Set up Python 3.12                                             success
+      ok  4. Install the packaging prerequisites                            success
+      ok  5. Build the sdist                                                success
+      ok  6. Assert the sdist ships the pytest harness (C-7A1-5)            success
+      ok  7. Install the sdist into a clean venv (CPU-only path)            success
+      ok  8. Assert the installed module split (CPU imports; GPU modules raise) success
+      ok  9. Run the shipped CPU lane in the extracted sdist tree           success
+      ok 10. Run the full shipped lane in the extracted sdist tree (C-7A1-5 guard) success
+      ok 19. Post Set up Python 3.12                                        success
+      ok 20. Post Checkout repository                                       success
+      ok 21. Complete job                                                   success
+
+=== the other workflow on the same commit (not this package's) ===
+  Clean-Clone Build CI                 in_progress  None      36351518  https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41739977779
+  CPU-Only Verification & Regression CI completed    success   36351518  https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41739977786
+  CPU-Only Verification & Regression CI completed    success   180fc2da  https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41738203802
+  Clean-Clone Build CI                 completed    success   180fc2da  https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41738203739
+
+=== the raw step logs are not readable without admin rights ===
+  GET /actions/jobs/126278765396/logs -> HTTP 403
+  (GitHub requires repository admin rights to download job logs; the
+   step-by-step conclusions above are what the public API exposes.)

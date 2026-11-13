@@ -1,0 +1,186 @@
+# G0 sdist build + FULL clean-venv install
+# Captured: 2026-11-01T22:32:26Z
+# Commit: ea6dbeb1db290bc11d991f7f9940a113fd21efd1
+
+=== python3 setup.py sdist ===
+copying src/gfx1150_inference.egg-info/requires.txt -> gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+copying src/gfx1150_inference.egg-info/top_level.txt -> gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info
+copying src/kernels/attention.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/attention.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/dequantize.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/dequantize.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/matmul.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/matmul.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/mlp.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/mlp.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/rmsnorm.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/rmsnorm.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/rope.h -> gfx1150_inference-0.6.1/src/kernels
+copying src/kernels/rope.hip -> gfx1150_inference-0.6.1/src/kernels
+copying src/python_bindings/bindings.cpp -> gfx1150_inference-0.6.1/src/python_bindings
+copying tests/test_cpu_only.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_full_model.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_gguf_and_q4.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_layer.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_matmul.py -> gfx1150_inference-0.6.1/tests
+copying tests/test_phase5_scale.py -> gfx1150_inference-0.6.1/tests
+Writing gfx1150_inference-0.6.1/setup.cfg
+creating dist
+Creating tar archive
+removing 'gfx1150_inference-0.6.1' (and everything under it)
+exit: 0
+
+=== sdist contents ===
+total 112
+-rw-rw-r-- 1 kupipi kupipi 113199 Nov  1 17:32 gfx1150_inference-0.6.1.tar.gz
+gfx1150_inference-0.6.1/
+gfx1150_inference-0.6.1/CMakeLists.txt
+gfx1150_inference-0.6.1/LICENSE
+gfx1150_inference-0.6.1/MANIFEST.in
+gfx1150_inference-0.6.1/PKG-INFO
+gfx1150_inference-0.6.1/pyproject.toml
+gfx1150_inference-0.6.1/README.md
+gfx1150_inference-0.6.1/setup.cfg
+gfx1150_inference-0.6.1/setup.py
+gfx1150_inference-0.6.1/src/
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/dependency_links.txt
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/entry_points.txt
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/PKG-INFO
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/requires.txt
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/SOURCES.txt
+gfx1150_inference-0.6.1/src/gfx1150_inference.egg-info/top_level.txt
+gfx1150_inference-0.6.1/src/gguf_parser.py
+gfx1150_inference-0.6.1/src/inference.py
+gfx1150_inference-0.6.1/src/kernels/
+gfx1150_inference-0.6.1/src/kernels/attention.h
+gfx1150_inference-0.6.1/src/kernels/attention.hip
+gfx1150_inference-0.6.1/src/kernels/dequantize.h
+gfx1150_inference-0.6.1/src/kernels/dequantize.hip
+gfx1150_inference-0.6.1/src/kernels/matmul.h
+gfx1150_inference-0.6.1/src/kernels/matmul.hip
+gfx1150_inference-0.6.1/src/kernels/mlp.h
+gfx1150_inference-0.6.1/src/kernels/mlp.hip
+gfx1150_inference-0.6.1/src/kernels/rmsnorm.h
+gfx1150_inference-0.6.1/src/kernels/rmsnorm.hip
+gfx1150_inference-0.6.1/src/kernels/rope.h
+gfx1150_inference-0.6.1/src/kernels/rope.hip
+gfx1150_inference-0.6.1/src/kv_cache.py
+gfx1150_inference-0.6.1/src/layer.py
+gfx1150_inference-0.6.1/src/python_bindings/
+gfx1150_inference-0.6.1/src/python_bindings/bindings.cpp
+gfx1150_inference-0.6.1/src/tokenizer.py
+gfx1150_inference-0.6.1/src/weight_loader.py
+gfx1150_inference-0.6.1/tests/
+gfx1150_inference-0.6.1/tests/test_cpu_only.py
+gfx1150_inference-0.6.1/tests/test_full_model.py
+gfx1150_inference-0.6.1/tests/test_gguf_and_q4.py
+gfx1150_inference-0.6.1/tests/test_layer.py
+gfx1150_inference-0.6.1/tests/test_matmul.py
+gfx1150_inference-0.6.1/tests/test_phase5_scale.py
+
+=== sdist sha256 ===
+af75cb09d9ef9af62c0b05d20e2878e52794ba7cae1b4551b0c4855b075d6bc7  dist/gfx1150_inference-0.6.1.tar.gz
+
+==================================================================
+FULL INSTALL — clean venv, real CMake/HIP build (NOT GFX1150_SKIP_CMAKE)
+==================================================================
+venv: /tmp/opencode/g0-venv-full
+python: Python 3.14.10
+command: pip install --no-build-isolation dist/gfx1150_inference-0.6.1.tar.gz
+
+Processing ./dist/gfx1150_inference-0.6.1.tar.gz
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: numpy>=1.24.0 in /tmp/opencode/g0-venv-full/lib/python3.14/site-packages (from gfx1150-inference==0.6.1) (2.5.4)
+Building wheels for collected packages: gfx1150-inference
+  Building wheel for gfx1150-inference (pyproject.toml): started
+  Building wheel for gfx1150-inference (pyproject.toml): finished with status 'done'
+  Created wheel for gfx1150-inference: filename=gfx1150_inference-0.6.1-cp314-cp314-linux_x86_64.whl size=247058 sha256=a3762e67e7be7daa65c8d09f7f1fcad1896fd58899db60780367eda27bf4cb76
+  Stored in directory: /home/kupipi/.cache/pip/wheels/f8/b9/88/016f05e4db89af49148e3521f72dc9cc2ea59c2ebb26669e71
+Successfully built gfx1150-inference
+Installing collected packages: gfx1150-inference
+Successfully installed gfx1150-inference-0.6.1
+install exit: 0
+
+=== installed modules import test ===
+all 7 modules import OK
+matmul_module: /tmp/opencode/g0-venv-full/lib/python3.14/site-packages/matmul_module.cpython-314-x86_64-linux-gnu.so
+import exit: 0
+
+=== CLI entry point ===
+usage: gfx1150-infer [-h] --model MODEL [--prompt PROMPT]
+                     [--max-new-tokens MAX_NEW_TOKENS]
+                     [--max-seq-len MAX_SEQ_LEN] [--temperature TEMPERATURE]
+                     [--top-k TOP_K] [--top-p TOP_P]
+                     [--repetition-penalty REPETITION_PENALTY]
+                     [--prefill-chunk-size PREFILL_CHUNK_SIZE]
+                     [--offload-kv-cpu] [--kv-mmap-dir KV_MMAP_DIR]
+                     [--rope-neox] [--cache-weights] [--seed SEED]
+
+SSD-offloaded GGUF LLM inference engine for AMD gfx1150 GPUs
+
+options:
+  -h, --help            show this help message and exit
+  --model, -m MODEL     Path to .gguf model file
+  --prompt, -p PROMPT   Input prompt text
+cli exit: 0
+
+=== installed CPU suite (from installed package, not repo) ===
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.229s
+
+OK
+installed cpu suite exit: 0
+
+==================================================================
+CPU-ONLY INSTALL — clean venv with GFX1150_SKIP_CMAKE=1
+==================================================================
+venv: /tmp/opencode/g0-venv-cpu
+command: GFX1150_SKIP_CMAKE=1 pip install --no-build-isolation dist/*.tar.gz
+
+=== install ===
+  (install performed above; exit 0)
+
+=== per-module import in the CPU-only venv ===
+  OK    gguf_parser
+  OK    tokenizer
+  OK    weight_loader
+  FAIL  kv_cache  -> ImportError('Failed to import matmul_module HIP extension...')
+  FAIL  layer  -> ImportError('Failed to import matmul_module HIP extension...')
+  FAIL  inference  -> ImportError('Failed to import matmul_module HIP extension...')
+
+INTERPRETATION: the 3 failures (kv_cache, layer, inference) are BY DESIGN.
+  test_cpu_only.py V-3/G-1 asserts that these three raise an actionable
+  ImportError when matmul_module is absent. The CPU-only install therefore
+  exposes exactly 3 importable CPU modules: gguf_parser, tokenizer,
+  weight_loader. This is the supported CPU-only surface.
+
+=== installed CPU suite in the CPU-only venv ===
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.223s
+
+OK
+installed cpu suite exit: 0
+
+=== SUMMARY (sdist / packaging at baseline) ===
+  python3 setup.py sdist                            : PASS
+  sdist contains CMakeLists/MANIFEST/*.hip/bindings: PASS (contents listed above)
+  FULL clean-venv install, real HIP/CMake build     : PASS (exit 0, 7 modules import, CLI works)
+  FULL install -> installed CPU suite (12 tests)     : PASS
+  CPU-only clean-venv install (GFX1150_SKIP_CMAKE=1) : PASS (exit 0, 3 CPU modules import by design)
+  CPU-only install -> installed CPU suite (12 tests) : PASS
+
+  BASELINE DEFECT (not fixed in 7.0, no source changes allowed):
+  (a) README.md documents 'cmake -B build -DCMAKE_BUILD_TYPE=Release' as the
+      build command; that command FAILS on a clean tree because CMakeLists.txt
+      does not locate pybind11's CMake config. setup.py works only because it
+      passes -Dpybind11_DIR. Audit ID B-3, still open. Must be fixed in 7A-5
+      (or the README corrected) before the README build path can be trusted.
+  (b) pyproject.toml version is 0.6.1 while the release line is v0.6.2 -> v0.7.0.
+      Version metadata is deferred to 7G (__version__ / PEP 639) but the
+      sdist filename recorded here is gfx1150_inference-0.6.1.tar.gz.

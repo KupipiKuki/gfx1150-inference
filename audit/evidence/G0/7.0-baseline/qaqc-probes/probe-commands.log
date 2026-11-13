@@ -1,0 +1,306 @@
+# QAQC G0 probe log — independent re-run from clean clone
+# Started: 2026-11-01T22:53:01Z
+
+### P0 environment ###
+clone HEAD:  04e47dc81a9d3b155ef6ca6700a220abec32a1c1
+status:      0 dirty entries
+python:      Python 3.14.10 at /home/kupipi/.pyenv/shims/python3
+pybind11 cmake dir: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/share/cmake/pybind11
+GPU:         Name:                    gfx1150                            
+rocm:        /opt/rocm
+cmake:       cmake version 3.28.3
+
+### P1 README build command (expect FAIL at CMakeLists.txt:17) — condition C-1 ###
+-- The CXX compiler identification is GNU 13.3.0
+-- The HIP compiler identification is Clang 24.0.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting HIP compiler ABI info
+-- Detecting HIP compiler ABI info - done
+-- Check for working HIP compiler: /opt/rocm/bin/amdclang++ - skipped
+-- Detecting HIP compile features
+-- Detecting HIP compile features - done
+-- Found Python: /home/kupipi/.pyenv/shims/python3 (found version "3.14.10") found components: Interpreter Development.Module 
+CMake Error at CMakeLists.txt:17 (find_package):
+  By not providing "Findpybind11.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "pybind11",
+  but CMake did not find one.
+
+  Could not find a package configuration file provided by "pybind11" with any
+  of the following names:
+
+    pybind11Config.cmake
+    pybind11-config.cmake
+
+  Add the installation prefix of "pybind11" to CMAKE_PREFIX_PATH or set
+  "pybind11_DIR" to a directory containing one of the above files.  If
+  "pybind11" provides a separate development package or SDK, be sure it has
+  been installed.
+
+
+-- Configuring incomplete, errors occurred!
+exit: 1
+
+### P2 configure+build with pybind11_DIR (expect success) ###
+-- Performing Test HAS_FLTO_AUTO
+-- Performing Test HAS_FLTO_AUTO - Success
+-- Found pybind11: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/include (found version "3.1.0")
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/opencode/qaqc-g0/build
+configure exit: 0
+[ 75%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/matmul.hip.o
+[ 75%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/rope.hip.o
+[ 75%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/mlp.hip.o
+[ 75%] Building CXX object CMakeFiles/matmul_module.dir/src/python_bindings/bindings.cpp.o
+[ 75%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/attention.hip.o
+[ 75%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/rmsnorm.hip.o
+[ 87%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/dequantize.hip.o
+[100%] Linking HIP shared module matmul_module.so
+[100%] Built target matmul_module
+build exit: 0
+-rwxrwxr-x 1 kupipi kupipi 592488 Nov  1 17:53 /tmp/opencode/qaqc-g0/build/matmul_module.so
+9c14fd099fc5a666dbc961fc5f0bc57a7d0fdc3f9ee38e0df2f2a7417a293586  /tmp/opencode/qaqc-g0/build/matmul_module.so
+
+### P3 CPU suite normal (expect 12/12) ###
+----------------------------------------------------------------------
+Ran 12 tests in 0.434s
+
+OK
+exit: 0
+
+### P4 CPU suite -O (expect 12/12) ###
+----------------------------------------------------------------------
+Ran 12 tests in 0.456s
+
+OK
+exit: 0
+
+### P5 pytest -m 'not gpu' (expect 30 passed) ###
+!!!!!!!!!!!!!!!!!!! Interrupted: 4 errors during collection !!!!!!!!!!!!!!!!!!!!
+4 errors in 0.40s
+exit: 2
+
+### P6 GPU suite: test_matmul.py (expect exit 0) ###
+✅ PASS: Results match NumPy (FP32 accum) within tolerance
+
+=== Testing Edge Cases ===
+
+Testing 1x1024 @ 1024x1024... ✅ PASS (max_error=0.000004)
+
+Testing 1024x1024 @ 1024x1... ✅ PASS (max_error=0.000000)
+
+Testing 1x1 @ 1x1... ✅ PASS (max_error=0.000000)
+
+Testing 1023x1023 @ 1023x1023... ✅ PASS (max_error=0.000061)
+
+Testing 16x16 @ 16x16... ✅ PASS (max_error=0.000000)
+
+Testing 1024x256 @ 256x512... ✅ PASS (max_error=0.000000)
+
+✅ PASS: matmul_nt rejected swapped (K, N) B_nt shape
+
+============================================================
+SUMMARY
+============================================================
+Correctness test: ✅ PASS
+Edge cases test:   ✅ PASS
+
+🎉 All tests passed! Phase 1 complete.
+exit: 0
+
+### P6 GPU suite: test_gguf_and_q4.py (expect exit 0) ###
+=================================================================
+GFX1150 Inference - Phase 2: GGUF + madvise + Q4_0 Kernel Tests
+=================================================================
+
+=== 1. Testing GGUF v3 Parser & WeightStreamer (mmap + madvise) ===
+✅ PASS: GGUF v3 header, 32-byte alignment, zero-copy mmap, and madvise lifecycle verified
+
+=== 2. Testing HIP `dequantize_q4_0` Kernel ===
+Dequantize 1M Q4_0 weights max error vs CPU ref: 0.000000
+✅ PASS: HIP dequantize_q4_0 matches CPU reference
+
+=== 3. Testing Fused HIP `matmul_q4_0` Kernel (Decode GEMV & Prefill) ===
+  M=1   N=4096 K=4096 | max_err=0.000031 | time=0.65 ms | effective BW=14.6 GB/s | ✅ PASS
+  M=16  N=2048 K=2048 | max_err=0.000061 | time=0.62 ms | effective BW=4.0 GB/s | ✅ PASS
+  M=64  N=1024 K=1024 | max_err=0.000061 | time=0.56 ms | effective BW=1.5 GB/s | ✅ PASS
+
+=================================================================
+🎉 All Phase 2 tests passed!
+exit: 0
+
+### P6 GPU suite: test_layer.py (expect exit 0) ###
+✅ PASS: HIP rmsnorm matches CPU FP32 reference
+
+=== 2. Testing HIP `rope` Kernel ===
+  rope (GGUF-Llama, seq=8, offset=0): max_err=0.000488
+  rope (GGUF-Llama, seq=1, offset=17): max_err=0.000004
+  rope (NeoX, seq=8, offset=0): max_err=0.000000
+  rope (NeoX, seq=1, offset=17): max_err=0.000122
+✅ PASS: HIP rope matches CPU FP32 reference
+
+=== 3. Testing HIP `gqa_attention` Kernel (GQA 4:1, Prefill & Decode) ===
+  gqa_attention (Prefill, q=12, kv=12): max_err=0.000061
+  gqa_attention (KV-Decode, q=1, kv=25): max_err=0.000000
+✅ PASS: HIP gqa_attention matches CPU online softmax reference
+
+=== 4. Testing HIP `swiglu` Kernel ===
+  swiglu (16384 elements): max_err=0.000061
+✅ PASS: HIP swiglu matches CPU reference
+
+=== 5. Testing End-to-End Streamed `TransformerLayer` (Prefill + KV Decode) ===
+  Streamed Layer Prefill (4 tokens) max_err: 0.002930
+  Streamed Layer Decode  (1 token)  max_err: 0.001953
+✅ PASS: End-to-end streamed TransformerLayer matches CPU reference for both prefill and decode
+
+====================================================================
+🎉 All Phase 3 tests passed!
+exit: 0
+
+### P6 GPU suite: test_full_model.py (expect exit 0) ###
+======================================================================
+GFX1150 Inference - Phase 4: Full-Model End-to-End Inference Tests
+======================================================================
+
+=== 1. Testing `GGUFTokenizer` & `Q4_0` Embedding Lookup ===
+  Prompt: 'Hello world!' -> IDs: [1, 15, 20, 21] -> Decoded: 'Hello world!'
+✅ PASS: GGUFTokenizer round-trip and row-wise Q4_0 embedding lookup verified
+
+=== 2. Testing GPU-Resident Offset `KVCacheManager` (`gqa_attention_cached`) ===
+✅ PASS: GPU-resident offset KVCacheManager matches full-context CPU reference with zero host copies
+
+=== 3. Testing End-to-End 2-Layer `LlamaInferenceEngine` (Logits & Generation) ===
+  Full-Model Prefill Logits max_err: 0.003906
+  Full-Model Decode  Logits max_err: 0.002930
+  Generated 10 tokens: 't ROCmt cr is gfx1150 ROCmD'
+  Throughput: 818.6 tok/s (decode: 874.5 tok/s)
+✅ PASS: Full-model prefill, cached decode, and token generation verified
+
+======================================================================
+🎉 All Phase 4 tests passed!
+exit: 0
+
+### P6 GPU suite: test_phase5_scale.py (expect exit 0) ###
+  [dequantize_q8_0] elements=131072: max_error=0.000000
+  [matmul_q8_0] (1x512x1024): max_error=0.001953
+  [matmul_q8_0] (8x256x512): max_error=0.001953
+--- Testing Q4_K (256-Elem Super-Block) Kernels & 70B Dimension (K=8192) ---
+  [dequantize_q4_k] elements=65536: max_error=0.000000
+  [matmul_q4_k] (1x256x512): max_error=0.000244 (0.13 ms)
+  [matmul_q4_k] (8x256x512): max_error=0.000488 (0.18 ms)
+  [matmul_q4_k] (1x1024x8192): max_error=0.001953 (1.28 ms)
+--- Testing Q4_K_M End-to-End, Chunked Prefill, Batching, CPU/mmap KV Offload & CLI ---
+  [Full vs Chunked Prefill] full=[27, 31, 27, 31, 17, 27], chunked(2)=[27, 31, 27, 31, 17, 27]
+  [Batch Inference] batch_size=2, tok/s=121.49, outputs=['ahhh', 'diia']
+  [Singleton Guard] Second active GPU KVCacheManager properly rejected
+  [CPU KV Offload] device_bytes=0, ids=[27, 31, 27, 31, 17, 27]
+  [mmap KV Offload] device_bytes=0, ids=[27, 31, 27, 31, 17, 27]
+ahhh
+  [CLI Entry Point] gfx1150-infer exited with code 0
+--- Testing v0.6.0 Prefill TILE_M=4 Equivalence & Fused Residual Kernels ---
+  [Prefill TILE_M=4 vs M=1 Wave] Q4_0, Q8_0, Q4_K bit-identical across M=4, 7, 16
+  [rmsnorm_residual & residual_add] Bit-identical to unfused reference
+--- Testing v0.6.1 Q6_K Kernels, Qwen2/GPT-2 BPE Mixed Q4_K_M & Bindings Guards ---
+  [dequantize_q6_k] max_abs_diff=0.000000e+00
+  [matmul_q6_k] M=1, 4, 7 verified (TILE_M=4 bit-identical to M=1 wave)
+  [S-2 / N-4 Bindings Guards] int16, read-only output, strided quant buffer, and 1D B_nt rejected
+  [Qwen2 + Q6_K/Q4_K_M + QKV Bias + GPT-2 BPE] generated 3 tokens (' orlr')
+=== All Phase 5 & v0.6.1 Tests Passed! ===
+exit: 0
+
+### P7 sdist build ###
+Creating tar archive
+removing 'gfx1150_inference-0.6.1' (and everything under it)
+exit: 0
+total 112
+-rw-rw-r-- 1 kupipi kupipi 112962 Nov  1 17:53 gfx1150_inference-0.6.1.tar.gz
+8e88db1322e32405f81adadcc7f7c8ec9a23981c593540645b78cdcf5b9c662e  dist/gfx1150_inference-0.6.1.tar.gz
+
+### P8 FULL clean-venv install (expect success, real HIP build) ###
+  Stored in directory: /home/kupipi/.cache/pip/wheels/ed/1f/c2/9261dccf47e4c2141f44acd928d30544bb2e3bcbbcb3d0f50b
+Successfully built gfx1150-inference
+Installing collected packages: gfx1150-inference
+Successfully installed gfx1150-inference-0.6.1
+install exit: 0
+
+### P8b module imports in full venv (expect all 7) ###
+  OK    matmul_module
+  OK    gguf_parser
+  OK    weight_loader
+  OK    layer
+  OK    kv_cache
+  OK    tokenizer
+  OK    inference
+
+### P8c CLI entry point (expect exit 0) ###
+cli exit: 0
+
+### P9 installed CPU suite from extracted sdist, full venv (expect 12/12) ###
+----------------------------------------------------------------------
+Ran 12 tests in 0.220s
+
+OK
+exit: 0
+
+### P10 CPU-only clean-venv install GFX1150_SKIP_CMAKE=1 (expect success) ###
+  Stored in directory: /home/kupipi/.cache/pip/wheels/ed/1f/c2/9261dccf47e4c2141f44acd928d30544bb2e3bcbbcb3d0f50b
+Successfully built gfx1150-inference
+Installing collected packages: gfx1150-inference
+Successfully installed gfx1150-inference-0.6.1
+install exit: 0
+
+### P10b per-module imports in CPU-only venv (expect 3 OK, 3 ImportError) ###
+  OK    gguf_parser
+  OK    tokenizer
+  OK    weight_loader
+  RAISE kv_cache -> Traceback (most recent call last):
+  RAISE layer -> Traceback (most recent call last):
+  RAISE inference -> Traceback (most recent call last):
+
+### P11 installed CPU suite from extracted sdist, CPU-only venv (expect 12/12) ###
+----------------------------------------------------------------------
+Ran 12 tests in 0.308s
+
+OK
+exit: 0
+
+# Finished: 2026-11-01T22:53:32Z
+
+### ADDENDUM A: pytest collection failure in the clean clone (investigation) ###
+Bare 'python3 -m pytest -m "not gpu" -q' in the clean clone (no built extension):
+ERROR tests/test_phase5_scale.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 4 errors during collection !!!!!!!!!!!!!!!!!!!!
+4 errors in 0.31s
+pytest exit code: 2 (collection errors)
+Cause: ModuleNotFoundError: No module named 'matmul_module' — the 4 GPU test modules
+import it at collection. The G0 session had the in-tree build/matmul_module.so present,
+so the recorded '30 passed' relied on an undeclared dependency on that untracked
+artifact (cpu-suite.log does not mention it).
+
+Re-run with PYTHONPATH=<build>:src (mirrors the GPU-suite log header):
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+30 passed, 14 warnings in 2.00s
+exit: 0  -> REPRODUCES the G0 record (30 passed, 14 warnings)
+
+### ADDENDUM B: matmul 1024^3 throughput across QAQC runs (same host, same tree) ###
+QAQC run 1 (probe P6):     Max error 0.000061, HIP time 0.0019 s, Throughput 1.12 TFLOPS
+QAQC run 2 (this addendum): Max error: 0.000061 Throughput: 0.89 TFLOPS 
+G0 gate (gpu-suite.log):   Max error 0.000061, Throughput 1.02 TFLOPS
+PLAN published claim:      1.12 TFLOPS (L45/L53/L261) — UNVERIFIED per ledger ID 26
+=> Three distinct single-run values for the same test on the same host: 0.89 / 1.02 / 1.12
+   same host. Correctness (max_err 6.1e-5) is stable; throughput is not. This is
+   further evidence for condition C-2: re-record with warm-up + >=20-iter median/p95
+   or delete the published figures.
+
+### ADDENDUM C: .so build reproducibility probe ###
+fresh build #1 (/tmp/opencode/qaqc-g0/build,  source /tmp/opencode/qaqc-g0/clone): 9c14fd099fc5a666dbc961fc5f0bc57a7d0fdc3f9ee38e0df2f2a7417a293586
+fresh build #2 (/tmp/opencode/qaqc-g0/build2, source /tmp/opencode/qaqc-g0/clone): 9c14fd099fc5a666dbc961fc5f0bc57a7d0fdc3f9ee38e0df2f2a7417a293586
+G0 recorded  (in-tree + /tmp/opencode/g0-build, source /home/kupipi/Documents/git/gfx1150-inference): c8f6b19b9baca6ee6c9f8da1ac5788dda1049d2311294b62fb46670a281b0a03
+All builds: 592488 bytes. Builds from the same source path are byte-identical to each
+other; a different source path yields a different sha256 (the build embeds source
+paths). => the .so sha256 reference value holds only for builds from the original
+repo working-copy path; it is not a clone-independent reference.

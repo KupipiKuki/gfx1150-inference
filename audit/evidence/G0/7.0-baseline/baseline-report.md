@@ -1,0 +1,220 @@
+# G0 Baseline Report — gfx1150-inference
+
+**Package:** 7.0 — Baseline freeze and governance
+**Gate:** G0
+**Audit trace:** process prerequisite for all findings
+**Branch:** `wp/7.0-baseline`
+**Parent (tree under test):** `ea6dbeb1db290bc11d991f7f9940a113fd21efd1`
+**Candidate:** see `candidate-sha.txt` (content commit; follow-up commits add
+`candidate-sha.txt`/`diffstat.txt` and later record the commit structure, since a commit
+cannot contain its own SHA)
+**Host:** AMD Ryzen AI 9 HX 370 w/ Radeon 890M (`gfx1150`) · Linux Mint 22.3 · ROCm 10.1 (HIP 7.16.26385) · Python 3.14.10 · NumPy 2.5.3 · pybind11 3.1.0 · CMake 3.28.3
+**Date:** 2026-11-01
+
+---
+
+## Verdict
+
+**PASS WITH CONDITIONS.** The baseline is frozen, the tree is clean, all CPU and GPU suites
+are green, the full sdist install succeeds on the target platform, the claims ledger has
+been reconciled against the live public docs, and a manual GPU baseline is recorded. Two
+conditions (below) are documentation/packaging defects that do not block 7A but must be
+closed by 7A-8 and before release.
+
+## Exit criteria (handoff §6, 7.0)
+
+| # | Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | Baseline SHA recorded; tree clean | ✅ | `parent-sha.txt`, `candidate-sha.txt`, `diffstat.txt`, `gate-commands.log` |
+| 2 | All suites green, or failures documented as known baseline defects | ✅ | `cpu-suite.log`, `gpu-suite.log` — 12/12 + 12/12 + 30 passed (CPU); 5/5 GPU suites exit 0 |
+| 3 | Full sdist install succeeds on the target platform | ✅ | `sdist-install.log` — full HIP build in a clean venv, all 7 modules import, CLI works |
+| 4 | Claims ledger exists and marks unverified claims | ✅ | `audit/CLAIMS_LEDGER.md` (30 rows), `claims-check.log` |
+| 5 | Manual GPU baseline recorded with environment and logs | ✅ | `env.txt`, `build.log`, `gpu-suite.log`, `gate-commands.log` |
+| 6 | Auditor signs the baseline report | ✅ | this document |
+
+## Stop condition (§6, 7.0)
+
+> "If any previously green suite is red, do not start 7A."
+
+**Not triggered.** Every suite that was green at the 2026-11-01 verification is green at
+G0. No regression was found.
+
+---
+
+## Tasks completed (§6, 7.0)
+
+1. ✅ **Commit or park the 2026-11-01 verification changes; record the exact baseline SHA.**
+   Already committed — the `setup.py` pybind11 fix is in `ead5f3f`; the documentation pass
+   is split across `ead5f3f` and `cca793e`, inside the merge `089ed8e` (PR #7). Nothing
+   needed parking. Baseline tree under test: `ea6dbeb`. Full commit chain in `notes.md` §1.
+   *(Corrected 2026-11-01 per AUD-1: the original text misattributed the fix to `cca793e`.)*
+2. ✅ **Confirm `git status --porcelain` is empty.** Empty at package start and at the
+   candidate.
+3. ✅ **Record environment and GPU (`rocminfo`).** `env.txt` — kernel, OS, ROCm/HIP/AMD
+   clang versions, `rocminfo` GPU agents, CMake/gcc/Python/NumPy/pybind11/pytest/
+   hypothesis versions, CPU, memory, storage, `git rev-parse HEAD`.
+4. ✅ **Build from a clean directory; record configure/build logs.** `build.log` — a fresh
+   build dir outside the repo, Attempt 1 (documented command) and Attempt 2 (with
+   `pybind11_DIR`). Attempt 1 **fails**; see condition C-1.
+5. ✅ **Run the CPU suite (normal + `-O`) and all five GPU suites; record results.**
+   `cpu-suite.log`, `gpu-suite.log`. Also `pytest -m "not gpu"` → 30 passed.
+6. ✅ **Build the sdist and perform a full `pip install` from it in a clean venv.** PASS —
+   full HIP build, not only `GFX1150_SKIP_CMAKE=1`. `sdist-install.log`.
+7. ✅ **Confirm the `tests/fixtures/PROVENANCE.md` registry and the `audit/evidence/`
+   layout.** Both present and correct; the fixture registry is legitimately empty at
+   baseline (7A-3 populates it). `notes.md` §7.
+8. ✅ **Review and update the seeded claims ledger with every current README/audit claim
+   and its evidence status.** Ledger expanded 17 → 30 rows with four classes of defect
+   corrected. `claims-check.log`, `notes.md` §6.
+9. ✅ **Record the GPU baseline manually on the gfx1150 host.** `env.txt` + `build.log` +
+   `gpu-suite.log` + `gate-commands.log`. No CI runner is required or used at G0.
+
+---
+
+## Conditions (non-blocking, with owner and target)
+
+### C-1 — The README's documented build command fails on a clean checkout
+**Owner: 7A-8 · Target: G1**
+
+`README.md` documents `cmake -B build -DCMAKE_BUILD_TYPE=Release`, which fails at
+`CMakeLists.txt:17` with "Could not find a package configuration file provided by
+pybind11". `setup.py` works only because it passes `-Dpybind11_DIR` explicitly. This is
+audit **B-3**, still open, and it is a first-time-user-affecting documentation defect.
+7.0 cannot fix it (no source/build changes allowed at this gate).
+
+### C-2 — Four published performance figures do not reproduce
+**Owner: 7F-3 · Target: G6**
+
+1.12 TFLOPS → 1.02; 983.4 tok/s → 849.3; 0.50 ms → 0.75 ms; 2.76 ms → 1.00 ms. The E2E
+throughput figure has now taken three different values across three runs of the same
+synthetic test. Recorded as `UNVERIFIED` (ledger IDs 26–29). Must be re-recorded with a
+warm-up + ≥20-iteration median/p95 harness, or removed. Deliberately **not** added to the
+ratchet baseline — the correct outcome is deletion.
+
+---
+
+## Governance notes for 7A
+
+- **`audit/claims_baseline.txt` must gain entries at 7A-6** for the nine ledger rows whose
+  qualification flag is `no` (IDs 14, 18, 19, 20, 26, 27, 28, 29, 30), plus ID 13's
+  unqualified instance at `IMPLEMENTATION_PLAN.md` L209 (its flag is `partial` because
+  L266 qualifies the same figure), plus the two new candidates recorded in the ledger
+  (ID 6 / README / `Q4_K_M`; ID 10 / README / `qwen2`). Every entry targets G6.
+- **The sdist-install CI job (7A-5) should import the three CPU modules**
+  (`gguf_parser`, `tokenizer`, `weight_loader`) and assert that `kv_cache`, `layer`, and
+  `inference` raise the actionable `ImportError` without `matmul_module` — that is the
+  designed CPU-only surface, per `test_cpu_only.py` V-3/G-1.
+- **Post-audit correction (2026-11-01):** IDs 6 and 10 were reclassified to
+  `Qualified in place? = no`; the auditor seeded `audit/claims_baseline.txt` with 15 exact
+  entries (11 `no` rows + ID 13's unqualified L209 instance). 7A-6 verifies and maintains
+  that baseline; the G0 list above is the pre-correction record.
+- **`check_claims.py` (7A-6) must parse the ledger table robustly**: the ratchet
+  sub-table below the main ledger also starts with `|`, and escaped `|` characters inside
+  a cell break naive column splits. The G0 manual checker (`claims-check.log`) parses by
+  anchoring on the `| ID | Claim |` header and stopping at the first non-table line.
+- **The G0 baseline software version is ROCm 10.1, not the ROCm 7.0.0 recorded in
+  `audit/VERIFICATION_2026-11-01.md` §1.** Later gates must cite `env.txt` as the
+  authoritative baseline software version and treat the verification doc as historical.
+- **Performance comparisons against the 2026-11-01 figures are not valid across ROCm
+  versions.** This applies to 7F-3's benchmark baseline.
+
+---
+
+## Baseline reference values (measured at G0)
+
+Use these as the comparison basis for every later gate.
+
+| Metric | G0 baseline |
+|---|---|
+| FP16 matmul 1024³ | max err `6.1e-5`, 1.02 TFLOPS, 2.1 ms |
+| Fused Q4_0 matmul M=1 N=4096 K=4096 | max err `3.1e-5`, 0.75 ms, 12.6 GB/s |
+| Fused Q4_K matmul 1×1024×8192 (70B dim) | max err `1.95e-3`, 1.00 ms |
+| 2-layer synthetic E2E | 849.3 tok/s (decode 866.5 tok/s) |
+| CLI single-prompt E2E | 90.03 tok/s (decode 107.26 tok/s), 4 tokens in 0.04 s |
+| `TILE_M=4` vs `M=1` prefill | bit-identical (Q4_0, Q8_0, Q4_K) |
+| `matmul_module.so` | 592,488 bytes, sha256 `c8f6b19b9baca6ee6c9f8da1ac5788dda1049d2311294b62fb46670a281b0a03` |
+| sdist | `gfx1150_inference-0.6.1.tar.gz` — sha256 `af75cb09d9ef9af62c0b05d20e2878e52794ba7cae1b4551b0c4855b075d6bc7` (113,199 bytes) is the artifact **tested in `sdist-install.log`**. sdists embed mtimes and are not reproducible — a later rebuild (`gate-commands.log` [11]) hashed `015bf7b4…` (113,231 bytes). Record only, not a comparison basis |
+
+*Reference-hash caveat (QAQC F-2/F-7): the two sha256 values above are build records, not
+clone-independent references. The `.so` hash is stable only when building from the same
+source path — the build embeds source paths (QAQC's clean-clone rebuilds produced
+`9c14fd09…` at the same 592,488 bytes). Later gates should compare sizes, behaviour, and
+correctness — not these hashes.*
+
+---
+
+## Auditor decision
+
+**Decision: APPROVE**
+
+The G0 gate is satisfied. The baseline is frozen at the recorded candidate SHA, the tree
+is clean, all suites are green, the full sdist install is verified on the target
+platform, the claims ledger is reconciled and machine-checkable, and a manual GPU baseline
+is recorded with environment and logs. C-1 and C-2 are carried forward with owners and
+targets and do not block the start of 7A.
+
+**Next work package authorized:** 7A-1 (pytest harness), 7A-6 (claims checker),
+7A-7 (GPU workflow scaffold) — these three are independent and unblock the rest of 7A
+(handoff §14.3).
+
+**Not authorized:** 7B. 7B is gated by G1 and by the 7A-3 goldens.
+
+**Claims ledger updated:** yes — `audit/CLAIMS_LEDGER.md`, 17 → 30 rows.
+
+**Sign-off:** Auditor (this role), 2026-11-01.
+
+> Independence note (handoff §1): this baseline was executed and signed by the same role
+> that owns the gate decisions. It is therefore **self-tested**, not independently tested.
+> QAQC must re-run G0 from a clean clone — at minimum the five GPU suites, the CPU suite
+> under `-O`, and the full sdist install — before 7A-1 is merged, and record the result in
+> `audit/evidence/G0/7.0-baseline/qaqc-probes/`. The `--strict` claims check and the
+> ledger's own status values should also be spot-checked against the live documents.
+>
+> **Completed 2026-11-01** — see `qaqc-probes/qaqc-report.md`: **PASS WITH CONDITIONS**.
+> Every G0 result reproduced from a clean clone, so this baseline is now *self-tested,
+> independently re-run*. Conditions: **QAQC-1** (bundle erratum, landed with the QAQC
+> probes), **QAQC-2** (7A-1), **QAQC-3** (7F-3).
+
+---
+
+## Erratum — G0 bundle corrections (QAQC-1, 2026-11-01)
+
+Prepared by QAQC after the independent re-run and submitted to the auditor for review with
+this commit. Items 1–5 are the QAQC-1 corrections; items 6–7 are the independent auditor's
+AUD-1/AUD-7 corrections. All changes are documentation-only, inside the 7.0 allowed file
+set (`audit/evidence/G0/**`), and affect no runtime surface, ledger status, or recorded
+result:
+
+1. **Parent SHA corrected (QAQC F-1).** This report, `notes.md`, and `diffstat.txt`
+   originally recorded `ea6dbeb1db990bc11d991f7f9940a113fd21efd1` — a one-character
+   corruption at position 11 (`9` for `2`). The correct SHA is
+   `ea6dbeb1db290bc11d991f7f9940a113fd21efd1`, as `parent-sha.txt`, `env.txt`, and the
+   other captured logs already recorded. The short SHA `ea6dbeb` was correct everywhere.
+2. **Sdist sha256 disambiguated (QAQC F-2).** The reference-table hash is the artifact
+   tested in `sdist-install.log`; `gate-commands.log` [10]–[11] re-ran `setup.py sdist`,
+   rebuilding the tarball (different size and hash) after the installs. sdists are not
+   reproducible; the value is now labelled a record, not a comparison basis, and
+   `gate-commands.log` carries an explicit post-capture annotation.
+3. **Commit-chain diagram corrected (QAQC F-3).** In `notes.md` §1, `cca793e` is the head
+   of the PR merged by `089ed8e` (its second parent), not a commit after the merge;
+   `ea6dbeb`'s parent is `089ed8e`. The remediation-commit ordering in the diagram was
+   also inverted relative to the actual branch.
+4. **Baseline-entry row list corrected (QAQC F-4).** The `Qualified in place? = no` rows
+   are nine — IDs 14, 18–20, 26–30. ID 13's flag is `partial` (PLAN L266 qualifies the
+   figure; **L209 is unqualified**), so its L209 instance still needs a
+   `claims_baseline.txt` entry, but it is not a `no`-flag row.
+5. **"Two commits" wording generalized (QAQC F-5).** The package is a content commit plus
+   follow-up commits (metadata, documentation, and this correction); a fixed count would
+   be stale as soon as the next follow-up lands.
+6. **Setup.py attribution corrected (AUD-1).** The pybind11 discovery fix is in
+   `ead5f3f`, not `cca793e`. Corrected in this report, `notes.md` §1, and `notes.md` §3.
+7. **`env.txt` status clarified (AUD-7).** The `status:` line records
+   `?? audit/evidence/G0/7.0-baseline/` because the evidence bundle was untracked while
+   being written; it is not an unrelated dirty tree. The post-commit candidate is clean.
+   `gate-commands.log` [1] shows the same transient state. The "tree clean" claim refers
+   to the committed candidate.
+
+The reference-hash caveat under the reference table is QAQC F-7 (the `.so` sha256 is
+source-path-dependent). The QAQC verdict, probes, and conditions are in
+`qaqc-probes/qaqc-report.md`; the QAQC-2/3 items (pytest collection without a pre-built
+extension; single-run performance figures) carry to 7A-1 and 7F-3 and are not fixed here.

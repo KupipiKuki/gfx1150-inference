@@ -1,0 +1,23 @@
+# G1 / 7A-1 follow-up GPU suite log (manual run on gfx1150; no CI runner at G1)
+# Captured: 2026-11-02T01:04:08Z  HEAD: ea8e84a1e708ee114ae611f2b257b81eaa57c12a
+# PYTHONPATH=/tmp/opencode/g0-build:src
+
+=== python3 -m pytest -m gpu -q ===
+..................                                                       [100%]
+18 passed, 37 deselected in 1.62s
+exit: 0
+
+=== the two strengthened meta-tests, run explicitly ===
+--- pytest tests/test_harness_contract.py::test_every_test_module_declares_its_exact_lane -q ---
+.                                                                        [100%]
+1 passed in 0.15s
+exit: 0
+--- pytest tests/test_harness_contract.py::test_every_test_function_asserts_or_raises -q ---
+.......                                                                  [100%]
+7 passed in 0.16s
+exit: 0
+
+=== clean clone without the extension: GPU lane must skip, exit 0 ===
+SKIPPED [5] tests/test_phase5_scale.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+18 skipped, 37 deselected in 0.25s
+exit: 0

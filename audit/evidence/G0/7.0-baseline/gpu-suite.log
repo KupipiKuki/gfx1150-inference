@@ -1,0 +1,166 @@
+# G0 GPU suites — manual run on gfx1150 (no CI runner at G0)
+# Captured: 2026-11-01T22:31:58Z
+# Commit: ea6dbeb1db290bc11d991f7f9940a113fd21efd1
+# PYTHONPATH=/tmp/opencode/g0-build:src
+# GPU: Name: gfx1150
+
+==================================================================
+=== python3 tests/test_matmul.py ===
+==================================================================
+============================================================
+GFX1150 Inference - Phase 1: HIP Matmul Tests
+============================================================
+✅ GPU: gfx1150 detected
+
+=== Testing 1024x1024 @ 1024x1024 (FP16 vs NumPy (FP32 accum)) ===
+Max error:   0.000061
+Mean error:  0.000000
+HIP time:    0.0021 seconds
+Throughput:  1.02 TFLOPS
+✅ PASS: Results match NumPy (FP32 accum) within tolerance
+
+=== Testing Edge Cases ===
+
+Testing 1x1024 @ 1024x1024... ✅ PASS (max_error=0.000004)
+
+Testing 1024x1024 @ 1024x1... ✅ PASS (max_error=0.000000)
+
+Testing 1x1 @ 1x1... ✅ PASS (max_error=0.000000)
+
+Testing 1023x1023 @ 1023x1023... ✅ PASS (max_error=0.000061)
+
+Testing 16x16 @ 16x16... ✅ PASS (max_error=0.000000)
+
+Testing 1024x256 @ 256x512... ✅ PASS (max_error=0.000000)
+
+✅ PASS: matmul_nt rejected swapped (K, N) B_nt shape
+
+============================================================
+SUMMARY
+============================================================
+Correctness test: ✅ PASS
+Edge cases test:   ✅ PASS
+
+🎉 All tests passed! Phase 1 complete.
+exit: 0
+
+==================================================================
+=== python3 tests/test_gguf_and_q4.py ===
+==================================================================
+=================================================================
+GFX1150 Inference - Phase 2: GGUF + madvise + Q4_0 Kernel Tests
+=================================================================
+
+=== 1. Testing GGUF v3 Parser & WeightStreamer (mmap + madvise) ===
+✅ PASS: GGUF v3 header, 32-byte alignment, zero-copy mmap, and madvise lifecycle verified
+
+=== 2. Testing HIP `dequantize_q4_0` Kernel ===
+Dequantize 1M Q4_0 weights max error vs CPU ref: 0.000000
+✅ PASS: HIP dequantize_q4_0 matches CPU reference
+
+=== 3. Testing Fused HIP `matmul_q4_0` Kernel (Decode GEMV & Prefill) ===
+  M=1   N=4096 K=4096 | max_err=0.000031 | time=0.75 ms | effective BW=12.6 GB/s | ✅ PASS
+  M=16  N=2048 K=2048 | max_err=0.000061 | time=0.60 ms | effective BW=4.2 GB/s | ✅ PASS
+  M=64  N=1024 K=1024 | max_err=0.000061 | time=0.54 ms | effective BW=1.6 GB/s | ✅ PASS
+
+=================================================================
+🎉 All Phase 2 tests passed!
+exit: 0
+
+==================================================================
+=== python3 tests/test_layer.py ===
+==================================================================
+====================================================================
+GFX1150 Inference - Phase 3: Llama Transformer Layer Kernel Tests
+====================================================================
+
+=== 1. Testing HIP `rmsnorm` Kernel ===
+  rmsnorm (1x4096): max_err=0.000000
+  rmsnorm (16x2048): max_err=0.000977
+  rmsnorm (7x1024): max_err=0.000977
+✅ PASS: HIP rmsnorm matches CPU FP32 reference
+
+=== 2. Testing HIP `rope` Kernel ===
+  rope (GGUF-Llama, seq=8, offset=0): max_err=0.000488
+  rope (GGUF-Llama, seq=1, offset=17): max_err=0.000004
+  rope (NeoX, seq=8, offset=0): max_err=0.000000
+  rope (NeoX, seq=1, offset=17): max_err=0.000122
+✅ PASS: HIP rope matches CPU FP32 reference
+
+=== 3. Testing HIP `gqa_attention` Kernel (GQA 4:1, Prefill & Decode) ===
+  gqa_attention (Prefill, q=12, kv=12): max_err=0.000061
+  gqa_attention (KV-Decode, q=1, kv=25): max_err=0.000000
+✅ PASS: HIP gqa_attention matches CPU online softmax reference
+
+=== 4. Testing HIP `swiglu` Kernel ===
+  swiglu (16384 elements): max_err=0.000061
+✅ PASS: HIP swiglu matches CPU reference
+
+=== 5. Testing End-to-End Streamed `TransformerLayer` (Prefill + KV Decode) ===
+  Streamed Layer Prefill (4 tokens) max_err: 0.002930
+  Streamed Layer Decode  (1 token)  max_err: 0.001953
+✅ PASS: End-to-end streamed TransformerLayer matches CPU reference for both prefill and decode
+
+====================================================================
+🎉 All Phase 3 tests passed!
+exit: 0
+
+==================================================================
+=== python3 tests/test_full_model.py ===
+==================================================================
+======================================================================
+GFX1150 Inference - Phase 4: Full-Model End-to-End Inference Tests
+======================================================================
+
+=== 1. Testing `GGUFTokenizer` & `Q4_0` Embedding Lookup ===
+  Prompt: 'Hello world!' -> IDs: [1, 15, 20, 21] -> Decoded: 'Hello world!'
+✅ PASS: GGUFTokenizer round-trip and row-wise Q4_0 embedding lookup verified
+
+=== 2. Testing GPU-Resident Offset `KVCacheManager` (`gqa_attention_cached`) ===
+✅ PASS: GPU-resident offset KVCacheManager matches full-context CPU reference with zero host copies
+
+=== 3. Testing End-to-End 2-Layer `LlamaInferenceEngine` (Logits & Generation) ===
+  Full-Model Prefill Logits max_err: 0.003906
+  Full-Model Decode  Logits max_err: 0.002930
+  Generated 10 tokens: 't ROCmt cr is gfx1150 ROCmD'
+  Throughput: 849.3 tok/s (decode: 866.5 tok/s)
+✅ PASS: Full-model prefill, cached decode, and token generation verified
+
+======================================================================
+🎉 All Phase 4 tests passed!
+exit: 0
+
+==================================================================
+=== python3 tests/test_phase5_scale.py ===
+==================================================================
+
+[gfx1150-infer] Generated 4 tokens in 0.04s (90.03 tok/s, decode: 107.26 tok/s)
+=== Phase 5 & v0.6.1: K-Quants (Q4_K/Q6_K), 70B Scale, Prefill & KV Offload Test Suite ===
+--- Testing Q8_0 Dequantize & Fused Matmul HIP Kernels ---
+  [dequantize_q8_0] elements=131072: max_error=0.000000
+  [matmul_q8_0] (1x512x1024): max_error=0.001953
+  [matmul_q8_0] (8x256x512): max_error=0.001953
+--- Testing Q4_K (256-Elem Super-Block) Kernels & 70B Dimension (K=8192) ---
+  [dequantize_q4_k] elements=65536: max_error=0.000000
+  [matmul_q4_k] (1x256x512): max_error=0.000244 (0.22 ms)
+  [matmul_q4_k] (8x256x512): max_error=0.000488 (0.27 ms)
+  [matmul_q4_k] (1x1024x8192): max_error=0.001953 (1.00 ms)
+--- Testing Q4_K_M End-to-End, Chunked Prefill, Batching, CPU/mmap KV Offload & CLI ---
+  [Full vs Chunked Prefill] full=[27, 31, 27, 31, 17, 27], chunked(2)=[27, 31, 27, 31, 17, 27]
+  [Batch Inference] batch_size=2, tok/s=111.38, outputs=['ahhh', 'diia']
+  [Singleton Guard] Second active GPU KVCacheManager properly rejected
+  [CPU KV Offload] device_bytes=0, ids=[27, 31, 27, 31, 17, 27]
+  [mmap KV Offload] device_bytes=0, ids=[27, 31, 27, 31, 17, 27]
+ahhh
+  [CLI Entry Point] gfx1150-infer exited with code 0
+--- Testing v0.6.0 Prefill TILE_M=4 Equivalence & Fused Residual Kernels ---
+  [Prefill TILE_M=4 vs M=1 Wave] Q4_0, Q8_0, Q4_K bit-identical across M=4, 7, 16
+  [rmsnorm_residual & residual_add] Bit-identical to unfused reference
+--- Testing v0.6.1 Q6_K Kernels, Qwen2/GPT-2 BPE Mixed Q4_K_M & Bindings Guards ---
+  [dequantize_q6_k] max_abs_diff=0.000000e+00
+  [matmul_q6_k] M=1, 4, 7 verified (TILE_M=4 bit-identical to M=1 wave)
+  [S-2 / N-4 Bindings Guards] int16, read-only output, strided quant buffer, and 1D B_nt rejected
+  [Qwen2 + Q6_K/Q4_K_M + QKV Bias + GPT-2 BPE] generated 3 tokens (' orlr')
+=== All Phase 5 & v0.6.1 Tests Passed! ===
+exit: 0
+

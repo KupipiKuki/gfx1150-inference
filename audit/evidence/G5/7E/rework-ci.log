@@ -1,0 +1,20 @@
+=== rework-ci.log: CI green on the rework tip (BLOCKER-7E-3 closure) ===
+date: Sun Nov 8 01:12 UTC 2026 (queried via the GitHub Actions REST API)
+
+Pushed rework tip: 8c0ab554eab52481993da135567eac19600871d4 (wp/7E-stream-topology,
+work commit 718653a + evidence commit 8c0ab55)
+
+- CPU-Only Verification & Regression CI  run id 42435040427  conclusion: success
+  (includes the previously-red "Run the pytest CPU lane" step, plus the claims
+  checker and canaries steps; the sdist jobs of that workflow also passed)
+- Clean-Clone Build CI                 run id 42435040336  conclusion: success
+
+History for the record:
+- run 42426539199 / job 128565915609 ("Run the pytest CPU lane") failed at
+  9f90e4f (the pre-rework QAQC push).
+- The immediately-following push at 3cb3007 (identical tests + two report
+  files) already ran green on both jobs (42427760576 / 42427760521); the raw
+  job log requires admin API rights (403 on the anonymous log endpoint), so
+  the red step's stdout could not be retrieved.
+- The rework push re-ran everything green with the fixed (non-vacuous)
+  source-contract test and the new measured-sync test in the CPU lane.

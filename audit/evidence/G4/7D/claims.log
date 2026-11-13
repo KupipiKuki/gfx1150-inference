@@ -1,0 +1,31 @@
+=== claims.log: scripts/qa/check_claims.py at candidate c9c484a (+ evidence bundle) ===
+date: Sat Nov  7 04:25:02 PM UTC 2026
+
+=== Claims ledger check ===
+mode:        default (baseline-aware)
+claims:      30 rows parsed
+
+--- unqualified public claims (the ratchet) ---
+  claim 6 [BASELINED]: Real `Q4_K_M` GGUF end-to-end
+      README.md:10  'Q4_K_M'  (baselined)
+  claim 13 [BASELINED]: 983 tok/s / 4.4× E2E speedup
+      IMPLEMENTATION_PLAN.md:216  '983'  (baselined)
+  claim 26 [BASELINED]: 1.12 TFLOPS matmul throughput
+      IMPLEMENTATION_PLAN.md:45  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:53  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:313  '1.12 TFLOPS'  (baselined)
+  claim 27 [BASELINED]: 983.4 tok/s / 1107.9 tok/s decode E2E
+      IMPLEMENTATION_PLAN.md:216  '983.4 tok/s'  (baselined)
+  claim 28 [BASELINED]: Fused Q4_0 matmul 0.50 ms @ 1×4096×4096
+      IMPLEMENTATION_PLAN.md:81  '0.50 ms'  (baselined)
+  claim 29 [BASELINED]: Q4_K 1×1024×8192 in 2.76 ms
+      IMPLEMENTATION_PLAN.md:185  '2.76 ms'  (baselined)
+
+--- baseline entries that no longer match a violation ---
+  none
+
+--- findings ---
+  none
+
+RESULT: PASS - 0 new violation(s), 8 baselined, 0 expired baseline entry(ies), 0 finding(s)
+exit=0

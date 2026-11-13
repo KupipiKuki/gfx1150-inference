@@ -1,0 +1,4 @@
+718653a080f0fa328b02d883a1f5e5721bd3b34b
+(Rework candidate per PHASE7_7E_REWORK_BRIEF.md, base 3cb3007: work commit 718653a +
+ evidence-bundle commits on wp/7E-stream-topology. Original 7E work commit: 7c61ea7.
+ Brief base / parent: 1604beb.)

@@ -1,0 +1,1 @@
+1604beb Prepare 7E: stream-topology brief, evidence contract, gate status (brief base = G4-signed tip)

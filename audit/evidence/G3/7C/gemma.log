@@ -1,0 +1,8 @@
+# gemma.log — Gemma scale/GeGLU/NeoX/key-dims/softcap/tied (GPU lane)
+```
+tests/test_model_families.py::test_gemma_logits_match_independent_reference PASSED [ 25%]
+tests/test_model_families.py::test_gemma_absent_softcap_is_no_cap PASSED [ 50%]
+tests/test_model_families.py::test_gemma_quantized_matches_reference PASSED [ 75%]
+tests/test_model_families.py::test_gemma_geglu_differs_from_swiglu PASSED [100%]
+================= 4 passed, 6 deselected, 13 warnings in 0.30s =================
+```

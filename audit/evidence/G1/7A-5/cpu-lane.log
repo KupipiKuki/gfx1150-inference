@@ -1,0 +1,376 @@
+# G1 / 7A-5 — the CPU lane and the 7A-2 closeout
+# Captured: 2026-11-03T23:29:21Z
+#
+# Part 1 is the `cpu-smoke` job of the workflow, executed verbatim from the
+# parsed YAML (the driver is `rehearse-workflow.py`). Part 2 is the 7A-2
+# closeout: 7A-2 was implemented inside 7A-1's pytest configuration, so its
+# closeout is a verification, not new code.
+#
+# As in sdist-install.log, the rehearsal ran on this host's Python 3.14.10
+# (the workflow pins 3.12) and exported ROCM_ROOT=/nonexistent-rocm to put the
+# suite on the same code path as the CPU-only CI runner. The skip reasons below
+# are visible, never silent.
+
+================================================================================
+PART 1 — the cpu-smoke job, step by step
+================================================================================
+
+THE SHIPPED STEP SCRIPTS (as the runner sees them)
+
+----- step 1: Checkout repository -----
+(an actions/* step: no shell script)
+
+----- step 2: Set up Python 3.12 -----
+(an actions/* step: no shell script)
+
+----- step 3: Install test dependencies -----
+python -m pip install --upgrade pip "numpy>=1.24.0" "setuptools>=64" wheel pytest
+
+----- step 4: Run self-contained CPU test suite (standard mode) -----
+python tests/test_cpu_only.py
+
+----- step 5: Run self-contained CPU test suite (optimized -O mode) -----
+python -O tests/test_cpu_only.py
+
+----- step 6: Run the pytest CPU lane -----
+python -m pytest -m "not gpu" -q
+
+----- step 7: Check the claims ledger (default mode, ratchet baseline-aware) -----
+python scripts/qa/check_claims.py
+
+----- step 8: Check the claims checker canaries -----
+python scripts/qa/canary_claims.py
+
+----- step 9: Check the claims ledger (strict mode, advisory until G6) -----
+(continue-on-error: true)
+python scripts/qa/check_claims.py --strict
+
+================================================================================
+THE RUN
+================================================================================
+
+environment overrides: ROCM_ROOT=/nonexistent-rocm
+=== job: cpu-smoke (ci-cpu.yml) ===
+=== workdir: /tmp/opencode/rehearse5 ===
+
+----- step 1: Checkout repository -----
+(an actions/* step: no shell script; simulated by the caller)
+
+----- step 2: Set up Python 3.12 -----
+(an actions/* step: no shell script; simulated by the caller)
+
+----- step 3: Install test dependencies -----
+$ bash step03.sh
+Requirement already satisfied: pip in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (26.3)
+Requirement already satisfied: numpy>=1.24.0 in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (2.5.3)
+Collecting numpy>=1.24.0
+  Using cached numpy-2.5.4-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+Requirement already satisfied: setuptools>=64 in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (84.2.1)
+Requirement already satisfied: wheel in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (0.48.0)
+Requirement already satisfied: pytest in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (9.1.1)
+Collecting pytest
+  Using cached pytest-9.2.0-py3-none-any.whl.metadata (7.9 kB)
+Requirement already satisfied: packaging>=24.0 in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (from wheel) (26.3)
+Requirement already satisfied: iniconfig>=2 in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (from pytest) (2.3.0)
+Requirement already satisfied: pluggy<2,>=1.6 in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (from pytest) (1.6.0)
+Requirement already satisfied: pygments>=2.15 in /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages (from pytest) (2.20.0)
+Using cached numpy-2.5.4-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+Using cached pytest-9.2.0-py3-none-any.whl (411 kB)
+Installing collected packages: pytest, numpy
+  Attempting uninstall: pytest
+    Found existing installation: pytest 9.1.1
+    Uninstalling pytest-9.1.1:
+      Successfully uninstalled pytest-9.1.1
+  Attempting uninstall: numpy
+    Found existing installation: numpy 2.5.3
+    Uninstalling numpy-2.5.3:
+      Successfully uninstalled numpy-2.5.3
+
+Successfully installed numpy-2.5.4 pytest-9.2.0
+----- exit code: 0 -----
+
+----- step 4: Run self-contained CPU test suite (standard mode) -----
+$ bash step04.sh
+test_c10_duplicate_tensor_and_zero_dim_rejection (__main__.TestCPUOnlySuite.test_c10_duplicate_tensor_and_zero_dim_rejection)
+C-10: Reject duplicate tensor names, zero-sized dimensions, and unmapped GGML types. ... ok
+test_c1_r1_load_time_tensor_validation_and_close_safety (__main__.TestCPUOnlySuite.test_c1_r1_load_time_tensor_validation_and_close_safety)
+C-1 & R-1: WeightStreamer validates supported tensor types and closes file even with live view. ... ok
+test_p8_interleaved_layer_byte_spans (__main__.TestCPUOnlySuite.test_p8_interleaved_layer_byte_spans)
+P-8 / A-3: get_layer_byte_spans splits around interleaved non-layer tensors. ... ok
+test_s1_truncated_gguf_raises_value_error (__main__.TestCPUOnlySuite.test_s1_truncated_gguf_raises_value_error)
+S-1 / A-5: Truncated GGUF payload raises ValueError at parse time (no SIGBUS). ... ok
+test_s2_malformed_header_and_alignment_caps (__main__.TestCPUOnlySuite.test_s2_malformed_header_and_alignment_caps)
+S-2: Excessive kv_count, tensor_count, n_dims, and bad alignment raise ValueError. ... ok
+test_v1_py_compile_all_sources (__main__.TestCPUOnlySuite.test_v1_py_compile_all_sources)
+V-1: Verify all Python files in src/, tests/, and setup.py compile cleanly. ... ok
+test_v3_actionable_import_error_without_extension (__main__.TestCPUOnlySuite.test_v3_actionable_import_error_without_extension)
+V-3 / G-1: GPU modules raise actionable ImportError when matmul_module is absent. ... ok
+test_v4_gguf_roundtrip_and_d3_memoryview_ownership (__main__.TestCPUOnlySuite.test_v4_gguf_roundtrip_and_d3_memoryview_ownership)
+V-4 & D-3: GGUF v3 writer->parser round-trip and caller memoryview preservation. ... ok
+test_v5_cpu_quant_dequant_roundtrips (__main__.TestCPUOnlySuite.test_v5_cpu_quant_dequant_roundtrips)
+V-5 & C-1: Q4_0, Q8_0, Q4_K, and Q6_K CPU quantize -> dequantize accuracy bounds. ... ok
+test_v6_p4_p5_c2_tokenizer_and_vectorized_embeddings (__main__.TestCPUOnlySuite.test_v6_p4_p5_c2_tokenizer_and_vectorized_embeddings)
+V-6, P-4, P-5 & C-2: SentencePiece ('▁'), GPT-2 ('Ġ') BPE merges, unmappable error, and Q4_K/Q6_K embed_tokens. ... ok
+test_v7_d5_s3_d4_sampler_and_kv_mmap_safety (__main__.TestCPUOnlySuite.test_v7_d5_s3_d4_sampler_and_kv_mmap_safety)
+V-7, D-5, S-3 & D-4: Sampler edge cases and safe KVCacheManager mmap lifecycle. ... /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+  result = method()
+ok
+test_v8_b1_pyproject_and_sdist_contents (__main__.TestCPUOnlySuite.test_v8_b1_pyproject_and_sdist_contents)
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.410s
+
+OK
+----- exit code: 0 -----
+
+----- step 5: Run self-contained CPU test suite (optimized -O mode) -----
+$ bash step05.sh
+test_c10_duplicate_tensor_and_zero_dim_rejection (__main__.TestCPUOnlySuite.test_c10_duplicate_tensor_and_zero_dim_rejection)
+C-10: Reject duplicate tensor names, zero-sized dimensions, and unmapped GGML types. ... ok
+test_c1_r1_load_time_tensor_validation_and_close_safety (__main__.TestCPUOnlySuite.test_c1_r1_load_time_tensor_validation_and_close_safety)
+C-1 & R-1: WeightStreamer validates supported tensor types and closes file even with live view. ... ok
+test_p8_interleaved_layer_byte_spans (__main__.TestCPUOnlySuite.test_p8_interleaved_layer_byte_spans)
+P-8 / A-3: get_layer_byte_spans splits around interleaved non-layer tensors. ... ok
+test_s1_truncated_gguf_raises_value_error (__main__.TestCPUOnlySuite.test_s1_truncated_gguf_raises_value_error)
+S-1 / A-5: Truncated GGUF payload raises ValueError at parse time (no SIGBUS). ... ok
+test_s2_malformed_header_and_alignment_caps (__main__.TestCPUOnlySuite.test_s2_malformed_header_and_alignment_caps)
+S-2: Excessive kv_count, tensor_count, n_dims, and bad alignment raise ValueError. ... ok
+test_v1_py_compile_all_sources (__main__.TestCPUOnlySuite.test_v1_py_compile_all_sources)
+V-1: Verify all Python files in src/, tests/, and setup.py compile cleanly. ... ok
+test_v3_actionable_import_error_without_extension (__main__.TestCPUOnlySuite.test_v3_actionable_import_error_without_extension)
+V-3 / G-1: GPU modules raise actionable ImportError when matmul_module is absent. ... ok
+test_v4_gguf_roundtrip_and_d3_memoryview_ownership (__main__.TestCPUOnlySuite.test_v4_gguf_roundtrip_and_d3_memoryview_ownership)
+V-4 & D-3: GGUF v3 writer->parser round-trip and caller memoryview preservation. ... ok
+test_v5_cpu_quant_dequant_roundtrips (__main__.TestCPUOnlySuite.test_v5_cpu_quant_dequant_roundtrips)
+V-5 & C-1: Q4_0, Q8_0, Q4_K, and Q6_K CPU quantize -> dequantize accuracy bounds. ... ok
+test_v6_p4_p5_c2_tokenizer_and_vectorized_embeddings (__main__.TestCPUOnlySuite.test_v6_p4_p5_c2_tokenizer_and_vectorized_embeddings)
+V-6, P-4, P-5 & C-2: SentencePiece ('▁'), GPT-2 ('Ġ') BPE merges, unmappable error, and Q4_K/Q6_K embed_tokens. ... ok
+test_v7_d5_s3_d4_sampler_and_kv_mmap_safety (__main__.TestCPUOnlySuite.test_v7_d5_s3_d4_sampler_and_kv_mmap_safety)
+V-7, D-5, S-3 & D-4: Sampler edge cases and safe KVCacheManager mmap lifecycle. ... /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+  result = method()
+ok
+test_v8_b1_pyproject_and_sdist_contents (__main__.TestCPUOnlySuite.test_v8_b1_pyproject_and_sdist_contents)
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.399s
+
+OK
+----- exit code: 0 -----
+
+----- step 6: Run the pytest CPU lane -----
+$ bash step06.sh
+.s.........................................                              [100%]
+=============================== warnings summary ===============================
+../../../home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_build_configure.py:135: no ROCm/HIP toolchain on this host; the configure cannot enable the HIP language
+42 passed, 1 skipped, 18 deselected, 14 warnings in 3.78s
+----- exit code: 0 -----
+
+----- step 7: Check the claims ledger (default mode, ratchet baseline-aware) -----
+$ bash step07.sh
+=== Claims ledger check ===
+mode:        default (baseline-aware)
+claims:      30 rows parsed
+
+--- unqualified public claims (the ratchet) ---
+  claim 6 [BASELINED]: Real `Q4_K_M` GGUF end-to-end
+      README.md:10  'Q4_K_M'  (baselined)
+  claim 10 [BASELINED]: Qwen2 support
+      README.md:129  'qwen2'  (baselined)
+  claim 13 [BASELINED]: 983 tok/s / 4.4× E2E speedup
+      IMPLEMENTATION_PLAN.md:209  '983'  (baselined)
+  claim 14 [BASELINED]: Bounded RAM for 70B models
+      README.md:12  'bounded memory'  (baselined)
+      IMPLEMENTATION_PLAN.md:17  'bounded memory'  (baselined)
+  claim 18 [BASELINED]: 7B–70B models on gfx1150 without OOM
+      README.md:10  '7B–70B'  (baselined)
+      IMPLEMENTATION_PLAN.md:12  '7B–70B'  (baselined)
+  claim 19 [BASELINED]: 8-hour unattended runtimes
+      README.md:12  '8-hour runtimes'  (baselined)
+      IMPLEMENTATION_PLAN.md:15  '8-hour runtimes'  (baselined)
+  claim 20 [BASELINED]: Active RAM caps for 7B–70B (≤1.5–4.5 GB)
+      IMPLEMENTATION_PLAN.md:221  'Active RAM Cap'  (baselined)
+  claim 26 [BASELINED]: 1.12 TFLOPS matmul throughput
+      IMPLEMENTATION_PLAN.md:45  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:53  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:298  '1.12 TFLOPS'  (baselined)
+  claim 27 [BASELINED]: 983.4 tok/s / 1107.9 tok/s decode E2E
+      IMPLEMENTATION_PLAN.md:209  '983.4 tok/s'  (baselined)
+  claim 28 [BASELINED]: Fused Q4_0 matmul 0.50 ms @ 1×4096×4096
+      IMPLEMENTATION_PLAN.md:81  '0.50 ms'  (baselined)
+  claim 29 [BASELINED]: Q4_K 1×1024×8192 in 2.76 ms
+      IMPLEMENTATION_PLAN.md:178  '2.76 ms'  (baselined)
+  claim 30 [BASELINED]: Resident RAM delta < 500 MB while streaming
+      IMPLEMENTATION_PLAN.md:79  '500 MB'  (baselined)
+
+--- baseline entries that no longer match a violation ---
+  none
+
+--- warnings ---
+  claim 6: scope IMPLEMENTATION_PLAN.md:265 drifted to IMPLEMENTATION_PLAN.md:302; refresh the line reference
+  claim 13: scope IMPLEMENTATION_PLAN.md:266 drifted to IMPLEMENTATION_PLAN.md:303; refresh the line reference
+  claim 21: flag is 'partial' with no unqualified site; the caveat wording is incomplete (a wording task, not a ratchet item)
+  claim 26: scope IMPLEMENTATION_PLAN.md:261 drifted to IMPLEMENTATION_PLAN.md:298; refresh the line reference
+  claim 27: scope IMPLEMENTATION_PLAN.md:266 drifted to IMPLEMENTATION_PLAN.md:303; refresh the line reference
+
+--- findings ---
+  none
+
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+----- exit code: 0 -----
+
+----- step 8: Check the claims checker canaries -----
+$ bash step08.sh
+PASS not_yet_claim: the mutation was detected
+PASS unqualified_q4_k_m: the mutation was detected
+PASS unqualified_qwen2: the mutation was detected
+PASS missing_evidence: the mutation was detected
+PASS generic_literal: the mutation was detected
+PASS strict_detects_baseline: the mutation was detected
+PASS baseline_is_exact: the mutation was detected
+PASS expired_baseline_entry: the mutation was detected
+PASS wrong_lane: the mutation was detected
+PASS nested_bullet: the mutation was detected
+PASS strict_clean: the mutation was detected
+PASS id3_claim_removed: the mutation was detected
+
+RESULT: PASS - all 12 canaries behaved as required
+----- exit code: 0 -----
+
+----- step 9: Check the claims ledger (strict mode, advisory until G6) -----
+(continue-on-error: true -- a failure here does not fail the job)
+$ bash step09.sh
+=== Claims ledger check ===
+mode:        strict (baseline ignored)
+claims:      30 rows parsed
+
+--- unqualified public claims (the ratchet) ---
+  claim 6 [BASELINED]: Real `Q4_K_M` GGUF end-to-end
+      README.md:10  'Q4_K_M'  (baselined)
+  claim 10 [BASELINED]: Qwen2 support
+      README.md:129  'qwen2'  (baselined)
+  claim 13 [BASELINED]: 983 tok/s / 4.4× E2E speedup
+      IMPLEMENTATION_PLAN.md:209  '983'  (baselined)
+  claim 14 [BASELINED]: Bounded RAM for 70B models
+      README.md:12  'bounded memory'  (baselined)
+      IMPLEMENTATION_PLAN.md:17  'bounded memory'  (baselined)
+  claim 18 [BASELINED]: 7B–70B models on gfx1150 without OOM
+      README.md:10  '7B–70B'  (baselined)
+      IMPLEMENTATION_PLAN.md:12  '7B–70B'  (baselined)
+  claim 19 [BASELINED]: 8-hour unattended runtimes
+      README.md:12  '8-hour runtimes'  (baselined)
+      IMPLEMENTATION_PLAN.md:15  '8-hour runtimes'  (baselined)
+  claim 20 [BASELINED]: Active RAM caps for 7B–70B (≤1.5–4.5 GB)
+      IMPLEMENTATION_PLAN.md:221  'Active RAM Cap'  (baselined)
+  claim 26 [BASELINED]: 1.12 TFLOPS matmul throughput
+      IMPLEMENTATION_PLAN.md:45  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:53  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:298  '1.12 TFLOPS'  (baselined)
+  claim 27 [BASELINED]: 983.4 tok/s / 1107.9 tok/s decode E2E
+      IMPLEMENTATION_PLAN.md:209  '983.4 tok/s'  (baselined)
+  claim 28 [BASELINED]: Fused Q4_0 matmul 0.50 ms @ 1×4096×4096
+      IMPLEMENTATION_PLAN.md:81  '0.50 ms'  (baselined)
+  claim 29 [BASELINED]: Q4_K 1×1024×8192 in 2.76 ms
+      IMPLEMENTATION_PLAN.md:178  '2.76 ms'  (baselined)
+  claim 30 [BASELINED]: Resident RAM delta < 500 MB while streaming
+      IMPLEMENTATION_PLAN.md:79  '500 MB'  (baselined)
+
+--- baseline entries that no longer match a violation ---
+  none
+
+--- warnings ---
+  claim 6: scope IMPLEMENTATION_PLAN.md:265 drifted to IMPLEMENTATION_PLAN.md:302; refresh the line reference
+  claim 13: scope IMPLEMENTATION_PLAN.md:266 drifted to IMPLEMENTATION_PLAN.md:303; refresh the line reference
+  claim 21: flag is 'partial' with no unqualified site; the caveat wording is incomplete (a wording task, not a ratchet item)
+  claim 26: scope IMPLEMENTATION_PLAN.md:261 drifted to IMPLEMENTATION_PLAN.md:298; refresh the line reference
+  claim 27: scope IMPLEMENTATION_PLAN.md:266 drifted to IMPLEMENTATION_PLAN.md:303; refresh the line reference
+
+--- findings ---
+  none
+
+RESULT: FAIL - 17 unqualified occurrence(s) (strict mode ignores the baseline)
+----- exit code: 1 -----
+step 9 (Check the claims ledger (strict mode, advisory until G6)) failed but is advisory; the job continues.
+
+All steps exited 0.
+
+================================================================================
+PART 2 — the 7A-2 closeout
+================================================================================
+
+7A-2 was implemented as part of 7A-1's pytest configuration. The brief asks
+for two things: that the existing [tool.pytest.ini_options] section is
+verified (markers, testpaths, addopts, strict markers/config, and the
+PytestReturnNotNoneWarning escalation), and that test_cpu_only.py passes
+12/12 in both the normal and the -O mode. Neither needs new code, and no
+duplicate configuration was added: the section in pyproject.toml is
+untouched by this package.
+
+--- the pytest configuration, verified mechanically ---
+
+=== verifying the pytest configuration in /home/kupipi/Documents/git/gfx1150-inference/pyproject.toml ===
+
+=== declared ===
+  [ok  ] the section exists
+  [ok  ] minversion is declared -- 7.0
+  [ok  ] testpaths is ['tests'] -- ['tests']
+  [ok  ] the 'gpu' marker is registered
+  [ok  ] the 'cpu' marker is registered
+  [ok  ] the 'slow' marker is registered
+  [ok  ] --strict-markers is in addopts
+  [ok  ] --strict-config is in addopts
+  [ok  ] -ra is in addopts (skip reasons are reported)
+  [ok  ] PytestReturnNotNoneWarning is escalated in addopts
+  [ok  ] PytestReturnNotNoneWarning is escalated in filterwarnings
+
+=== behavioural (in a scratch directory) ===
+  [ok  ] pytest --markers lists 'gpu'
+  [ok  ] pytest --markers lists 'cpu'
+  [ok  ] pytest --markers lists 'slow'
+  [ok  ] an unknown marker is an error, not a warning -- exit 2
+  [ok  ] an unknown ini option is an error, not a warning -- exit 4
+  [ok  ] a test that returns a value is an error -- exit 1
+
+=== 17/17 checks passed ===
+PASS: the pytest configuration is complete and strict
+--- exit code: 0 ---
+
+--- test_cpu_only.py, standard mode ---
+
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.426s
+
+OK
+--- exit code: 0 ---
+
+--- test_cpu_only.py, optimised (-O) mode ---
+
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.443s
+
+OK
+--- exit code: 0 ---
+
+--- the pytest CPU lane in this repository (this host has ROCm, so the
+--- build-configure tests run instead of skipping) ---
+
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+43 passed, 18 deselected, 14 warnings in 4.82s
+--- exit code: 0 ---

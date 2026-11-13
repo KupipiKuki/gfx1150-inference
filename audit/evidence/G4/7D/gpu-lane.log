@@ -1,0 +1,12 @@
+=== gpu-lane.log: pytest -m gpu -q at candidate c9c484a (real gfx1150 host; extension prebuilt) ===
+date: Sat Nov  7 04:24:27 PM UTC 2026
+
+..................................                                       [100%]
+=============================== warnings summary ===============================
+
+tests/test_phase5_scale.py::test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards
+  /home/kupipi/Documents/git/gfx1150-inference/tests/test_phase5_scale.py:513: DeprecationWarning: cache_weights=True is deprecated and maps to residency='pin_all' (host page-cache residency, not a device weight cache). Use --residency pin / residency='pin_all' instead. cache_weights=False maps to the new default 'auto'.
+    with LlamaInferenceEngine(qwen_gguf, max_seq_len=16, cache_weights=True) as eng:
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+34 passed, 503 deselected, 14 warnings in 1.61s

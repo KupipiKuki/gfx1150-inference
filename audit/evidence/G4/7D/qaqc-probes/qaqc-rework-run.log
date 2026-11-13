@@ -1,0 +1,29 @@
+=== QAQC rework verification run, Sat Nov  7 08:19:12 PM UTC 2026 ===
+
+== battery at tip a4ad1de ==
+pytest -m 'not gpu' -q        -> 506 passed, 34 deselected
+pytest -m gpu -q              -> 34 passed, 506 deselected (real gfx1150)
+tests/test_cpu_only.py        -> OK
+python -O tests/test_cpu_only.py -> OK
+check_claims.py               -> PASS (0 new, 8 baselined, 0 expired, 0 findings)
+canary_claims.py              -> PASS (12/12)
+
+== bundle probes re-run ==
+mem_probes.py exit=0
+  STREAM release_layer -> 1 fadvise calls, first: [('posix_fadvise', 0, 4)] (advice == POSIX_FADV_DONTNEED=4)
+  PIN release_layer   -> 0 fadvise calls (expected 0)
+  difference: PIN dRSS - STREAM dRSS = 65544 kB (RSS source: /proc/self/status VmRSS; faults: /proc/self/stat)
+ALL PROBES COMPLETED
+kv_probes.py exit=0
+  engine ctor original exception preserved: ValueError, mentions budget=True, first 120 chars: Requested KV cache size (4096 bytes) exceeds the effective KV budget (1 bytes, 10% safety margin). Budget sources used: 
+ALL KV PROBES COMPLETED
+
+== independent rework probes (not the repo suite) ==
+=== QAQC rework verification probes (independent of the repo test suite) ===
+FIX1 zero-tensors: rejected, '>= 0' in msg = True: Invalid llama.block_count -1: must be >= 0
+FIX1 with-tensor: rejected: Invalid llama.block_count -1: must be >= 0
+FIX1 regression: block_count=2 loads, num_layers = 2
+FIX1 regression: 999-vs-2 still rejected: llama.block_count (999) disagrees with the tensor table: found 2 blk.N.* tensor 
+FIX2: warned=True; effective=stream; weight_budget=None; reason='AUTO without a budget: no readable source; failed safe to STREAM'
+FIX2-OK
+ALL REWORK PROBES OK

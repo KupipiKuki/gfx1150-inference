@@ -1,0 +1,35 @@
+# G2 / 7B - the GPU lane, parent and candidate, from the repository root
+#
+# The compiled HIP extension is unchanged by 7B (no C++/CMake file is touched);
+# both lanes run it identically. The parent worktree shares the already-built
+# build/matmul_module.so via PYTHONPATH (its own worktree has no build/).
+#   parent   8426ec6: 24 passed (PYTHONPATH=build)
+#   candidate 70c5ab2: 24 passed
+
+================================================================================
+parent (8426ec6): PYTHONPATH=<repo>/build python -m pytest -m gpu -q
+================================================================================
+
+........................                                                 [100%]
+=============================== warnings summary ===============================
+../../home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+24 passed, 115 deselected, 13 warnings in 1.65s
+exit=0
+
+================================================================================
+candidate (70c5ab2): python -m pytest -m gpu -q
+================================================================================
+
+........................                                                 [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+24 passed, 128 deselected, 13 warnings in 1.75s
+exit=0

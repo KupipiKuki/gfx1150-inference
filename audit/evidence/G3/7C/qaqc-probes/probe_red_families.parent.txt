@@ -1,0 +1,3 @@
+[phi3] engine-forward: FAIL (engine refused/raised) -> KeyError: 'blk.0.attn_q.weight'
+[gemma] engine-forward: FAIL (engine refused/raised) -> BufferError: cannot close exported pointers exist
+probe families: RED

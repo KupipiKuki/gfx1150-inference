@@ -1,0 +1,94 @@
+# G1 / 7A-9 — the CPU lane, the shipped suite and the claims checker on the candidate
+# Captured: 2026-11-05T01:47:10Z
+# candidate: 1bce3d05fb20a6bdd0600a50b8c3502a6de85c74
+
+=== command ===
+python3 -m pytest -m 'not gpu' -q
+
+=== output ===
+.......................................................xx.........xx.... [ 62%]
+...........................................                              [100%]
+=============================== warnings summary ===============================
+
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - 7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS
+XFAIL tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - 7B: special tokens in the input are not encoded as their own token IDs
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont] - 7B/7C: the repository's SentencePiece path is a greedy longest match; the reference segments with the unigram scores
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed] - 7B: a control token in the input is not parsed as its own token ID
+111 passed, 24 deselected, 4 xfailed, 14 warnings in 46.68s
+exit: 0
+
+=== command ===
+python3 tests/test_cpu_only.py
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.660s
+
+OK
+
+=== command ===
+python3 -O tests/test_cpu_only.py
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.666s
+
+OK
+
+=== command ===
+python3 scripts/qa/check_claims.py
+
+=== Claims ledger check ===
+mode:        default (baseline-aware)
+claims:      30 rows parsed
+
+--- unqualified public claims (the ratchet) ---
+  claim 6 [BASELINED]: Real `Q4_K_M` GGUF end-to-end
+      README.md:10  'Q4_K_M'  (baselined)
+  claim 10 [BASELINED]: Qwen2 support
+      README.md:129  'qwen2'  (baselined)
+  claim 13 [BASELINED]: 983 tok/s / 4.4× E2E speedup
+      IMPLEMENTATION_PLAN.md:209  '983'  (baselined)
+  claim 14 [BASELINED]: Bounded RAM for 70B models
+      README.md:12  'bounded memory'  (baselined)
+      IMPLEMENTATION_PLAN.md:17  'bounded memory'  (baselined)
+  claim 18 [BASELINED]: 7B–70B models on gfx1150 without OOM
+      README.md:10  '7B–70B'  (baselined)
+      IMPLEMENTATION_PLAN.md:12  '7B–70B'  (baselined)
+  claim 19 [BASELINED]: 8-hour unattended runtimes
+      README.md:12  '8-hour runtimes'  (baselined)
+      IMPLEMENTATION_PLAN.md:15  '8-hour runtimes'  (baselined)
+  claim 20 [BASELINED]: Active RAM caps for 7B–70B (≤1.5–4.5 GB)
+      IMPLEMENTATION_PLAN.md:221  'Active RAM Cap'  (baselined)
+  claim 26 [BASELINED]: 1.12 TFLOPS matmul throughput
+      IMPLEMENTATION_PLAN.md:45  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:53  '1.12 TFLOPS'  (baselined)
+      IMPLEMENTATION_PLAN.md:300  '1.12 TFLOPS'  (baselined)
+  claim 27 [BASELINED]: 983.4 tok/s / 1107.9 tok/s decode E2E
+      IMPLEMENTATION_PLAN.md:209  '983.4 tok/s'  (baselined)
+  claim 28 [BASELINED]: Fused Q4_0 matmul 0.50 ms @ 1×4096×4096
+      IMPLEMENTATION_PLAN.md:81  '0.50 ms'  (baselined)
+  claim 29 [BASELINED]: Q4_K 1×1024×8192 in 2.76 ms
+      IMPLEMENTATION_PLAN.md:178  '2.76 ms'  (baselined)
+  claim 30 [BASELINED]: Resident RAM delta < 500 MB while streaming
+      IMPLEMENTATION_PLAN.md:79  '500 MB'  (baselined)
+
+--- baseline entries that no longer match a violation ---
+  none
+
+--- warnings ---
+  claim 6: scope IMPLEMENTATION_PLAN.md:265 drifted to IMPLEMENTATION_PLAN.md:304; refresh the line reference
+  claim 13: scope IMPLEMENTATION_PLAN.md:266 drifted to IMPLEMENTATION_PLAN.md:305; refresh the line reference
+  claim 21: flag is 'partial' with no unqualified site; the caveat wording is incomplete (a wording task, not a ratchet item)
+  claim 26: scope IMPLEMENTATION_PLAN.md:261 drifted to IMPLEMENTATION_PLAN.md:300; refresh the line reference
+  claim 27: scope IMPLEMENTATION_PLAN.md:266 drifted to IMPLEMENTATION_PLAN.md:305; refresh the line reference
+
+--- findings ---
+  none
+
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+exit: 0

@@ -1,0 +1,31 @@
+=== red.log: parent 1604beb fails the 7E stream/source probe ===
+date: Sat Nov  7 10:43:22 PM UTC 2026
+
+QAQC probe: qaqc-probes/stream_source_scan.py against a worktree of the parent tip 1604beb.
+The parent layer path relies on the legacy NULL stream: hipStreamWaitEvent(0, ...) waits,
+stream-0 kernel launches, and blocking hipMemcpy for the D2D KV writes.
+
+$ python3 stream_source_scan.py <parent-tree 1604beb>
+=== stream source scan (layer path) ===
+  FAIL: attention.hip: hipStreamWaitEvent(0, ...) at char 19059
+  FAIL: attention.hip: hipStreamWaitEvent(0, ...) at char 21272
+  FAIL: attention.hip: hipStreamWaitEvent(0, ...) at char 22915
+  FAIL: attention.hip:launch_gqa_attention_cached_fp16_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 1627
+  FAIL: attention.hip:launch_gqa_attention_cached_fp16_device: blocking hipMemcpy in D2D KV path
+  FAIL: dequantize.hip:launch_matmul_q4_0_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 417
+  FAIL: dequantize.hip:launch_matmul_q4_0_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 905
+  FAIL: dequantize.hip:launch_matmul_q8_0_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 417
+  FAIL: dequantize.hip:launch_matmul_q8_0_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 905
+  FAIL: dequantize.hip:launch_matmul_q4_k_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 422
+  FAIL: dequantize.hip:launch_matmul_q4_k_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 917
+  FAIL: dequantize.hip:launch_matmul_q6_k_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 422
+  FAIL: dequantize.hip:launch_matmul_q6_k_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 917
+  FAIL: matmul.hip:launch_matmul_fp16_nt_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 144
+  FAIL: matmul.hip:launch_matmul_fp16_nt_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 571
+  FAIL: mlp.hip:launch_swiglu_fp16_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 99
+  FAIL: rmsnorm.hip:launch_rmsnorm_fp16_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 6
+  FAIL: rmsnorm.hip:launch_rmsnorm_residual_fp16_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 6
+  FAIL: rmsnorm.hip:launch_residual_add_fp16_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 80
+  FAIL: rope.hip:launch_rope_fp16_device: stream-less hipLaunchKernelGGL (5th arg is literal 0) at body offset 409
+RESULT: FAIL - 20 finding(s)
+

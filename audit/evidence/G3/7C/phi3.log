@@ -1,0 +1,10 @@
+# phi3.log — Phi-3 fused/quantized/separate/bias/generation (GPU lane)
+```
+tests/test_model_families.py::test_phi3_fused_logits_match_independent_reference PASSED [ 16%]
+tests/test_model_families.py::test_phi3_quantized_fused_matches_reference PASSED [ 33%]
+tests/test_model_families.py::test_phi3_fused_and_separate_equivalence PASSED [ 50%]
+tests/test_model_families.py::test_phi3_zero_bias_equals_no_bias PASSED  [ 66%]
+tests/test_model_families.py::test_phi3_generation_smoke PASSED          [ 83%]
+tests/test_model_families.py::test_llama_regression_fixed_prompt PASSED  [100%]
+================= 6 passed, 4 deselected, 13 warnings in 0.34s =================
+```

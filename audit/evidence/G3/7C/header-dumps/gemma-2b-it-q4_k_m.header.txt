@@ -1,0 +1,68 @@
+# slice: /tmp/llamacpp/hdr/gemma-2b-q4km.slice
+sha256(slice) = 3dcba9e2b31eb86f1a944caf63af7a4c7513eb6c981e79dc90c3f4173fb58de7
+# gguf version: 3; alignment: 32; slice bytes: 16777216
+data_offset = 6039296 (slice covers the complete header: yes)
+kv_count = 24; tensor_count = 164
+
+## Metadata
+gemma.attention.head_count = UINT32(8)
+gemma.attention.head_count_kv = UINT32(1)
+gemma.attention.key_length = UINT32(256)
+gemma.attention.layer_norm_rms_epsilon = FLOAT32(9.999999974752427e-07)
+gemma.attention.value_length = UINT32(256)
+gemma.block_count = UINT32(18)
+gemma.context_length = UINT32(8192)
+gemma.embedding_length = UINT32(2048)
+gemma.feed_forward_length = UINT32(16384)
+general.architecture = STRING('gemma')
+general.file_type = UINT32(15)
+general.name = STRING('models--google--gemma-2b-it')
+general.quantization_version = UINT32(2)
+tokenizer.chat_template = STRING("{{ bos_token }}{% if messages[0]['role'] == 'system' %}{{ raise_exception('System role not supported') }}{% endif %}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if (message['role'] == 'assistant') %}{% set role = 'model' %}{% else %}{% set role = message['role'] %}{% endif %}{{ '<start_of_turn>' + role + '\n' + message['content'] | trim + '<end_of_turn>\n' }}{% endfor %}{% if add_generation_prompt %}{{'<start_of_turn>model\n'}}{% endif %}")
+tokenizer.ggml.add_bos_token = BOOL(True)
+tokenizer.ggml.add_eos_token = BOOL(False)
+tokenizer.ggml.bos_token_id = UINT32(2)
+tokenizer.ggml.eos_token_id = UINT32(1)
+tokenizer.ggml.model = STRING('llama')
+tokenizer.ggml.padding_token_id = UINT32(0)
+tokenizer.ggml.scores = ARRAY<ARRAY>([256000 items; first: 0.0, ...])
+tokenizer.ggml.token_type = ARRAY<ARRAY>([256000 items; first: 3, ...])
+tokenizer.ggml.tokens = ARRAY<ARRAY>([256000 items; first: '<pad>', ...])
+tokenizer.ggml.unknown_token_id = UINT32(3)
+
+## Tensors (ne dims in GGUF order: ne[0] is innermost/contiguous)
+### Global tensors
+token_embd.weight: dims=(2048, 256000) type=Q6_K
+output_norm.weight: dims=(2048,) type=F32
+### blk.0 tensors
+blk.0.attn_norm.weight: dims=(2048,) type=F32
+blk.0.ffn_down.weight: dims=(16384, 2048) type=Q6_K
+blk.0.ffn_gate.weight: dims=(2048, 16384) type=Q4_K
+blk.0.ffn_up.weight: dims=(2048, 16384) type=Q4_K
+blk.0.ffn_norm.weight: dims=(2048,) type=F32
+blk.0.attn_k.weight: dims=(2048, 256) type=Q4_K
+blk.0.attn_output.weight: dims=(2048, 2048) type=Q4_K
+blk.0.attn_q.weight: dims=(2048, 2048) type=Q4_K
+blk.0.attn_v.weight: dims=(2048, 256) type=Q6_K
+### blk.1 tensors
+blk.1.attn_norm.weight: dims=(2048,) type=F32
+blk.1.ffn_down.weight: dims=(16384, 2048) type=Q6_K
+blk.1.ffn_gate.weight: dims=(2048, 16384) type=Q4_K
+blk.1.ffn_up.weight: dims=(2048, 16384) type=Q4_K
+blk.1.ffn_norm.weight: dims=(2048,) type=F32
+blk.1.attn_k.weight: dims=(2048, 256) type=Q4_K
+blk.1.attn_output.weight: dims=(2048, 2048) type=Q4_K
+blk.1.attn_q.weight: dims=(2048, 2048) type=Q4_K
+blk.1.attn_v.weight: dims=(2048, 256) type=Q6_K
+### Unique tensor suffix histogram (blk.* -> suffix)
+attn_k.weight: count=18
+attn_norm.weight: count=18
+attn_output.weight: count=18
+attn_q.weight: count=18
+attn_v.weight: count=18
+ffn_down.weight: count=18
+ffn_gate.weight: count=18
+ffn_norm.weight: count=18
+ffn_up.weight: count=18
+output_norm.weight: count=1
+token_embd.weight: count=1

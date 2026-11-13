@@ -40,4 +40,8 @@ audit/evidence/
 - **No secrets, prompts, or model data** that cannot be redistributed.
 - **Provenance.** Golden data must include upstream version/commit, command, and input/output hashes.
 
-A bundle missing any required file is an automatic gate failure.
+A bundle missing any required file for its package type is an automatic gate failure.
+`red.log`/`green.log` are required only for packages that change behavior. A
+non-behavioral package (baseline, test harness, CI, docs) must state
+`red/green: N/A (no behavioral change)` in `notes.md` and include the green suite logs;
+no separate file is required.

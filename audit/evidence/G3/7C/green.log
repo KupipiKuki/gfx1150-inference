@@ -1,0 +1,23 @@
+# green.log — the same family tests + probes pass on the 7C candidate
+
+## Independent engine probes on the candidate (probe_red_families.py)
+```
+[phi3] engine-forward: PASS (fused QKV + fused gate/up + biases vs independent FP32 reference, max_err=0.002729, tol=0.006)
+[gemma] engine-forward: PASS (embed scale + GeGLU + NeoX + key/value dims + softcap + tied output vs independent FP32 reference, max_err=0.001982, tol=0.006)
+probe families: ALL GREEN
+rc=0
+```
+
+## CPU lane (spec fail-fast suite)
+```
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+16 passed, 13 warnings in 0.21s
+```
+
+## GPU lane (family engine tests)
+```
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 13 warnings in 0.38s
+```

@@ -1,0 +1,76 @@
+# QAQC 7A-8 follow-up — independent probe transcript
+# Tree: 86cdd323433aa72d5f70ec03882b9795dde4709a (branch tip, wp/7A-8-followup)
+# Date: 2026-11-02
+# CI state verified against the public GitHub API (stronger than the recorded excerpt).
+
+## A. GitHub API verification (public endpoints, no token)
+
+  RED  run 41544981963: head_sha 33fc5f98ee70c5b3cfaded6fe3623ff9ae494e18,
+       branch wp/7A-8-followup, event push, status completed,
+       conclusion **failure** — matches ci-run.log
+  GREEN run 41545742018: head_sha 683a0f7083d576fb64a37f374bce780634fae3ff (the fix),
+       conclusion **success** — matches ci-run.log
+  Branch tip 86cdd323433aa72d5f70ec03882b9795dde4709a check-runs (2, both):
+       "Clean-clone documented build (G0 C-1)"      completed / **success**
+       "CPU Parser, Tokenizer, Sampler & Packaging" completed / **success**
+  => "branch tip green on both workflows" independently confirmed.
+  (The run-log download endpoint requires auth — the recorded limitation is genuine;
+   the repo itself is public and the runs/jobs/check-runs endpoints answer openly.)
+
+## B. capture-run.py regenerates the committed evidence
+
+  python3 audit/evidence/G1/7A-8-followup/capture-run.py 41544981963 41545742018
+    -> output identical to ci-run.log byte-for-byte, modulo the 3 header lines
+       the committed log adds. Conclusions, step tables, durations and
+       annotations all match.
+
+## C. The fix in ci-build.yml (parsed from the YAML)
+
+  step 2  "Install the documented build prerequisites": pytest included = True
+  step 5  "Configure the project": set -o pipefail = True; tee configure.log = True
+  step 6  "Record the configure result in the job summary": if: always();
+          GITHUB_STEP_SUMMARY = True
+  valid YAML; 11 steps. (GitHub's default `bash -e {0}` has no pipefail, so the
+  explicit `set -o pipefail` is required for the tee to be safe — verified reasoning.)
+
+## D. Local QF-1 reproduction (my own, independent of the recorded one)
+
+  fresh venv + the job's pre-fix prerequisites (numpy setuptools wheel pybind11):
+    python -m pytest tests/test_build_configure.py -v
+      -> "No module named pytest", exit 1        (the RED run's failure)
+    pip install pytest (the fix's one word), re-run:
+      -> 3 passed, exit 0                       (the GREEN run's behaviour)
+
+## E. Suites on the tip
+
+  pytest -m "not gpu" -q : 43 passed, 18 deselected
+  pytest -m gpu -q        : 18 passed, 43 deselected (repo build artifact)
+  python tests/test_cpu_only.py / -O : OK / OK (12/12 each)
+
+## F. Scope (33fc5f9..86cdd32)
+
+  files: .github/workflows/ci-build.yml, audit/evidence/G1/7A-8-followup/** (9 files),
+         audit/evidence/G1/7A-8/notes.md (the brief-allowed one-line erratum)
+  restricted diff (CMakeLists, README, tests, src, setup.py, pyproject, MANIFEST,
+         ledger, baseline): empty
+  the 86cdd32 correction: notes now state which 7A-6 surfaces exist on this branch
+         (scripts/qa and 7A-6 evidence: absent by construction; ledger/baseline:
+         present, pre-7A-6 state, untouched)
+
+## G. QF-2 shift-table cross-check (reconciliation)
+
+  on THIS branch: qwen2 bullets at README 128/129, claim 21 site at 122,
+                  PYTHONPATH=build block at 97-101
+  auditor's table: 129/130, 123, 98-102 — exactly +1 vs this branch, because this
+                  branch does not carry efe34fc's +1 README project-tree line
+                  (it lives on the 7A-6 side); the table targets the actual merge
+                  (both changes present). Table reconciles; the notes' caution
+                  (recompute at merge) remains the right instruction.
+
+## H. Cost observation (exact ratios)
+
+  RED : ROCm install 6:46 / wall 7:50 = 86.4 %;  GREEN: 4:49 / 5:56 = 81.2 %
+  (notes state "83-87 %" — approximate; the dominance conclusion is unaffected;
+   everything the acceptance is about costs < 1 minute in both runs)
+
+# Finished: 2026-11-02T23:59Z (QAQC)

@@ -1,0 +1,86 @@
+# Auditor probe transcript — 7A-8
+# Auditor: DeepSeek V4.1 Flash, 2026-11-02
+# Candidate: 9c04912 · Tip: abc5870
+# Clones: /tmp/opencode/audit-7a8, /tmp/opencode/audit-7a8-parent
+
+### Candidate configure (shims PATH, no pybind11_DIR)
+$ env -u pybind11_DIR cmake -S . -B /tmp/opencode/audit-7a8-build -DCMAKE_BUILD_TYPE=Release
+-- pybind11 CMake package: /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/pybind11/share/cmake/pybind11
+-- Found pybind11: .../pybind11/include (found version "3.1.0")
+-- Configuring done
+-- Generating done
+exit: 0
+$ cmake --build /tmp/opencode/audit-7a8-build -j 8
+[100%] Built target matmul_module
+exit: 0
+-rwxrwxr-x 1 kupipi kupipi 592488 ... matmul_module.so
+
+### Parent configure (shims PATH, no pybind11_DIR)
+$ env -u pybind11_DIR cmake -S . -B /tmp/opencode/audit-7a8-parent-build -DCMAKE_BUILD_TYPE=Release
+CMake Error at CMakeLists.txt:17 (find_package):
+  Could not find a package configuration file provided by "pybind11" ...
+-- Configuring incomplete
+exit: 1
+
+### Parent lucky PATH
+$ PATH=/home/kupipi/.pyenv/versions/3.14.10/bin:$PATH env -u pybind11_DIR cmake ...
+-- Found pybind11: /home/kupipi/.pyenv/versions/3.14.10/include (found version "3.1.0")
+-- Configuring done
+exit: 0
+
+### Candidate lucky PATH
+$ PATH=/home/kupipi/.pyenv/versions/3.14.10/bin:$PATH env -u pybind11_DIR cmake ...
+-- pybind11 CMake package: /home/kupipi/.pyenv/versions/3.14.10/share/cmake/pybind11
+exit: 0
+
+### Candidate explicit override
+$ env -u pybind11_DIR cmake ... -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
+-- pybind11 CMake package: .../site-packages/pybind11/share/cmake/pybind11
+exit: 0
+
+### Guard on parent CMakeLists
+$ cp candidate/tests/test_build_configure.py parent/tests/
+$ pytest tests/test_build_configure.py::test_documented_configure_locates_pybind11_without_an_ambient_hint -q
+E  assert 'pybind11 CMake package:' in '...'
+1 failed
+exit: 1
+
+### Guard on candidate
+$ pytest tests/test_build_configure.py -q
+3 passed
+exit: 0
+
+### Suites
+$ PYTHONPATH=<build>:<src> pytest -m "not gpu" -q
+43 passed, 18 deselected
+$ PYTHONPATH=<build>:<src> pytest -m gpu -q
+18 passed, 43 deselected
+$ PYTHONPATH=<build>:<src> pytest -q
+61 passed
+$ python tests/test_cpu_only.py    -> 12/12 OK
+$ python -O tests/test_cpu_only.py -> 12/12 OK
+
+### QF-2 merge simulation (vibe/phase7-220201 + 7A-8)
+$ git merge --no-ff wp/7A-8-build-entrypoint
+MERGE_EXIT=0
+$ python3 scripts/qa/check_claims.py
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired, 0 finding(s)
+warnings: 9 drift
+  claim 8:  README.md:111 -> 130
+  claim 9:  README.md:111 -> 130
+  claim 10: README.md:110 -> 129; 111 -> 130
+  claim 11: README.md:110 -> 129; 111 -> 130
+  claim 12: README.md:110 -> 129; 111 -> 130
+  claim 21: README.md:104 -> 123
+ID3 block: README L85-89 -> L98-102 (line-independent canary survives)
+exit: 0
+
+### QF-1 (CI)
+ci-build.yml prerequisites install numpy/setuptools/wheel/pybind11 only.
+Smoke step: python -m pytest tests/test_build_configure.py -v
+=> No module named pytest on a stock runner. Condition C-7A8-1.
+
+### Keyring
+$ gpg --show-keys --with-colons /etc/apt/keyrings/amdrocm.gpg
+fpr: D0F004A0025A1145C7807FCD0701EAC4D5E02107
+# matches the workflow's claimed fingerprint.

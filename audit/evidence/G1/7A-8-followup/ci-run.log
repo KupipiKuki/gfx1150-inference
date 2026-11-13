@@ -1,0 +1,79 @@
+# G1 / 7A-8 follow-up — CI run evidence (QF-1)
+# Captured: 2026-11-02T23:39:47Z
+#
+# Two runs of .github/workflows/ci-build.yml, both on wp/7A-8-followup:
+#   RED  — the prep commit's workflow (no pytest): the job failed at the
+#         configure smoke test with 'No module named pytest'.
+#   GREEN— the follow-up's workflow (pytest added): every step succeeded.
+#
+# The evidence below is the GitHub REST API's own view of the runs
+# (conclusion + every step's conclusion and duration + the check-run
+# annotations), captured by capture-run.py. The raw log download needs an
+# authenticated API call (HTTP 403 without a token), so the step table is
+# the excerpt.
+
+=== run 41544981963 ===
+workflow:   Clean-Clone Build CI
+head sha:   33fc5f98ee70c5b3cfaded6fe3623ff9ae494e18
+branch:     wp/7A-8-followup
+status:     completed
+conclusion: failure
+url:        https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41544981963
+created:    2026-11-02T23:22:53Z
+
+job: Clean-clone documented build (G0 C-1)  (completed / failure)
+  job url:    https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41544981963/job/125618257997
+  wall clock: 7:50
+  step                                                     status     conclusion duration
+   1. Set up job                                           completed  success    0:01
+   2. Checkout repository                                  completed  success    0:02
+   3. Set up Python 3.12                                   completed  success    0:01
+   4. Install the documented build prerequisites           completed  success    0:15
+   5. Register the AMD ROCm apt repository                 completed  success    0:18
+   6. Install the ROCm development packages                completed  success    6:46
+   7. Configure the project (the documented command)       completed  success    0:11
+   8. Build the HIP extension                              completed  success    0:13
+   9. Run the configure smoke test                         completed  failure    0:00
+  10. Build the sdist                                      completed  skipped    0:00
+  11. Install the sdist in a clean venv (full install, with the extension) completed  skipped    0:00
+  21. Post Set up Python 3.12                              completed  skipped    0:00
+  22. Post Checkout repository                             completed  success    0:01
+  23. Complete job                                         completed  success    0:00
+
+  annotation (.github):
+    Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  annotation (.github):
+    Process completed with exit code 1.
+
+=== run 41545742018 ===
+workflow:   Clean-Clone Build CI
+head sha:   683a0f7083d576fb64a37f374bce780634fae3ff
+branch:     wp/7A-8-followup
+status:     completed
+conclusion: success
+url:        https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41545742018
+created:    2026-11-02T23:28:51Z
+
+job: Clean-clone documented build (G0 C-1)  (completed / success)
+  job url:    https://github.com/KupipiKuki/gfx1150-inference/actions/runs/41545742018/job/125620789271
+  wall clock: 5:56
+  step                                                     status     conclusion duration
+   1. Set up job                                           completed  success    0:00
+   2. Checkout repository                                  completed  success    0:01
+   3. Set up Python 3.12                                   completed  success    0:01
+   4. Install the documented build prerequisites           completed  success    0:07
+   5. Register the AMD ROCm apt repository                 completed  success    0:05
+   6. Install the ROCm development packages                completed  success    4:49
+   7. Configure the project (the documented command)       completed  success    0:03
+   8. Record the configure result in the job summary       completed  success    0:00
+   9. Build the HIP extension                              completed  success    0:12
+  10. Run the configure smoke test                         completed  success    0:08
+  11. Build the sdist                                      completed  success    0:00
+  12. Install the sdist in a clean venv (full install, with the extension) completed  success    0:25
+  23. Post Set up Python 3.12                              completed  success    0:00
+  24. Post Checkout repository                             completed  success    0:01
+  25. Complete job                                         completed  success    0:00
+
+  annotation (.github):
+    Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+

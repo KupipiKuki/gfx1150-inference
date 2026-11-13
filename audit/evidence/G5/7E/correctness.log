@@ -1,0 +1,23 @@
+=== correctness.log: parent-vs-candidate greedy IDs / logits ===
+date: Sat Nov  7 10:57:02 PM UTC 2026
+
+Fixture: synthetic Q4_K_M 2-layer model (tests/test_phase5_scale.py generator, seed 503);
+greedy decode (temperature=0), prefill logits and one decode-step logits hashed (FP16 bytes, sha256).
+
+== parent build (1604beb, NULL-stream layer path; recorded before the 7E edits) ==
+$ python3 qaqc-probes/correctness_probe.py   [at parent tree]
+logits_shape=(32,)
+prefill_logits_sha256=a8547f8c65687a598d9c9a3526b42c748c3ad9b4a4114029a941def6ef4e2b31
+greedy_ids=[27, 31, 27, 31, 17, 27, 4, 24]
+decode_logits_sha256=49da87dfa668f1f4cb13d3f5b2d7616d20d47b5d00433455615651436c400464
+
+== candidate build (7c61ea7, explicit copy/compute streams + event graph) ==
+$ python3 qaqc-probes/correctness_probe.py   [at candidate tree]
+logits_shape=(32,)
+prefill_logits_sha256=a8547f8c65687a598d9c9a3526b42c748c3ad9b4a4114029a941def6ef4e2b31
+greedy_ids=[27, 31, 27, 31, 17, 27, 4, 24]
+decode_logits_sha256=49da87dfa668f1f4cb13d3f5b2d7616d20d47b5d00433455615651436c400464
+
+RESULT: identical — greedy IDs, prefill logits digest and decode logits digest are bit-identical
+between parent and candidate (no FP16 tolerance needed). The 7E rework changes the stream topology
+only, never the computed values; tests/test_stream_topology.py locks these anchors into the gpu lane.

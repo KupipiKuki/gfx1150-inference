@@ -1,0 +1,19 @@
+# G2 / 7B remediation - differential vs the pinned reference llama-tokenize
+# Reference: llama.cpp@149f5641b931aaf33697d70f9abc90c3e5300247 (build recipe in
+# audit-probes/probe_commands.log), model ggml-org/models:tinyllamas/stories260K.gguf
+# sha256 270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d.
+#
+# 1) The auditor's 11 probe cases (audit-probes/probe_reference_diff.py) on the
+#    remediation candidate 25e9088 (worktree /tmp/qaqc2-cand):
+
+RESULT: all 11 cases match
+#
+# 2) The committed 310-case differential golden replays in the suite:
+#    python -m pytest -m "not gpu" -q -k differential tests/test_goldens_tokenizer.py
+#    -> 310 passed (see remediation-lanes.log tokenizer slice: 386 passed total)
+#
+# 3) One-off large seeded differential, 2000 prompts (random vocab-piece
+#    concatenations, word sequences, printable-ASCII runs, <s>-injected),
+#    candidate worktree vs pinned binary (qaqc-probes/qaqc_big_diff.py):
+2000 prompts, 0 mismatches
+   exit=0

@@ -1,0 +1,45 @@
+=== diffstat parent..candidate (1604beb..7c61ea7) ===
+
+ CMakeLists.txt                 |  14 ++
+ IMPLEMENTATION_PLAN.md         |  10 +-
+ audit/CLAIMS_LEDGER.md         |   2 +-
+ src/kernels/attention.h        |  16 +-
+ src/kernels/attention.hip      | 469 +++++++++++++++++++++++++++++++++++------
+ src/kernels/dequantize.h       |  21 +-
+ src/kernels/dequantize.hip     |  28 +--
+ src/kernels/matmul.h           |  12 +-
+ src/kernels/matmul.hip         |   7 +-
+ src/kernels/mlp.h              |  10 +-
+ src/kernels/mlp.hip            |   5 +-
+ src/kernels/rmsnorm.h          |  18 +-
+ src/kernels/rmsnorm.hip        |  15 +-
+ src/kernels/rope.h             |   7 +-
+ src/kernels/rope.hip           |   5 +-
+ tests/test_harness_contract.py |  72 +++++++
+ tests/test_stream_topology.py  | 240 +++++++++++++++++++++
+ 17 files changed, 834 insertions(+), 117 deletions(-)
+
+=== changed files ===
+M	CMakeLists.txt
+M	IMPLEMENTATION_PLAN.md
+M	audit/CLAIMS_LEDGER.md
+M	src/kernels/attention.h
+M	src/kernels/attention.hip
+M	src/kernels/dequantize.h
+M	src/kernels/dequantize.hip
+M	src/kernels/matmul.h
+M	src/kernels/matmul.hip
+M	src/kernels/mlp.h
+M	src/kernels/mlp.hip
+M	src/kernels/rmsnorm.h
+M	src/kernels/rmsnorm.hip
+M	src/kernels/rope.h
+M	src/kernels/rope.hip
+M	tests/test_harness_contract.py
+A	tests/test_stream_topology.py
+
+=== allowed/forbidden audit (brief section 2) ===
+Allowed and touched: src/kernels/{attention,matmul,dequantize,mlp,rmsnorm,rope}.{hip,h} (stream parameter plumbing + attention.hip layer orchestration), CMakeLists.txt (GFX1150_7E_PTDS_TEST test-only option), tests/** (test_stream_topology.py new; test_harness_contract.py source contract), IMPLEMENTATION_PLAN.md + audit/CLAIMS_LEDGER.md row 15 (stream/sync wording only).
+
+Forbidden areas (must be empty):
+(empty => none: no tokenizer/model-family/7D policy/binding/CI/packaging changes; bindings.cpp untouched — the Python-visible forward_layer_cached signature is byte-identical)

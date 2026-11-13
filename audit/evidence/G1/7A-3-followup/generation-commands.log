@@ -1,0 +1,98 @@
+# G1 / 7A-3 follow-up — the commands that produced the SentencePiece golden
+# Captured: 2026-11-04T01:26:21Z
+#
+# The follow-up regenerates one fixture: the SentencePiece golden. Everything
+# else is reused from the 7A-3 package and is not re-derived here.
+#
+# The reference is unchanged and pinned:
+#   llama.cpp        ggml-org/llama.cpp @ 149f5641b931aaf33697d70f9abc90c3e5300247
+#   TinyLlama model  ggml-org/models  tinyllamas/stories260K.gguf
+#                    sha256 270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d
+#
+# llama.cpp was built from source in the 7A-3 package and is reused unchanged:
+#
+#   $ cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF \
+#         -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF \
+#         -DGGML_NATIVE=OFF
+#   $ cmake --build build --target llama-tokenize llama-quantize -j 8
+#   $ ls build/bin/llama-tokenize build/bin/llama-quantize
+#   build/bin/llama-quantize
+#   build/bin/llama-tokenize
+
+# ==============================================================================
+# The generator invocation
+# ==============================================================================
+
+$ cd tests/fixtures
+$ python3 make_fixtures.py tokenizer \
+      --llama-cpp /tmp/opencode/llama.cpp \
+      --gguf-py /tmp/opencode/llama.cpp/gguf-py \
+      --gpt2-vocab /tmp/opencode/upstream/gpt2-vocab.json \
+      --gpt2-merges /tmp/opencode/upstream/gpt2-merges.txt \
+      --gpt2-revision 607a30d783dfa663caf39e06633721c8d4cfcd7e \
+      --spm-gguf /tmp/opencode/upstream/stories260K.gguf \
+      --spm-revision "ggml-org/models@main:tinyllamas/stories260K.gguf" \
+      --out .
+
+# The SentencePiece cases, and the reference's answer for each:
+  spm_absent_add_bos_metadata      'Hello world'        -> [1, 346, 306, 414, 263, 304, 341]
+  spm_plain_text_no_bos            'Hello world'        -> [346, 306, 414, 263, 304, 341]
+  spm_double_space                 'Hello  world'       -> [1, 346, 306, 414, 410, 263, 304, 341]
+  spm_multibyte_accent             'café'               -> [1, 280, 412, 431, 485]
+  spm_multibyte_greek              'Ω'                  -> [1, 410, 209, 172]
+  spm_multibyte_emoji              '😀'            -> [1, 410, 243, 162, 155, 131]
+  spm_punctuation_digits           'hello, world! 123'  -> [1, 281, 306, 414, 432, 263, 304, 341, 443, 410, 475, 479, 472]
+  spm_contraction_were             "we're"              -> [1, 382, 439, 276]
+  spm_contraction_dont             "don't"              -> [1, 279, 289, 439, 413]
+  spm_control_token_literal        '<s>'                -> [1, 410, 504, 419, 505]
+  spm_control_token_parsed         '<s>'                -> [1, 1]
+wrote stories260k_tokenizer_golden.json (3768 bytes)
+
+# The reference invocation, verbatim, for two of them:
+$ llama-tokenize -m stories260K.gguf -p "Hello world" --ids --no-parse-special
+[1, 346, 306, 414, 263, 304, 341]
+
+$ llama-tokenize -m stories260K.gguf -p "Hello world" --ids --no-bos --no-parse-special
+[346, 306, 414, 263, 304, 341]
+
+$ llama-tokenize -m stories260K.gguf -p "<s>" --ids
+[1, 1]
+
+# ==============================================================================
+# The GPT-2 side must not move
+# ==============================================================================
+
+# The generator rewrites every tokenizer fixture, so the GPT-2 golden and both
+# vocabularies were compared against the committed ones. They are byte-identical:
+$ cmp gpt2_tokenizer_golden.json /tmp/opencode/regen3/gpt2_tokenizer_golden.json
+  (no output: identical)
+$ cmp gpt2_vocab.json           /tmp/opencode/regen3/gpt2_vocab.json
+  (no output: identical)
+$ cmp stories260k_vocab.json    /tmp/opencode/regen3/stories260k_vocab.json
+  (no output: identical)
+
+# The hashes before and after the follow-up:
+  58200852c309ee0cb933267dd4903df6fc992c41766ad7e3a73410946c3f8315  gpt2_tokenizer_golden.json   (unchanged)
+  6d69121d9abb291574dfa7087d6c2004b35caa4f0c53deef876aedecf71f3212  gpt2_vocab.json              (unchanged)
+  83087209d2555019d790b98408e307e8693d51441a91c253b367e9c9c0fbe7e7  stories260k_vocab.json       (unchanged)
+  3ec515b072b54e876076c69e13ca723a6f4a8116b77efac78d02b6a3b75b18c5  stories260k_tokenizer_golden.json  (before)
+  9d2ce99e51aec05e90aa02f9de8aec00fd5db06165d1f997c1b91727a5c98d50  stories260k_tokenizer_golden.json  (after)
+
+# The quantized blocks and the tiny GGUF are not regenerated at all: this
+# follow-up does not touch them.
+
+# ==============================================================================
+# The mismatch analysis
+# ==============================================================================
+
+# The TinyLlama vocabulary is a SentencePiece *unigram* model, so the reference
+# picks the segmentation with the best total score while the repository's
+# SentencePiece path takes the greedy longest match. The scores come from the
+# upstream GGUF, read with gguf-py:
+$ python3 -c "... gguf.GGUFReader('stories260K.gguf') ..."
+  reference (llama.cpp) '▁d' (-20) + 'on' (-30) + "'" (-180) + 't' (-154) = -384
+  repository (greedy)  '▁do' (-141) + 'n' (-157) + "'" (-180) + 't' (-154) = -632
+
+# The reference's segmentation is 248 log-probability units better, so the
+# reference is right by the model's own scoring and the greedy longest match is
+# the defect. The case is pinned as a strict xfail with the reason "7B/7C".

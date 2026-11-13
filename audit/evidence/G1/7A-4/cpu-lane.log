@@ -1,0 +1,164 @@
+# G1 / 7A-4 — the CPU lane
+# Captured: 2026-11-04T02:31:07Z
+
+=== pytest -m 'not gpu' (the CPU CI job's lane; it includes the fuzz) ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 137 items / 24 deselected / 113 selected
+tests/test_build_configure.py::test_documented_configure_locates_pybind11_without_an_ambient_hint PASSED [  0%]
+tests/test_build_configure.py::test_documented_configure_succeeds_with_the_hip_toolchain PASSED [  1%]
+tests/test_build_configure.py::test_configure_does_not_leave_a_cache_outside_the_build_directory PASSED [  2%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_c10_duplicate_tensor_and_zero_dim_rejection PASSED [  3%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_c1_r1_load_time_tensor_validation_and_close_safety PASSED [  4%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_p8_interleaved_layer_byte_spans PASSED [  5%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_s1_truncated_gguf_raises_value_error PASSED [  6%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_s2_malformed_header_and_alignment_caps PASSED [  7%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v1_py_compile_all_sources PASSED [  7%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v3_actionable_import_error_without_extension PASSED [  8%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v4_gguf_roundtrip_and_d3_memoryview_ownership PASSED [  9%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v5_cpu_quant_dequant_roundtrips PASSED [ 10%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v6_p4_p5_c2_tokenizer_and_vectorized_embeddings PASSED [ 11%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety PASSED [ 12%]
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v8_b1_pyproject_and_sdist_contents PASSED [ 13%]
+tests/test_fuzz_gguf.py::test_fuzz_gguf_headers PASSED                   [ 14%]
+tests/test_fuzz_gguf.py::test_fuzz_gguf_headers_are_deterministic PASSED [ 15%]
+tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error XFAIL [ 15%]
+tests/test_fuzz_gguf.py::test_the_layer_span_is_split_by_an_interleaved_foreign_tensor PASSED [ 16%]
+tests/test_fuzz_gguf.py::test_a_duplicate_tensor_name_is_rejected PASSED [ 17%]
+tests/test_fuzz_gguf.py::test_parsing_from_a_file_releases_the_descriptor PASSED [ 18%]
+tests/test_goldens_gguf.py::test_the_fixture_is_the_upstream_file PASSED [ 19%]
+tests/test_goldens_gguf.py::test_metadata_matches_the_reference_reader PASSED [ 20%]
+tests/test_goldens_gguf.py::test_tensor_descriptors_match_the_reference_reader PASSED [ 21%]
+tests/test_goldens_gguf.py::test_the_tensor_offsets_are_aligned PASSED   [ 22%]
+tests/test_goldens_gguf.py::test_the_data_section_starts_after_the_header PASSED [ 23%]
+tests/test_goldens_gguf.py::test_the_zero_copy_values_match_the_reference PASSED [ 23%]
+tests/test_goldens_gguf.py::test_the_tensor_shapes_are_transposed_by_the_parser PASSED [ 24%]
+tests/test_goldens_gguf.py::test_the_model_type_is_the_expected_ggml_type PASSED [ 25%]
+tests/test_goldens_quant.py::test_block_layout_matches_the_ggml_specification[Q4_0] PASSED [ 26%]
+tests/test_goldens_quant.py::test_block_layout_matches_the_ggml_specification[Q4_K] PASSED [ 27%]
+tests/test_goldens_quant.py::test_block_layout_matches_the_ggml_specification[Q6_K] PASSED [ 28%]
+tests/test_goldens_quant.py::test_cpu_dequantization_matches_the_reference[Q4_0] PASSED [ 29%]
+tests/test_goldens_quant.py::test_cpu_dequantization_matches_the_reference[Q4_K] PASSED [ 30%]
+tests/test_goldens_quant.py::test_cpu_dequantization_matches_the_reference[Q6_K] PASSED [ 30%]
+tests/test_goldens_quant.py::test_the_fixture_bytes_match_their_recorded_hash[Q4_0] PASSED [ 31%]
+tests/test_goldens_quant.py::test_the_fixture_bytes_match_their_recorded_hash[Q4_K] PASSED [ 32%]
+tests/test_goldens_quant.py::test_the_fixture_bytes_match_their_recorded_hash[Q6_K] PASSED [ 33%]
+tests/test_goldens_quant.py::test_the_q4_0_bytes_are_llama_cpp_s_own_quantizer_output PASSED [ 34%]
+tests/test_goldens_quant.py::test_the_expected_values_are_not_self_referential PASSED [ 35%]
+tests/test_goldens_quant.py::test_the_blocks_are_not_degenerate[Q4_0] PASSED [ 36%]
+tests/test_goldens_quant.py::test_the_blocks_are_not_degenerate[Q4_K] PASSED [ 37%]
+tests/test_goldens_quant.py::test_the_blocks_are_not_degenerate[Q6_K] PASSED [ 38%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[plain_text] PASSED [ 38%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[double_space] PASSED [ 39%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_accent] PASSED [ 40%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_greek] PASSED [ 41%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[multibyte_emoji] PASSED [ 42%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[punctuation_digits] PASSED [ 43%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[underscore] PASSED [ 44%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[contraction_dont] PASSED [ 45%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[contraction_were] PASSED [ 46%]
+tests/test_goldens_tokenizer.py::test_token_ids_match_the_reference_tokenizer[add_bos_disabled] PASSED [ 46%]
+tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer XFAIL [ 47%]
+tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id XFAIL [ 48%]
+tests/test_goldens_tokenizer.py::test_absent_add_bos_metadata_matches_the_reference_tokenizer PASSED [ 49%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_plain_text_no_bos] PASSED [ 50%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_double_space] PASSED [ 51%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_multibyte_accent] PASSED [ 52%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_multibyte_greek] PASSED [ 53%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_multibyte_emoji] PASSED [ 53%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_punctuation_digits] PASSED [ 54%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_contraction_were] PASSED [ 55%]
+tests/test_goldens_tokenizer.py::test_spm_token_ids_match_the_reference_tokenizer[spm_control_token_literal] PASSED [ 56%]
+tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont] XFAIL [ 57%]
+tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed] XFAIL [ 58%]
+tests/test_goldens_tokenizer.py::test_the_vocabulary_fixture_matches_its_recorded_hash PASSED [ 59%]
+tests/test_goldens_tokenizer.py::test_the_golden_cases_cover_the_required_inputs PASSED [ 60%]
+tests/test_goldens_tokenizer.py::test_the_sentencepiece_golden_covers_the_required_inputs PASSED [ 61%]
+tests/test_goldens_tokenizer.py::test_decode_round_trips_the_golden_text PASSED [ 61%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_build_configure.py] PASSED [ 62%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_cpu_only.py] PASSED [ 63%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_full_model.py] PASSED [ 64%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_fuzz_gguf.py] PASSED [ 65%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_gguf_and_q4.py] PASSED [ 66%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_goldens_gguf.py] PASSED [ 67%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_goldens_gpu.py] PASSED [ 68%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_goldens_quant.py] PASSED [ 69%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_goldens_tokenizer.py] PASSED [ 69%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_harness_contract.py] PASSED [ 70%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_layer.py] PASSED [ 71%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_matmul.py] PASSED [ 72%]
+tests/test_harness_contract.py::test_no_test_function_returns_a_value[test_phase5_scale.py] PASSED [ 73%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_build_configure.py] PASSED [ 74%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_cpu_only.py] PASSED [ 75%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_full_model.py] PASSED [ 76%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_fuzz_gguf.py] PASSED [ 76%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_gguf_and_q4.py] PASSED [ 77%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_goldens_gguf.py] PASSED [ 78%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_goldens_gpu.py] PASSED [ 79%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_goldens_quant.py] PASSED [ 80%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_goldens_tokenizer.py] PASSED [ 81%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_harness_contract.py] PASSED [ 82%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_layer.py] PASSED [ 83%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_matmul.py] PASSED [ 84%]
+tests/test_harness_contract.py::test_no_test_function_is_annotated_bool[test_phase5_scale.py] PASSED [ 84%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_build_configure.py] PASSED [ 85%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_cpu_only.py] PASSED [ 86%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_full_model.py] PASSED [ 87%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_fuzz_gguf.py] PASSED [ 88%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_gguf_and_q4.py] PASSED [ 89%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_goldens_gguf.py] PASSED [ 90%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_goldens_gpu.py] PASSED [ 91%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_goldens_quant.py] PASSED [ 92%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_goldens_tokenizer.py] PASSED [ 92%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_harness_contract.py] PASSED [ 93%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_layer.py] PASSED [ 94%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_matmul.py] PASSED [ 95%]
+tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_phase5_scale.py] PASSED [ 96%]
+tests/test_harness_contract.py::test_every_test_module_declares_its_exact_lane PASSED [ 97%]
+tests/test_harness_contract.py::test_cpu_only_module_is_not_marked_gpu PASSED [ 98%]
+tests/test_harness_contract.py::test_no_module_level_matmul_module_import PASSED [ 99%]
+tests/test_harness_contract.py::test_pytest_config_declares_required_markers PASSED [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error - BLOCKER-7A4-1: a nested GGUF array recurses until the stack is exhausted
+XFAIL tests/test_goldens_tokenizer.py::test_add_bos_default_matches_the_reference_tokenizer - 7B: the tokenizer ignores tokenizer.ggml.add_bos_token and always adds a BOS
+XFAIL tests/test_goldens_tokenizer.py::test_special_token_is_encoded_as_its_id - 7B: special tokens in the input are not encoded as their own token IDs
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_contraction_dont] - 7B/7C: the repository's SentencePiece path is a greedy longest match; the reference segments with the unigram scores
+XFAIL tests/test_goldens_tokenizer.py::test_spm_known_mismatches_are_pinned[spm_control_token_parsed] - 7B: a control token in the input is not parsed as its own token ID
+========= 108 passed, 24 deselected, 5 xfailed, 14 warnings in 48.78s ==========
+--- exit code: 0 ---
+
+=== tests/test_cpu_only.py (standard mode) ===
+----------------------------------------------------------------------
+Ran 12 tests in 0.648s
+
+OK
+--- exit code: 0 ---
+
+=== tests/test_cpu_only.py (optimized -O mode) ===
+----------------------------------------------------------------------
+Ran 12 tests in 0.677s
+
+OK
+--- exit code: 0 ---
+
+=== the claims checker ===
+RESULT: PASS - 0 new violation(s), 17 baselined, 0 expired baseline entry(ies), 0 finding(s)
+--- exit code: 0 ---
+
+=== the claims checker canaries ===
+RESULT: PASS - all 12 canaries behaved as required
+--- exit code: 0 ---

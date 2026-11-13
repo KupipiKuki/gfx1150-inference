@@ -767,7 +767,8 @@ void launch_matmul_q4_0_device(
     void* d_C_fp16,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream
 ) {
     if (K % QK4_0 != 0) {
         throw std::invalid_argument("K dimension must be a multiple of 32 for Q4_0 matmul.");
@@ -785,7 +786,7 @@ void launch_matmul_q4_0_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A_fp16),
             static_cast<const block_q4_0*>(d_B_q4),
             static_cast<half*>(d_C_fp16),
@@ -804,7 +805,7 @@ void launch_matmul_q4_0_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A_fp16),
             static_cast<const block_q4_0*>(d_B_q4),
             static_cast<half*>(d_C_fp16),
@@ -885,7 +886,8 @@ void launch_matmul_q8_0_device(
     void* d_C_fp16,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream
 ) {
     if (K % QK8_0 != 0) {
         throw std::invalid_argument("K dimension must be a multiple of 32 for Q8_0 matmul.");
@@ -903,7 +905,7 @@ void launch_matmul_q8_0_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A_fp16),
             static_cast<const block_q8_0*>(d_B_q8),
             static_cast<half*>(d_C_fp16),
@@ -922,7 +924,7 @@ void launch_matmul_q8_0_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A_fp16),
             static_cast<const block_q8_0*>(d_B_q8),
             static_cast<half*>(d_C_fp16),
@@ -1003,7 +1005,8 @@ void launch_matmul_q4_k_device(
     void* d_C_fp16,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream
 ) {
     if (K % QK_K != 0) {
         throw std::invalid_argument("K dimension must be a multiple of 256 for Q4_K matmul.");
@@ -1021,7 +1024,7 @@ void launch_matmul_q4_k_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A_fp16),
             static_cast<const block_q4_k*>(d_B_q4k),
             static_cast<half*>(d_C_fp16),
@@ -1040,7 +1043,7 @@ void launch_matmul_q4_k_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A_fp16),
             static_cast<const block_q4_k*>(d_B_q4k),
             static_cast<half*>(d_C_fp16),
@@ -1121,7 +1124,8 @@ void launch_matmul_q6_k_device(
     void* d_C_fp16,
     int M,
     int N,
-    int K
+    int K,
+    hipStream_t stream
 ) {
     if (K % QK_K != 0) {
         throw std::invalid_argument("K dimension must be a multiple of 256 for Q6_K matmul.");
@@ -1139,7 +1143,7 @@ void launch_matmul_q6_k_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A_fp16),
             static_cast<const block_q6_k*>(d_B_q6k),
             static_cast<half*>(d_C_fp16),
@@ -1158,7 +1162,7 @@ void launch_matmul_q6_k_device(
             gridDim,
             blockDim,
             0,
-            0,
+            stream,
             static_cast<const half*>(d_A_fp16),
             static_cast<const block_q6_k*>(d_B_q6k),
             static_cast<half*>(d_C_fp16),

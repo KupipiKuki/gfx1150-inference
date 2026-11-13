@@ -1,0 +1,43 @@
+# G1 / 7A-7 diffstat
+# Captured: 2026-11-03T00:41:01Z
+# parent:    a873a9ccdb51797e402875dde1e1aa2930b47fb4 (vibe/phase7-220201 @ a873a9c)
+# candidate: 955fa04dc1b5c93c1e266816f1ce61af2b168dcc (the work commit)
+
+=== files changed (name-status) ===
+A	.github/workflows/ci-gpu.yml
+A	PHASE7_7A-7_BRIEF.md
+A	audit/evidence/G1/7A-7/build.log
+A	audit/evidence/G1/7A-7/candidate-sha.txt
+A	audit/evidence/G1/7A-7/configure.log
+A	audit/evidence/G1/7A-7/env.txt
+A	audit/evidence/G1/7A-7/gpu-lane.log
+A	audit/evidence/G1/7A-7/gpu-lane.xml
+A	audit/evidence/G1/7A-7/notes.md
+A	audit/evidence/G1/7A-7/parent-sha.txt
+A	audit/evidence/G1/7A-7/skip-guard.log
+A	audit/evidence/G1/7A-7/validate-workflow.py
+A	audit/evidence/G1/7A-7/workflow.yml
+A	audit/evidence/G1/7A-7/yaml-validation.log
+=== diffstat ===
+ .github/workflows/ci-gpu.yml                | 113 +++++++++++++++++++
+ PHASE7_7A-7_BRIEF.md                        | 110 +++++++++++++++++++
+ audit/evidence/G1/7A-7/build.log            |   9 ++
+ audit/evidence/G1/7A-7/candidate-sha.txt    |   1 +
+ audit/evidence/G1/7A-7/configure.log        |  18 ++++
+ audit/evidence/G1/7A-7/env.txt              |  33 ++++++
+ audit/evidence/G1/7A-7/gpu-lane.log         |  31 ++++++
+ audit/evidence/G1/7A-7/gpu-lane.xml         |   1 +
+ audit/evidence/G1/7A-7/notes.md             | 161 ++++++++++++++++++++++++++++
+ audit/evidence/G1/7A-7/parent-sha.txt       |   1 +
+ audit/evidence/G1/7A-7/skip-guard.log       |  60 +++++++++++
+ audit/evidence/G1/7A-7/validate-workflow.py | 152 ++++++++++++++++++++++++++
+ audit/evidence/G1/7A-7/workflow.yml         | 113 +++++++++++++++++++
+ audit/evidence/G1/7A-7/yaml-validation.log  |  48 +++++++++
+ 14 files changed, 851 insertions(+)
+=== scope check: no src/, tests/, CMake, README, setup.py, pyproject.toml,
+=== MANIFEST.in, scripts/qa/**, the ledger or the baseline changed ===
+  none — confirmed
+
+=== the only functional change: the new workflow ===
+ .github/workflows/ci-gpu.yml | 113 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 113 insertions(+)

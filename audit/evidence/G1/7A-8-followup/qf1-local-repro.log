@@ -1,0 +1,42 @@
+# G1 / 7A-8 follow-up — QF-1 reproduced locally (the exact failure the CI job hit)
+# Captured: 2026-11-02T23:38:52Z
+#
+# The hosted runner's raw log needs an authenticated API call, so the failure
+# text is reproduced here with the CI job's exact prerequisites: a fresh
+# virtualenv with numpy, setuptools, wheel and pybind11 -- and no pytest,
+# which is what the prep commit's workflow installed.
+#
+# The hosted runner failed at exactly this step (see ci-run.log, run
+# 41544981963: step 9 'Run the configure smoke test' -> failure).
+
+=== $ python -m venv /tmp/nopytest2 ===
+=== $ /tmp/nopytest2/bin/python -m pip install 'numpy>=1.24.0' 'setuptools>=64' wheel 'pybind11>=2.12' ===
+  (exactly the prerequisites the prep commit's workflow installed)
+
+=== $ /tmp/nopytest2/bin/python -m pip list ===
+  numpy      2.5.4
+  pybind11   3.1.0
+  setuptools 84.2.1
+  wheel      0.48.0
+  pytest: not installed (actions/setup-python does not ship it)
+
+=== $ /tmp/nopytest2/bin/python -m pytest tests/test_build_configure.py -v ===
+  (the job's smoke-test step, before the fix)
+  /tmp/opencode/nopytest2/bin/python: No module named pytest
+  --- exit code: 1 ---
+
+=== $ /tmp/nopytest2/bin/python -m pip install pytest    # the fix's one word ===
+=== $ /tmp/nopytest2/bin/python -m pytest tests/test_build_configure.py -v ===
+  ============================= test session starts ==============================
+  platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.7.0 -- /tmp/opencode/nopytest2/bin/python
+  cachedir: .pytest_cache
+  rootdir: /tmp/opencode/final8
+  configfile: pyproject.toml
+  collecting ... collected 3 items
+  
+  tests/test_build_configure.py::test_documented_configure_locates_pybind11_without_an_ambient_hint PASSED [ 33%]
+  tests/test_build_configure.py::test_documented_configure_succeeds_with_the_hip_toolchain PASSED [ 66%]
+  tests/test_build_configure.py::test_configure_does_not_leave_a_cache_outside_the_build_directory PASSED [100%]
+  
+  ============================== 3 passed in 6.23s ===============================
+  --- exit code: 0 ---

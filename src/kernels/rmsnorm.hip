@@ -217,14 +217,15 @@ void launch_rmsnorm_fp16_device(
     void* d_out,
     int M,
     int K,
-    float eps
+    float eps,
+    hipStream_t stream
 ) {
     hipLaunchKernelGGL(
         rmsnorm_kernel,
         dim3(M),
         dim3(BLOCK_THREADS),
         0,
-        0,
+        stream,
         static_cast<const half*>(d_x),
         static_cast<const half*>(d_weight),
         static_cast<half*>(d_out),
@@ -265,14 +266,15 @@ void launch_rmsnorm_residual_fp16_device(
     void* d_norm_out,
     int M,
     int K,
-    float eps
+    float eps,
+    hipStream_t stream
 ) {
     hipLaunchKernelGGL(
         rmsnorm_residual_kernel,
         dim3(M),
         dim3(BLOCK_THREADS),
         0,
-        0,
+        stream,
         static_cast<const half*>(d_x),
         static_cast<const half*>(d_residual),
         static_cast<const half*>(d_weight),
@@ -315,7 +317,8 @@ void launch_residual_add_fp16_device(
     const void* d_x,
     const void* d_residual,
     void* d_out,
-    int num_elements
+    int num_elements,
+    hipStream_t stream
 ) {
     const int grids = (num_elements + BLOCK_THREADS - 1) / BLOCK_THREADS;
     hipLaunchKernelGGL(
@@ -323,7 +326,7 @@ void launch_residual_add_fp16_device(
         dim3(grids),
         dim3(BLOCK_THREADS),
         0,
-        0,
+        stream,
         static_cast<const half*>(d_x),
         static_cast<const half*>(d_residual),
         static_cast<half*>(d_out),

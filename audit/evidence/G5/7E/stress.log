@@ -1,0 +1,37 @@
+=== stress.log (7E-3): repeated/varying-M, forced realloc, exception-after-enqueue, many iterations ===
+date: Sat Nov 7 10:52 PM UTC 2026
+
+$ python -m pytest tests/test_stream_topology.py -q
+5 passed
+
+$ python -m pytest tests/test_stream_topology.py -v (per-test)
+tests/test_stream_topology.py::test_7e_correctness_identical_to_parent PASSED
+tests/test_stream_topology.py::test_7e_stress_varying_seq_forced_realloc PASSED
+tests/test_stream_topology.py::test_7e_stress_decode_iter_and_thread PASSED
+tests/test_stream_topology.py::test_7e_exception_after_enqueue_then_reuse PASSED
+tests/test_stream_topology.py::test_7e_trace_reports_one_sync_per_layer PASSED
+
+Coverage description (from the test module docstrings and bodies):
+- test_7e_stress_varying_seq_forced_realloc: prompt sizes
+  [1, 2, 8, 32, 3, 16, 32, 1, 20, 32] through forward_layer_cached force
+  q/kv/ffn activation-buffer growth (1 -> 32) AND shrink/reuse at smaller
+  sizes (grow-only buffers reused), plus prefill/decode interleavings; the
+  growth path drains both streams before every hipFree.
+- test_7e_stress_decode_iter_and_thread: many decode iterations through the
+  engine plus one-at-a-time execution from non-main threads (the static GPU
+  workspaces are process-global and mutex-guarded; sequential threads
+  exercise per-thread stream semantics — the PTDS build run below routes the
+  implicit stream-0 calls through the calling thread's default stream).
+- test_7e_exception_after_enqueue_then_reuse: an invalid weight type thrown
+  after the input copy, attention-norm copy and several projections were
+  enqueued raises; the layer RAII guard drains both streams and unregisters
+  the pinned slab-before unwinding; a subsequent valid call reproduces the
+  pre-exception output bit-exactly (no workspace corruption / use-after-free).
+- test_7e_trace_reports_one_sync_per_layer: traced subprocess reports one
+  [7E-trace] summary per layer call, each with boundary_syncs=1.
+
+Additional stress evidence: qaqc-probes/ptds_probe.py (non-main-thread
+sequential engine loops, PTDS build) and the full GPU lane
+(`pytest -m gpu -q`: 39 passed), which includes the pre-existing
+test_phase5_scale/test_layer/test_full_model workloads running through the
+new event graph.

@@ -1,0 +1,85 @@
+# G1 / 7A-8 gate commands — every command run, with exit codes
+# Captured: 2026-11-02T22:51:14Z  HEAD: 9c049129e2f39ac2022442416d8fcb0feb7b465f
+
+### [1] $ git status --porcelain
+?? audit/evidence/G1/7A-8/env.txt
+--- exit code: 0 ---
+
+### [2] $ python3 -m pytest -m not gpu -q
+...........................................                              [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+43 passed, 18 deselected, 1 warning in 4.86s
+--- exit code: 0 ---
+
+### [3] $ env PYTHONPATH=build:src python3 -m pytest -m gpu -q
+..................                                                       [100%]
+18 passed, 43 deselected in 1.74s
+--- exit code: 0 ---
+
+### [4] $ python3 tests/test_cpu_only.py
+test_c10_duplicate_tensor_and_zero_dim_rejection (__main__.TestCPUOnlySuite.test_c10_duplicate_tensor_and_zero_dim_rejection)
+C-10: Reject duplicate tensor names, zero-sized dimensions, and unmapped GGML types. ... ok
+test_c1_r1_load_time_tensor_validation_and_close_safety (__main__.TestCPUOnlySuite.test_c1_r1_load_time_tensor_validation_and_close_safety)
+C-1 & R-1: WeightStreamer validates supported tensor types and closes file even with live view. ... ok
+test_p8_interleaved_layer_byte_spans (__main__.TestCPUOnlySuite.test_p8_interleaved_layer_byte_spans)
+P-8 / A-3: get_layer_byte_spans splits around interleaved non-layer tensors. ... ok
+test_s1_truncated_gguf_raises_value_error (__main__.TestCPUOnlySuite.test_s1_truncated_gguf_raises_value_error)
+S-1 / A-5: Truncated GGUF payload raises ValueError at parse time (no SIGBUS). ... ok
+test_s2_malformed_header_and_alignment_caps (__main__.TestCPUOnlySuite.test_s2_malformed_header_and_alignment_caps)
+S-2: Excessive kv_count, tensor_count, n_dims, and bad alignment raise ValueError. ... ok
+test_v1_py_compile_all_sources (__main__.TestCPUOnlySuite.test_v1_py_compile_all_sources)
+V-1: Verify all Python files in src/, tests/, and setup.py compile cleanly. ... ok
+test_v3_actionable_import_error_without_extension (__main__.TestCPUOnlySuite.test_v3_actionable_import_error_without_extension)
+V-3 / G-1: GPU modules raise actionable ImportError when matmul_module is absent. ... ok
+test_v4_gguf_roundtrip_and_d3_memoryview_ownership (__main__.TestCPUOnlySuite.test_v4_gguf_roundtrip_and_d3_memoryview_ownership)
+V-4 & D-3: GGUF v3 writer->parser round-trip and caller memoryview preservation. ... ok
+test_v5_cpu_quant_dequant_roundtrips (__main__.TestCPUOnlySuite.test_v5_cpu_quant_dequant_roundtrips)
+V-5 & C-1: Q4_0, Q8_0, Q4_K, and Q6_K CPU quantize -> dequantize accuracy bounds. ... ok
+test_v6_p4_p5_c2_tokenizer_and_vectorized_embeddings (__main__.TestCPUOnlySuite.test_v6_p4_p5_c2_tokenizer_and_vectorized_embeddings)
+V-6, P-4, P-5 & C-2: SentencePiece ('▁'), GPT-2 ('Ġ') BPE merges, unmappable error, and Q4_K/Q6_K embed_tokens. ... ok
+test_v7_d5_s3_d4_sampler_and_kv_mmap_safety (__main__.TestCPUOnlySuite.test_v7_d5_s3_d4_sampler_and_kv_mmap_safety)
+V-7, D-5, S-3 & D-4: Sampler edge cases and safe KVCacheManager mmap lifecycle. ... /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+  result = method()
+ok
+test_v8_b1_pyproject_and_sdist_contents (__main__.TestCPUOnlySuite.test_v8_b1_pyproject_and_sdist_contents)
+V-8, D-1 & B-1: Verify pyproject.toml, MANIFEST.in, and sdist archive completeness. ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.438s
+
+OK
+--- exit code: 0 ---
+
+### [5] $ env PYTHONPATH=build:src python3 -m pytest -q
+.............................................................            [100%]
+=============================== warnings summary ===============================
+tests/test_cpu_only.py::TestCPUOnlySuite::test_v7_d5_s3_d4_sampler_and_kv_mmap_safety
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/unittest/case.py:615: RuntimeWarning: KVCacheManager.close() raised during finalization: simulated driver cleanup error
+    result = method()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+61 passed, 1 warning in 6.20s
+--- exit code: 0 ---
+
+### [6] $ python3 -m pytest tests/test_build_configure.py -v
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.1.1, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 3 items
+
+tests/test_build_configure.py::test_documented_configure_locates_pybind11_without_an_ambient_hint PASSED [ 33%]
+tests/test_build_configure.py::test_documented_configure_succeeds_with_the_hip_toolchain PASSED [ 66%]
+tests/test_build_configure.py::test_configure_does_not_leave_a_cache_outside_the_build_directory PASSED [100%]
+
+============================== 3 passed in 4.35s ===============================
+--- exit code: 0 ---
+

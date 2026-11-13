@@ -6,13 +6,28 @@ Phase 3 Test Suite:
 3. HIP `gqa_attention` (Grouped-Query Attention with online softmax) accuracy (causal prefill & KV-cached decode)
 4. HIP `swiglu` activation kernel accuracy
 5. End-to-end `TransformerLayer` forward pass streamed from a GGUF v3 file (`Q4_0` weights + `madvise` eviction)
+
+Phase 7A-1: converted to a pytest module.
+
+- Every ``test_*`` function asserts and returns ``None``. The previous version
+  returned ``True``/``False``, which pytest ignores: such a test could never fail
+  (audit AUD-2).
+- The ``src.layer`` import moved out of module scope into the test bodies:
+  ``src/layer.py`` imports ``matmul_module`` at module scope, so importing it
+  at module level raised a collection error on a CPU-only host (audit AUD-2).
+- The pure-NumPy reference implementations (``ref_*``) stay at module scope;
+  ``tests/test_full_model.py`` imports them from here.
+- The module is marked ``gpu``; ``python3 tests/test_layer.py`` still works as a
+  standalone script.
 """
 
 import math
 import os
 import sys
+import inspect
 import tempfile
 import numpy as np
+import pytest
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _SRC_DIR = os.path.join(_ROOT_DIR, "src")
@@ -30,8 +45,9 @@ from gguf_parser import (
     write_synthetic_gguf,
 )
 from weight_loader import WeightStreamer
-from layer import LlamaLayerConfig, TransformerLayer
-import matmul_module
+
+# Every test in this module belongs to the hardware lane.
+pytestmark = pytest.mark.gpu
 
 
 def ref_rmsnorm(x: np.ndarray, weight: np.ndarray, eps: float = 1e-5) -> np.ndarray:
@@ -112,7 +128,8 @@ def ref_swiglu(gate: np.ndarray, up: np.ndarray) -> np.ndarray:
     return (silu * u).astype(np.float16)
 
 
-def test_rmsnorm_kernel() -> bool:
+def test_rmsnorm_kernel(matmul_module) -> None:
+    """HIP ``rmsnorm`` must match the CPU FP32 reference."""
     print("\n=== 1. Testing HIP `rmsnorm` Kernel ===")
     rng = np.random.default_rng(10)
     for M, K in [(1, 4096), (16, 2048), (7, 1024)]:
@@ -124,14 +141,12 @@ def test_rmsnorm_kernel() -> bool:
         matmul_module.rmsnorm(x, w, out_gpu, M, K, 1e-5)
         max_err = float(np.max(np.abs(out_gpu.astype(np.float32) - out_ref.astype(np.float32))))
         print(f"  rmsnorm ({M}x{K}): max_err={max_err:.6f}")
-        if max_err >= 2e-3:
-            print("❌ FAIL")
-            return False
+        assert max_err < 2e-3, f"rmsnorm ({M}x{K}) max_err={max_err:.6f} exceeds 2e-3"
     print("✅ PASS: HIP rmsnorm matches CPU FP32 reference")
-    return True
 
 
-def test_rope_kernel() -> bool:
+def test_rope_kernel(matmul_module) -> None:
+    """HIP ``rope`` must match the CPU FP32 reference for both rotation styles."""
     print("\n=== 2. Testing HIP `rope` Kernel ===")
     rng = np.random.default_rng(20)
     for neox in (False, True):
@@ -145,14 +160,15 @@ def test_rope_kernel() -> bool:
             max_err = float(np.max(np.abs(out_gpu.astype(np.float32) - out_ref.astype(np.float32))))
             style_name = "NeoX" if neox else "GGUF-Llama"
             print(f"  rope ({style_name}, seq={seq_len}, offset={pos_offset}): max_err={max_err:.6f}")
-            if max_err >= 2e-3:
-                print("❌ FAIL")
-                return False
+            assert max_err < 2e-3, (
+                f"rope ({style_name}, seq={seq_len}, offset={pos_offset}) "
+                f"max_err={max_err:.6f} exceeds 2e-3"
+            )
     print("✅ PASS: HIP rope matches CPU FP32 reference")
-    return True
 
 
-def test_gqa_attention_kernel() -> bool:
+def test_gqa_attention_kernel(matmul_module) -> None:
+    """HIP ``gqa_attention`` must match the CPU online-softmax reference."""
     print("\n=== 3. Testing HIP `gqa_attention` Kernel (GQA 4:1, Prefill & Decode) ===")
     rng = np.random.default_rng(30)
     num_heads, num_kv_heads, head_dim = 16, 4, 64
@@ -176,15 +192,15 @@ def test_gqa_attention_kernel() -> bool:
         max_err = float(np.max(np.abs(out_gpu.astype(np.float32) - out_ref.astype(np.float32))))
         mode = "Prefill" if q_len > 1 else "KV-Decode"
         print(f"  gqa_attention ({mode}, q={q_len}, kv={kv_len}): max_err={max_err:.6f}")
-        if max_err >= 2e-3:
-            print("❌ FAIL")
-            return False
+        assert max_err < 2e-3, (
+            f"gqa_attention ({mode}, q={q_len}, kv={kv_len}) max_err={max_err:.6f} exceeds 2e-3"
+        )
 
     print("✅ PASS: HIP gqa_attention matches CPU online softmax reference")
-    return True
 
 
-def test_swiglu_kernel() -> bool:
+def test_swiglu_kernel(matmul_module) -> None:
+    """HIP ``swiglu`` must match the CPU FP32 reference."""
     print("\n=== 4. Testing HIP `swiglu` Kernel ===")
     rng = np.random.default_rng(40)
     n = 16 * 1024
@@ -196,14 +212,16 @@ def test_swiglu_kernel() -> bool:
     matmul_module.swiglu(gate, up, out_gpu, n)
     max_err = float(np.max(np.abs(out_gpu.astype(np.float32) - out_ref.astype(np.float32))))
     print(f"  swiglu ({n} elements): max_err={max_err:.6f}")
-    if max_err < 2e-3:
-        print("✅ PASS: HIP swiglu matches CPU reference")
-        return True
-    print("❌ FAIL")
-    return False
+    assert max_err < 2e-3, f"swiglu ({n} elements) max_err={max_err:.6f} exceeds 2e-3"
+    print("✅ PASS: HIP swiglu matches CPU reference")
 
 
-def test_end_to_end_transformer_layer() -> bool:
+def test_end_to_end_transformer_layer(matmul_module) -> None:
+    """End-to-end streamed ``TransformerLayer`` must match the CPU reference."""
+    # Imported here (not at module scope): src/layer.py imports matmul_module at
+    # module scope and would break collection on a CPU-only host.
+    from layer import LlamaLayerConfig, TransformerLayer
+
     print("\n=== 5. Testing End-to-End Streamed `TransformerLayer` (Prefill + KV Decode) ===")
     rng = np.random.default_rng(50)
 
@@ -309,11 +327,9 @@ def test_end_to_end_transformer_layer() -> bool:
         print(f"  Streamed Layer Prefill (4 tokens) max_err: {err_prefill:.6f}")
         print(f"  Streamed Layer Decode  (1 token)  max_err: {err_decode:.6f}")
 
-        if err_prefill < 5e-3 and err_decode < 5e-3:
-            print("✅ PASS: End-to-end streamed TransformerLayer matches CPU reference for both prefill and decode")
-            return True
-        print("❌ FAIL")
-        return False
+        assert err_prefill < 5e-3, f"Streamed layer prefill max_err={err_prefill:.6f} exceeds 5e-3"
+        assert err_decode < 5e-3, f"Streamed layer decode max_err={err_decode:.6f} exceeds 5e-3"
+        print("✅ PASS: End-to-end streamed TransformerLayer matches CPU reference for both prefill and decode")
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
@@ -324,20 +340,40 @@ def main() -> int:
     print("GFX1150 Inference - Phase 3: Llama Transformer Layer Kernel Tests")
     print("=" * 68)
 
-    ok1 = test_rmsnorm_kernel()
-    ok2 = test_rope_kernel()
-    ok3 = test_gqa_attention_kernel()
-    ok4 = test_swiglu_kernel()
-    ok5 = test_end_to_end_transformer_layer()
+    try:
+        import matmul_module
+    except ImportError as exc:
+        print(f"❌ ERROR: matmul_module not available ({exc}). "
+              "Run 'cmake --build build' first.")
+        return 1
+
+    checks = [
+        ("rmsnorm kernel", test_rmsnorm_kernel),
+        ("rope kernel", test_rope_kernel),
+        ("gqa_attention kernel", test_gqa_attention_kernel),
+        ("swiglu kernel", test_swiglu_kernel),
+        ("end-to-end transformer layer", test_end_to_end_transformer_layer),
+    ]
+
+    failures = []
+    for label, check in checks:
+        try:
+            # Only the extension-dependent checks need the module passed in.
+            if "matmul_module" in inspect.signature(check).parameters:
+                check(matmul_module)
+            else:
+                check()
+        except AssertionError as exc:
+            print(f"❌ FAIL: {label}: {exc}")
+            failures.append(label)
 
     print("\n" + "=" * 68)
-    if ok1 and ok2 and ok3 and ok4 and ok5:
-        print("🎉 All Phase 3 tests passed!")
-        return 0
-    print("⚠️  Some Phase 3 tests failed.")
-    return 1
+    if failures:
+        print(f"⚠️  {len(failures)} Phase 3 test(s) failed: {', '.join(failures)}")
+        return 1
+    print("🎉 All Phase 3 tests passed!")
+    return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

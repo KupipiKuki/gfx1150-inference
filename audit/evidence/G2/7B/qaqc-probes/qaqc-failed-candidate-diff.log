@@ -1,0 +1,17 @@
+DIFF 'the' got [259, 260] want [265]
+DIFF 'and' got [261, 264] want [269]
+DIFF 'time' got [259, 369] want [378]
+DIFF 'said' got [296, 292] want [336]
+DIFF 'want' got [273, 361] want [391]
+differential corpus: 75/310 mismatches on /tmp/qaqc2-failed
+DIFF probe 'a<s>b' got [412, 1, 430] want [261, 1, 268]
+DIFF probe 'hi<s>there' got [415, 417, 1, 413, 260, 276] want [270, 417, 1, 383]
+DIFF probe ' <s>' got [410, 1] want [410, 410, 1]
+DIFF probe '<s>b' got [1, 430] want [1, 268]
+DIFF probe 'hello<s>there' got [260, 306, 414, 1, 413, 260, 276] want [281, 306, 414, 1, 383]
+DIFF probe 'the' got [259, 260] want [265]
+DIFF probe 'and' got [261, 264] want [269]
+DIFF probe 'time' got [259, 369] want [378]
+DIFF probe 'the quick brown fox jumps over the lazy dog' got [259, 260, 410, 456, 425, 417, 340, 268, 420, 327, 416, 272, 414, 444, 410, 449, 425, 423, 427, 419, 334, 330, 259, 260, 278, 412, 451, 422, 400, 428] want [265, 410, 456, 425, 417, 340, 268, 420, 327, 416, 272, 414, 444, 410, 449, 425, 423, 427, 419, 334, 330, 265, 278, 412, 451, 422, 400, 428]
+DIFF probe 'Once upon a time there was a little girl named Lily' got [321, 331, 350, 289, 261, 259, 369, 259, 260, 276, 286, 261, 376, 298, 315, 421, 297, 314, 266, 317] want [403, 407, 261, 378, 383, 286, 261, 376, 298, 315, 421, 395, 317]
+auditor probe cases: 10/11 mismatches on /tmp/qaqc2-failed

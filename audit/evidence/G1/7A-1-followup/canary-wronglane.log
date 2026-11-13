@@ -1,0 +1,41 @@
+# G1 / 7A-1 follow-up — CANARY 1: wrong-lane module (C-7A1-1)
+# Captured: 2026-11-02T01:03:23Z
+#
+# A module marked 'pytestmark = pytest.mark.cpu' whose test requests the
+# matmul_module fixture is a GPU test in the wrong lane — the exact defect
+# AUD-2 was about, and the gap AUD-7A1-1 recorded.
+# The strengthened meta-test must REJECT it.
+
+--- canary file: tests/test_audit_wronglane.py ---
+import pytest
+
+pytestmark = pytest.mark.cpu
+
+
+def test_wrong_lane_canary(matmul_module) -> None:
+    assert matmul_module is not None
+
+=== RED — OLD code (408fcab, before the follow-up): the check PASSES (defect) ===
+--- cd $RED && pytest tests/test_harness_contract.py::test_gpu_lane_is_marked_and_cpu_lane_is_not -q ---
+.                                                                        [100%]
+1 passed in 0.16s
+exit: 0
+  EXPECTED (defect): 1 passed, exit 0 — the old check accepts any marker.
+
+=== GREEN — NEW code (ea8e84a): the check FAILS (fixed) ===
+--- pytest tests/test_harness_contract.py::test_every_test_module_declares_its_exact_lane -q ---
+E       AssertionError: Every test module must declare exactly its expected lane:
+E           test_audit_wronglane.py: not classified — add it to EXPECTED_LANES with its lane
+E       assert not ['test_audit_wronglane.py: not classified — add it to EXPECTED_LANES with its lane']
+
+tests/test_harness_contract.py:370: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_harness_contract.py::test_every_test_module_declares_its_exact_lane
+1 failed in 0.19s
+exit: 1
+  EXPECTED: 1 failed, exit != 0 — the wrong lane is rejected.
+
+=== GREEN — remove the canary, the suite is green again ===
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+37 passed, 18 deselected, 1 warning in 0.81s
+exit: 0

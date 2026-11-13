@@ -1,0 +1,4930 @@
+{
+  "schema": "gfx1150-inference/tokenizer-differential/1",
+  "id": "stories260k",
+  "reference": {
+    "project": "ggml-org/llama.cpp",
+    "tool": "llama-tokenize",
+    "commit": "149f5641b931aaf33697d70f9abc90c3e5300247",
+    "command": "llama-tokenize -m stories260K.gguf -p <prompt> --ids [--no-bos] [--no-parse-special]"
+  },
+  "vocab": {
+    "id": "stories260k",
+    "upstream": "ggml-org/models",
+    "upstream_revision": "ggml-org/models@main:tinyllamas/stories260K.gguf",
+    "source_gguf_sha256": "270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d",
+    "fixture_sha256": "8577a797fcaa086c9386894e7bcb78cf6aed74541e9b86bb9e155d9ba7ab2002",
+    "n_tokens": 512,
+    "add_bos_token_metadata": "absent"
+  },
+  "corpus": {
+    "seed": 20261106,
+    "n_common_words": 229,
+    "n_sentences": 45,
+    "n_random_piece_concatenations": 40,
+    "n_cases": 310
+  },
+  "cases": [
+    {
+      "id": "diff_0000",
+      "prompt": "the",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        265
+      ]
+    },
+    {
+      "id": "diff_0001",
+      "prompt": "and",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        269
+      ]
+    },
+    {
+      "id": "diff_0002",
+      "prompt": "time",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        378
+      ]
+    },
+    {
+      "id": "diff_0003",
+      "prompt": "said",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        336
+      ]
+    },
+    {
+      "id": "diff_0004",
+      "prompt": "want",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        391
+      ]
+    },
+    {
+      "id": "diff_0005",
+      "prompt": "day",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        328
+      ]
+    },
+    {
+      "id": "diff_0006",
+      "prompt": "his",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        345
+      ]
+    },
+    {
+      "id": "diff_0007",
+      "prompt": "her",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        311
+      ]
+    },
+    {
+      "id": "diff_0008",
+      "prompt": "upon",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        407
+      ]
+    },
+    {
+      "id": "diff_0009",
+      "prompt": "named",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        395
+      ]
+    },
+    {
+      "id": "diff_0010",
+      "prompt": "she",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        358
+      ]
+    },
+    {
+      "id": "diff_0011",
+      "prompt": "big",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        370
+      ]
+    },
+    {
+      "id": "diff_0012",
+      "prompt": "mom",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        357
+      ]
+    },
+    {
+      "id": "diff_0013",
+      "prompt": "water",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        273,
+        413,
+        285
+      ]
+    },
+    {
+      "id": "diff_0014",
+      "prompt": "a",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261
+      ]
+    },
+    {
+      "id": "diff_0015",
+      "prompt": "I",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        359
+      ]
+    },
+    {
+      "id": "diff_0016",
+      "prompt": "was",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        286
+      ]
+    },
+    {
+      "id": "diff_0017",
+      "prompt": "is",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        293
+      ]
+    },
+    {
+      "id": "diff_0018",
+      "prompt": "it",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        312
+      ]
+    },
+    {
+      "id": "diff_0019",
+      "prompt": "in",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        322
+      ]
+    },
+    {
+      "id": "diff_0020",
+      "prompt": "on",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        353
+      ]
+    },
+    {
+      "id": "diff_0021",
+      "prompt": "at",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        413
+      ]
+    },
+    {
+      "id": "diff_0022",
+      "prompt": "to",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        267
+      ]
+    },
+    {
+      "id": "diff_0023",
+      "prompt": "of",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        373
+      ]
+    },
+    {
+      "id": "diff_0024",
+      "prompt": "for",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        387
+      ]
+    },
+    {
+      "id": "diff_0025",
+      "prompt": "with",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        335
+      ]
+    },
+    {
+      "id": "diff_0026",
+      "prompt": "as",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        419
+      ]
+    },
+    {
+      "id": "diff_0027",
+      "prompt": "that",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        351
+      ]
+    },
+    {
+      "id": "diff_0028",
+      "prompt": "this",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        308,
+        293
+      ]
+    },
+    {
+      "id": "diff_0029",
+      "prompt": "he",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        281
+      ]
+    },
+    {
+      "id": "diff_0030",
+      "prompt": "be",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        329
+      ]
+    },
+    {
+      "id": "diff_0031",
+      "prompt": "have",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        300,
+        360
+      ]
+    },
+    {
+      "id": "diff_0032",
+      "prompt": "do",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        400
+      ]
+    },
+    {
+      "id": "diff_0033",
+      "prompt": "not",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        297,
+        309
+      ]
+    },
+    {
+      "id": "diff_0034",
+      "prompt": "but",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        398
+      ]
+    },
+    {
+      "id": "diff_0035",
+      "prompt": "so",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        384
+      ]
+    },
+    {
+      "id": "diff_0036",
+      "prompt": "if",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        417,
+        431
+      ]
+    },
+    {
+      "id": "diff_0037",
+      "prompt": "then",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        265,
+        416
+      ]
+    },
+    {
+      "id": "diff_0038",
+      "prompt": "than",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        308,
+        303
+      ]
+    },
+    {
+      "id": "diff_0039",
+      "prompt": "when",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        260,
+        416
+      ]
+    },
+    {
+      "id": "diff_0040",
+      "prompt": "what",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        415,
+        294
+      ]
+    },
+    {
+      "id": "diff_0041",
+      "prompt": "who",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        415,
+        414
+      ]
+    },
+    {
+      "id": "diff_0042",
+      "prompt": "how",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        270,
+        327
+      ]
+    },
+    {
+      "id": "diff_0043",
+      "prompt": "all",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        306
+      ]
+    },
+    {
+      "id": "diff_0044",
+      "prompt": "any",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        416,
+        422
+      ]
+    },
+    {
+      "id": "diff_0045",
+      "prompt": "can",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        303
+      ]
+    },
+    {
+      "id": "diff_0046",
+      "prompt": "had",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        381
+      ]
+    },
+    {
+      "id": "diff_0047",
+      "prompt": "out",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        408
+      ]
+    },
+    {
+      "id": "diff_0048",
+      "prompt": "up",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        350
+      ]
+    },
+    {
+      "id": "diff_0049",
+      "prompt": "down",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        279,
+        327,
+        416
+      ]
+    },
+    {
+      "id": "diff_0050",
+      "prompt": "about",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        430,
+        408
+      ]
+    },
+    {
+      "id": "diff_0051",
+      "prompt": "into",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        322,
+        413,
+        414
+      ]
+    },
+    {
+      "id": "diff_0052",
+      "prompt": "over",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        334,
+        330
+      ]
+    },
+    {
+      "id": "diff_0053",
+      "prompt": "after",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        431,
+        413,
+        285
+      ]
+    },
+    {
+      "id": "diff_0054",
+      "prompt": "before",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        329,
+        431,
+        414,
+        276
+      ]
+    },
+    {
+      "id": "diff_0055",
+      "prompt": "here",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        281,
+        276
+      ]
+    },
+    {
+      "id": "diff_0056",
+      "prompt": "there",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        383
+      ]
+    },
+    {
+      "id": "diff_0057",
+      "prompt": "now",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        297,
+        327
+      ]
+    },
+    {
+      "id": "diff_0058",
+      "prompt": "just",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        449,
+        425,
+        356
+      ]
+    },
+    {
+      "id": "diff_0059",
+      "prompt": "also",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        421,
+        419,
+        414
+      ]
+    },
+    {
+      "id": "diff_0060",
+      "prompt": "very",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        399
+      ]
+    },
+    {
+      "id": "diff_0061",
+      "prompt": "really",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        276,
+        388,
+        422
+      ]
+    },
+    {
+      "id": "diff_0062",
+      "prompt": "little",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        376
+      ]
+    },
+    {
+      "id": "diff_0063",
+      "prompt": "girl",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        315,
+        421
+      ]
+    },
+    {
+      "id": "diff_0064",
+      "prompt": "boy",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        414,
+        422
+      ]
+    },
+    {
+      "id": "diff_0065",
+      "prompt": "man",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        303
+      ]
+    },
+    {
+      "id": "diff_0066",
+      "prompt": "woman",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        287,
+        303
+      ]
+    },
+    {
+      "id": "diff_0067",
+      "prompt": "child",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        415,
+        290,
+        418
+      ]
+    },
+    {
+      "id": "diff_0068",
+      "prompt": "people",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        282,
+        411,
+        414,
+        427,
+        305
+      ]
+    },
+    {
+      "id": "diff_0069",
+      "prompt": "house",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        270,
+        277,
+        372
+      ]
+    },
+    {
+      "id": "diff_0070",
+      "prompt": "home",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        270,
+        287,
+        411
+      ]
+    },
+    {
+      "id": "diff_0071",
+      "prompt": "school",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        402,
+        347,
+        421
+      ]
+    },
+    {
+      "id": "diff_0072",
+      "prompt": "book",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        347,
+        433
+      ]
+    },
+    {
+      "id": "diff_0073",
+      "prompt": "story",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        349,
+        304,
+        422
+      ]
+    },
+    {
+      "id": "diff_0074",
+      "prompt": "tree",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        276,
+        411
+      ]
+    },
+    {
+      "id": "diff_0075",
+      "prompt": "dog",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        400,
+        428
+      ]
+    },
+    {
+      "id": "diff_0076",
+      "prompt": "cat",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        294
+      ]
+    },
+    {
+      "id": "diff_0077",
+      "prompt": "bird",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        315,
+        418
+      ]
+    },
+    {
+      "id": "diff_0078",
+      "prompt": "sun",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        379
+      ]
+    },
+    {
+      "id": "diff_0079",
+      "prompt": "moon",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        414,
+        289
+      ]
+    },
+    {
+      "id": "diff_0080",
+      "prompt": "sky",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        433,
+        422
+      ]
+    },
+    {
+      "id": "diff_0081",
+      "prompt": "rain",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        352,
+        412,
+        271
+      ]
+    },
+    {
+      "id": "diff_0082",
+      "prompt": "snow",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        416,
+        327
+      ]
+    },
+    {
+      "id": "diff_0083",
+      "prompt": "food",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        272,
+        347,
+        418
+      ]
+    },
+    {
+      "id": "diff_0084",
+      "prompt": "hand",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        300,
+        264
+      ]
+    },
+    {
+      "id": "diff_0085",
+      "prompt": "eye",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        344,
+        422,
+        411
+      ]
+    },
+    {
+      "id": "diff_0086",
+      "prompt": "way",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        273,
+        422
+      ]
+    },
+    {
+      "id": "diff_0087",
+      "prompt": "word",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        304,
+        418
+      ]
+    },
+    {
+      "id": "diff_0088",
+      "prompt": "thing",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        308,
+        299
+      ]
+    },
+    {
+      "id": "diff_0089",
+      "prompt": "world",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        304,
+        341
+      ]
+    },
+    {
+      "id": "diff_0090",
+      "prompt": "life",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        397,
+        431,
+        411
+      ]
+    },
+    {
+      "id": "diff_0091",
+      "prompt": "year",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        348,
+        411,
+        295
+      ]
+    },
+    {
+      "id": "diff_0092",
+      "prompt": "week",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        382,
+        411,
+        433
+      ]
+    },
+    {
+      "id": "diff_0093",
+      "prompt": "today",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        267,
+        418,
+        283
+      ]
+    },
+    {
+      "id": "diff_0094",
+      "prompt": "tomorrow",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        267,
+        423,
+        304,
+        420,
+        327
+      ]
+    },
+    {
+      "id": "diff_0095",
+      "prompt": "yesterday",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        348,
+        411,
+        356,
+        285,
+        418,
+        283
+      ]
+    },
+    {
+      "id": "diff_0096",
+      "prompt": "morning",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        304,
+        416,
+        299
+      ]
+    },
+    {
+      "id": "diff_0097",
+      "prompt": "night",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        297,
+        333,
+        415,
+        413
+      ]
+    },
+    {
+      "id": "diff_0098",
+      "prompt": "happy",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        393
+      ]
+    },
+    {
+      "id": "diff_0099",
+      "prompt": "sad",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        296,
+        418
+      ]
+    },
+    {
+      "id": "diff_0100",
+      "prompt": "good",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        347,
+        418
+      ]
+    },
+    {
+      "id": "diff_0101",
+      "prompt": "bad",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        380
+      ]
+    },
+    {
+      "id": "diff_0102",
+      "prompt": "new",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        404,
+        424
+      ]
+    },
+    {
+      "id": "diff_0103",
+      "prompt": "old",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        334,
+        341
+      ]
+    },
+    {
+      "id": "diff_0104",
+      "prompt": "young",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        364,
+        416,
+        428
+      ]
+    },
+    {
+      "id": "diff_0105",
+      "prompt": "long",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        289,
+        428
+      ]
+    },
+    {
+      "id": "diff_0106",
+      "prompt": "short",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        415,
+        304,
+        413
+      ]
+    },
+    {
+      "id": "diff_0107",
+      "prompt": "high",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        270,
+        333,
+        415
+      ]
+    },
+    {
+      "id": "diff_0108",
+      "prompt": "low",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        327
+      ]
+    },
+    {
+      "id": "diff_0109",
+      "prompt": "hot",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        270,
+        309
+      ]
+    },
+    {
+      "id": "diff_0110",
+      "prompt": "cold",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        414,
+        341
+      ]
+    },
+    {
+      "id": "diff_0111",
+      "prompt": "open",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        334,
+        427,
+        302
+      ]
+    },
+    {
+      "id": "diff_0112",
+      "prompt": "close",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        421,
+        414,
+        372
+      ]
+    },
+    {
+      "id": "diff_0113",
+      "prompt": "run",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        352,
+        379
+      ]
+    },
+    {
+      "id": "diff_0114",
+      "prompt": "walk",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        273,
+        421,
+        433
+      ]
+    },
+    {
+      "id": "diff_0115",
+      "prompt": "sit",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        275
+      ]
+    },
+    {
+      "id": "diff_0116",
+      "prompt": "stand",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        349,
+        412,
+        264
+      ]
+    },
+    {
+      "id": "diff_0117",
+      "prompt": "see",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        411,
+        411
+      ]
+    },
+    {
+      "id": "diff_0118",
+      "prompt": "look",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        347,
+        433
+      ]
+    },
+    {
+      "id": "diff_0119",
+      "prompt": "go",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        414
+      ]
+    },
+    {
+      "id": "diff_0120",
+      "prompt": "come",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        287,
+        411
+      ]
+    },
+    {
+      "id": "diff_0121",
+      "prompt": "get",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        316
+      ]
+    },
+    {
+      "id": "diff_0122",
+      "prompt": "got",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        309
+      ]
+    },
+    {
+      "id": "diff_0123",
+      "prompt": "make",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        412,
+        354
+      ]
+    },
+    {
+      "id": "diff_0124",
+      "prompt": "made",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        380,
+        411
+      ]
+    },
+    {
+      "id": "diff_0125",
+      "prompt": "take",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        412,
+        354
+      ]
+    },
+    {
+      "id": "diff_0126",
+      "prompt": "know",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        409,
+        416,
+        327
+      ]
+    },
+    {
+      "id": "diff_0127",
+      "prompt": "think",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        308,
+        271,
+        433
+      ]
+    },
+    {
+      "id": "diff_0128",
+      "prompt": "say",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        283
+      ]
+    },
+    {
+      "id": "diff_0129",
+      "prompt": "tell",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        411,
+        306
+      ]
+    },
+    {
+      "id": "diff_0130",
+      "prompt": "ask",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        419,
+        433
+      ]
+    },
+    {
+      "id": "diff_0131",
+      "prompt": "answer",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        416,
+        419,
+        424,
+        285
+      ]
+    },
+    {
+      "id": "diff_0132",
+      "prompt": "play",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        337
+      ]
+    },
+    {
+      "id": "diff_0133",
+      "prompt": "read",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        276,
+        380
+      ]
+    },
+    {
+      "id": "diff_0134",
+      "prompt": "write",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        420,
+        275,
+        411
+      ]
+    },
+    {
+      "id": "diff_0135",
+      "prompt": "eat",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        344,
+        294
+      ]
+    },
+    {
+      "id": "diff_0136",
+      "prompt": "drink",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        279,
+        420,
+        271,
+        433
+      ]
+    },
+    {
+      "id": "diff_0137",
+      "prompt": "sleep",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        305,
+        411,
+        427
+      ]
+    },
+    {
+      "id": "diff_0138",
+      "prompt": "wake",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        273,
+        354
+      ]
+    },
+    {
+      "id": "diff_0139",
+      "prompt": "love",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        401,
+        360
+      ]
+    },
+    {
+      "id": "diff_0140",
+      "prompt": "like",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        397,
+        354
+      ]
+    },
+    {
+      "id": "diff_0141",
+      "prompt": "help",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        281,
+        421,
+        427
+      ]
+    },
+    {
+      "id": "diff_0142",
+      "prompt": "try",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        420,
+        422
+      ]
+    },
+    {
+      "id": "diff_0143",
+      "prompt": "use",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        318,
+        372
+      ]
+    },
+    {
+      "id": "diff_0144",
+      "prompt": "find",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        272,
+        417,
+        264
+      ]
+    },
+    {
+      "id": "diff_0145",
+      "prompt": "give",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        417,
+        360
+      ]
+    },
+    {
+      "id": "diff_0146",
+      "prompt": "put",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        282,
+        323
+      ]
+    },
+    {
+      "id": "diff_0147",
+      "prompt": "keep",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        354,
+        411,
+        427
+      ]
+    },
+    {
+      "id": "diff_0148",
+      "prompt": "let",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        316
+      ]
+    },
+    {
+      "id": "diff_0149",
+      "prompt": "begin",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        329,
+        428,
+        271
+      ]
+    },
+    {
+      "id": "diff_0150",
+      "prompt": "seem",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        411,
+        411,
+        423
+      ]
+    },
+    {
+      "id": "diff_0151",
+      "prompt": "talk",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        412,
+        421,
+        433
+      ]
+    },
+    {
+      "id": "diff_0152",
+      "prompt": "turn",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        425,
+        420,
+        416
+      ]
+    },
+    {
+      "id": "diff_0153",
+      "prompt": "start",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        349,
+        295,
+        413
+      ]
+    },
+    {
+      "id": "diff_0154",
+      "prompt": "show",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        415,
+        327
+      ]
+    },
+    {
+      "id": "diff_0155",
+      "prompt": "hear",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        281,
+        295
+      ]
+    },
+    {
+      "id": "diff_0156",
+      "prompt": "feel",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        272,
+        411,
+        411,
+        421
+      ]
+    },
+    {
+      "id": "diff_0157",
+      "prompt": "leave",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        411,
+        412,
+        360
+      ]
+    },
+    {
+      "id": "diff_0158",
+      "prompt": "call",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        388
+      ]
+    },
+    {
+      "id": "diff_0159",
+      "prompt": "need",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        404,
+        266
+      ]
+    },
+    {
+      "id": "diff_0160",
+      "prompt": "mean",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        411,
+        303
+      ]
+    },
+    {
+      "id": "diff_0161",
+      "prompt": "wind",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        417,
+        264
+      ]
+    },
+    {
+      "id": "diff_0162",
+      "prompt": "fire",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        272,
+        417,
+        276
+      ]
+    },
+    {
+      "id": "diff_0163",
+      "prompt": "light",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        333,
+        415,
+        413
+      ]
+    },
+    {
+      "id": "diff_0164",
+      "prompt": "dark",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        279,
+        295,
+        433
+      ]
+    },
+    {
+      "id": "diff_0165",
+      "prompt": "green",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        276,
+        302
+      ]
+    },
+    {
+      "id": "diff_0166",
+      "prompt": "blue",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        421,
+        425,
+        411
+      ]
+    },
+    {
+      "id": "diff_0167",
+      "prompt": "red",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        352,
+        266
+      ]
+    },
+    {
+      "id": "diff_0168",
+      "prompt": "black",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        421,
+        412,
+        340
+      ]
+    },
+    {
+      "id": "diff_0169",
+      "prompt": "white",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        415,
+        275,
+        411
+      ]
+    },
+    {
+      "id": "diff_0170",
+      "prompt": "small",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        423,
+        388
+      ]
+    },
+    {
+      "id": "diff_0171",
+      "prompt": "large",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        295,
+        428,
+        411
+      ]
+    },
+    {
+      "id": "diff_0172",
+      "prompt": "great",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        276,
+        294
+      ]
+    },
+    {
+      "id": "diff_0173",
+      "prompt": "first",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        272,
+        315,
+        356
+      ]
+    },
+    {
+      "id": "diff_0174",
+      "prompt": "last",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        412,
+        356
+      ]
+    },
+    {
+      "id": "diff_0175",
+      "prompt": "next",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        404,
+        444,
+        413
+      ]
+    },
+    {
+      "id": "diff_0176",
+      "prompt": "other",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        309,
+        386
+      ]
+    },
+    {
+      "id": "diff_0177",
+      "prompt": "same",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        296,
+        423,
+        411
+      ]
+    },
+    {
+      "id": "diff_0178",
+      "prompt": "different",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        279,
+        417,
+        431,
+        431,
+        411,
+        276,
+        361
+      ]
+    },
+    {
+      "id": "diff_0179",
+      "prompt": "own",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        327,
+        416
+      ]
+    },
+    {
+      "id": "diff_0180",
+      "prompt": "each",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        344,
+        412,
+        402
+      ]
+    },
+    {
+      "id": "diff_0181",
+      "prompt": "few",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        272,
+        411,
+        424
+      ]
+    },
+    {
+      "id": "diff_0182",
+      "prompt": "many",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        303,
+        422
+      ]
+    },
+    {
+      "id": "diff_0183",
+      "prompt": "more",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        414,
+        276
+      ]
+    },
+    {
+      "id": "diff_0184",
+      "prompt": "most",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        414,
+        356
+      ]
+    },
+    {
+      "id": "diff_0185",
+      "prompt": "some",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        287,
+        411
+      ]
+    },
+    {
+      "id": "diff_0186",
+      "prompt": "such",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        425,
+        402
+      ]
+    },
+    {
+      "id": "diff_0187",
+      "prompt": "only",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        353,
+        421,
+        422
+      ]
+    },
+    {
+      "id": "diff_0188",
+      "prompt": "even",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        344,
+        435,
+        302
+      ]
+    },
+    {
+      "id": "diff_0189",
+      "prompt": "still",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        349,
+        290,
+        421
+      ]
+    },
+    {
+      "id": "diff_0190",
+      "prompt": "back",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        412,
+        340
+      ]
+    },
+    {
+      "id": "diff_0191",
+      "prompt": "around",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        420,
+        277,
+        264
+      ]
+    },
+    {
+      "id": "diff_0192",
+      "prompt": "through",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        308,
+        420,
+        277,
+        428,
+        415
+      ]
+    },
+    {
+      "id": "diff_0193",
+      "prompt": "again",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        428,
+        412,
+        271
+      ]
+    },
+    {
+      "id": "diff_0194",
+      "prompt": "once",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        353,
+        331
+      ]
+    },
+    {
+      "id": "diff_0195",
+      "prompt": "together",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        267,
+        428,
+        316,
+        386
+      ]
+    },
+    {
+      "id": "diff_0196",
+      "prompt": "always",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        421,
+        424,
+        283,
+        419
+      ]
+    },
+    {
+      "id": "diff_0197",
+      "prompt": "never",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        404,
+        330
+      ]
+    },
+    {
+      "id": "diff_0198",
+      "prompt": "often",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        373,
+        413,
+        302
+      ]
+    },
+    {
+      "id": "diff_0199",
+      "prompt": "Lily",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        317
+      ]
+    },
+    {
+      "id": "diff_0200",
+      "prompt": "Tom",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        274,
+        287
+      ]
+    },
+    {
+      "id": "diff_0201",
+      "prompt": "Mom",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        392,
+        287
+      ]
+    },
+    {
+      "id": "diff_0202",
+      "prompt": "Dad",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        455,
+        380
+      ]
+    },
+    {
+      "id": "diff_0203",
+      "prompt": "Sam",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        301,
+        314
+      ]
+    },
+    {
+      "id": "diff_0204",
+      "prompt": "Ben",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        368,
+        302
+      ]
+    },
+    {
+      "id": "diff_0205",
+      "prompt": "dad",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        279,
+        380
+      ]
+    },
+    {
+      "id": "diff_0206",
+      "prompt": "sister",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        262,
+        293,
+        413,
+        285
+      ]
+    },
+    {
+      "id": "diff_0207",
+      "prompt": "brother",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        420,
+        309,
+        386
+      ]
+    },
+    {
+      "id": "diff_0208",
+      "prompt": "friend",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        374
+      ]
+    },
+    {
+      "id": "diff_0209",
+      "prompt": "teacher",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        411,
+        412,
+        429,
+        386
+      ]
+    },
+    {
+      "id": "diff_0210",
+      "prompt": "class",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        421,
+        412,
+        419,
+        419
+      ]
+    },
+    {
+      "id": "diff_0211",
+      "prompt": "city",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        275,
+        422
+      ]
+    },
+    {
+      "id": "diff_0212",
+      "prompt": "town",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        267,
+        424,
+        416
+      ]
+    },
+    {
+      "id": "diff_0213",
+      "prompt": "park",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        282,
+        295,
+        433
+      ]
+    },
+    {
+      "id": "diff_0214",
+      "prompt": "street",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        349,
+        276,
+        316
+      ]
+    },
+    {
+      "id": "diff_0215",
+      "prompt": "car",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        295
+      ]
+    },
+    {
+      "id": "diff_0216",
+      "prompt": "train",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        420,
+        412,
+        271
+      ]
+    },
+    {
+      "id": "diff_0217",
+      "prompt": "ball",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        388
+      ]
+    },
+    {
+      "id": "diff_0218",
+      "prompt": "game",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        298,
+        314,
+        411
+      ]
+    },
+    {
+      "id": "diff_0219",
+      "prompt": "toy",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        267,
+        422
+      ]
+    },
+    {
+      "id": "diff_0220",
+      "prompt": "cake",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        412,
+        354
+      ]
+    },
+    {
+      "id": "diff_0221",
+      "prompt": "apple",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        339,
+        305
+      ]
+    },
+    {
+      "id": "diff_0222",
+      "prompt": "bread",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        268,
+        276,
+        380
+      ]
+    },
+    {
+      "id": "diff_0223",
+      "prompt": "milk",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        284,
+        290,
+        433
+      ]
+    },
+    {
+      "id": "diff_0224",
+      "prompt": "egg",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        344,
+        428,
+        428
+      ]
+    },
+    {
+      "id": "diff_0225",
+      "prompt": "the quick brown fox jumps over the lazy dog",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        265,
+        410,
+        456,
+        425,
+        417,
+        340,
+        268,
+        420,
+        327,
+        416,
+        272,
+        414,
+        444,
+        410,
+        449,
+        425,
+        423,
+        427,
+        419,
+        334,
+        330,
+        265,
+        278,
+        412,
+        451,
+        422,
+        400,
+        428
+      ]
+    },
+    {
+      "id": "diff_0226",
+      "prompt": "Once upon a time there was a little girl named Lily",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        403,
+        407,
+        261,
+        378,
+        383,
+        286,
+        261,
+        376,
+        298,
+        315,
+        421,
+        395,
+        317
+      ]
+    },
+    {
+      "id": "diff_0227",
+      "prompt": "She said she wanted to go to the park today",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        338,
+        336,
+        358,
+        391,
+        266,
+        267,
+        298,
+        414,
+        267,
+        265,
+        282,
+        295,
+        433,
+        267,
+        418,
+        283
+      ]
+    },
+    {
+      "id": "diff_0228",
+      "prompt": "The big dog and the little cat are friends",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        291,
+        370,
+        400,
+        428,
+        269,
+        265,
+        376,
+        280,
+        294,
+        261,
+        276,
+        374,
+        419
+      ]
+    },
+    {
+      "id": "diff_0229",
+      "prompt": "Mom read a story about a brave young boy",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        392,
+        287,
+        410,
+        276,
+        380,
+        261,
+        349,
+        304,
+        422,
+        261,
+        430,
+        408,
+        261,
+        268,
+        420,
+        412,
+        360,
+        364,
+        416,
+        428,
+        268,
+        414,
+        422
+      ]
+    },
+    {
+      "id": "diff_0230",
+      "prompt": "We can go to the zoo tomorrow morning",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        448,
+        411,
+        280,
+        303,
+        298,
+        414,
+        267,
+        265,
+        410,
+        451,
+        347,
+        267,
+        423,
+        304,
+        420,
+        327,
+        284,
+        304,
+        416,
+        299
+      ]
+    },
+    {
+      "id": "diff_0231",
+      "prompt": "He does not want to eat his vegetables",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        346,
+        400,
+        406,
+        297,
+        309,
+        391,
+        267,
+        344,
+        294,
+        345,
+        410,
+        360,
+        428,
+        316,
+        412,
+        430,
+        305,
+        419
+      ]
+    },
+    {
+      "id": "diff_0232",
+      "prompt": "The sun is hot and the sky is blue",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        291,
+        262,
+        379,
+        410,
+        293,
+        270,
+        309,
+        269,
+        265,
+        262,
+        433,
+        422,
+        410,
+        293,
+        268,
+        421,
+        425,
+        411
+      ]
+    },
+    {
+      "id": "diff_0233",
+      "prompt": "I think this is the best day ever",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        359,
+        308,
+        271,
+        433,
+        308,
+        293,
+        410,
+        293,
+        265,
+        329,
+        356,
+        328,
+        344,
+        330
+      ]
+    },
+    {
+      "id": "diff_0234",
+      "prompt": "They went to school together every day",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        342,
+        263,
+        377,
+        267,
+        262,
+        402,
+        347,
+        421,
+        267,
+        428,
+        316,
+        386,
+        344,
+        363,
+        328
+      ]
+    },
+    {
+      "id": "diff_0235",
+      "prompt": "hello, world! 123",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        281,
+        306,
+        414,
+        432,
+        263,
+        304,
+        341,
+        443,
+        410,
+        475,
+        479,
+        472
+      ]
+    },
+    {
+      "id": "diff_0236",
+      "prompt": "Hello  world",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        346,
+        306,
+        414,
+        410,
+        263,
+        304,
+        341
+      ]
+    },
+    {
+      "id": "diff_0237",
+      "prompt": "don't stop believing",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        279,
+        289,
+        439,
+        413,
+        349,
+        414,
+        427,
+        329,
+        421,
+        417,
+        411,
+        435,
+        299
+      ]
+    },
+    {
+      "id": "diff_0238",
+      "prompt": "we're going home now",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        382,
+        439,
+        276,
+        298,
+        414,
+        299,
+        270,
+        287,
+        411,
+        297,
+        327
+      ]
+    },
+    {
+      "id": "diff_0239",
+      "prompt": "a_b c_d",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        98,
+        430,
+        280,
+        98,
+        418
+      ]
+    },
+    {
+      "id": "diff_0240",
+      "prompt": "The rain in Spain falls mainly on the plain",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        291,
+        352,
+        412,
+        271,
+        322,
+        301,
+        427,
+        412,
+        271,
+        272,
+        388,
+        419,
+        284,
+        412,
+        271,
+        421,
+        422,
+        353,
+        265,
+        324,
+        412,
+        271
+      ]
+    },
+    {
+      "id": "diff_0241",
+      "prompt": "Pack my box with five dozen liquor jugs",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        460,
+        412,
+        340,
+        284,
+        422,
+        268,
+        414,
+        444,
+        335,
+        272,
+        417,
+        360,
+        400,
+        451,
+        302,
+        397,
+        456,
+        425,
+        304,
+        410,
+        449,
+        425,
+        428,
+        419
+      ]
+    },
+    {
+      "id": "diff_0242",
+      "prompt": "How vexingly quick daft zebras jump",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        320,
+        327,
+        410,
+        360,
+        444,
+        299,
+        421,
+        422,
+        410,
+        456,
+        425,
+        417,
+        340,
+        279,
+        412,
+        431,
+        413,
+        410,
+        451,
+        411,
+        430,
+        420,
+        412,
+        419,
+        410,
+        449,
+        425,
+        423,
+        427
+      ]
+    },
+    {
+      "id": "diff_0243",
+      "prompt": "Sphinx of black quartz, judge my vow",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        301,
+        427,
+        415,
+        271,
+        444,
+        373,
+        268,
+        421,
+        412,
+        340,
+        410,
+        456,
+        425,
+        295,
+        413,
+        451,
+        432,
+        410,
+        449,
+        425,
+        418,
+        428,
+        411,
+        284,
+        422,
+        410,
+        435,
+        327
+      ]
+    },
+    {
+      "id": "diff_0244",
+      "prompt": "She sells seashells by the seashore",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        338,
+        262,
+        411,
+        306,
+        419,
+        262,
+        411,
+        412,
+        419,
+        260,
+        306,
+        419,
+        268,
+        422,
+        265,
+        262,
+        411,
+        412,
+        419,
+        415,
+        414,
+        276
+      ]
+    },
+    {
+      "id": "diff_0245",
+      "prompt": "Peter Piper picked a peck of pickled peppers",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        460,
+        316,
+        285,
+        410,
+        460,
+        417,
+        427,
+        285,
+        282,
+        417,
+        340,
+        266,
+        261,
+        282,
+        411,
+        340,
+        373,
+        282,
+        417,
+        340,
+        421,
+        266,
+        282,
+        411,
+        339,
+        285,
+        419
+      ]
+    },
+    {
+      "id": "diff_0246",
+      "prompt": "a<s>b",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        1,
+        268
+      ]
+    },
+    {
+      "id": "diff_0247",
+      "prompt": "hi<s>there",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        270,
+        417,
+        1,
+        383
+      ]
+    },
+    {
+      "id": "diff_0248",
+      "prompt": "hello<s>there",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        281,
+        306,
+        414,
+        1,
+        383
+      ]
+    },
+    {
+      "id": "diff_0249",
+      "prompt": "<s>b",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        1,
+        268
+      ]
+    },
+    {
+      "id": "diff_0250",
+      "prompt": "x<s>y",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        444,
+        1,
+        348
+      ]
+    },
+    {
+      "id": "diff_0251",
+      "prompt": "<s></s>",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "diff_0252",
+      "prompt": " <s>",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        410,
+        1
+      ]
+    },
+    {
+      "id": "diff_0253",
+      "prompt": "a </s> b",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        410,
+        2,
+        410,
+        268
+      ]
+    },
+    {
+      "id": "diff_0254",
+      "prompt": "<s>Once upon a time</s> there was a girl",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        1,
+        403,
+        407,
+        261,
+        378,
+        2,
+        410,
+        383,
+        286,
+        261,
+        298,
+        315,
+        421
+      ]
+    },
+    {
+      "id": "diff_0255",
+      "prompt": "one <s> two <s> three",
+      "reference_flags": [
+        "--no-bos"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        353,
+        411,
+        410,
+        1,
+        410,
+        259,
+        424,
+        414,
+        410,
+        1,
+        410,
+        308,
+        276,
+        411
+      ]
+    },
+    {
+      "id": "diff_0256",
+      "prompt": "tab\tseparated\twords",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        412,
+        430,
+        12,
+        372,
+        427,
+        295,
+        294,
+        266,
+        12,
+        424,
+        304,
+        418,
+        419
+      ]
+    },
+    {
+      "id": "diff_0257",
+      "prompt": "line one\nline two",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        278,
+        271,
+        411,
+        353,
+        411,
+        13,
+        421,
+        271,
+        411,
+        259,
+        424,
+        414
+      ]
+    },
+    {
+      "id": "diff_0258",
+      "prompt": "trailing space ",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        259,
+        420,
+        412,
+        290,
+        299,
+        262,
+        427,
+        412,
+        331,
+        410
+      ]
+    },
+    {
+      "id": "diff_0259",
+      "prompt": " leading space",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        278,
+        411,
+        380,
+        299,
+        262,
+        427,
+        412,
+        331
+      ]
+    },
+    {
+      "id": "diff_0260",
+      "prompt": "double  space",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        279,
+        277,
+        430,
+        305,
+        410,
+        262,
+        427,
+        412,
+        331
+      ]
+    },
+    {
+      "id": "diff_0261",
+      "prompt": "caf\u00e9",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        280,
+        412,
+        431,
+        485
+      ]
+    },
+    {
+      "id": "diff_0262",
+      "prompt": "na\u00efve fa\u00e7ade",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        297,
+        412,
+        198,
+        178,
+        360,
+        272,
+        412,
+        198,
+        170,
+        380,
+        411
+      ]
+    },
+    {
+      "id": "diff_0263",
+      "prompt": "\u03a9",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        209,
+        172
+      ]
+    },
+    {
+      "id": "diff_0264",
+      "prompt": "\u03a3pondre",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        209,
+        166,
+        427,
+        414,
+        264,
+        276
+      ]
+    },
+    {
+      "id": "diff_0265",
+      "prompt": "\ud83d\ude00",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        243,
+        162,
+        155,
+        131
+      ]
+    },
+    {
+      "id": "diff_0266",
+      "prompt": "\ud83d\ude00\ud83d\ude01\ud83d\ude02",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        243,
+        162,
+        155,
+        131,
+        243,
+        162,
+        155,
+        132,
+        243,
+        162,
+        155,
+        133
+      ]
+    },
+    {
+      "id": "diff_0267",
+      "prompt": "3.14159 2718 42",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        472,
+        426,
+        475,
+        484,
+        475,
+        480,
+        483,
+        410,
+        479,
+        491,
+        475,
+        487,
+        410,
+        484,
+        479
+      ]
+    },
+    {
+      "id": "diff_0268",
+      "prompt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        261,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412,
+        412
+      ]
+    },
+    {
+      "id": "diff_0269",
+      "prompt": "word word word word word word word word word word word word word word word word word word word word ",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        263,
+        304,
+        418,
+        410
+      ]
+    },
+    {
+      "id": "diff_0270",
+      "prompt": "\u2581heis",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        281,
+        293
+      ]
+    },
+    {
+      "id": "diff_0271",
+      "prompt": "hei\u2013",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        281,
+        417,
+        476
+      ]
+    },
+    {
+      "id": "diff_0272",
+      "prompt": "ittver4b",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        312,
+        413,
+        330,
+        484,
+        430
+      ]
+    },
+    {
+      "id": "diff_0273",
+      "prompt": "u\u2581the",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        318,
+        265
+      ]
+    },
+    {
+      "id": "diff_0274",
+      "prompt": "am\u2581day",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        261,
+        423,
+        328
+      ]
+    },
+    {
+      "id": "diff_0275",
+      "prompt": "en\u2581She\u2581upon",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        302,
+        338,
+        407
+      ]
+    },
+    {
+      "id": "diff_0276",
+      "prompt": "\u2581his\u2026k",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        345,
+        486,
+        433
+      ]
+    },
+    {
+      "id": "diff_0277",
+      "prompt": "\u2581HO",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        320,
+        441
+      ]
+    },
+    {
+      "id": "diff_0278",
+      "prompt": "he\u2581l\u2581Timmy/|\u2581for",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        281,
+        278,
+        405,
+        492,
+        506,
+        387
+      ]
+    },
+    {
+      "id": "diff_0279",
+      "prompt": "K\u2581want\u2581u\"ily",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        462,
+        391,
+        318,
+        436,
+        310
+      ]
+    },
+    {
+      "id": "diff_0280",
+      "prompt": "9\u2581r",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        483,
+        352
+      ]
+    },
+    {
+      "id": "diff_0281",
+      "prompt": "\u2581butimeM\u2581ling",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        398,
+        369,
+        446,
+        278,
+        299
+      ]
+    },
+    {
+      "id": "diff_0282",
+      "prompt": "\u2581he\u2581neceJan",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        281,
+        404,
+        331,
+        454,
+        303
+      ]
+    },
+    {
+      "id": "diff_0283",
+      "prompt": "\u2581big\u2581it\u2581friend\u2581uck",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        370,
+        312,
+        374,
+        318,
+        340
+      ]
+    },
+    {
+      "id": "diff_0284",
+      "prompt": "\u2581\"\u2581to",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        313,
+        267
+      ]
+    },
+    {
+      "id": "diff_0285",
+      "prompt": "'\u2581dod\u2581wag",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        439,
+        400,
+        418,
+        273,
+        428
+      ]
+    },
+    {
+      "id": "diff_0286",
+      "prompt": "\u2581th\u2581thats",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        308,
+        351,
+        419
+      ]
+    },
+    {
+      "id": "diff_0287",
+      "prompt": "\u2581wasunith\u2581Lily\u2581named",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        286,
+        379,
+        332,
+        317,
+        395
+      ]
+    },
+    {
+      "id": "diff_0288",
+      "prompt": "nt\u2581h",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        297,
+        413,
+        270
+      ]
+    },
+    {
+      "id": "diff_0289",
+      "prompt": "keittle",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        354,
+        375
+      ]
+    },
+    {
+      "id": "diff_0290",
+      "prompt": "\u2581the\u2581ititaad\u2581her",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        265,
+        312,
+        275,
+        412,
+        380,
+        311
+      ]
+    },
+    {
+      "id": "diff_0291",
+      "prompt": "\u2581s\u2581hadall\u2019",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        262,
+        381,
+        388,
+        468
+      ]
+    },
+    {
+      "id": "diff_0292",
+      "prompt": "Moo)es",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        392,
+        347,
+        488,
+        406
+      ]
+    },
+    {
+      "id": "diff_0293",
+      "prompt": "ooith\u2581li\u2581the",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        334,
+        414,
+        332,
+        397,
+        265
+      ]
+    },
+    {
+      "id": "diff_0294",
+      "prompt": "se\u2581L|ay\u2581for",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        262,
+        411,
+        307,
+        506,
+        283,
+        387
+      ]
+    },
+    {
+      "id": "diff_0295",
+      "prompt": "\u2581plz(ith5!",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        324,
+        451,
+        489,
+        332,
+        480,
+        443
+      ]
+    },
+    {
+      "id": "diff_0296",
+      "prompt": "\u2581up,un:+",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        350,
+        432,
+        379,
+        467,
+        496
+      ]
+    },
+    {
+      "id": "diff_0297",
+      "prompt": "ed\u200a\u2581saw\u2581friend",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        266,
+        511,
+        394,
+        374
+      ]
+    },
+    {
+      "id": "diff_0298",
+      "prompt": "\u2581MkeerH.",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        392,
+        354,
+        285,
+        440,
+        426
+      ]
+    },
+    {
+      "id": "diff_0299",
+      "prompt": "\u2581H\u2581that\u2581l\u2581to",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        320,
+        351,
+        278,
+        267
+      ]
+    },
+    {
+      "id": "diff_0300",
+      "prompt": "ithittleve\u2581time",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        312,
+        415,
+        375,
+        360,
+        378
+      ]
+    },
+    {
+      "id": "diff_0301",
+      "prompt": "\u2581hadvse.ittvery",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        381,
+        435,
+        372,
+        426,
+        362,
+        363
+      ]
+    },
+    {
+      "id": "diff_0302",
+      "prompt": "\u2581O\u2581upon\u2581her",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        319,
+        407,
+        311
+      ]
+    },
+    {
+      "id": "diff_0303",
+      "prompt": "\u2581OnceimeA6\u2581dock",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        403,
+        369,
+        447,
+        490,
+        400,
+        340
+      ]
+    },
+    {
+      "id": "diff_0304",
+      "prompt": "E\u2581S~pp\u2581happy",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        459,
+        301,
+        510,
+        339,
+        393
+      ]
+    },
+    {
+      "id": "diff_0305",
+      "prompt": "D\u2581on\u2581p",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        455,
+        353,
+        282
+      ]
+    },
+    {
+      "id": "diff_0306",
+      "prompt": "\u201dutetEcq",
+      "reference_flags": [
+        "--no-parse-special"
+      ],
+      "add_bos": true,
+      "token_ids": [
+        1,
+        410,
+        466,
+        323,
+        316,
+        459,
+        429,
+        456
+      ]
+    },
+    {
+      "id": "diff_0307",
+      "prompt": "&cT",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        499,
+        429,
+        434
+      ]
+    },
+    {
+      "id": "diff_0308",
+      "prompt": "xZ",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        444,
+        469
+      ]
+    },
+    {
+      "id": "diff_0309",
+      "prompt": "A\u2581Timmyallckqen",
+      "reference_flags": [
+        "--no-bos",
+        "--no-parse-special"
+      ],
+      "add_bos": false,
+      "token_ids": [
+        410,
+        447,
+        405,
+        388,
+        340,
+        456,
+        302
+      ]
+    }
+  ]
+}

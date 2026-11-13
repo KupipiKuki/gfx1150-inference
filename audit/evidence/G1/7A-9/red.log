@@ -1,0 +1,163 @@
+# G1 / 7A-9 — red: the pinned nested-array test fails on the parent
+# Captured: 2026-11-05T01:31:37Z
+# parent: 3af32d4ee422796e83349338afad841189d554d8 (wp/7A-9-gguf-array-fix @ HEAD, src/ unmodified; brief docs only)
+# base of the G1 line: e9b6b80e84b5c11495408fb6aa918d2fae849e1b
+
+=== command ===
+python3 -m pytest tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error --runxfail -v
+
+=== output ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'ci' -> database=None, deadline=None, print_blob=True, derandomize=True, suppress_health_check=(HealthCheck.too_slow,)
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 1 item
+
+tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error FAILED [100%]
+
+=================================== FAILURES ===================================
+______________ test_nested_arrays_are_rejected_with_a_value_error ______________
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="BLOCKER-7A4-1: a nested GGUF array recurses until the stack is exhausted",
+    )
+    def test_nested_arrays_are_rejected_with_a_value_error() -> None:
+        """A nested metadata array must be rejected, not crash the parser.
+    
+        This is the defect the fuzz uncovered. The GGUF format does not allow an
+        array whose element type is an array, so the parser has to reject the
+        file; instead it recurses once per nesting level and raises
+        ``RecursionError`` on a header of about 12 KiB.
+    
+        The assertion states the behaviour the parser *should* have, so the test
+        fails today and passes when the defect is fixed. ``strict=True`` means the
+        suite fails if the test starts passing while the xfail is still in place.
+        """
+        buffer = _nested_array_header(1000)
+        try:
+>           GGUFParser(buffer)
+
+tests/test_fuzz_gguf.py:593: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/gguf_parser.py:131: in __init__
+    self._parse()
+src/gguf_parser.py:205: in _parse
+    self.metadata[key] = self._read_value(vtype)
+                         ^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/gguf_parser.py:172: in _read_value
+    return [self._read_value(elem_type) for _ in range(count)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <gguf_parser.GGUFParser object at 0x76bfc331ae40>, vtype = 9
+
+    def _read_value(self, vtype: int) -> Any:
+        if self._buf is None:
+            raise RuntimeError("Parser buffer already released")
+        if vtype in _SCALAR_FORMATS:
+            return self._read_fmt(_SCALAR_FORMATS[vtype])[0]
+        if vtype == GGUFValueType.BOOL:
+            return bool(self._read_fmt("<B")[0])
+        if vtype == GGUFValueType.STRING:
+            return self._read_string()
+        if vtype == GGUFValueType.ARRAY:
+>           elem_type, count = self._read_fmt("<IQ")
+                               ^^^^^^^^^^^^^^^^^^^^^
+E           RecursionError: maximum recursion depth exceeded
+
+src/gguf_parser.py:166: RecursionError
+!!! Recursion error detected, but the origin of the recursion could not be located.
+  Displaying first and last 10 stack frames out of 968.
+  Pass `--full-trace` to see all frames.
+
+The above exception was the direct cause of the following exception:
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="BLOCKER-7A4-1: a nested GGUF array recurses until the stack is exhausted",
+    )
+    def test_nested_arrays_are_rejected_with_a_value_error() -> None:
+        """A nested metadata array must be rejected, not crash the parser.
+    
+        This is the defect the fuzz uncovered. The GGUF format does not allow an
+        array whose element type is an array, so the parser has to reject the
+        file; instead it recurses once per nesting level and raises
+        ``RecursionError`` on a header of about 12 KiB.
+    
+        The assertion states the behaviour the parser *should* have, so the test
+        fails today and passes when the defect is fixed. ``strict=True`` means the
+        suite fails if the test starts passing while the xfail is still in place.
+        """
+        buffer = _nested_array_header(1000)
+        try:
+            GGUFParser(buffer)
+        except ValueError:
+            return
+        except RecursionError as exc:
+>           raise AssertionError(
+                "the parser recursed until the interpreter's stack was exhausted "
+                f"instead of rejecting the nested array: {exc}"
+            ) from exc
+E           AssertionError: the parser recursed until the interpreter's stack was exhausted instead of rejecting the nested array: maximum recursion depth exceeded
+
+tests/test_fuzz_gguf.py:597: AssertionError
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_fuzz_gguf.py::test_nested_arrays_are_rejected_with_a_value_error - AssertionError: the parser recursed until the interpreter's stack was exhausted instead of rejecting the nested array: maximum recursion depth exceeded
+======================== 1 failed, 13 warnings in 0.30s ========================
+
+exit: 1 (1 failed)

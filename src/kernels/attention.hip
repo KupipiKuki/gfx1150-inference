@@ -9,8 +9,15 @@
 #include <algorithm>
 #include <cmath>
 #include <cfloat>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 #define HIP_CHECK(call)                                                        \
     do {                                                                       \
@@ -134,25 +141,38 @@ struct AttentionWorkspace {
     size_t cap_V = 0;
     size_t cap_Out = 0;
 
+    // Same alloc-first-then-free discipline as DeviceLayerWorkspace
+    // (BLOCKER-7E-2): on an allocation failure the previous buffer stays
+    // valid and owned; growth drains the NULL stream before freeing.
+    static void realloc_attn_buf(half** ptr, size_t needed) {
+        half* fresh = nullptr;
+        HIP_CHECK(hipMalloc(&fresh, needed));
+        if (*ptr) {
+            HIP_CHECK(hipStreamSynchronize(nullptr));
+            (void)hipFree(*ptr);
+        }
+        *ptr = fresh;
+    }
+
     void ensure(size_t sq, size_t sk, size_t sv, size_t sout) {
+        // 7E-3: the blocking host-side wrappers that share this workspace
+        // synchronize their own work, but growth (free+malloc) still drains
+        // the NULL stream first so a reallocated buffer is never freed while
+        // a kernel may still read it.
         if (sq > cap_Q) {
-            if (d_Q) HIP_CHECK(hipFree(d_Q));
-            HIP_CHECK(hipMalloc(&d_Q, sq));
+            realloc_attn_buf(&d_Q, sq);
             cap_Q = sq;
         }
         if (sk > cap_K) {
-            if (d_K) HIP_CHECK(hipFree(d_K));
-            HIP_CHECK(hipMalloc(&d_K, sk));
+            realloc_attn_buf(&d_K, sk);
             cap_K = sk;
         }
         if (sv > cap_V) {
-            if (d_V) HIP_CHECK(hipFree(d_V));
-            HIP_CHECK(hipMalloc(&d_V, sv));
+            realloc_attn_buf(&d_V, sv);
             cap_V = sv;
         }
         if (sout > cap_Out) {
-            if (d_Out) HIP_CHECK(hipFree(d_Out));
-            HIP_CHECK(hipMalloc(&d_Out, sout));
+            realloc_attn_buf(&d_Out, sout);
             cap_Out = sout;
         }
     }
@@ -195,6 +215,13 @@ struct DeviceKVCachePool {
     }
 
     void release() {
+        // 7E-3: KV pool writes happen on the layer compute stream
+        // (hipMemcpyAsync D2D); drain all device work before freeing the
+        // pool so an exception-after-enqueue followed by kv_cache_free can
+        // never free memory a kernel is still writing.
+        if (d_K_pool || d_V_pool) {
+            HIP_CHECK(hipDeviceSynchronize());
+        }
         if (d_K_pool) {
             (void)hipFree(d_K_pool);
             d_K_pool = nullptr;
@@ -209,7 +236,9 @@ struct DeviceKVCachePool {
     }
 
     ~DeviceKVCachePool() {
-        release();
+        // QAQC-7E-1: never throw out of a destructor (static destruction may
+        // run after the HIP context is gone).
+        try { release(); } catch (...) {}
     }
 };
 
@@ -385,7 +414,8 @@ void launch_gqa_attention_cached_fp16_device(
     int num_kv_heads,
     int head_dim,
     float scale,
-    bool causal
+    bool causal,
+    hipStream_t stream
 ) {
     auto& pool = get_kv_pool();
     if (!pool.d_K_pool || !pool.d_V_pool) {
@@ -410,9 +440,16 @@ void launch_gqa_attention_cached_fp16_device(
     const size_t new_kv_bytes = static_cast<size_t>(q_len) * row_elems * sizeof(half);
     const size_t write_offset = static_cast<size_t>(start_pos) * row_elems;
 
-    // Device-to-Device (D2D) KV-cache write from on-GPU RoPE K / V projections
-    HIP_CHECK(hipMemcpy(d_layer_K + write_offset, d_K_new, new_kv_bytes, hipMemcpyDeviceToDevice));
-    HIP_CHECK(hipMemcpy(d_layer_V + write_offset, d_V_new, new_kv_bytes, hipMemcpyDeviceToDevice));
+    // Device-to-Device (D2D) KV-cache write from on-GPU RoPE K / V projections.
+    // 7E: enqueued as hipMemcpyAsync on `stream` (same-order with the kernel
+    // that follows on the same stream) instead of a blocking hipMemcpy, so the
+    // layer pipeline stays fully async on the compute stream.
+    HIP_CHECK(hipMemcpyAsync(
+        d_layer_K + write_offset, d_K_new, new_kv_bytes, hipMemcpyDeviceToDevice, stream
+    ));
+    HIP_CHECK(hipMemcpyAsync(
+        d_layer_V + write_offset, d_V_new, new_kv_bytes, hipMemcpyDeviceToDevice, stream
+    ));
 
     const size_t total_qh = static_cast<size_t>(q_len) * num_heads;
     const size_t blocks = (total_qh + WAVES_PER_BLOCK - 1) / WAVES_PER_BLOCK;
@@ -422,7 +459,7 @@ void launch_gqa_attention_cached_fp16_device(
         dim3(static_cast<unsigned int>(blocks)),
         dim3(BLOCK_THREADS),
         0,
-        0,
+        stream,
         static_cast<const half*>(d_Q),
         d_layer_K,
         d_layer_V,
@@ -441,6 +478,24 @@ void launch_gqa_attention_cached_fp16_device(
 
 namespace {
 
+// ---------------------------------------------------------------------------
+// 7E stream topology constants
+// ---------------------------------------------------------------------------
+// Number of weight projections per layer (q, k, v, o, gate, up, down): the
+// double-buffered staging slots alternate across these.
+constexpr int LAYER_PROJECTIONS = 7;
+// Trace mode (GFX1150_STREAM_TRACE=1): adds hipEventElapsedTime-based
+// copy/compute timing events and prints a per-layer overlap summary to
+// stderr. Production runs pay no event-record overhead (default off).
+inline bool layer_trace_enabled() {
+    static const bool enabled = std::getenv("GFX1150_STREAM_TRACE") != nullptr;
+    return enabled;
+}
+
+inline bool is_page_aligned(const void* p) {
+    return (reinterpret_cast<uintptr_t>(p) & 0xFFF) == 0;
+}
+
 struct DeviceLayerWorkspace {
     half* d_x = nullptr;
     half* d_h = nullptr;
@@ -456,22 +511,130 @@ struct DeviceLayerWorkspace {
     half* d_gate = nullptr;
     half* d_up = nullptr;
     half* d_swiglu = nullptr;
-    void* d_w = nullptr;
-    hipStream_t stream = nullptr;
-    hipEvent_t copy_done_event = nullptr;
+
+    // 7E: double-buffered device weight staging slots.
+    void* d_w[2] = {nullptr, nullptr};
+    size_t cap_w[2] = {0, 0};
+
+    // 7E: pinned host fallback slab per slot (used when the weight span
+    // cannot be hipHostRegister'd); CPU memcpy into the slab overlaps the
+    // previous kernel on the compute stream.
+    void* pinned_slab[2] = {nullptr, nullptr};
+    size_t pinned_cap[2] = {0, 0};
+    bool slab_in_flight[2] = {false, false};
+    size_t slab_stages = 0;   // trace: staging that took the pinned-slab path
+
+    // Real stream-synchronization call counts (BLOCKER-7E-1): measured, not
+    // hardcoded. `boundary_syncs` counts intended layer-boundary syncs (one
+    // per launch_forward_layer_cached_fp16 call); `drain_syncs` counts every
+    // hipStreamSynchronize issued by drain() (growth/exception/destructor).
+    // A warm layer must measure boundary_syncs == 1 and drain_syncs == 0.
+    size_t boundary_syncs = 0;
+    size_t drain_syncs = 0;
+
+    // 7E: registered (page-locked) host weight spans, unregistered strictly
+    // at the layer boundary after the final sync (paired, leak-free).
+    std::vector<std::pair<void*, size_t>> registered_spans;
+
+    // 7E: explicit copy/compute streams and the event graph.
+    hipStream_t copy_stream = nullptr;
+    hipStream_t compute_stream = nullptr;
+    hipEvent_t copy_done[2] = {nullptr, nullptr};      // slot staged on copy_stream
+    hipEvent_t compute_done[2] = {nullptr, nullptr};   // slot consumed by compute
+    hipEvent_t inputs_done = nullptr;                  // x + attn_norm staged
+    hipEvent_t ffn_norm_done = nullptr;                 // ffn_norm staged (after norm_consumed)
+    hipEvent_t norm_consumed = nullptr;                 // attn rmsnorm finished reading d_norm_w
+    hipEvent_t layer_out_ready = nullptr;               // last kernel finished; D2H waits on it
+
+    // 7E trace-only timing events: per projection p, copy interval on the
+    // copy stream and kernel interval on the compute stream.
+    hipEvent_t trace_copy_start[LAYER_PROJECTIONS] = {};
+    hipEvent_t trace_copy_end[LAYER_PROJECTIONS] = {};
+    hipEvent_t trace_kern_start[LAYER_PROJECTIONS] = {};
+    hipEvent_t trace_kern_end[LAYER_PROJECTIONS] = {};
+    hipEvent_t trace_layer_start = nullptr;
 
     size_t cap_hidden = 0;
     size_t cap_norm_w = 0;
     size_t cap_q = 0;
     size_t cap_kv = 0;
     size_t cap_ffn = 0;
-    size_t cap_w = 0;
 
+    // BLOCKER-7E-2: allocate the fresh buffer FIRST and free the old one only
+    // after the allocation succeeded. If hipMalloc fails (throws), the old
+    // pointer stays valid and owned — the destructor or the next growth can
+    // still free it exactly once; no dangling double-free path.
     static void realloc_buf(half** ptr, size_t needed) {
+        half* fresh = nullptr;
+        HIP_CHECK(hipMalloc(&fresh, needed));
         if (*ptr) HIP_CHECK(hipFree(*ptr));
-        HIP_CHECK(hipMalloc(ptr, needed));
+        *ptr = fresh;
     }
 
+    // Drain every stream that can hold in-flight work touching workspace or
+    // staging memory. Called before any hipFree/hipHostUnregister (7E-3) and
+    // from the destructor. Also unregisters outstanding host spans: the
+    // host arrays are guaranteed alive while the caller's C++ frame still
+    // holds their pointers.
+    void drain() {
+        if (compute_stream) {
+            HIP_CHECK(hipStreamSynchronize(compute_stream));
+            ++drain_syncs;
+        }
+        if (copy_stream) {
+            HIP_CHECK(hipStreamSynchronize(copy_stream));
+            ++drain_syncs;
+        }
+        unregister_all();
+    }
+
+    void unregister_all() {
+        for (auto& span : registered_spans) {
+            // Page-locked memory must not stay registered past its consumer:
+            // every waiter above has completed when we get here.
+            (void)hipHostUnregister(span.first);
+        }
+        registered_spans.clear();
+    }
+
+    void init_streams_and_events() {
+        if (!copy_stream) HIP_CHECK(hipStreamCreate(&copy_stream));
+        if (!compute_stream) HIP_CHECK(hipStreamCreate(&compute_stream));
+        for (int s = 0; s < 2; ++s) {
+            if (!copy_done[s]) {
+                HIP_CHECK(hipEventCreateWithFlags(&copy_done[s], hipEventDisableTiming));
+            }
+            if (!compute_done[s]) {
+                HIP_CHECK(hipEventCreateWithFlags(&compute_done[s], hipEventDisableTiming));
+            }
+        }
+        if (!inputs_done) {
+            HIP_CHECK(hipEventCreateWithFlags(&inputs_done, hipEventDisableTiming));
+        }
+        if (!ffn_norm_done) {
+            HIP_CHECK(hipEventCreateWithFlags(&ffn_norm_done, hipEventDisableTiming));
+        }
+        if (!norm_consumed) {
+            HIP_CHECK(hipEventCreateWithFlags(&norm_consumed, hipEventDisableTiming));
+        }
+        if (!layer_out_ready) {
+            HIP_CHECK(hipEventCreateWithFlags(&layer_out_ready, hipEventDisableTiming));
+        }
+        if (layer_trace_enabled()) {
+            if (!trace_layer_start) {
+                HIP_CHECK(hipEventCreateWithFlags(&trace_layer_start, hipEventDefault));
+                for (int p = 0; p < LAYER_PROJECTIONS; ++p) {
+                    HIP_CHECK(hipEventCreateWithFlags(&trace_copy_start[p], hipEventDefault));
+                    HIP_CHECK(hipEventCreateWithFlags(&trace_copy_end[p], hipEventDefault));
+                    HIP_CHECK(hipEventCreateWithFlags(&trace_kern_start[p], hipEventDefault));
+                    HIP_CHECK(hipEventCreateWithFlags(&trace_kern_end[p], hipEventDefault));
+                }
+            }
+        }
+    }
+
+    // 7E-3: grow-only activation buffers; growth (free+malloc) only happens
+    // after `drain()` — never while a kernel may still read the old buffer.
     void ensure(
         size_t hidden_bytes,
         size_t norm_w_bytes,
@@ -479,13 +642,9 @@ struct DeviceLayerWorkspace {
         size_t kv_bytes,
         size_t ffn_bytes
     ) {
-        if (!stream) {
-            HIP_CHECK(hipStreamCreate(&stream));
-        }
-        if (!copy_done_event) {
-            HIP_CHECK(hipEventCreateWithFlags(&copy_done_event, hipEventDisableTiming));
-        }
+        init_streams_and_events();
         if (hidden_bytes > cap_hidden) {
+            drain();
             realloc_buf(&d_x, hidden_bytes);
             realloc_buf(&d_h, hidden_bytes);
             realloc_buf(&d_normed, hidden_bytes);
@@ -493,22 +652,26 @@ struct DeviceLayerWorkspace {
             cap_hidden = hidden_bytes;
         }
         if (norm_w_bytes > cap_norm_w) {
+            drain();
             realloc_buf(&d_norm_w, norm_w_bytes);
             cap_norm_w = norm_w_bytes;
         }
         if (q_bytes > cap_q) {
+            drain();
             realloc_buf(&d_q, q_bytes);
             realloc_buf(&d_q_rot, q_bytes);
             realloc_buf(&d_attn_out, q_bytes);
             cap_q = q_bytes;
         }
         if (kv_bytes > cap_kv) {
+            drain();
             realloc_buf(&d_k, kv_bytes);
             realloc_buf(&d_k_rot, kv_bytes);
             realloc_buf(&d_v, kv_bytes);
             cap_kv = kv_bytes;
         }
         if (ffn_bytes > cap_ffn) {
+            drain();
             realloc_buf(&d_gate, ffn_bytes);
             realloc_buf(&d_up, ffn_bytes);
             realloc_buf(&d_swiglu, ffn_bytes);
@@ -516,15 +679,63 @@ struct DeviceLayerWorkspace {
         }
     }
 
-    void ensure_weight(size_t w_bytes) {
-        if (w_bytes > cap_w) {
-            if (d_w) HIP_CHECK(hipFree(d_w));
-            HIP_CHECK(hipMalloc(&d_w, w_bytes));
-            cap_w = w_bytes;
+    // 7E-3: growth of a weight slot also drains first; alloc-first-then-free
+    // (BLOCKER-7E-2) keeps the slot valid when hipMalloc fails.
+    void ensure_weight_slot(int slot, size_t w_bytes) {
+        if (w_bytes > cap_w[slot]) {
+            drain();
+            void* fresh = nullptr;
+            HIP_CHECK(hipMalloc(&fresh, w_bytes));
+            if (d_w[slot]) HIP_CHECK(hipFree(d_w[slot]));
+            d_w[slot] = fresh;
+            cap_w[slot] = w_bytes;
         }
     }
 
+    // 7E-2 pinned host staging. Prefers hipHostRegister on the (page-aligned)
+    // mmap/NumPy weight span so the H2D hipMemcpyAsync is truly asynchronous;
+    // falls back to a reusable pinned slab (CPU memcpy, which overlaps the
+    // compute stream's previous kernel) when registration is not possible.
+    // Returns the staged host pointer and whether it was registered.
+    const void* stage_host_weight(const void* h_w, size_t bytes, int slot, bool* registered) {
+        *registered = false;
+        if (is_page_aligned(h_w)) {
+            hipError_t err = hipHostRegister(
+                const_cast<void*>(h_w), bytes, hipHostRegisterDefault
+            );
+            if (err == hipSuccess) {
+                registered_spans.emplace_back(const_cast<void*>(h_w), bytes);
+                *registered = true;
+                return h_w;
+            }
+            (void)hipGetLastError();  // clear the failed-registration error
+        }
+        // Fallback: pinned slab with a host copy. The slab is per slot; the
+        // GPU H2D from this slab two projections back is long complete, but
+        // wait on its own copy_done event to make the overwrite race-free.
+        if (slab_in_flight[slot]) {
+            HIP_CHECK(hipEventSynchronize(copy_done[slot]));
+            slab_in_flight[slot] = false;
+        }
+        if (pinned_cap[slot] < bytes) {
+            // BLOCKER-7E-2: alloc-first-then-free for the pinned slab too.
+            void* fresh = nullptr;
+            HIP_CHECK(hipHostMalloc(&fresh, bytes));
+            if (pinned_slab[slot]) HIP_CHECK(hipHostFree(pinned_slab[slot]));
+            pinned_slab[slot] = fresh;
+            pinned_cap[slot] = bytes;
+        }
+        memcpy(pinned_slab[slot], h_w, bytes);
+        slab_in_flight[slot] = true;  // copy stream will consume it
+        ++slab_stages;
+        return pinned_slab[slot];
+    }
+
     ~DeviceLayerWorkspace() {
+        // 7E-3: no stream/event destroyed with pending work. QAQC-7E-1: the
+        // drain must never throw out of a destructor (the HIP context may
+        // already be gone during static destruction), so swallow errors.
+        try { drain(); } catch (...) {}
         if (d_x) (void)hipFree(d_x);
         if (d_h) (void)hipFree(d_h);
         if (d_normed) (void)hipFree(d_normed);
@@ -539,9 +750,27 @@ struct DeviceLayerWorkspace {
         if (d_gate) (void)hipFree(d_gate);
         if (d_up) (void)hipFree(d_up);
         if (d_swiglu) (void)hipFree(d_swiglu);
-        if (d_w) (void)hipFree(d_w);
-        if (copy_done_event) (void)hipEventDestroy(copy_done_event);
-        if (stream) (void)hipStreamDestroy(stream);
+        for (int s = 0; s < 2; ++s) {
+            if (d_w[s]) (void)hipFree(d_w[s]);
+            if (pinned_slab[s]) (void)hipHostFree(pinned_slab[s]);
+            if (copy_done[s]) (void)hipEventDestroy(copy_done[s]);
+            if (compute_done[s]) (void)hipEventDestroy(compute_done[s]);
+        }
+        if (inputs_done) (void)hipEventDestroy(inputs_done);
+        if (ffn_norm_done) (void)hipEventDestroy(ffn_norm_done);
+        if (norm_consumed) (void)hipEventDestroy(norm_consumed);
+        if (layer_out_ready) (void)hipEventDestroy(layer_out_ready);
+        if (trace_layer_start) {
+            (void)hipEventDestroy(trace_layer_start);
+            for (int p = 0; p < LAYER_PROJECTIONS; ++p) {
+                if (trace_copy_start[p]) (void)hipEventDestroy(trace_copy_start[p]);
+                if (trace_copy_end[p]) (void)hipEventDestroy(trace_copy_end[p]);
+                if (trace_kern_start[p]) (void)hipEventDestroy(trace_kern_start[p]);
+                if (trace_kern_end[p]) (void)hipEventDestroy(trace_kern_end[p]);
+            }
+        }
+        if (compute_stream) (void)hipStreamDestroy(compute_stream);
+        if (copy_stream) (void)hipStreamDestroy(copy_stream);
     }
 };
 
@@ -569,6 +798,22 @@ size_t weight_bytes_for_type(int w_type, int N, int K) {
     throw std::invalid_argument("Unsupported ggml_type in device layer pipeline.");
 }
 
+// 7E-2: staged projection with double-buffered weight slots.
+//
+// Per projection p (slot = p % 2), on the two explicit streams:
+//
+//   copy_stream:    [wait compute_done[slot]]         <- slot's previous
+//                   stage h_w (register or pinned        consumer finished
+//                   slab memcpy)                        reading the slot
+//                   hipMemcpyAsync(d_w[slot] <- staged)
+//                   eventRecord(copy_done[slot])
+//   compute_stream: [wait copy_done[slot]]            <- slot staged
+//                   launch_matmul_*_device(..., compute_stream)
+//                   eventRecord(compute_done[slot])
+//
+// While the compute stream runs projection p's kernel, the copy stream is
+// free to stage projection p+1 into the other slot — real overlap. The
+// first projection has nothing to overlap with (documented limitation).
 void project_on_device(
     const half* d_in,
     const void* h_w,
@@ -577,24 +822,96 @@ void project_on_device(
     int M,
     int N,
     int K,
-    DeviceLayerWorkspace& ws
+    DeviceLayerWorkspace& ws,
+    int proj_index
 ) {
+    const int slot = proj_index % 2;
     const size_t w_bytes = weight_bytes_for_type(w_type, N, K);
-    ws.ensure_weight(w_bytes);
-    HIP_CHECK(hipMemcpyAsync(ws.d_w, h_w, w_bytes, hipMemcpyHostToDevice, ws.stream));
-    HIP_CHECK(hipEventRecord(ws.copy_done_event, ws.stream));
-    HIP_CHECK(hipStreamWaitEvent(0, ws.copy_done_event, 0));
+    ws.ensure_weight_slot(slot, w_bytes);
 
+    // Copy stream: never overwrite a slot a kernel is still reading.
+    HIP_CHECK(hipStreamWaitEvent(ws.copy_stream, ws.compute_done[slot], 0));
+
+    bool registered = false;
+    const void* staged = ws.stage_host_weight(h_w, w_bytes, slot, &registered);
+
+    if (layer_trace_enabled()) {
+        HIP_CHECK(hipEventRecord(ws.trace_copy_start[proj_index], ws.copy_stream));
+    }
+    HIP_CHECK(hipMemcpyAsync(
+        ws.d_w[slot], staged, w_bytes, hipMemcpyHostToDevice, ws.copy_stream
+    ));
+    HIP_CHECK(hipEventRecord(ws.copy_done[slot], ws.copy_stream));
+    if (layer_trace_enabled()) {
+        HIP_CHECK(hipEventRecord(ws.trace_copy_end[proj_index], ws.copy_stream));
+    }
+
+    // Compute stream: consume the slot only after it is staged.
+    HIP_CHECK(hipStreamWaitEvent(ws.compute_stream, ws.copy_done[slot], 0));
+
+    if (layer_trace_enabled()) {
+        HIP_CHECK(hipEventRecord(ws.trace_kern_start[proj_index], ws.compute_stream));
+    }
     if (w_type == 1) {
-        launch_matmul_fp16_nt_device(d_in, ws.d_w, d_out, M, N, K);
+        launch_matmul_fp16_nt_device(d_in, ws.d_w[slot], d_out, M, N, K, ws.compute_stream);
     } else if (w_type == 2) {
-        launch_matmul_q4_0_device(d_in, ws.d_w, d_out, M, N, K);
+        launch_matmul_q4_0_device(d_in, ws.d_w[slot], d_out, M, N, K, ws.compute_stream);
     } else if (w_type == 8) {
-        launch_matmul_q8_0_device(d_in, ws.d_w, d_out, M, N, K);
+        launch_matmul_q8_0_device(d_in, ws.d_w[slot], d_out, M, N, K, ws.compute_stream);
     } else if (w_type == 12) {
-        launch_matmul_q4_k_device(d_in, ws.d_w, d_out, M, N, K);
+        launch_matmul_q4_k_device(d_in, ws.d_w[slot], d_out, M, N, K, ws.compute_stream);
     } else if (w_type == 14) {
-        launch_matmul_q6_k_device(d_in, ws.d_w, d_out, M, N, K);
+        launch_matmul_q6_k_device(d_in, ws.d_w[slot], d_out, M, N, K, ws.compute_stream);
+    }
+    HIP_CHECK(hipEventRecord(ws.compute_done[slot], ws.compute_stream));
+    if (layer_trace_enabled()) {
+        HIP_CHECK(hipEventRecord(ws.trace_kern_end[proj_index], ws.compute_stream));
+    }
+}
+
+void print_layer_trace(DeviceLayerWorkspace& ws, int seq_len) {
+    if (!layer_trace_enabled()) return;
+    static constexpr const char* NAMES[LAYER_PROJECTIONS] = {
+        "q", "k", "v", "o", "gate", "up", "down"
+    };
+    float c_start[LAYER_PROJECTIONS] = {0};
+    float c_end[LAYER_PROJECTIONS] = {0};
+    float k_start[LAYER_PROJECTIONS] = {0};
+    float k_end[LAYER_PROJECTIONS] = {0};
+    float total_copy = 0.0f;
+    float total_kern = 0.0f;
+    float overlap_ms = 0.0f;
+    for (int p = 0; p < LAYER_PROJECTIONS; ++p) {
+        (void)hipEventElapsedTime(&c_start[p], ws.trace_layer_start, ws.trace_copy_start[p]);
+        (void)hipEventElapsedTime(&c_end[p], ws.trace_layer_start, ws.trace_copy_end[p]);
+        (void)hipEventElapsedTime(&k_start[p], ws.trace_layer_start, ws.trace_kern_start[p]);
+        (void)hipEventElapsedTime(&k_end[p], ws.trace_layer_start, ws.trace_kern_end[p]);
+        total_copy += c_end[p] - c_start[p];
+        total_kern += k_end[p] - k_start[p];
+        if (p > 0) {
+            // overlap = copy window of projection p intersecting the kernel
+            // window of projection p-1 (slot B copy vs slot A compute)
+            float lo = c_start[p] < k_start[p - 1] ? k_start[p - 1] : c_start[p];
+            float hi = c_end[p] < k_end[p - 1] ? c_end[p] : k_end[p - 1];
+            if (hi > lo) overlap_ms += hi - lo;
+        }
+    }
+    float pct = total_kern > 0.0f ? 100.0f * overlap_ms / total_kern : 0.0f;
+    std::fprintf(
+        stderr,
+        "[7E-trace] seq=%d projections=7 copy_ms=%.4f kern_ms=%.4f overlap_ms=%.4f "
+        "overlap_pct_of_kern=%.2f boundary_syncs=%zu drain_syncs=%zu "
+        "hipHostRegister=%zu slab_fallback=%zu\n",
+        seq_len, total_copy, total_kern, overlap_ms, pct,
+        ws.boundary_syncs, ws.drain_syncs,
+        ws.registered_spans.size(), ws.slab_stages
+    );
+    for (int p = 0; p < LAYER_PROJECTIONS; ++p) {
+        std::fprintf(
+            stderr,
+            "[7E-trace]   proj=%s copy=[%.4f, %.4f] ms kern=[%.4f, %.4f] ms\n",
+            NAMES[p], c_start[p], c_end[p], k_start[p], k_end[p]
+        );
     }
 }
 
@@ -635,61 +952,120 @@ void launch_forward_layer_cached_fp16(
     const size_t ffn_bytes = static_cast<size_t>(seq_len) * intermediate_size * sizeof(half);
 
     auto& ws = get_layer_ws();
+    // Trace counters are per layer (real measurements, BLOCKER-7E-1); they
+    // reset BEFORE ensure() so this layer's growth drains are counted in
+    // this layer's summary.
+    ws.slab_stages = 0;
+    ws.boundary_syncs = 0;
+    ws.drain_syncs = 0;
+    // 7E-3: any growth inside ensure() drains both streams first. At layer
+    // entry the previous layer's boundary sync already drained everything.
     ws.ensure(hidden_bytes, norm_w_bytes, q_bytes, kv_bytes, ffn_bytes);
 
-    // 1. Single H2D copy of input hidden states for this layer
-    HIP_CHECK(hipMemcpyAsync(ws.d_x, h_x_in, hidden_bytes, hipMemcpyHostToDevice, ws.stream));
+    // RAII: on any exception after async work was enqueued, drain both
+    // streams and unregister staged host spans before unwinding (the host
+    // weight arrays are alive throughout this frame). BLOCKER-7E-1: the
+    // guard is ARMED only while an exception is unwinding —
+    // std::uncaught_exceptions() is captured at construction and re-checked
+    // at destruction, so the normal path performs exactly one
+    // hipStreamSynchronize (the layer boundary sync below); the guard adds
+    // no duplicate drain, and a warm layer measures boundary_syncs == 1.
+    struct LayerGuard {
+        DeviceLayerWorkspace& ws;
+        int uncaught_at_entry;
+        explicit LayerGuard(DeviceLayerWorkspace& w)
+            : ws(w), uncaught_at_entry(std::uncaught_exceptions()) {}
+        ~LayerGuard() noexcept {
+            if (std::uncaught_exceptions() != uncaught_at_entry) {
+                try { ws.drain(); } catch (...) {}
+            }
+        }
+    } layer_guard{ws};
 
-    // 2. Pre-Attention RMSNorm on device
-    HIP_CHECK(hipMemcpyAsync(ws.d_norm_w, h_attn_norm_w, norm_w_bytes, hipMemcpyHostToDevice, ws.stream));
-    HIP_CHECK(hipEventRecord(ws.copy_done_event, ws.stream));
-    HIP_CHECK(hipStreamWaitEvent(0, ws.copy_done_event, 0));
-    launch_rmsnorm_fp16_device(ws.d_x, ws.d_norm_w, ws.d_normed, seq_len, hidden_size, rms_norm_eps);
+    if (layer_trace_enabled()) {
+        HIP_CHECK(hipEventRecord(ws.trace_layer_start, ws.copy_stream));
+    }
 
-    // 3. Q, K, V projections on device
-    project_on_device(ws.d_normed, h_wq, wq_type, ws.d_q, seq_len, q_dim, hidden_size, ws);
-    project_on_device(ws.d_normed, h_wk, wk_type, ws.d_k, seq_len, kv_dim, hidden_size, ws);
-    project_on_device(ws.d_normed, h_wv, wv_type, ws.d_v, seq_len, kv_dim, hidden_size, ws);
+    // 0. Input staging (x + attention norm weight) on the copy stream.
+    HIP_CHECK(hipMemcpyAsync(ws.d_x, h_x_in, hidden_bytes, hipMemcpyHostToDevice, ws.copy_stream));
+    HIP_CHECK(hipMemcpyAsync(ws.d_norm_w, h_attn_norm_w, norm_w_bytes, hipMemcpyHostToDevice, ws.copy_stream));
+    HIP_CHECK(hipEventRecord(ws.inputs_done, ws.copy_stream));
 
-    // 4. RoPE on Q and K on device
+    // 1. Pre-Attention RMSNorm on the compute stream (waits for inputs).
+    HIP_CHECK(hipStreamWaitEvent(ws.compute_stream, ws.inputs_done, 0));
+    launch_rmsnorm_fp16_device(
+        ws.d_x, ws.d_norm_w, ws.d_normed, seq_len, hidden_size, rms_norm_eps, ws.compute_stream
+    );
+    // d_norm_w is now consumed; its reuse for the ffn norm below may proceed.
+    HIP_CHECK(hipEventRecord(ws.norm_consumed, ws.compute_stream));
+
+    // 2. Q, K, V projections: double-buffered staged weights (7E-2). The
+    //    first projection's copy cannot overlap anything (documented).
+    project_on_device(ws.d_normed, h_wq, wq_type, ws.d_q, seq_len, q_dim, hidden_size, ws, 0);
+    project_on_device(ws.d_normed, h_wk, wk_type, ws.d_k, seq_len, kv_dim, hidden_size, ws, 1);
+    project_on_device(ws.d_normed, h_wv, wv_type, ws.d_v, seq_len, kv_dim, hidden_size, ws, 2);
+
+    // 3. RoPE on Q and K on the compute stream.
     launch_rope_fp16_device(
-        ws.d_q, ws.d_q_rot, seq_len, num_heads, head_dim, pos_offset, rope_freq_base, rope_neox
+        ws.d_q, ws.d_q_rot, seq_len, num_heads, head_dim, pos_offset, rope_freq_base,
+        rope_neox, ws.compute_stream
     );
     launch_rope_fp16_device(
-        ws.d_k, ws.d_k_rot, seq_len, num_kv_heads, head_dim, pos_offset, rope_freq_base, rope_neox
+        ws.d_k, ws.d_k_rot, seq_len, num_kv_heads, head_dim, pos_offset, rope_freq_base,
+        rope_neox, ws.compute_stream
     );
 
-    // 5. D2D KV-cache update + GQA online-softmax attention on device
+    // 4. D2D KV-cache update + GQA online-softmax attention on the compute
+    //    stream (the D2D copies are async and same-stream ordered).
     launch_gqa_attention_cached_fp16_device(
         ws.d_q_rot, ws.d_k_rot, ws.d_v, ws.d_attn_out,
         layer_idx, seq_len, pos_offset,
         num_heads, num_kv_heads, head_dim,
-        scale, true
+        scale, true, ws.compute_stream
     );
 
-    // 6. Attention output projection on device (into ws.d_normed as scratch for attn_proj)
-    project_on_device(ws.d_attn_out, h_wo, wo_type, ws.d_normed, seq_len, hidden_size, q_dim, ws);
+    // 5. Attention output projection (into ws.d_normed as scratch for attn_proj).
+    project_on_device(ws.d_attn_out, h_wo, wo_type, ws.d_normed, seq_len, hidden_size, q_dim, ws, 3);
 
-    // 7. Fused First Residual + Pre-FFN RMSNorm on device (using distinct d_normed_h buffer, N-2):
+    // 6. Fused First Residual + Pre-FFN RMSNorm on the compute stream:
     //    ws.d_h = half(float(ws.d_x) + float(ws.d_normed))
     //    ws.d_normed_h = rmsnorm(ws.d_h, ffn_norm_w)
-    HIP_CHECK(hipMemcpyAsync(ws.d_norm_w, h_ffn_norm_w, norm_w_bytes, hipMemcpyHostToDevice, ws.stream));
-    HIP_CHECK(hipEventRecord(ws.copy_done_event, ws.stream));
-    HIP_CHECK(hipStreamWaitEvent(0, ws.copy_done_event, 0));
+    // The ffn norm weight reuses d_norm_w: the copy stream waits until the
+    // attention rmsnorm finished reading it (norm_consumed).
+    HIP_CHECK(hipStreamWaitEvent(ws.copy_stream, ws.norm_consumed, 0));
+    HIP_CHECK(hipMemcpyAsync(ws.d_norm_w, h_ffn_norm_w, norm_w_bytes, hipMemcpyHostToDevice, ws.copy_stream));
+    HIP_CHECK(hipEventRecord(ws.ffn_norm_done, ws.copy_stream));
+    HIP_CHECK(hipStreamWaitEvent(ws.compute_stream, ws.ffn_norm_done, 0));
     launch_rmsnorm_residual_fp16_device(
-        ws.d_x, ws.d_normed, ws.d_norm_w, ws.d_h, ws.d_normed_h, seq_len, hidden_size, rms_norm_eps
+        ws.d_x, ws.d_normed, ws.d_norm_w, ws.d_h, ws.d_normed_h, seq_len, hidden_size,
+        rms_norm_eps, ws.compute_stream
     );
 
-    // 8. SwiGLU FFN on device
-    project_on_device(ws.d_normed_h, h_wgate, wgate_type, ws.d_gate, seq_len, intermediate_size, hidden_size, ws);
-    project_on_device(ws.d_normed_h, h_wup, wup_type, ws.d_up, seq_len, intermediate_size, hidden_size, ws);
-    launch_swiglu_fp16_device(ws.d_gate, ws.d_up, ws.d_swiglu, seq_len * intermediate_size);
-    project_on_device(ws.d_swiglu, h_wdown, wdown_type, ws.d_normed, seq_len, hidden_size, intermediate_size, ws);
+    // 7. SwiGLU FFN: staged gate/up projections overlap the previous kernels.
+    project_on_device(ws.d_normed_h, h_wgate, wgate_type, ws.d_gate, seq_len, intermediate_size, hidden_size, ws, 4);
+    project_on_device(ws.d_normed_h, h_wup, wup_type, ws.d_up, seq_len, intermediate_size, hidden_size, ws, 5);
+    launch_swiglu_fp16_device(
+        ws.d_gate, ws.d_up, ws.d_swiglu, seq_len * intermediate_size, ws.compute_stream
+    );
+    project_on_device(ws.d_swiglu, h_wdown, wdown_type, ws.d_normed, seq_len, hidden_size, intermediate_size, ws, 6);
 
-    // 9. Second Residual on device: ws.d_x = half(float(ws.d_h) + float(ws.d_normed))
-    launch_residual_add_fp16_device(ws.d_h, ws.d_normed, ws.d_x, seq_len * hidden_size);
+    // 8. Second Residual on the compute stream:
+    //    ws.d_x = half(float(ws.d_h) + float(ws.d_normed))
+    launch_residual_add_fp16_device(
+        ws.d_h, ws.d_normed, ws.d_x, seq_len * hidden_size, ws.compute_stream
+    );
 
-    // 10. Single D2H copy of output hidden states for this layer
-    HIP_CHECK(hipMemcpyAsync(h_x_out, ws.d_x, hidden_bytes, hipMemcpyDeviceToHost, ws.stream));
-    HIP_CHECK(hipStreamSynchronize(ws.stream));
+    // 9. Single D2H copy of output hidden states: the copy stream waits on
+    //    the final compute-done event (never uses the copy stream as a proxy
+    //    for compute completion), then the layer-boundary synchronisation is
+    //    the one documented sync of this call.
+    HIP_CHECK(hipEventRecord(ws.layer_out_ready, ws.compute_stream));
+    HIP_CHECK(hipStreamWaitEvent(ws.copy_stream, ws.layer_out_ready, 0));
+    HIP_CHECK(hipMemcpyAsync(h_x_out, ws.d_x, hidden_bytes, hipMemcpyDeviceToHost, ws.copy_stream));
+    HIP_CHECK(hipStreamSynchronize(ws.copy_stream));
+    ++ws.boundary_syncs;  // real count (BLOCKER-7E-1): 1 per layer call
+
+    print_layer_trace(ws, seq_len);
+    // All in-flight work has drained; unregister any hipHostRegister'd spans.
+    ws.unregister_all();
 }

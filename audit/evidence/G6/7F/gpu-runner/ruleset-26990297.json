@@ -1,0 +1,16 @@
+{
+  "id": 26990297,
+  "name": "release-gates",
+  "enforcement": "active",
+  "targets": [
+    "refs/heads/main",
+    "refs/heads/vibe/phase7-220201"
+  ],
+  "required_status_checks": [
+    "GPU correctness (self-hosted gfx1150)",
+    "CPU Parser, Tokenizer, Sampler & Packaging Suite",
+    "Sdist Install (CPU-only path, GFX1150_SKIP_CMAKE=1)",
+    "Clean-clone documented build (G0 C-1)"
+  ],
+  "url": "https://github.com/KupipiKuki/gfx1150-inference/settings/rules/26990297"
+}

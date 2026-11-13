@@ -1,0 +1,42 @@
+# G1 / 7A-6 follow-up — GPU suite
+# Captured: 2026-11-02T22:25:10Z
+# No src/ change: the GPU lane must be unchanged (18 passed / 37 deselected).
+#
+# Build artifact: the repository's own build/ directory, which holds the G0
+# baseline artifact byte-for-byte (sha256
+# c8f6b19b9baca6ee6c9f8da1ac5788dda1049d2311294b62fb46670a281b0a03, the same
+# digest the 7A-6 bundle recorded for /tmp/opencode/g0-build). It is not in
+# git: a fresh clone must build it (7A-8 owns the build entry point).
+# PYTHONPATH=build:src
+
+### [1] $ PYTHONPATH=build:src python3 -m pytest -m gpu -q
+..................                                                       [100%]
+18 passed, 37 deselected in 1.57s
+--- exit code: 0 ---
+
+### [2] $ PYTHONPATH=build:src python3 -m pytest -m gpu --collect-only -q
+tests/test_full_model.py::test_tokenizer_and_embedding
+tests/test_full_model.py::test_gpu_kv_cache_manager
+tests/test_full_model.py::test_full_model_inference
+tests/test_gguf_and_q4.py::test_gguf_and_streamer
+tests/test_gguf_and_q4.py::test_dequantize_q4_0_hip
+tests/test_gguf_and_q4.py::test_fused_matmul_q4_0_hip
+tests/test_layer.py::test_rmsnorm_kernel
+tests/test_layer.py::test_rope_kernel
+tests/test_layer.py::test_gqa_attention_kernel
+tests/test_layer.py::test_swiglu_kernel
+tests/test_layer.py::test_end_to_end_transformer_layer
+tests/test_matmul.py::test_matmul_correctness
+tests/test_matmul.py::test_edge_cases
+tests/test_phase5_scale.py::test_q8_0_kernels
+tests/test_phase5_scale.py::test_q4_k_superblock_kernels_and_70b_scale
+tests/test_phase5_scale.py::test_q4km_chunked_batch_and_kv_offload
+tests/test_phase5_scale.py::test_v060_prefill_tile_and_fused_residual_kernels
+tests/test_phase5_scale.py::test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards
+
+18/55 tests collected (37 deselected) in 0.18s
+--- exit code: 0 ---
+
+### [3] $ sha256sum build/matmul_module.so
+c8f6b19b9baca6ee6c9f8da1ac5788dda1049d2311294b62fb46670a281b0a03  build/matmul_module.so
+--- exit code: 0 ---

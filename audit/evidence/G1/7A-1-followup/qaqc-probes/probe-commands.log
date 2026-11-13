@@ -1,0 +1,90 @@
+# QAQC 7A-1-followup probe log — independent re-run from clean clone
+# Started: 2026-11-02T01:31:34Z
+
+### P0 environment ###
+clone HEAD: ea8e84a1e708ee114ae611f2b257b81eaa57c12a
+dirty: 0; build/ present: no
+tip(2af8369) vs candidate, tests+pyproject: 0 changed files (expect 0)
+
+### P1 lane counts (brief acceptance) ###
+--- pytest -m "not gpu" (expect 37 passed, 18 deselected) ---
+37 passed, 18 deselected, 1 warning in 0.87s
+exit: 0
+--- pytest -m gpu on gfx1150 (expect 18 passed) ---
+18 passed, 37 deselected in 1.65s
+exit: 0
+--- pytest -m gpu, clean clone, no extension (expect 18 skipped) ---
+18 skipped, 37 deselected in 0.20s
+exit: 0
+--- test_cpu_only.py normal and -O (expect 12/12) ---
+OK
+exit: 0
+OK
+exit: 0
+
+### P2 the two strengthened meta-tests by name (brief: QAQC re-runs these) ###
+1 passed in 0.16s
+exit: 0
+7 passed in 0.17s
+exit: 0
+
+### P3 canary 1 (C-7A1-1, as the brief specifies): cpu-marked module requesting the fixture ###
+E       AssertionError: Every test module must declare exactly its expected lane:
+tests/test_harness_contract.py:370: AssertionError
+1 failed in 0.17s
+exit: 1 (expect 1)
+37 passed, 18 deselected, 1 warning in 0.79s
+exit: 0 (expect 37 passed after removal)
+
+### P4 canary 2 (C-7A1-2): only raise is in a nested helper ###
+E       AssertionError: Every test function must assert or raise at its own top level (a raise inside a nested helper does not count):
+tests/test_harness_contract.py:300: AssertionError
+1 failed, 7 passed in 0.19s
+exit: 1 (expect 1)
+
+### P5 QAQC extra canary 3: only ASSERT is in a nested helper (pruning must cover asserts too) ###
+E       AssertionError: Every test function must assert or raise at its own top level (a raise inside a nested helper does not count):
+tests/test_harness_contract.py:300: AssertionError
+1 failed, 7 deselected in 0.15s
+exit: 1 (expect 1)
+
+### P6 QAQC extra: drive the lane machinery directly (_module_lane / _uses_matmul_module) ###
+  PASS  module-scope mark -> cpu
+  PASS  function-scope mark ignored
+  PASS  if-guarded module-scope mark honoured
+  PASS  conflicting marks detected
+  PASS  fixture request = hard dep
+  PASS  unguarded body import = hard dep
+  PASS  guarded import = optional (cpu ok)
+  PASS  try/finally without handler = still hard
+machinery-drive: ALL PASS
+
+### P7 QAQC extra: wrong-marker and cpu-uses-extension rejection paths (mapping temporarily extended) ###
+                    f"{path.name}: pytestmark is '{actual}', expected '{expected}'"
+                    f"{path.name}: uses the matmul_module extension but is in the 'cpu' lane"
+E           test_audit_cpuext.py: uses the matmul_module extension but is in the 'cpu' lane
+E           test_audit_wrongmarker.py: pytestmark is 'cpu', expected 'gpu'
+exit: 1 (expect 1: BOTH rejection paths fired)
+contract restored byte-for-byte: YES
+
+### P8 independent recount of the corrected QF-3 figure (parent 2659e6c) ###
+  bool-returners: 13 (record says 13)
+  of those, with asserts: 4 (record says 4): ['test_full_model_inference', 'test_gguf_and_streamer', 'test_gpu_kv_cache_manager', 'test_tokenizer_and_embedding']
+  of those, no failure mechanism: 9 (record says 9)
+  tuple-returners: 1 (record says 1): ['test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards']
+
+### P9 scope and packaging spot-checks ###
+follow-up touches only allowed files: 
+  audit/evidence/G1/7A-1-pytest-harness/coder-report.md
+  audit/evidence/G1/7A-1-pytest-harness/notes.md
+  tests/test_harness_contract.py
+GPU test files + test_cpu_only.py diff (expect empty): 
+  (end)
+sdist: conftest.py packaged? 0 (expect 0); test_harness_contract.py packaged? 1 (expect 1)
+
+### P10 final green check ###
+37 passed, 18 deselected, 1 warning in 0.76s
+exit: 0
+tree clean: YES
+
+# Finished: 2026-11-02T01:31:50Z

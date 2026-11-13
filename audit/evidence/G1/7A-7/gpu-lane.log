@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.1.1, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /tmp/opencode/gpu7
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 61 items / 43 deselected / 18 selected
+
+tests/test_full_model.py::test_tokenizer_and_embedding PASSED            [  5%]
+tests/test_full_model.py::test_gpu_kv_cache_manager PASSED               [ 11%]
+tests/test_full_model.py::test_full_model_inference PASSED               [ 16%]
+tests/test_gguf_and_q4.py::test_gguf_and_streamer PASSED                 [ 22%]
+tests/test_gguf_and_q4.py::test_dequantize_q4_0_hip PASSED               [ 27%]
+tests/test_gguf_and_q4.py::test_fused_matmul_q4_0_hip PASSED             [ 33%]
+tests/test_layer.py::test_rmsnorm_kernel PASSED                          [ 38%]
+tests/test_layer.py::test_rope_kernel PASSED                             [ 44%]
+tests/test_layer.py::test_gqa_attention_kernel PASSED                    [ 50%]
+tests/test_layer.py::test_swiglu_kernel PASSED                           [ 55%]
+tests/test_layer.py::test_end_to_end_transformer_layer PASSED            [ 61%]
+tests/test_matmul.py::test_matmul_correctness PASSED                     [ 66%]
+tests/test_matmul.py::test_edge_cases PASSED                             [ 72%]
+tests/test_phase5_scale.py::test_q8_0_kernels PASSED                     [ 77%]
+tests/test_phase5_scale.py::test_q4_k_superblock_kernels_and_70b_scale PASSED [ 83%]
+tests/test_phase5_scale.py::test_q4km_chunked_batch_and_kv_offload PASSED [ 88%]
+tests/test_phase5_scale.py::test_v060_prefill_tile_and_fused_residual_kernels PASSED [ 94%]
+tests/test_phase5_scale.py::test_v061_q6_k_kernels_and_qwen2_mixed_q4km_and_guards PASSED [100%]
+
+------------- generated xml file: /tmp/opencode/gpu7/gpu-lane.xml --------------
+====================== 18 passed, 43 deselected in 1.71s =======================

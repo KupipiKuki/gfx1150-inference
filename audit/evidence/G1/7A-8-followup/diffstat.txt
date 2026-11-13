@@ -1,0 +1,41 @@
+# G1 / 7A-8 follow-up diffstat
+# Captured: 2026-11-02T23:41:04Z
+# base:   cb4655c3c7d2a64914c53495625c5ef444f11b4e (the 7A-8 audit commit)
+# content under review: 9c049129e2f39ac2022442416d8fcb0feb7b465f (the 7A-8 candidate)
+
+=== files changed (name-status) ===
+M	.github/workflows/ci-build.yml
+A	PHASE7_7A-8_FOLLOWUP_BRIEF.md
+
+=== diffstat ===
+ .github/workflows/ci-build.yml |  22 ++++++++-
+ PHASE7_7A-8_FOLLOWUP_BRIEF.md  | 102 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 122 insertions(+), 2 deletions(-)
+
+=== scope check: the build fix, CMake, README, tests, src/, setup.py, pyproject,
+=== MANIFEST.in, scripts/qa/**, the ledger and the 7A-6 evidence are untouched ===
+  none — confirmed
+
+=== the only functional change ===
+  +        # pytest is needed by the configure smoke test below;
+  +        # actions/setup-python does not ship it.
+  -            "numpy>=1.24.0" "setuptools>=64" wheel "pybind11>=2.12"
+  +            "numpy>=1.24.0" "setuptools>=64" wheel "pybind11>=2.12" pytest
+  +        # The output is kept so that the run records what was discovered.
+  -          env -u pybind11_DIR cmake -B build -DCMAKE_BUILD_TYPE=Release
+  +          set -o pipefail
+  +          env -u pybind11_DIR cmake -B build -DCMAKE_BUILD_TYPE=Release 2>&1 | tee configure.log
+  +
+  +      - name: Record the configure result in the job summary
+  +        # Makes the run self-evidencing: the line below is the proof that
+  +        # pybind11 was discovered from the interpreter, not from an ambient
+  +        # pybind11_DIR.
+  +        if: always()
+  +        run: |
+  +          {
+  +            echo "### Configure (documented command, no ambient pybind11_DIR)"
+  +            echo
+  +            echo '```'
+  +            grep -E "pybind11 CMake package|Configuring done|Could not find" configure.log || echo "(no configure log)"
+  +            echo '```'
+  +          } >> "$GITHUB_STEP_SUMMARY"

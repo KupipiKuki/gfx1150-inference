@@ -1,0 +1,28 @@
+# 7F rework diffstat against the G6 base (2d48efe)
+
+ scripts/bench/regress.py                           |   77 ++
+ scripts/bench/run.py                               |  370 +++++
+ scripts/qa/canary_claims.py                        |  123 +-
+ scripts/qa/check_claims.py                         |   31 +-
+ scripts/qa/real_gguf_golden.py                     |  393 ++++++
+ src/inference.py                                   |  521 ++++++-
+ src/tokenizer.py                                   |    8 +-
+ tests/test_bench_gate.py                           |  153 +++
+ tests/test_goldens_tokenizer.py                    |   82 ++
+ tests/test_harness_contract.py                     |    9 +
+ tests/test_telemetry_gpu.py                        |  271 ++++
+ 84 files changed, 10480 insertions(+), 97 deletions(-)
+
+# rework-only delta (baa3e87..b3920d2):
+ audit/AUDIT_7F_DEEP_2026-11-08.md                  | 247 +++++++++++++++++++
+ audit/CLAIMS_LEDGER.md                             |   5 +-
+ audit/README.md                                    |   3 +-
+ ...golden-q4km-prompt1-engine-tokenizer-fixed.json | 274 +++++++++++++++++++++
+ .../evidence/G6/7F/audit-probes/sdist-packaging.md |  62 +++++
+ .../G6/7F/audit-probes/tokenizer-spm-merges.md     |  74 ++++++
+ scripts/bench/baseline-7b.json                     | 172 +++++++++++++
+ scripts/bench/regress.py                           |   6 +-
+ scripts/qa/real_gguf_golden.py                     | 100 +++++++-
+ src/tokenizer.py                                   |   8 +-
+ tests/test_goldens_tokenizer.py                    |  82 ++++++
+ 17 files changed, 1262 insertions(+), 20 deletions(-)

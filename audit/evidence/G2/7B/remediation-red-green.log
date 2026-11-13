@@ -1,0 +1,37 @@
+# G2 / 7B remediation - stop-gate red/green
+# Parent (pre-7B): 8426ec6 · Failed 7B candidate: 70c5ab2 (audit FAIL, BLOCKER-7B-1/-2)
+# Remediation candidate: 25e9088 on wp/7B-remediation
+#
+# RED 1 (parent 8426ec6, worktree /tmp/qaqc2-parent):
+#   python -m pytest -m "not gpu" -q --runxfail -k "tokenizer or bpe or golden"
+4 failed, 58 passed, 77 deselected, 13 warnings in 0.82s
+#
+# RED 2 (failed candidate 70c5ab2, worktree /tmp/qaqc2-failed) - the NEW
+# differential corpus and the auditor's probe cases run against the OLD code
+# (qaqc-probes/qaqc_diff_vs_tree.py):
+DIFF 'the' got [259, 260] want [265]
+DIFF 'and' got [261, 264] want [269]
+DIFF 'time' got [259, 369] want [378]
+DIFF 'said' got [296, 292] want [336]
+DIFF 'want' got [273, 361] want [391]
+differential corpus: 75/310 mismatches on /tmp/qaqc2-failed
+DIFF probe 'a<s>b' got [412, 1, 430] want [261, 1, 268]
+DIFF probe 'hi<s>there' got [415, 417, 1, 413, 260, 276] want [270, 417, 1, 383]
+DIFF probe ' <s>' got [410, 1] want [410, 410, 1]
+DIFF probe '<s>b' got [1, 430] want [1, 268]
+DIFF probe 'hello<s>there' got [260, 306, 414, 1, 413, 260, 276] want [281, 306, 414, 1, 383]
+DIFF probe 'the' got [259, 260] want [265]
+DIFF probe 'and' got [261, 264] want [269]
+DIFF probe 'time' got [259, 369] want [378]
+DIFF probe 'the quick brown fox jumps over the lazy dog' got [259, 260, 410, 456, 425, 417, 340, 268, 420, 327, 416, 272, 414, 444, 410, 449, 425, 423, 427, 419, 334, 330, 259, 260, 278, 412, 451, 422, 400, 428] want [265, 410, 456, 425, 417, 340, 268, 420, 327, 416, 272, 414, 444, 410, 449, 425, 423, 427, 419, 334, 330, 265, 278, 412, 451, 422, 400, 428]
+DIFF probe 'Once upon a time there was a little girl named Lily' got [321, 331, 350, 289, 261, 259, 369, 259, 260, 276, 286, 261, 376, 298, 315, 421, 297, 314, 266, 317] want [403, 407, 261, 378, 383, 286, 261, 376, 298, 315, 421, 395, 317]
+auditor probe cases: 10/11 mismatches on /tmp/qaqc2-failed
+#
+# GREEN (remediation candidate 25e9088, worktree /tmp/qaqc2-cand):
+#   python -m pytest -m "not gpu" -q -k "differential or spm_mixed" tests/test_goldens_tokenizer.py
+#   python -m pytest -m "not gpu" -q --runxfail -k "tokenizer or bpe or golden"
+#   qaqc_diff_vs_tree.py /tmp/qaqc2-cand  ->  0/310 corpus, 0/11 probe mismatches
+311 passed, 40 deselected, 13 warnings in 0.37s
+386 passed, 77 deselected, 13 warnings in 0.94s
+differential corpus: 0/310 mismatches on /tmp/qaqc2-cand
+auditor probe cases: 0/11 mismatches on /tmp/qaqc2-cand

@@ -1,0 +1,41 @@
+# GitHub REST API state — ci-gpu.yml (7A-7)
+# Captured: 2026-11-03
+# Repo: KupipiKuki/gfx1150-inference
+# Branch: wp/7A-7-gpu-ci @ 8b38e99d88f5bed5b6c735e031aef4722e503912
+#
+# This is the artifact the bundle README named but that was never committed
+# (QF-1). Every row below was fetched from the public GitHub REST API; no
+# authenticated data or secret is included.
+
+## Workflow file on the remote branch
+path:      .github/workflows/ci-gpu.yml
+blob:      a4dd9b1d
+size:      4617 bytes
+matches the bundle copy (workflow.yml): yes (cmp identical)
+
+## Registered workflows for the repository
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/actions/workflows
+  total_count: 2
+  1. Clean-Clone Build CI            .github/workflows/ci-build.yml
+  2. CPU-Only Verification & Regression CI  .github/workflows/ci-cpu.yml
+  -> ci-gpu.yml is NOT registered and has never run (zero runs).
+
+## Tip check-runs
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/commits/8b38e99d88f5bed5b6c735e031aef4722e503912/check-runs
+  total_count: 2
+  - Clean-clone documented build (G0 C-1): success
+  - CPU Parser, Tokenizer, Sampler & Packaging Suite: success
+  -> no workflow-file-error check; GitHub accepts the YAML.
+  -> the GPU workflow is absent, as expected while the runner is unregistered.
+
+## Tracking PR
+GET https://api.github.com/repos/KupipiKuki/gfx1150-inference/pulls/8
+  state: open (draft)
+  head: vibe/phase7-220201
+  body names 7A-7 and C-7A1-6 under "Still open for G1".
+  -> the workflow header's tracking link is real.
+
+## Gate state
+- ci-gpu.yml: queued-not-green. It is not a G1 pass.
+- 7F-1: owns runner registration and removal of continue-on-error.
+- No GPU workflow run exists in the API.

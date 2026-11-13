@@ -1,0 +1,116 @@
+=== rework-red.log: the two rework fixes' new tests fail on the pre-fix tip (1ad01c9) ===
+date: Sat Nov  7 07:21:42 PM UTC 2026
+
+New tests added per PHASE7_7D_REWORK_BRIEF.md sections 1-2, run against the pre-fix tree:
+
+$ python -m pytest tests/test_memory_residency.py -q -k "negative or auto_without_sources"
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____ TestKVHardening.test_block_count_negative_with_zero_tensors_rejected _____
+
+self = <test_memory_residency.TestKVHardening object at 0x7b3ec23c6750>
+tmp_path = PosixPath('/tmp/pytest-of-kupipi/pytest-28/test_block_count_negative_with0')
+
+    def test_block_count_negative_with_zero_tensors_rejected(self, tmp_path) -> None:
+        """Rework QAQC-7D-1: block_count = INT32(-1) with zero blk.* tensors
+        must fail closed (list(range(-1)) is empty, so the index-set compare
+        alone cannot catch it); not be accepted with num_layers = -1."""
+        from weight_loader import WeightStreamer
+    
+        b = __import__("io").BytesIO()
+        rng = np.random.default_rng(3)
+        raw = rng.standard_normal(64, dtype=np.float32).astype(np.float16).tobytes()
+        write_synthetic_gguf(
+            b,
+            metadata={
+                "general.architecture": (GGUFValueType.STRING, "llama"),
+                "llama.block_count": (GGUFValueType.INT32, -1),
+            },
+            tensors=[("token_embd.weight", (64,), GGMLType.F16, raw)],
+        )
+        path = str(tmp_path / "negative.gguf")
+        with open(path, "wb") as fh:
+            fh.write(b.getvalue())
+>       with pytest.raises(ValueError) as ctx_neg:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_memory_residency.py:619: Failed
+_______ TestKVHardening.test_block_count_negative_with_tensors_rejected ________
+
+self = <test_memory_residency.TestKVHardening object at 0x7b3ec23a1130>
+tmp_path = PosixPath('/tmp/pytest-of-kupipi/pytest-28/test_block_count_negative_with1')
+
+    def test_block_count_negative_with_tensors_rejected(self, tmp_path) -> None:
+        """INT32(-1) declared over real tensors: rejected by the explicit
+        non-negative guard (the index-set compare alone cannot catch -1)."""
+        from weight_loader import WeightStreamer
+    
+        b = __import__("io").BytesIO()
+        rng = np.random.default_rng(4)
+        raw = rng.standard_normal(64, dtype=np.float32).astype(np.float16).tobytes()
+        write_synthetic_gguf(
+            b,
+            metadata={
+                "general.architecture": (GGUFValueType.STRING, "llama"),
+                "llama.block_count": (GGUFValueType.INT32, -1),
+            },
+            tensors=[("blk.0.big.weight", (64,), GGMLType.F16, raw)],
+        )
+        path = str(tmp_path / "negative_layers.gguf")
+        with open(path, "wb") as fh:
+            fh.write(b.getvalue())
+        with pytest.raises(ValueError) as ctx_neg2:
+            WeightStreamer(path)
+>       assert ">= 0" in str(ctx_neg2.value)
+E       AssertionError: assert '>= 0' in 'llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.'
+E        +  where 'llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.' = str(ValueError('llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.'))
+E        +    where ValueError('llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.') = <ExceptionInfo ValueError('llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.') tblen=3>.value
+
+tests/test_memory_residency.py:647: AssertionError
+=============================== warnings summary ===============================
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_memory_residency.py::TestKVHardening::test_block_count_negative_with_zero_tensors_rejected - Failed: DID NOT RAISE ValueError
+FAILED tests/test_memory_residency.py::TestKVHardening::test_block_count_negative_with_tensors_rejected - AssertionError: assert '>= 0' in 'llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.'
+ +  where 'llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.' = str(ValueError('llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.'))
+ +    where ValueError('llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.') = <ExceptionInfo ValueError('llama.block_count (-1) disagrees with the tensor table: found 1 blk.N.* tensor groups (min=0, max=0). Refusing to emit tensor-sized error lists for a header that does not match its own tensors.') tblen=3>.value
+2 failed, 40 deselected, 13 warnings in 0.30s
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ TestEngineResidency.test_engine_auto_without_sources_warns_and_streams ____
+
+self = <test_memory_residency.TestEngineResidency object at 0x735d3eb11490>
+kv_modules = (<module 'kv_cache' from '/home/kupipi/Documents/git/gfx1150-inference/src/kv_cache.py'>, <module 'inference' from '/home/kupipi/Documents/git/gfx1150-inference/src/inference.py'>)
+tmp_path = PosixPath('/tmp/pytest-of-kupipi/pytest-29/test_engine_auto_without_sourc0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x735d41a2f100>
+
+    def test_engine_auto_without_sources_warns_and_streams(
+        self, kv_modules, tmp_path, monkeypatch
+    ) -> None:
+        """Rework QAQC (fix 2): with no readable budget source, engine AUTO
+        must fail safe to STREAM via the NoBudgetFallbackWarning path — the
+        decision's weight_budget is None (no invented budget of 0) and the
+        reason says "no readable source", not "budget (0)"."""
+        _, inference = kv_modules
+        model = str(tmp_path / "nosources.gguf")
+        _engine_model(model)
+    
+        def no_sources():
+            return BudgetSources()
+    
+        monkeypatch.setattr(inference, "read_budget_sources", no_sources)
+>       with pytest.warns(NoBudgetFallbackWarning, match="no memory-budget source"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT WARN. No warnings of type (<class 'memory_budget.NoBudgetFallbackWarning'>,) were emitted.
+E        Emitted warnings: [].
+
+tests/test_memory_residency.py:975: Failed
+=============================== warnings summary ===============================
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_memory_residency.py::TestEngineResidency::test_engine_auto_without_sources_warns_and_streams - Failed: DID NOT WARN. No warnings of type (<class 'memory_budget.NoBudgetFallbackWarning'>,) were emitted.
+ Emitted warnings: [].
+1 failed, 41 deselected, 13 warnings in 0.26s

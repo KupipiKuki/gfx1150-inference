@@ -1,0 +1,48 @@
+# G1 / 7A-7 — workflow validation
+# Captured: 2026-11-03T00:41:01Z
+#
+# No self-hosted runner is registered, so the job cannot be executed by GitHub
+# Actions. The brief's section-3 requirements are therefore checked
+# mechanically by validate-workflow.py (committed next to this log).
+
+=== validating /home/kupipi/Documents/git/gfx1150-inference/.github/workflows/ci-gpu.yml ===
+  [ok  ] the file is valid YAML
+
+=== triggers ===
+  ['pull_request', 'schedule', 'workflow_dispatch']
+  [ok  ] pull_request trigger
+  [ok  ] nightly schedule trigger
+  [ok  ] manual trigger -- True
+  [ok  ] exactly one job -- ['gpu-correctness']
+
+=== runner and gate state ===
+  [ok  ] runs-on is [self-hosted, gfx1150, rocm] -- ['self-hosted', 'gfx1150', 'rocm']
+  [ok  ] continue-on-error is true while no runner is registered -- True
+  [ok  ] a timeout is set
+
+=== steps ===
+  - Checkout repository
+  - Install the documented test/build prerequisites
+  - Configure the project (the documented command)
+  - Build the HIP extension
+  - Run the GPU lane (a skip is not a pass)
+  - Upload the GPU lane logs
+  [ok  ] the checkout action is used
+  [ok  ] the documented prerequisites are installed
+  [ok  ] the configure step is the documented command
+  [ok  ] the build step builds the extension
+  [ok  ] the GPU lane runs pytest -m gpu
+  [ok  ] the lane is checked for skips, not only for a non-zero exit code
+  [ok  ] the guard requires at least one passing test
+  [ok  ] the guard fails on any skip
+  [ok  ] logs are uploaded as artifacts
+  [ok  ] the upload runs even when the lane fails
+
+=== hygiene ===
+  [ok  ] no secrets are referenced
+  [ok  ] the tracking issue is named
+  [ok  ] the job is documented as not a G1 pass
+
+=== 20/20 checks passed ===
+PASS: the workflow satisfies every clause checked
+--- exit code: 0 ---

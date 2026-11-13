@@ -1,0 +1,26 @@
+[PASS] gpt2 special token encodes as its id
+[PASS] mixed text splits around the special token
+[PASS] no splitting inside ordinary text
+[PASS] spm control token parses as its id
+[PASS] spm control token literal path unchanged
+[PASS] spm control token adjacent to punctuation round-trips
+[PASS] overlapping specials: longest match wins
+[PASS] decode skips special tokens
+[PASS] decode keeps special tokens
+[PASS] metadata absent -> spm family default (BOS)
+[PASS] metadata true
+[PASS] metadata false
+[PASS] explicit add_bos=False overrides metadata true
+[PASS] explicit add_bos=True overrides metadata false
+[PASS] gpt2 family default: no BOS
+[PASS] no duplicate BOS on a leading special
+[PASS] empty string respects the BOS decision
+[PASS] gpt2 minimal vocab: missing byte raises -- Unmappable character 'Ã' (byte 0xC3) not in vocabulary
+[PASS] lone surrogate raises ValueError, not UnicodeEncodeError -- Input text is not encodable as UTF-8: 'utf-8' codec can't encode character '\ud800' in position 1: surrogates not allowed
+[PASS] all 7A-3 GPT-2 golden cases match -- 0 mismatches
+[PASS] all 7A-3 SPM golden cases match -- 0 mismatches
+[PASS] spm multibyte emoji byte-fallback golden
+[PASS] gpt2 double space golden
+
+ALL PROBES PASS
+exit=0

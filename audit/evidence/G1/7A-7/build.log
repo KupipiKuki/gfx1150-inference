@@ -1,0 +1,9 @@
+[ 87%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/matmul.hip.o
+[ 87%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/rmsnorm.hip.o
+[ 87%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/mlp.hip.o
+[ 87%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/attention.hip.o
+[ 87%] Building CXX object CMakeFiles/matmul_module.dir/src/python_bindings/bindings.cpp.o
+[ 87%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/dequantize.hip.o
+[ 87%] Building HIP object CMakeFiles/matmul_module.dir/src/kernels/rope.hip.o
+[100%] Linking HIP shared module matmul_module.so
+[100%] Built target matmul_module

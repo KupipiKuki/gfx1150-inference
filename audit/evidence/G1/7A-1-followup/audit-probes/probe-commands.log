@@ -1,0 +1,88 @@
+# Auditor probe transcript — 7A-1 follow-up
+# Auditor: DeepSeek V4.1 Flash, 2026-11-02
+# Candidate: ea8e84a1e708ee114ae611f2b257b81eaa57c12a
+# HEAD: 2af8369e02bb85b355796a7bd8da88f78404cb3f
+# Clean clone: /tmp/opencode/audit-7a1-fu
+
+$ cmake -S . -B /tmp/opencode/audit-7a1-fu-build -DCMAKE_BUILD_TYPE=Release -Dpybind11_DIR=<pybind11 cmake dir>
+$ cmake --build /tmp/opencode/audit-7a1-fu-build -j 8
+BUILD_EXIT=0
+-rwxrwxr-x 1 kupipi kupipi 592488 ... matmul_module.so
+
+### CPU
+$ PYTHONPATH=... python3 -m pytest -m "not gpu" -q
+37 passed, 18 deselected, 1 warning
+EXIT=0
+
+### CPU without extension
+$ python3 -m pytest -m "not gpu" -q
+37 passed, 18 deselected, 1 warning
+EXIT=0
+
+### GPU without extension
+$ python3 -m pytest -m gpu -q
+18 skipped, 37 deselected
+EXIT=0
+
+### GPU with extension
+$ PYTHONPATH=... python3 -m pytest -m gpu -q
+18 passed, 37 deselected
+EXIT=0
+
+### CPU unittest
+$ python3 tests/test_cpu_only.py        -> Ran 12 tests ... OK, EXIT=0
+$ python3 -O tests/test_cpu_only.py     -> Ran 12 tests ... OK, EXIT=0
+
+### Exact-lane meta-test on real suite
+$ pytest tests/test_harness_contract.py::test_every_test_module_declares_its_exact_lane -q
+1 passed
+EXIT=0
+
+### Canary: wrong-lane module (not in EXPECTED_LANES, marked cpu, uses matmul_module)
+$ pytest tests/test_harness_contract.py::test_every_test_module_declares_its_exact_lane -q
+E  test_audit_wronglane.py: not classified — add it to EXPECTED_LANES with its lane
+1 failed
+EXIT=1
+
+### Canary: existing module wrong marker (test_layer.py gpu -> cpu, restored)
+$ pytest tests/test_harness_contract.py::test_every_test_module_declares_its_exact_lane -q
+E  test_layer.py: pytestmark is 'cpu', expected 'gpu'
+1 failed
+EXIT=1
+# restored from backup; git diff --stat tests/test_layer.py empty
+
+### Canary: cpu-classified module using matmul_module (temporarily added to mapping)
+$ pytest tests/test_harness_contract.py::test_every_test_module_declares_its_exact_lane -q
+E  test_audit_wronglane.py: uses the matmul_module extension but is in the 'cpu' lane
+1 failed
+EXIT=1
+# mapping and canary restored
+
+### Canary: nested raise only
+$ pytest tests/test_harness_contract.py::test_every_test_function_asserts_or_raises -q -k test_audit_nested_raise
+E  test_audit_nested_raise.py:4 test_nested_raise_canary()
+1 failed
+EXIT=1
+
+### Canary: nested assert only
+$ pytest tests/test_harness_contract.py::test_every_test_function_asserts_or_raises -q -k test_audit_nested_assert
+E  test_audit_nested_assert.py:4 test_nested_assert_canary()
+1 failed
+EXIT=1
+
+# All canary files/edits removed; git status --porcelain empty.
+
+### sdist
+$ python3 setup.py sdist
+$ tar tzf dist/*.tar.gz | grep -E 'tests/(conftest|test_harness_contract)\.py'
+tests/test_harness_contract.py     # present
+# tests/conftest.py                # absent (QF-1 corrected record)
+
+### QF-3 AST count against 2659e6c
+13 bool-returners; 4 with asserts; 9 with no failure mechanism; 1 tuple-returner
+# matches the corrected notes/coder-report (QAQC's original "5 with asserts" was wrong;
+# QAQC appended a dated erratum).
+
+### Scope
+$ git diff --stat 4e87e12..ea8e84a -- src pyproject.toml CMakeLists.txt setup.py MANIFEST.in .github README.md IMPLEMENTATION_PLAN.md audit/CLAIMS_LEDGER.md
+(empty)

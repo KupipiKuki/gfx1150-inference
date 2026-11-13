@@ -1,0 +1,124 @@
+# Auditor probe transcript — 7B tokenizer (G2)
+# Auditor: DeepSeek V4.1 Flash, 2026-11-05
+# Candidate: 70c5ab2 (tip e091fcf) · Parent: 8426ec6
+
+## Reference build (pinned to the 7A-3 golden generator)
+
+$ curl -sL https://github.com/ggml-org/llama.cpp/archive/149f5641b931aaf33697d70f9abc90c3e5300247.tar.gz -o llama.tar.gz
+$ tar -xzf llama.tar.gz && cd llama.cpp-149f5641b931aaf33697d70f9abc90c3e5300247
+$ cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF \
+      -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF \
+      -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_TOOLS=ON
+$ cmake --build build --target llama-tokenize -j "$(nproc)"
+
+$ LD_LIBRARY_PATH=build/bin ./build/bin/llama-tokenize --version
+version: 0.8.0-dev (build 0, commit unknown)
+built with GNU 13.3.0 for Linux x86_64
+
+The tarball is the pinned commit 149f5641b931aaf33697d70f9abc90c3e5300247.
+
+## The reference binary reproduces all 11 SPM goldens
+
+$ python3 (see probe log summary)
+OK spm_absent_add_bos_metadata
+OK spm_plain_text_no_bos
+OK spm_double_space
+OK spm_multibyte_accent
+OK spm_multibyte_greek
+OK spm_multibyte_emoji
+OK spm_punctuation_digits
+OK spm_contraction_were
+OK spm_contraction_dont
+OK spm_control_token_literal
+OK spm_control_token_parsed
+REFERENCE BINARY MATCHES ALL GOLDENS: True
+
+## Candidate vs reference — the probe
+
+$ LD_LIBRARY_PATH=/tmp/opencode/llama.cpp-149f5641/build/bin \
+  python3 audit/evidence/G2/7B/audit-probes/probe_reference_diff.py
+
+[DIFF] 'a<s>b' parse_special=True
+      reference: [261, 1, 268]
+      candidate: [412, 1, 430]
+[DIFF] 'hi<s>there' parse_special=True
+      reference: [270, 417, 1, 383]
+      candidate: [415, 417, 1, 413, 260, 276]
+[DIFF] ' <s>' parse_special=True
+      reference: [410, 410, 1]
+      candidate: [410, 1]
+[DIFF] '<s>b' parse_special=True
+      reference: [1, 268]
+      candidate: [1, 430]
+[DIFF] 'hello<s>there' parse_special=True
+      reference: [281, 306, 414, 1, 383]
+      candidate: [260, 306, 414, 1, 413, 260, 276]
+[OK] '<s></s>' parse_special=True
+[DIFF] 'the' parse_special=False
+      reference: [265]
+      candidate: [259, 260]
+[DIFF] 'and' parse_special=False
+      reference: [269]
+      candidate: [261, 264]
+[DIFF] 'time' parse_special=False
+      reference: [378]
+      candidate: [259, 369]
+[DIFF] 'the quick brown fox jumps over the lazy dog' parse_special=False
+      reference: [265, 410, 456, 425, 417, 340, 268, 420, 327, 416, 272, 414, 444, 410, 449, 425, 423, 427, 419, 334, 330, 265, 278, 412, 451, 422, 400, 428]
+      candidate: [259, 260, 410, 456, 425, 417, 340, 268, 420, 327, 416, 272, 414, 444, 410, 449, 425, 423, 427, 419, 334, 330, 259, 260, 278, 412, 451, 422, 400, 428]
+[DIFF] 'Once upon a time there was a little girl named Lily' parse_special=False
+      reference: [403, 407, 261, 378, 383, 286, 261, 376, 298, 315, 421, 395, 317]
+      candidate: [321, 331, 350, 289, 261, 259, 369, 259, 260, 276, 286, 261, 376, 298, 315, 421, 297, 314, 266, 317]
+
+RESULT: 10/11 case(s) differ
+
+## Common-word differential
+
+39 common English words, reference vs candidate:
+14/39 differ. Examples:
+  'the'   candidate ['▁t', 'he']      reference ['▁the']
+  'and'   candidate ['▁a', 'nd']      reference ['▁and']
+  'time'  candidate ['▁t', 'ime']     reference ['▁time']
+  'said'  candidate ['▁sa', 'id']     reference ['▁said']
+  'want'  candidate ['▁wa', 'nt']     reference ['▁want']
+  'day'   candidate ['▁d', 'ay']      reference ['▁day']
+  'his'   candidate ['▁h', 'is']      reference ['▁his']
+  'her'   candidate ['▁h', 'er']      reference ['▁her']
+  'upon'  candidate ['▁up', 'on']     reference ['▁upon']
+  'named' candidate ['▁n','am','ed']  reference ['▁named']
+  'she'   candidate ['▁s','he']       reference ['▁she']
+  'big'   candidate ['▁b','ig']       reference ['▁big']
+  'mom'   candidate ['▁m','om']       reference ['▁mom']
+  'water' candidate ['▁w','at','er']  reference ['▁wa','t','er']
+
+## Reference source
+
+llama.cpp @149f5641b931aaf33697d70f9abc90c3e5300247
+src/llama-vocab.cpp:
+  - SPM tokenize path (dummy prefix per raw fragment, is_prev_special).
+  - llm_tokenizer_spm_session (score-priority greedy bigram merge).
+
+## Candidate lanes (reproduced by the auditor)
+
+$ PYTHONPATH=build pytest -m "not gpu" -q -k "tokenizer or bpe or golden"
+75 passed, 77 deselected
+$ PYTHONPATH=build pytest -m "not gpu" -q
+128 passed, 24 deselected
+$ PYTHONPATH=build pytest -m gpu -q
+24 passed, 128 deselected
+$ PYTHONPATH=build pytest -m "not gpu" -q --runxfail -k "tokenizer or bpe or golden"
+75 passed, 77 deselected
+$ python3 tests/test_cpu_only.py          -> OK (12 tests)
+$ python3 -O tests/test_cpu_only.py       -> OK (12 tests)
+$ python3 scripts/qa/check_claims.py      -> PASS (0 new, 17 baselined, 0 findings)
+
+## Fixture provenance
+
+$ sha256sum /tmp/stories260K.gguf
+270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d
+$ sha256sum tests/fixtures/stories260k_vocab.json
+8577a797fcaa086c9386894e7bcb78cf6aed74541e9b86bb9e155d9ba7ab2002
+(recorded in stories260k_tokenizer_golden.json: 8577a797...2002)
+The fixture tokens, token types, and all 512 scores match the upstream GGUF.
+The golden token vectors are unchanged; the only golden diff is the one
+fixture_sha256 line.

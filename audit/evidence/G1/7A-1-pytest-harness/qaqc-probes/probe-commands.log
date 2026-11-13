@@ -1,0 +1,111 @@
+# QAQC 7A-1 probe log — independent re-run from clean clone
+# Started: 2026-11-02T00:33:50Z
+
+### P0 environment ###
+clone HEAD:  f0ce20e0021a313d3cb23a33f9b97b2638f56176
+dirty files: 0
+build/ present: no
+python: Python 3.14.10; pytest pytest 9.1.1
+GPU: Name:                    gfx1150                            
+tip-vs-candidate (tests+pyproject must be identical): 0 changed files
+
+### P1 lane split on gfx1150 (G0 build artifact, as recorded in env.txt) ###
+--- pytest -m "not gpu" (expect 37 passed, 18 deselected, exit 0) ---
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+37 passed, 18 deselected, 1 warning in 0.89s
+exit: 0
+--- pytest -m gpu (expect 18 passed, 37 deselected, exit 0) ---
+..................                                                       [100%]
+18 passed, 37 deselected in 1.55s
+exit: 0
+--- pytest -m gpu --collect-only (expect 18/55, exit 0) ---
+18/55 tests collected (37 deselected) in 0.20s
+exit: 0
+
+### P2 CPU suite unittest mode (expect 12/12 both) ###
+Ran 12 tests in 0.420s
+
+OK
+exit: 0
+Ran 12 tests in 0.423s
+
+OK
+exit: 0
+
+### P3 clean clone, NO extension (PYTHONPATH unset; expect pass/skip, never exit 2) ###
+--- pytest -m "not gpu" (expect 37 passed, exit 0) ---
+37 passed, 18 deselected, 1 warning in 0.75s
+exit: 0
+--- pytest -m gpu (expect 18 skipped, 0 passed, 0 errors, exit 0) ---
+SKIPPED [1] tests/test_matmul.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+SKIPPED [5] tests/test_phase5_scale.py: the compiled HIP extension 'matmul_module' is not importable; the 'gpu' lane is skipped. Build it with: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+18 skipped, 37 deselected in 0.20s
+exit: 0
+--- pytest -m gpu --collect-only (expect exit 0, not 2) ---
+18/55 tests collected (37 deselected) in 0.19s
+exit: 0
+
+### P4 five GPU scripts standalone (expect exit 0 each) ###
+  test_matmul.py exit: 0
+  test_gguf_and_q4.py exit: 0
+  test_layer.py exit: 0
+  test_full_model.py exit: 0
+  test_phase5_scale.py exit: 0
+
+### P5 QAQC canaries — a returning test must FAIL (recorded probe used False only) ###
+FAILED tests/test_harness_contract.py::test_every_test_function_asserts_or_raises[test_zz_canary_qaqc.py]
+FAILED tests/test_zz_canary_qaqc.py::test_canary_returns_false - pytest.Pytes...
+FAILED tests/test_zz_canary_qaqc.py::test_canary_returns_true - pytest.Pytest...
+4 failed, 38 passed, 18 deselected, 1 warning in 0.91s
+exit: 1 (expect 1: BOTH canaries failed)
+restored: 0 dirty test files
+
+### P6 mutation probes — a broken assertion must fail ###
+--- mutation 1 (recorded): test_matmul tolerance -> 1e-12 ---
+FAILED tests/test_matmul.py::test_matmul_correctness - AssertionError: Max er...
+1 failed, 54 deselected in 0.36s
+exit: 1 (expect 1)
+1 passed, 54 deselected in 0.35s
+exit: 0 (expect 0)
+--- mutation 2 (QAQC, different module): test_layer rmsnorm 2e-3 -> 1e-12 ---
+FAILED tests/test_layer.py::test_rmsnorm_kernel - AssertionError: rmsnorm (16...
+1 failed, 54 deselected in 0.30s
+exit: 1 (expect 1)
+restored: 0 dirty test files
+
+### P7 static checks ###
+--- grep "def test_.*-> bool" (expect no matches) ---
+no matches (PASS)
+--- -m cpu selection (expect 37 collected = same set as "not gpu") ---
+37/55 tests collected (18 deselected) in 0.20s
+exit: 0
+
+### P8 unknown-marker canary (--strict-markers must reject it) ###
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+18 deselected, 1 error in 0.27s
+exit: 2 (expect non-zero: unknown marker rejected)
+
+### P9 no-pytest environment (ci-cpu.yml installs numpy/setuptools/wheel only) ###
+Ran 12 tests in 0.431s
+
+OK
+exit: 0
+Ran 12 tests in 0.437s
+
+OK
+exit: 0
+
+### P10 sdist packaging of the new harness files (verifies the flagged 7A-5 limitation) ###
+sdist exit: 0
+gfx1150_inference-0.6.1/tests/
+gfx1150_inference-0.6.1/tests/test_cpu_only.py
+gfx1150_inference-0.6.1/tests/test_full_model.py
+gfx1150_inference-0.6.1/tests/test_gguf_and_q4.py
+gfx1150_inference-0.6.1/tests/test_harness_contract.py
+gfx1150_inference-0.6.1/tests/test_layer.py
+gfx1150_inference-0.6.1/tests/test_matmul.py
+gfx1150_inference-0.6.1/tests/test_phase5_scale.py
+conftest.py in sdist: 0
+test_harness_contract.py in sdist: 1
+
+# Finished: 2026-11-02T00:34:12Z

@@ -1,0 +1,81 @@
+# QAQC G0 claims-ledger spot-check (independent re-run)
+# Tree: 04e47dc81a9d3b155ef6ca6700a220abec32a1c1 (candidate 04e47dc, clean clone)
+# Date: 2026-11-01T22:55:02Z
+
+main-table rows: 30 (expected 30)
+status counts:
+        8 NOT YET
+        3 PARTIAL
+        9 UNVERIFIED
+       10 VERIFIED
+flag=no rows (main table): 9 -> 14 18 19 20 26 27 28 29 30 
+flag=partial rows:         2 -> 13 21 
+
+--- literal resolution against live README.md / IMPLEMENTATION_PLAN.md ---
+row 1   VERIFIED    'pip install'                              README:Y PLAN:Y  resolves
+row 2   VERIFIED    'test_cpu_only.py'                         README:Y PLAN:Y  resolves
+row 3   VERIFIED    'GPU'                                      README:Y PLAN:Y  resolves
+row 4   VERIFIED    'llama-family'                             README:Y PLAN:Y  resolves
+row 5   VERIFIED    'Q6_K'                                     README:Y PLAN:N  resolves
+row 6   PARTIAL     'Q4_K_M'                                   README:Y PLAN:Y  resolves
+row 7   VERIFIED    'GPT-2'                                    README:Y PLAN:Y  resolves
+row 8   NOT YET     'chat special-token encoding'              README:Y PLAN:N  resolves
+row 9   NOT YET     'add_bos_token'                            README:Y PLAN:Y  resolves
+row 10  NOT YET     'qwen2'                                    README:Y PLAN:N  resolves
+row 11  NOT YET     'phi3'                                     README:Y PLAN:N  resolves
+row 12  NOT YET     'gemma'                                    README:Y PLAN:N  resolves
+row 13  UNVERIFIED  '983'                                      README:N PLAN:Y  resolves
+row 14  UNVERIFIED  'bounded memory'                           README:Y PLAN:Y  resolves
+row 15  NOT YET   (no public literal — declared internal)
+row 16  NOT YET   (no public literal — declared internal)
+row 17  NOT YET   (no public literal — declared internal)
+row 18  PARTIAL     '7B–70B'                                 README:Y PLAN:Y  resolves
+row 19  UNVERIFIED  '8-hour runtimes'                          README:Y PLAN:Y  resolves
+row 20  UNVERIFIED  'Active RAM Cap'                           README:N PLAN:Y  resolves
+row 21  PARTIAL     'reclaim clean file-backed page-cache'     README:Y PLAN:N  resolves
+row 22  VERIFIED    'permitted per process'                    README:Y PLAN:N  resolves
+row 23  VERIFIED    'persistent GPU KV pool usage at'          README:Y PLAN:N  resolves
+row 24  VERIFIED    'generate_batch'                           README:Y PLAN:Y  resolves
+row 25  VERIFIED    'rope.neox'                                README:Y PLAN:N  resolves
+row 26  UNVERIFIED  '1.12 TFLOPS'                              README:N PLAN:Y  resolves
+row 27  UNVERIFIED  '983.4 tok/s'                              README:N PLAN:Y  resolves
+row 28  UNVERIFIED  '0.50 ms'                                  README:N PLAN:Y  resolves
+row 29  UNVERIFIED  '2.76 ms'                                  README:N PLAN:Y  resolves
+row 30  UNVERIFIED  '500 MB'                                   README:N PLAN:Y  resolves
+unresolved literals: 0 (expected 0)
+
+--- VERIFIED-row primary evidence paths (first path of each Evidence cell) ---
+  row   1  EXISTS   audit/evidence/G0/7.0-baseline/sdist-install.log
+  row   2  EXISTS   audit/evidence/G0/7.0-baseline/cpu-suite.log
+  row   3  EXISTS   audit/evidence/G0/7.0-baseline/gpu-suite.log
+  row   4  EXISTS   audit/evidence/G0/7.0-baseline/gpu-suite.log
+  row   4  EXISTS   tests/test_gguf_and_q4.py
+  row   4  EXISTS   tests/test_phase5_scale.py
+  row   5  EXISTS   audit/evidence/G0/7.0-baseline/gpu-suite.log
+  row   5  EXISTS   tests/test_phase5_scale.py
+  row   7  EXISTS   tests/test_cpu_only.py
+  row   7  EXISTS   audit/VERIFICATION_2026-11-01.md
+  row  22  EXISTS   audit/evidence/G0/7.0-baseline/gpu-suite.log
+  row  22  EXISTS   src/python_bindings/bindings.cpp
+  row  22  EXISTS   src/kv_cache.py
+  row  23  EXISTS   audit/evidence/G0/7.0-baseline/gpu-suite.log
+  row  24  EXISTS   audit/evidence/G0/7.0-baseline/gpu-suite.log
+  row  25  EXISTS   audit/evidence/G0/7.0-baseline/gpu-suite.log
+missing primary evidence paths: 0 (expected 0)
+
+--- seeded-ledger defect narrative (vs parent ea6dbeb) ---
+seeded rows: 17 (expected 17)
+  confirmed absent from README/PLAN: "tensor types; real-GGUF validation pending"
+  confirmed absent from README/PLAN: "metadata resolves; model support not yet verified"
+  confirmed absent from README/PLAN: "one synchronization per token"
+  confirmed absent from README/PLAN: "PEP 639"
+  confirmed absent from README/PLAN: "top-level module"
+  confirmed absent from README/PLAN: "<|im_start|>"
+
+--- QAQC notes ---
+1. Row 13's qualification flag in the live ledger is 'partial' (PLAN L266 qualifies,
+   L209 does not). The baseline-report/notes list IDs 13,14,18,19,20,26-30 as the
+   'nine rows whose qualification flag is no' — ten IDs, and ID 13's flag is not 'no'.
+   Actual flag=no rows: 14, 18, 19, 20, 26, 27, 28, 29, 30 (nine).
+2. Backticked filenames inside Evidence-cell parentheticals (test_phase5_scale.py,
+   test_layer.py) exist on disk; they are prose, not paths — no missing evidence.

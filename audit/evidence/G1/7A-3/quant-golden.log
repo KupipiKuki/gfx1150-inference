@@ -1,0 +1,101 @@
+# G1 / 7A-3 — the quantized block goldens
+# Captured: 2026-11-04T00:42:14Z
+
+=== the golden's structure (the expected values are elided; they are 4096
+=== numbers per entry and live in tests/fixtures/quant_golden.json) ===
+reference: {
+  "project": "ggml-org/llama.cpp",
+  "blocks": "llama-quantize",
+  "expected_values": "gguf-py (llama.cpp's own NumPy quant reference)"
+}
+command:   llama-quantize --allow-requantize --output-tensor-type F16 <model.gguf> <out.gguf> <Q4_0|Q4_K|Q6_K>
+  Q4_0:
+      fixture                            q4_0_blocks.bin
+      source_tensor                      blk.0.attn_q.weight
+      source_model                       stories15M.gguf
+      source_model_sha256                61b50d457809a5194818fd22e6724b456cd7bb9a6264c52c8110684c53f3704a
+      n_blocks                           32
+      block_size_bytes                   18
+      weights_per_block                  32
+      block_bytes_sha256                 e7b0b06400e43fddc2fddf79c06d62bbe36476d675f6e4b1bc20c46efae84e42
+      numpy_requantize_is_byte_identical True
+      first expected values              [0.042236328125, -0.0633544921875, 0.07391357421875, 0.01055908203125]
+  Q4_K:
+      fixture                            q4_k_blocks.bin
+      source_tensor                      blk.0.ffn_down.weight
+      source_model                       stories15M.gguf
+      source_model_sha256                61b50d457809a5194818fd22e6724b456cd7bb9a6264c52c8110684c53f3704a
+      n_blocks                           16
+      block_size_bytes                   144
+      weights_per_block                  256
+      block_bytes_sha256                 7729550d2c6028d5330afe51a5c393acfa3b2cb22125ba5c95fd65eebe52efbc
+      numpy_requantize_is_byte_identical unavailable (llama.cpp has no NumPy quantizer for this type)
+      first expected values              [0.004935026168823242, 0.025034785270690918, -0.015164732933044434, -0.015164732933044434]
+  Q6_K:
+      fixture                            q6_k_blocks.bin
+      source_tensor                      blk.0.ffn_down.weight
+      source_model                       stories15M.gguf
+      source_model_sha256                61b50d457809a5194818fd22e6724b456cd7bb9a6264c52c8110684c53f3704a
+      n_blocks                           16
+      block_size_bytes                   210
+      weights_per_block                  256
+      block_bytes_sha256                 544b0bf8f79a82fc21546d3fb3c6d87a1da3753e419a80b114d322ba5db6cec8
+      numpy_requantize_is_byte_identical unavailable (llama.cpp has no NumPy quantizer for this type)
+      first expected values              [0.0020148754119873047, 0.024178504943847656, -0.016119003295898438, -0.016119003295898438]
+
+=== the block layout the brief pins ===
+  Q4_0: 32 weights / 18 bytes    Q4_K: 256 weights / 144 bytes    Q6_K: 256 weights / 210 bytes
+
+=== the quant golden tests (CPU) ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 14 items
+tests/test_goldens_quant.py::test_block_layout_matches_the_ggml_specification[Q4_0] PASSED [  7%]
+tests/test_goldens_quant.py::test_block_layout_matches_the_ggml_specification[Q4_K] PASSED [ 14%]
+tests/test_goldens_quant.py::test_block_layout_matches_the_ggml_specification[Q6_K] PASSED [ 21%]
+tests/test_goldens_quant.py::test_cpu_dequantization_matches_the_reference[Q4_0] PASSED [ 28%]
+tests/test_goldens_quant.py::test_cpu_dequantization_matches_the_reference[Q4_K] PASSED [ 35%]
+tests/test_goldens_quant.py::test_cpu_dequantization_matches_the_reference[Q6_K] PASSED [ 42%]
+tests/test_goldens_quant.py::test_the_fixture_bytes_match_their_recorded_hash[Q4_0] PASSED [ 50%]
+tests/test_goldens_quant.py::test_the_fixture_bytes_match_their_recorded_hash[Q4_K] PASSED [ 57%]
+tests/test_goldens_quant.py::test_the_fixture_bytes_match_their_recorded_hash[Q6_K] PASSED [ 64%]
+tests/test_goldens_quant.py::test_the_q4_0_bytes_are_llama_cpp_s_own_quantizer_output PASSED [ 71%]
+tests/test_goldens_quant.py::test_the_expected_values_are_not_self_referential PASSED [ 78%]
+tests/test_goldens_quant.py::test_the_blocks_are_not_degenerate[Q4_0] PASSED [ 85%]
+tests/test_goldens_quant.py::test_the_blocks_are_not_degenerate[Q4_K] PASSED [ 92%]
+tests/test_goldens_quant.py::test_the_blocks_are_not_degenerate[Q6_K] PASSED [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 14 passed, 13 warnings in 0.20s ========================
+--- exit code: 0 ---
+
+=== the quant golden tests (GPU: the same blocks through the HIP kernels) ===
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.2.0, pluggy-1.6.0 -- /home/kupipi/.pyenv/versions/3.14.10/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/kupipi/Documents/git/gfx1150-inference
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.155.2, langsmith-0.11.0, Faker-40.28.1
+collecting ... collected 6 items
+tests/test_goldens_gpu.py::test_gpu_dequantization_matches_the_golden[Q4_0] PASSED [ 16%]
+tests/test_goldens_gpu.py::test_gpu_dequantization_matches_the_golden[Q4_K] PASSED [ 33%]
+tests/test_goldens_gpu.py::test_gpu_dequantization_matches_the_golden[Q6_K] PASSED [ 50%]
+tests/test_goldens_gpu.py::test_gpu_dequantization_matches_the_cpu_path[Q4_0] PASSED [ 66%]
+tests/test_goldens_gpu.py::test_gpu_dequantization_matches_the_cpu_path[Q4_K] PASSED [ 83%]
+tests/test_goldens_gpu.py::test_gpu_dequantization_matches_the_cpu_path[Q6_K] PASSED [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+  /home/kupipi/.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 6 passed, 13 warnings in 0.38s ========================
+--- exit code: 0 ---
