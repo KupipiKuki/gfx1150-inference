@@ -570,7 +570,7 @@ review plus non-main-thread stress. Do not claim throughput; 7F-3 owns it.
 
 ### 7F — Evidence and release gates (Gate G6)
 
-**Status (2026-11-12): G6 SIGNED — 7F accepted; merge release PR `#10` with `--no-ff`.**
+**Status (2026-11-12): G6 SIGNED — 7F accepted and merged into `vibe/phase7-220201` (`d984d79`). Remaining release action: merge PR `#8` (`vibe/phase7-220201` → `main`).**
 **Audit:** [`audit/AUDIT_7F_CI_STATUS_2026-11-11.md`](audit/AUDIT_7F_CI_STATUS_2026-11-11.md) (current), [`audit/AUDIT_7F_REWORK_2026-11-09.md`](audit/AUDIT_7F_REWORK_2026-11-09.md) (7F-2..7F-5 closed), and [`audit/AUDIT_7F_DEEP_2026-11-08.md`](audit/AUDIT_7F_DEEP_2026-11-08.md) (initial).
 **Rework brief (closed for 7F-2..7F-5):** [`PHASE7_7F_REWORK_BRIEF.md`](PHASE7_7F_REWORK_BRIEF.md).
 **Signoff:** [`audit/G6_SIGNOFF_2026-11-12.md`](audit/G6_SIGNOFF_2026-11-12.md).
