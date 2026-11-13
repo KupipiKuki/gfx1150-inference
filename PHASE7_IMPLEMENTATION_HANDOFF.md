@@ -640,7 +640,27 @@ git diff "$(git merge-base HEAD origin/main)" -- audit/CLAIMS_LEDGER.md README.m
 
 ---
 
-### 7G — Post-release polish (Gate G7, deferred)
+### 7G — Bounded weight residency + follow-ups (Gates G7-0..G7-2, PROPOSED)
+
+**Status (2026-11-13): PROPOSED — plan written, awaiting owner authorization.**
+**Plan:** [`PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md`](PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md).
+
+**Why:** there is **no** "cap my RAM usage and stream the rest" control today.
+`--residency {auto,pin,stream}` is all-or-nothing (whole model pinned or whole
+model streamed), `--residency-budget-mb` only flips AUTO between them, and
+`--max-kv-bytes` caps the KV cache only. Measured on this host (Mistral-7B
+Q4_K_M, 16 decode tokens): pinned = 2.63 tok/s and 4.19 GB read; streamed =
+0.42 tok/s and **62.8 GB** read (the whole model re-read per token), with
+**zero** copy/compute overlap. 7G-1 adds `--max-resident-mb` /
+`--max-resident-pct` and a hybrid policy whose cap is *measured* (mincore);
+7G-2 fixes the copy-bound streaming path (prefetch/overlap) and gates a
+stream benchmark lane; 7G-0 closes the G6 carry-forwards (G6-QF-1..4) and the
+release hygiene.
+
+**Gate:** three separate packages (7G-0/7G-1/7G-2), each with its own gate;
+do not bundle.
+
+### 7G (prior scope) — Post-release polish items
 
 Only after v0.7.0. Candidate items: PEP 639 license, `__version__`, namespace package (`gfx1150/`), `top_k`/`top_p` validation, `dequantize_q6_k_cpu` block guard, `embed_tokens` boundary guard, `matmul` positive-dim validation, flash-style attention + GQA sharing, RoPE scaling (linear/YaRN), sliding-window attention, continuous batching, prompt cache. Each gets its own work package and gate; do not bundle.
 
