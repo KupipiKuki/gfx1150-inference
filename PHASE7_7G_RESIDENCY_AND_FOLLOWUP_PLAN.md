@@ -43,6 +43,73 @@ This plan adds that third option, plus the carry-forwards.
 
 ---
 
+## 0.1 Thesis check (2026-11-13): has the direction drifted?
+
+The stated purpose is *"a platform for gfx1100-class hardware that operates
+like Strata"* (https://github.com/Niko1221/Strata): run a much larger model than
+the card's VRAM by sharing the work across the whole PC.
+
+**What Strata actually does** (from its `docs/HOW_IT_WORKS.md`):
+
+| Tier | Strata | This project |
+|---|---|---|
+| Model class | **MoE** — 24,576 experts, **10 active per token** | **dense only** — no expert/router code exists |
+| GPU (VRAM) | hot experts (adaptive cache) + dense parts + KV + MTP head + output head | per-tensor H2D copies, no persistent weight residency |
+| RAM | all experts pinned; **the CPU computes the experts the GPU lacks, concurrently with the GPU** | all weights in the host page cache; **no CPU compute path** |
+| SSD | 28.8 GB n-gram table, a few rows per token | the GGUF file itself, re-read per token in STREAM mode |
+| Speculation | the model's own **MTP** draft (2.4–3.2 tok/pass) + **prompt/n-gram lookup** drafting | **none** |
+| Prefill | chunked to 8192 tokens; **next layer's experts stream over PCIe while the current layer's attention runs** | chunked prefill exists, but measured **copy/compute overlap = 0.000 ms** |
+
+**So yes — the direction drifted, in three specific and identifiable ways:**
+
+1. **Dense instead of MoE.** Strata's capacity claim is only plausible because
+   the *active* parameter count per token is tiny. A dense 220B model needs
+   ~141 GiB of weights touched **per token**; an MoE of the same total size with
+   ~3B active parameters needs only the active experts. We optimized the dense
+   case, so our ceiling is "as many dense bytes as RAM holds".
+2. **One device instead of two.** Strata's central trick is CPU compute running
+   *in parallel* with the GPU. We are GPU-only and pay H2D latency serially —
+   measured today: layer copy 5.34 ms > kernel 3.76 ms, overlap 0.000 ms.
+3. **The gate never measured the thesis.** G0–G6 measured correctness,
+   honesty, claims hygiene and CI — none of them asked *"how many model bytes
+   can we run per GB of RAM?"*, so the work optimized for the axis that was
+   measured.
+
+**What is *not* wasted.** The substrate is exactly what any Strata-like path
+needs (and Strata itself borrows the same ideas from llama.cpp/ggml): a
+fail-closed GGUF parser, a reference-faithful tokenizer, a forward path
+verified against llama.cpp, explicit streams with per-layer hipEvent timing
+(7E), a residency/eviction policy (7D), telemetry (7F), and a claims ledger
+that forbids the "70B without OOM" style of claim. The 7E machinery
+(copy/compute overlap, ping-pong prefetch, per-projection timing) is precisely
+what Strata's "next layer streams while attention runs" needs — ours is
+implemented but yields 0.000 ms of overlap. Re-alignment is an **addition on a
+verified base**, not a rewrite.
+
+**Recommended path (staged, each with its own gate):**
+
+| Stage | Work | Why |
+|---|---|---|
+| S1 | 7G-1 + 7G-2 (cap + real overlap) | prerequisite for *every* path below; the overlap machinery is Strata's core mechanism |
+| S2 | **n-gram / prompt-lookup drafting** | Strata's own "prompt lookup" mechanism: no model change, no new kernels, measurable with the existing telemetry + golden discipline |
+| S3 | **capacity metric in the release gate** | make "max supported dense model size (measured)" a tracked number, so the thesis is measured rather than asserted |
+| S4 | **CPU compute fallback for overflow layers** | port dequant+dot to the CPU so RAM/SSD latency is hidden by parallel CPU work (Strata's trick); also fixes the serial-copy problem |
+| S5 | **MoE support** (routing, grouped GEMM, adaptive expert cache, CPU expert fallback) | the only path to "100B+ on small hardware" as Strata means it |
+| S6 | **ADR: hardware target** — stay on gfx1150 (unified memory: RAM and VRAM are one pool, so the three-tier story degenerates) or re-target gfx1100 (discrete 8–16 GB VRAM + separate RAM, where the Strata architecture is physically meaningful and testable) | this decision changes which of S4/S5 is worth doing, and it needs a host we do not currently have |
+
+**The honest reframing of the ambition:** on *dense* models, the reachable ceiling
+on this box is ~85 GiB resident after the budget split (≈ 120B at 4-bit
+mixed) at ~2.6 tok/s pinned; a dense 220B is not a proposition here. The
+Strata-class proposition is **"a ~100B+ MoE with ~3B active params"** — a
+different model class from the dense models we have tested. Choosing that
+target explicitly (and saying so in the goal statement) is what re-aligns the
+project; otherwise we should retire the 70B/220B language and state plainly
+what we support.
+
+---
+
+---
+
 ## 1. Work packages
 
 Per the handoff rule ("each gets its own work package and gate; do not
