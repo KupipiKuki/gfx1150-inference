@@ -117,10 +117,11 @@ bundle"), Phase 7G is split into three packages with three gates:
 
 | ID | Package | Gate | Depends on |
 |---|---|---|---|
-| **7G-0** | G6 carry-forwards + release hygiene | G7-0 | — (maintenance) |
-| **7G-1** | **Bounded weight residency** (hybrid pin/stream with a GB/% cap) | G7-1 | 7G-0 |
-| **7G-2** | Streaming-path throughput (prefetch/overlap) + stream-lane benchmark | G7-2 | 7G-1 (uses its cap) |
-| **7G-3** | **Large-model capacity**: split the RAM/GTT budgets, add a max-model-size report, and run the stress ladder | G7-3 | 7G-1, 7G-2 |
+| **7G-C** | **Closure package** (this project): G6 carry-forwards, two small research-workflow fixes, and the closing record | G7-C | — |
+| ~~7G-0~~ | *folded into 7G-C* | — | — |
+| ~~7G-1~~ | **deferred to the next project** (bounded residency → expert-cache residency) | — | — |
+| ~~7G-2~~ | **deferred** (copy/compute overlap → the next project's overlap work) | — | — |
+| ~~7G-3~~ | **deferred** (RAM/GTT budget split + max-model-size report → next project's capacity report) | — | — |
 
 ### 7G-0 — G6 carry-forwards and release hygiene (Gate G7-0)
 
@@ -137,6 +138,34 @@ No new capability; close what G6 recorded plus the release chores.
 
 **Exit:** all four QFs closed or explicitly re-deferred with a written reason;
 the release-state record is on `main`; the ruleset lists only live branches.
+
+### 7G-C — Closure package (Gate G7-C) — **this project's last work package**
+
+**Decision (owner, 2026-11-13):** this project is **completed and closed** as a
+verified, dense, single-device inference engine with an evidence discipline; the
+Strata-class thesis moves to a **new project** (seed:
+[`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md)). 7G-1/7G-2/7G-3 are
+**deferred, not dropped** — the ideas live in the next project's milestones
+M3/M4/M6.
+
+| ID | Item | Why it stays here |
+|---|---|---|
+| **C1** | G6-QF-1 — residency-probe flake: `fsync` the fixture, fall back from a failed `MADV_PAGEOUT` to `MADV_DONTNEED`, or document a skip | small; the CI flake is a defect in *this* repo |
+| **C2** | G6-QF-2 — runner registration + nightly cron vs the host's ~03:38 UTC boot | infrastructure of *this* repo's CI |
+| **C3** | G6-QF-3 — decisive-margin evidence: more prompts with decisive first steps, or a minimum decisive-step count | closes a G6 evidence gap |
+| **C4** | G6-QF-4 — `ci-gpu.yml` triggers on PR/schedule/dispatch only, so a protected-branch **push** can never satisfy the required GPU check | a deadlock in *this* repo's gate design |
+| **C5** | `--prompt-file <path>` and `--prompt -` (stdin) | measured need: the research profile needs multi-KB prompts, and a 45 KB prompt on the command line is unusable (the CLI rejected it during the 2026-11-13 measurement) |
+| **C6** | KV budget for `--offload-kv-cpu` / `--kv-mmap-dir` must be bounded by **host RAM** (and free disk for mmap), not by the GTT share | a long-context research run on a small device share is currently refused by a device-side budget; measured need |
+| **C7** | The closing record: [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) (done), [`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md) (done), ledger row 32 + README pointer (done), the final release record and the deferral note | closes the audit trail honestly |
+| **C8** | (documented, no code) the CPU-offloaded/mmap KV path runs the **Python spec-driven** layer path, so per-layer/per-projection timings are absent there | already documented in `docs/CAPABILITIES.md` §4; fix belongs to the next project |
+
+**Exit (G7-C):** C1–C4 closed or explicitly re-deferred with a written
+reason; C5 and C6 implemented and tested; `docs/CAPABILITIES.md` and
+`docs/NEXT_PROJECT_SEED.md` merged; the deferral note for 7G-1/7G-2/7G-3
+recorded; CPU + GPU lanes green; the repository's final state labelled
+*closed — dense APU engine*.
+
+---
 
 ### 7G-1 — Bounded weight residency (Gate G7-1) — the new feature
 
@@ -410,6 +439,8 @@ result, not a usable configuration, and it must never be published as
 
 ---
 
-**Approval:** owner authorization is required before any 7G implementation
-branch is cut. G7-1 is the substantive package; 7G-0 can proceed in parallel
-with G7-1 review since it is maintenance only.
+**Approval:** 7G-C is authorized by the owner's 2026-11-13 decision (close
+this project, document it, then start the next one). 7G-1/7G-2/7G-3 are
+**deferred to the next project** — their designs are carried into
+`docs/NEXT_PROJECT_SEED.md` (M3 expert cache/residency, M4 CPU compute
+fallback, M6 long-context KV) and must not be started here.

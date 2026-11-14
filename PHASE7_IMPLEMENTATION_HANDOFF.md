@@ -640,10 +640,20 @@ git diff "$(git merge-base HEAD origin/main)" -- audit/CLAIMS_LEDGER.md README.m
 
 ---
 
-### 7G — Bounded weight residency + follow-ups (Gates G7-0..G7-2, PROPOSED)
+### 7G — Closure package (Gate G7-C) + deferrals to the next project
 
-**Status (2026-11-13): PROPOSED — plan written, awaiting owner authorization.**
+**Status (2026-11-13): AUTHORIZED as the closure package; the project closes here.**
+**Decision (owner):** complete and document this project, then start a **new**
+Strata-class project (MoE + heterogeneous CPU/GPU compute + speculation on
+discrete-VRAM hardware). Seed: [`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md).
 **Plan:** [`PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md`](PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md).
+**Capability record (what this engine can do):** [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
+
+**7G-C (last package here):** the four G6 carry-forwards (G6-QF-1..4), two
+small research-workflow fixes (`--prompt-file`/stdin prompts; KV budgeting for
+CPU/mmap modes against host RAM and free disk rather than the device share),
+and the closing record (capability document, seed note, ledger row 32, final
+release record).
 
 **Why:** there is **no** "cap my RAM usage and stream the rest" control today.
 `--residency {auto,pin,stream}` is all-or-nothing (whole model pinned or whole
@@ -667,8 +677,12 @@ sparse synthetic fixture). Practical ceilings after the split: **~85 GiB
 resident (≈ 120B at Q4_K_M)**; a 220B model (~141 GiB) is **streaming-only**
 on this box and must never be published as support.
 
-**Gate:** four separate packages (7G-0/7G-1/7G-2/7G-3), each with its own gate;
-do not bundle.
+**Deferred to the next project (recorded, not dropped):** 7G-1 bounded
+residency → the next project's expert-cache residency (M3); 7G-2 copy/compute
+overlap → the next project's overlap work (M4); 7G-3 RAM/GTT budget split +
+max-model-size report → the next project's capacity report (M0/M3).
+
+**Gate:** one package (7G-C) with its own gate.
 
 ### 7G (prior scope) — Post-release polish items
 
