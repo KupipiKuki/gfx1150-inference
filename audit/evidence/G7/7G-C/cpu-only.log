@@ -1,0 +1,13 @@
+# cpu-only self-checks
+
+## python tests/test_cpu_only.py
+Ran 12 tests in 0.817s
+
+OK
+exit=0
+
+## python -O tests/test_cpu_only.py
+Ran 12 tests in 0.727s
+
+OK
+exit=0

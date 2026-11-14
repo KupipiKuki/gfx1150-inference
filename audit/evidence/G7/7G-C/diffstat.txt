@@ -1,0 +1,108 @@
+# diffstat: parent (PR #13 merge 36c54b0) -> candidate (cac3eeddc02164fcb98e654c24b4b8aa27d6a05c)
+
+```
+ .github/workflows/ci-gpu.yml                       |   6 +-
+ README.md                                          |  17 +-
+ audit/CLAIMS_LEDGER.md                             |  24 +-
+ audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md          |  19 ++
+ audit/evidence/G7/7G-C/c2-runner/README.md         |  44 +++
+ .../G7/7G-C/c2-runner/ensure_runner_registered.sh  | 135 +++++++++
+ .../gfx1150-runner-watchdog-alert.service          |   8 +
+ .../7G-C/c2-runner/gfx1150-runner-watchdog.service |  13 +
+ .../7G-C/c2-runner/gfx1150-runner-watchdog.timer   |  10 +
+ .../c3-golden/PRE-REGISTRATION-walk-refinement.md  |  56 ++++
+ .../evidence/G7/7G-C/c3-golden/PRE-REGISTRATION.md |  35 +++
+ audit/evidence/G7/7G-C/c3-golden/README.md         |  43 +++
+ .../7G-C/c3-golden/c3-q4km-prompt3/ours.logits.f32 | Bin 0 -> 2048000 bytes
+ .../7G-C/c3-golden/c3-q4km-prompt3/ours.tokens.txt |  26 ++
+ .../G7/7G-C/c3-golden/c3-q4km-prompt3/verdict.json | 251 +++++++++++++++++
+ .../7G-C/c3-golden/c3-q4km-prompt4/ours.logits.f32 | Bin 0 -> 2048000 bytes
+ .../7G-C/c3-golden/c3-q4km-prompt4/ours.tokens.txt |  31 +++
+ .../G7/7G-C/c3-golden/c3-q4km-prompt4/verdict.json | 261 ++++++++++++++++++
+ audit/evidence/G7/7G-C/c3-golden/prompt3.txt       |   1 +
+ audit/evidence/G7/7G-C/c3-golden/prompt4.txt       |   1 +
+ .../c3-golden/readj-q4km-prompt1/ours.logits.f32   | Bin 0 -> 2048000 bytes
+ .../c3-golden/readj-q4km-prompt1/ours.tokens.txt   |  48 ++++
+ .../7G-C/c3-golden/readj-q4km-prompt1/verdict.json | 295 ++++++++++++++++++++
+ .../c3-golden/readj-q4km-prompt2/ours.logits.f32   | Bin 0 -> 2048000 bytes
+ .../c3-golden/readj-q4km-prompt2/ours.tokens.txt   |  52 ++++
+ .../7G-C/c3-golden/readj-q4km-prompt2/verdict.json | 303 +++++++++++++++++++++
+ .../c3-golden/readj-q6k-prompt1/ours.logits.f32    | Bin 0 -> 2048000 bytes
+ .../c3-golden/readj-q6k-prompt1/ours.tokens.txt    |  48 ++++
+ .../7G-C/c3-golden/readj-q6k-prompt1/verdict.json  | 295 ++++++++++++++++++++
+ .../verdict.c3-q4km-prompt3.orig-walk.json         | 249 +++++++++++++++++
+ .../verdict.c3-q4km-prompt4.orig-walk.json         | 259 ++++++++++++++++++
+ docs/CAPABILITIES.md                               |  13 +-
+ docs/RELEASE_RECORD.md                             | 114 ++++++++
+ docs/STATUS.md                                     |  15 +
+ scripts/ci/README.md                               |  44 +++
+ scripts/ci/ensure_runner_registered.sh             | 135 +++++++++
+ scripts/ci/gfx1150-runner-watchdog-alert.service   |   8 +
+ scripts/ci/gfx1150-runner-watchdog.service         |  13 +
+ scripts/ci/gfx1150-runner-watchdog.timer           |  10 +
+ scripts/qa/real_gguf_golden.py                     |  70 +++--
+ src/inference.py                                   |  71 ++++-
+ src/kv_cache.py                                    |  67 ++++-
+ src/weight_loader.py                               |  17 +-
+ tests/test_cli_prompt_source.py                    | 206 ++++++++++++++
+ tests/test_harness_contract.py                     |   3 +
+ tests/test_memory_residency.py                     | 252 +++++++++++++++++
+ 46 files changed, 3514 insertions(+), 54 deletions(-)
+```
+
+# Allowed-files check (brief §3)
+
+.github/workflows/ci-gpu.yml
+README.md
+audit/CLAIMS_LEDGER.md
+audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md
+audit/evidence/G7/7G-C/c2-runner/README.md
+audit/evidence/G7/7G-C/c2-runner/ensure_runner_registered.sh
+audit/evidence/G7/7G-C/c2-runner/gfx1150-runner-watchdog-alert.service
+audit/evidence/G7/7G-C/c2-runner/gfx1150-runner-watchdog.service
+audit/evidence/G7/7G-C/c2-runner/gfx1150-runner-watchdog.timer
+audit/evidence/G7/7G-C/c3-golden/PRE-REGISTRATION-walk-refinement.md
+audit/evidence/G7/7G-C/c3-golden/PRE-REGISTRATION.md
+audit/evidence/G7/7G-C/c3-golden/README.md
+audit/evidence/G7/7G-C/c3-golden/c3-q4km-prompt3/ours.logits.f32
+audit/evidence/G7/7G-C/c3-golden/c3-q4km-prompt3/ours.tokens.txt
+audit/evidence/G7/7G-C/c3-golden/c3-q4km-prompt3/verdict.json
+audit/evidence/G7/7G-C/c3-golden/c3-q4km-prompt4/ours.logits.f32
+audit/evidence/G7/7G-C/c3-golden/c3-q4km-prompt4/ours.tokens.txt
+audit/evidence/G7/7G-C/c3-golden/c3-q4km-prompt4/verdict.json
+audit/evidence/G7/7G-C/c3-golden/prompt3.txt
+audit/evidence/G7/7G-C/c3-golden/prompt4.txt
+audit/evidence/G7/7G-C/c3-golden/readj-q4km-prompt1/ours.logits.f32
+audit/evidence/G7/7G-C/c3-golden/readj-q4km-prompt1/ours.tokens.txt
+audit/evidence/G7/7G-C/c3-golden/readj-q4km-prompt1/verdict.json
+audit/evidence/G7/7G-C/c3-golden/readj-q4km-prompt2/ours.logits.f32
+audit/evidence/G7/7G-C/c3-golden/readj-q4km-prompt2/ours.tokens.txt
+audit/evidence/G7/7G-C/c3-golden/readj-q4km-prompt2/verdict.json
+audit/evidence/G7/7G-C/c3-golden/readj-q6k-prompt1/ours.logits.f32
+audit/evidence/G7/7G-C/c3-golden/readj-q6k-prompt1/ours.tokens.txt
+audit/evidence/G7/7G-C/c3-golden/readj-q6k-prompt1/verdict.json
+audit/evidence/G7/7G-C/c3-golden/verdict.c3-q4km-prompt3.orig-walk.json
+audit/evidence/G7/7G-C/c3-golden/verdict.c3-q4km-prompt4.orig-walk.json
+docs/CAPABILITIES.md
+docs/RELEASE_RECORD.md
+docs/STATUS.md
+scripts/ci/README.md
+scripts/ci/ensure_runner_registered.sh
+scripts/ci/gfx1150-runner-watchdog-alert.service
+scripts/ci/gfx1150-runner-watchdog.service
+scripts/ci/gfx1150-runner-watchdog.timer
+scripts/qa/real_gguf_golden.py
+src/inference.py
+src/kv_cache.py
+src/weight_loader.py
+tests/test_cli_prompt_source.py
+tests/test_harness_contract.py
+tests/test_memory_residency.py
+
+# Allowed/forbidden verdict
+- every changed path is inside brief §3's allowed set (src CLI/kv/weight-loader, tests, scripts, workflows, README, docs, audit, evidence).
+- src/memory_budget.py untouched; kernel math, tokenizer/model-family, 7D policy: untouched.
+- ci-gpu.yml diff is the nightly cron 03:00->04:00 UTC only (C2 alignment); zero occurrences of a push trigger in the workflow file; no trigger added; claims gate checks untouched.
+- claims ledger changes add/refresh qualifications only; baseline audit/claims_baseline.txt empty; existing tests strengthened (fallback test added), none deleted/weakened.
+- forbidden set (MoE/CPU compute/speculation/expert cache): no changes.
+- the evidence-only bundle commit adds audit/evidence/G7/7G-C/** only (git add -f for *.log, matching the G6 precedent); no code, docs or workflow changes after the frozen candidate cac3eed.

@@ -1,0 +1,39 @@
+# C1 residency probe: test_measured_rss_delta_pin_vs_stream, 3 consecutive runs (no skip expected; refault_majflt must be > 0)
+# fix under test: fixture flush+fsync (dirty-page retention) + MADV_PAGEOUT->MADV_DONTNEED fallback
+
+## run 1
+.                                                                        [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 13 warnings in 0.56s
+run_exit=0
+
+## run 2
+.                                                                        [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 13 warnings in 0.54s
+run_exit=0
+
+## run 3
+.                                                                        [100%]
+=============================== warnings summary ===============================
+../../../.pyenv/versions/3.14.10/lib/python3.14/site-packages/langsmith/_internal/_beta_decorator.py:70: 13 warnings
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 13 warnings in 0.55s
+run_exit=0
+
+# CI-runner outcome: the GitHub-hosted gfx1150 runner is currently offline (C2 outstanding,
+# registration deletion owner-side); the twice-in-a-row GitHub-hosted acceptance is a documented
+# pending item in c2-runner/ and notes.md. The same test has passed 3x locally on the gfx1150 host.
+
+# explicit refault/RSS readouts (test prints under -v)
+tests/test_memory_residency.py::test_measured_rss_delta_pin_vs_stream PASSED [100%]
+# RSS probe readout (python -m pytest ... -v -s):
+#   [RSS probe] model=67109184 bytes PIN dRSS=65544 kB (warm re-touch majflt=0); STREAM dRSS=4 kB (refault majflt=1)
+# refault_majflt=1 > 0: the major-fault proof asserts, no pytest.skip used.

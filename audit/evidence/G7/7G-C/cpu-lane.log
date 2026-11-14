@@ -1,0 +1,6 @@
+# CPU lane: python -m pytest -m 'not gpu' -q
+# host: gfx1150 runner host, cac3eeddc02164fcb98e654c24b4b8aa27d6a05c
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+547 passed, 45 deselected, 16 warnings in 48.28s
+exit=0

@@ -1,0 +1,25 @@
+# C6 KV budget probe: 22L/32K ctx KV, simulated budgets gtt=64MiB host=64GiB cgroup=64GiB
+# probe: /tmp/c6/probe.py (monkeypatches memory_budget.read_budget_sources)
+# PYTHONPATH=<repo>/build (built HIP extension) for both sides
+
+## PARENT (36c54b0, pre-fix) — expect REFUSED by the GTT-bounded device budget
+REFUSED: Requested KV cache size (738197504 bytes) exceeds the effective KV budget (60397978 bytes, 10% safety margin). Budget sources used: max_kv_bytes=34359738368, gtt_sysfs=67108864, host_memavailable=68719476736, cgroup=68719476736. Reduce max_seq_len/num_layers/heads, or raise the max_kv_bytes user cap.
+parent_exit=0
+
+## CANDIDATE (HEAD cac3eed, offload pool drops gtt_sysfs) — expect ACCEPTED
+ACCEPTED: nbytes=738197504 budget=30923764532 sources={'max_kv_bytes': 34359738368, 'host_memavailable': 68719476736, 'cgroup': 68719476736}
+candidate_exit=0
+
+## REAL 32K CLI run with --offload-kv-cpu (was refused pre-fix as a device budget)
+[stats] model: arch=llama num_layers=22 hidden_size=2048 vocab_size=32000
+[stats] residency: decision=ResidencyDecision(requested=<ResidencyPolicy.AUTO: 'auto'>, effective=<ResidencyPolicy.PIN_ALL: 'pin_all'>, reason='AUTO: weight bytes (667078656) fit the budget (47353071104); pinning in the host page cache', weight_bytes=667078656, weight_budget=47353071104, over_budget=False) weight_bytes=667078656 kv_device_bytes=0 max_seq_len=32768
+
+
+2.
+cli_exit=0
+
+## device-KV path unchanged
+### CPU-lane test test_kv_device_pool_budget_unchanged:
+1 passed, 13 warnings in 0.22s
+### device-resident CLI run (no offload flags): budget stays GTT-bounded
+kv_device_bytes=46137344
