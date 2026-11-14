@@ -1,8 +1,10 @@
 # 7G-C2 — Runner & CI Rebuild Plan (redeveloped 2026-11-14)
 
-**Status:** IN PROGRESS — C2a landed 2026-11-14 (`scripts/ci/runner.env` +
-read-only `scripts/ci/runner_doctor.sh` + 19 tests); C2b–C2g pending.
-Supersedes the C2 implementation approach in `PHASE7_7G_CLOSURE_BRIEF.md` §C2.
+**Status:** IN PROGRESS — C2a–C2f landed 2026-11-14 (spec + layered doctor,
+orchestrating watchdog, hardened units/logrotate, drift-checking installer,
+hardened workflow, contract tests); C2g (host drills, PAT, enforcement
+restore) is owner-pending. Supersedes the C2 implementation approach in
+`PHASE7_7G_CLOSURE_BRIEF.md` §C2.
 **Gate:** G7-C (last gate of this project).
 **Branch:** `wp/7G-C-closure`.
 **Roles:** Owner (host admin + GitHub admin) · Coder · QAQC · Auditor.
@@ -775,7 +777,7 @@ merges before the auditor signs the gate.
 - **Acceptance:** `--check` on the current host exits 0 or 2/3 with an accurate
   verdict; output matches §5.2; no secret in argv.
 
-### C2b — health algorithm rewrite
+### C2b — health algorithm rewrite — **LANDED 2026-11-14**
 
 - Replace the mtime/window check with §5.4 (`session_log`, `l3_session`),
   add the skew guard (§5.3) and the grace state.
@@ -784,25 +786,25 @@ merges before the auditor signs the gate.
   mtime-poisoned fixture yields exit 0 too (both regressions); skew yields 2
   with no repair.
 
-### C2c — watchdog hardening
+### C2c — watchdog hardening — **LANDED 2026-11-14**
 
 - Transition-based alerts, state file, `OnBootSec=5min`, remove `OnFailure`,
   logrotate, cooldown preserved, job-in-flight preserved.
 - **Acceptance:** D5, D8; no alert while healthy; one alert per outage.
 
-### C2d — installer + drift
+### C2d — installer + drift — **LANDED 2026-11-14**
 
 - `scripts/ci/install_runner_watchdog.sh` (`--apply/--check/--uninstall`).
 - **Acceptance:** D7; `--check` reports `DRIFT` after a manual edit and `OK`
   after `--apply`.
 
-### C2e — workflow hardening
+### C2e — workflow hardening — **LANDED 2026-11-14**
 
 - §9 changes (permissions, concurrency, fork guard, preflight, pip freeze,
   cron 05:00), keeping the job name and the junit guard.
 - **Acceptance:** T4 steps 1–3 green; the required check name unchanged.
 
-### C2f — contract tests
+### C2f — contract tests — **LANDED 2026-11-14**
 
 - `tests/test_ci_contract.py` (10 assertions) + static guards; update
   `EXPECTED_LANES` if a new test file is added.

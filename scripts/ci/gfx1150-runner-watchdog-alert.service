@@ -1,8 +1,12 @@
 [Unit]
-Description=7G-C watchdog alert: gfx1150 runner is offline after self-repair
+Description=gfx1150 runner watchdog alert (transition hook)
+Documentation=file:///home/kupipi/Documents/git/gfx1150-inference/scripts/ci/README.md
+# Started by the watchdog only on a healthy->broken transition. Extend this
+# unit (mail, webhook, paging) when the owner wants active notification; never
+# put the PAT or a token here.
 
 [Service]
 Type=oneshot
-# The visible alert: a journal line + the persistent log. Extend here (mail,
-# webhook) when the owner wants paging; never put the PAT or a token here.
-ExecStart=/bin/sh -c 'echo "gfx1150 runner-watchdog: RUNNER-REGISTRATION-OFFLINE (self-repair did not restore the runner)" | tee -a /var/log/ensure-runner.log'
+# The durable record is /var/log/ensure-runner.log (written by the watchdog)
+# and the journal. This unit adds one clearly-tagged journal line per outage.
+ExecStart=/bin/sh -c 'echo "gfx1150 runner-watchdog: ALERT transition (state=$(cat /run/gfx1150-runner.state 2>/dev/null || echo unknown); see /var/log/ensure-runner.log)" >&2'

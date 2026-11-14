@@ -33,41 +33,66 @@ host. The doctor checks them in order:
 |---|---|
 | `runner.env` | single source of truth for name, labels, unit, user, paths, thresholds |
 | `runner_doctor.sh` | read-only layered diagnosis (L0–L6) with stable exit codes |
-| `ensure_runner_registered.sh` | health check + PAT-based re-registration |
-| `gfx1150-runner-watchdog.service` | oneshot systemd unit (root) |
-| `gfx1150-runner-watchdog.timer` | every 5 minutes, after boot |
-| `gfx1150-runner-watchdog-alert.service` | visible alert line |
+| `ensure_runner_registered.sh` | watchdog: run the doctor, repair only when the verdict allows it, verify, alert on transitions |
+| `install_runner_watchdog.sh` | install / verify (sha256 drift) / uninstall the watchdog, doctor, spec, units and logrotate |
+| `gfx1150-runner-watchdog.service` | oneshot systemd unit (root), `TimeoutStartSec=240` |
+| `gfx1150-runner-watchdog.timer` | every 5 minutes, `OnBootSec=5min`, `AccuracySec=30s` |
+| `gfx1150-runner-watchdog-alert.service` | transition-alert hook (journal line; extend for paging) |
+| `gfx1150-runner-watchdog.logrotate` | keeps `/var/log/ensure-runner.log` bounded |
 
 ## Deployment (root, on the gfx1150 host)
 
+The installer is the only supported deployment path; it installs the script,
+the doctor, the spec, the units and logrotate, reloads systemd and enables the
+timer.
+
 ```bash
 # 1. the PAT (repo admin, Administration: write), outside the repository
-install -d -m 0700 -o root -g root /etc/gfx1150-runner
-install -m 0600 -o root -g root /dev/stdin /etc/gfx1150-runner/runner.pat
-stat -c '%a:%U' /etc/gfx1150-runner/runner.pat      # expect 600:root
+sudo install -d -m 0700 -o root -g root /etc/gfx1150-runner
+sudo install -m 0600 -o root -g root /dev/stdin /etc/gfx1150-runner/runner.pat
+sudo stat -c '%a:%U' /etc/gfx1150-runner/runner.pat      # expect 600:root
 
-# 2. the script and units
-install -m 0755 -o root -g root scripts/ci/ensure_runner_registered.sh \
-  /usr/local/sbin/ensure_runner_registered.sh
-install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.service \
-  /etc/systemd/system/
-install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.timer \
-  /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now gfx1150-runner-watchdog.timer
+# 2. install (refuses without the PAT; --allow-no-pat stages without it)
+sudo scripts/ci/install_runner_watchdog.sh --apply
+
+# 3. verify
+sudo scripts/ci/install_runner_watchdog.sh --check       # exit 0 = no drift
+sudo scripts/ci/runner_doctor.sh --check                 # exit 0 = healthy
 ```
 
-## Verify
+`--check` compares every installed file with the repository by sha256 and
+reports `MISSING`/`DRIFT`/`OK` plus the timer and PAT state. It exits `1` on
+drift or a missing file.
+
+## Verify and operate
 
 ```bash
-sudo /usr/local/sbin/ensure_runner_registered.sh --check   # exit 0 = healthy
+scripts/ci/runner_doctor.sh --check            # 0 healthy, 1 offline, 2 clock, 3 misconfigured
+sudo /usr/local/sbin/gfx1150-runner-watchdog --check   # same, verify-only
 sudo journalctl -u gfx1150-runner-watchdog.service -n 20 --no-pager
 sudo tail -20 /var/log/ensure-runner.log
 ```
 
-`--check` is read-only: it never re-registers. The timer runs the same script
-without `--check`, which repairs only when the runner is offline, never while
-a job is in flight, and at most once per 30 minutes.
+The watchdog runs the doctor on every tick and acts on the verdict:
+
+| Verdict | Exit | Watchdog action |
+|---|---|---|
+| `HEALTHY` / `JOB_IN_FLIGHT` / `STARTING` | 0 | nothing (a job in flight defers repair) |
+| `CLOCK_SKEW` | 2 | alert once; **repair forbidden** — fix timekeeping |
+| `OFFLINE` (`SERVICE_DOWN`, `LISTENER_DEAD`, `REGISTRATION_DELETED`, `NOT_LISTENING`) | 1 | repair once, verify, exit 0/1 |
+| `MISCONFIGURED` (`LABELS_MISMATCH`, `REGISTRATION_NOT_VISIBLE`) | 3 | re-register with the spec labels, verify |
+| `MISCONFIGURED` (anything else) | 3 | alert once; owner action |
+
+Alerts are transition-based (`/run/gfx1150-runner.state`): one alert when the
+runner becomes broken, one recovery line when it is healthy again — never one
+per tick. Repairs never run under a live `Runner.Worker` and are rate-limited
+to one per 30 minutes (`/run/ensure-runner.last-repair`).
+
+## Uninstall
+
+```bash
+sudo scripts/ci/install_runner_watchdog.sh --uninstall   # keeps the PAT and the log
+```
 
 ## Secret handling
 

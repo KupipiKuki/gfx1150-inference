@@ -31,8 +31,21 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# The spec lives next to the script in the repository and in
+# /etc/gfx1150-runner when installed. RUNNER_ENV overrides the search.
+RUNNER_ENV_FILE=""
+for candidate in "${RUNNER_ENV:-}" "${SCRIPT_DIR}/runner.env" "/etc/gfx1150-runner/runner.env"; do
+  if [ -n "${candidate}" ] && [ -r "${candidate}" ]; then
+    RUNNER_ENV_FILE="${candidate}"
+    break
+  fi
+done
+if [ -z "${RUNNER_ENV_FILE}" ]; then
+  printf 'runner_doctor: runner.env not found (set RUNNER_ENV)\n' >&2
+  exit 3
+fi
 # shellcheck source=runner.env
-. "${SCRIPT_DIR}/runner.env"
+. "${RUNNER_ENV_FILE}"
 
 REPO_ROOT="${REPO_ROOT:-$(cd -- "${SCRIPT_DIR}/../.." && pwd)}"
 WORKFLOW="${REPO_ROOT}/.github/workflows/ci-gpu.yml"
@@ -101,6 +114,7 @@ emit_json() {
   python3 - "${ROWS_FILE}" "$1" "$2" "$3" "${WARN_COUNT}" <<'PY'
 import json
 import sys
+import time
 
 rows_path, verdict, cause, code, warnings = sys.argv[1:6]
 checks = []
@@ -116,6 +130,7 @@ print(json.dumps({
     "cause": cause,
     "exit_code": int(code),
     "warnings": int(warnings),
+    "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     "checks": checks,
 }, indent=2))
 PY
@@ -230,12 +245,19 @@ layer_l1() {
 # ------------------------------------------------------------- L2 process --
 
 layer_l2() {
-  local pids first
+  local pids first worker
   pids="$(pgrep -u "${RUNNER_USER}" -f 'Runner\.Listener' 2>/dev/null | tr '\n' ' ' || true)"
   if [ -z "${pids// /}" ]; then
     fail L2 "LISTENER_DEAD: no Runner.Listener process for user ${RUNNER_USER}" 1
   fi
   first="${pids%% *}"
+  # State machine order 4: a live worker means a job is in flight. The runner
+  # is not offline, and repair must never run under a job (BLOCKER-7G-C-1).
+  worker="$(pgrep -u "${RUNNER_USER}" -f 'Runner\.Worker' 2>/dev/null | tr '\n' ' ' || true)"
+  if [ -n "${worker// /}" ]; then
+    pass L2 "JOB_IN_FLIGHT: Runner.Worker pid=${worker%% *} (listener pid=${first})"
+    finish HEALTHY "JOB_IN_FLIGHT" 0
+  fi
   pass L2 "Runner.Listener pid=${first} user=${RUNNER_USER}"
 }
 
@@ -472,7 +494,7 @@ PY
 # ------------------------------------------------------------ L6 watchdog --
 
 layer_l6() {
-  local enabled active installed sha_repo sha_inst perms now mtime age
+  local enabled active installed sha_inst expected source_desc perms now mtime age
   enabled="$(systemctl is-enabled "${WATCHDOG_TIMER}" 2>/dev/null || true)"
   active="$(systemctl is-active "${WATCHDOG_TIMER}" 2>/dev/null || true)"
   if [ "${enabled}" = "enabled" ] && [ "${active}" = "active" ]; then
@@ -493,12 +515,20 @@ layer_l6() {
   if [ -z "${installed}" ]; then
     warn L6 "watchdog script not installed (C2d installer)"
   else
-    sha_repo="$(sha256sum "${SCRIPT_DIR}/ensure_runner_registered.sh" 2>/dev/null | cut -d' ' -f1)"
     sha_inst="$(sha256sum "${installed}" 2>/dev/null | cut -d' ' -f1)"
-    if [ -n "${sha_repo}" ] && [ "${sha_repo}" = "${sha_inst}" ]; then
-      pass L6 "installed watchdog matches the repository"
+    expected=""
+    source_desc=""
+    if [ -r "${DRIFT_MANIFEST}" ]; then
+      expected="$(cut -d' ' -f1 <"${DRIFT_MANIFEST}" 2>/dev/null || true)"
+      source_desc="installed manifest ${DRIFT_MANIFEST}"
     else
-      warn L6 "installed watchdog DRIFTED from the repository (${installed})"
+      expected="$(sha256sum "${SCRIPT_DIR}/ensure_runner_registered.sh" 2>/dev/null | cut -d' ' -f1)"
+      source_desc="repository copy"
+    fi
+    if [ -n "${expected}" ] && [ "${expected}" = "${sha_inst}" ]; then
+      pass L6 "installed watchdog matches the ${source_desc}"
+    else
+      warn L6 "installed watchdog DRIFTED from the ${source_desc:-reference} (${installed})"
     fi
   fi
 

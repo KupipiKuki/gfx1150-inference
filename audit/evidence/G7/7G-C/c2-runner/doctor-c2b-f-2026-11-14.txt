@@ -1,0 +1,126 @@
+# C2b–C2f live checks — 2026-11-14T22:50:39Z
+# host: kupipi-AI-Series
+# parent commit: 62b886696038b19f40abb8386a67e4157f024983
+
+$ scripts/ci/runner_doctor.sh --check
+gfx1150 runner doctor - 2026-11-14T22:50:39Z
+  L0  WARN  clock is 10s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 16:38:50 EST
+  L2  PASS  Runner.Listener pid=16820 user=kupipi
+  L3  PASS  log=Runner_20261114-213850-utc.log listening, no later rejection
+  L4  WARN  PAT /etc/gfx1150-runner/runner.pat missing; labels/group not verifiable (owner action)
+  L5  PASS  runs-on ['gfx1150', 'rocm', 'self-hosted'] is covered by the runner labels
+  L5  PASS  job name matches the required check
+  L5  PASS  cron 0 5 * * * clears boot 03:38 by 82 min
+  L5  PASS  no push trigger
+  L5  PASS  permissions block present
+  L5  PASS  concurrency group present
+  L5  PASS  fork-PR guard present
+  L5  PASS  junit skip-is-not-pass guard present
+  L6  WARN  timer gfx1150-runner-watchdog.timer is disabled: self-repair disabled
+  L6  WARN  installed watchdog DRIFTED from the repository copy (/usr/local/sbin/ensure_runner_registered.sh)
+  L6  WARN  PAT /etc/gfx1150-runner/runner.pat missing: self-repair cannot run (owner action)
+  L6  WARN  watchdog log has not been written for 1750s (timer stuck or disabled)
+VERDICT: HEALTHY (6 warning(s))
+exit=0
+
+$ scripts/ci/ensure_runner_registered.sh --check
+2026-11-14T22:50:40Z runner gfx1150-host healthy
+exit=0
+
+$ scripts/ci/runner_doctor.sh --check --json
+{
+  "verdict": "HEALTHY",
+  "cause": "",
+  "exit_code": 0,
+  "warnings": 6,
+  "generated_at": "2026-11-14T22:50:42Z",
+  "checks": [
+    {
+      "layer": "L0",
+      "status": "WARN",
+      "message": "clock is 12s from GitHub (warn > 5s)"
+    },
+    {
+      "layer": "L1",
+      "status": "PASS",
+      "message": "active/running since Sat 2026-11-14 16:38:50 EST"
+    },
+    {
+      "layer": "L2",
+      "status": "PASS",
+      "message": "Runner.Listener pid=16820 user=kupipi"
+    },
+    {
+      "layer": "L3",
+      "status": "PASS",
+      "message": "log=Runner_20261114-213850-utc.log listening, no later rejection"
+    },
+    {
+      "layer": "L4",
+      "status": "WARN",
+      "message": "PAT /etc/gfx1150-runner/runner.pat missing; labels/group not verifiable (owner action)"
+    },
+    {
+      "layer": "L5",
+      "status": "PASS",
+      "message": "runs-on ['gfx1150', 'rocm', 'self-hosted'] is covered by the runner labels"
+    },
+    {
+      "layer": "L5",
+      "status": "PASS",
+      "message": "job name matches the required check"
+    },
+    {
+      "layer": "L5",
+      "status": "PASS",
+      "message": "cron 0 5 * * * clears boot 03:38 by 82 min"
+    },
+    {
+      "layer": "L5",
+      "status": "PASS",
+      "message": "no push trigger"
+    },
+    {
+      "layer": "L5",
+      "status": "PASS",
+      "message": "permissions block present"
+    },
+    {
+      "layer": "L5",
+      "status": "PASS",
+      "message": "concurrency group present"
+    },
+    {
+      "layer": "L5",
+      "status": "PASS",
+      "message": "fork-PR guard present"
+    },
+    {
+      "layer": "L5",
+      "status": "PASS",
+      "message": "junit skip-is-not-pass guard present"
+    },
+    {
+      "layer": "L6",
+      "status": "WARN",
+      "message": "timer gfx1150-runner-watchdog.timer is disabled: self-repair disabled"
+    },
+    {
+      "layer": "L6",
+      "status": "WARN",
+      "message": "installed watchdog DRIFTED from the repository copy (/usr/local/sbin/ensure_runner_registered.sh)"
+    },
+    {
+      "layer": "L6",
+      "status": "WARN",
+      "message": "PAT /etc/gfx1150-runner/runner.pat missing: self-repair cannot run (owner action)"
+    },
+    {
+      "layer": "L6",
+      "status": "WARN",
+      "message": "watchdog log has not been written for 1753s (timer stuck or disabled)"
+    }
+  ]
+}
+exit=0

@@ -1,329 +1,482 @@
-"""Scripted check for the runner-registration watchdog (7G-C, C2 remediation).
+"""C2b — scripted checks for the runner watchdog orchestrator.
 
-Audit trace: AUDIT_7G_C_2026-11-14.md, BLOCKER-7G-C-1 and BLOCKER-7G-C-2.
+``scripts/ci/ensure_runner_registered.sh`` no longer decides health itself: it
+runs the layered doctor and acts on the verdict (see
+``PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md`` §6–§7). These tests drive the real
+orchestrator through a *fake doctor* (a script that emits a chosen JSON verdict
+and exit code) plus PATH shims for ``systemctl``, ``pgrep``, ``curl``,
+``runuser`` and ``sleep``.
 
-The auditor's net requirement for the in-repo fix is a scripted check that
-``ensure_runner_registered.sh --check`` returns 0 on a healthy runner that
-has been up for more than ten minutes, plus the repair discipline (no repair
-under a running job, cooldown between attempts) and a PAT that never appears
-in a process argument vector. The live simulated-deletion transcript against
-a REAL runner (real systemctl, real PAT) stays owner-pending and is recorded
-separately in audit/evidence/G7/7G-C/c2-runner/; what is checked here is the
-decision logic of the script itself, driven through PATH-shimmed
-systemctl/pgrep/journalctl/curl/runuser around a fake runner directory.
+What is asserted here is the decision logic the rebuild is about:
 
-The decisive regression is the exact scenario the auditor proved broken: the
-runner is online and working but the "Listening for Jobs" startup marker is
-30 minutes old, so the old 10-minute journal window saw 0 hits and every
-tick would have flagged the healthy runner offline. The journalctl shim
-below reproduces that journal (empty inside the moving window) and the test
-still requires --check to exit 0.
+* a clock-skew verdict never repairs (exit 2);
+* a healthy verdict never repairs or alerts;
+* an offline verdict repairs once, verifies, and emits one alert + one
+  recovery line;
+* a labels/not-visible misconfiguration repairs, while any other
+  misconfiguration is an owner action;
+* the PAT never reaches argv or the log;
+* a job in flight defers repair;
+* the cooldown and the verify-only mode both suppress repair.
 
-Repair paths never need the network here: the fake curl only serves a fake
-registration-token JSON and records its argv, which is what the
-PAT-not-in-argv assertion inspects.
+All checks are CPU-lane: pure bash subprocesses, no HIP extension, no GPU, no
+network.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import pathlib
 import pwd
-import textwrap
-import time
 import subprocess
+import time
 
 import pytest
 
 pytestmark = pytest.mark.cpu
 
-SCRIPT = pathlib.Path(__file__).resolve().parent.parent / (
-    "scripts/ci/ensure_runner_registered.sh"
-)
+CI_DIR = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "ci"
+SCRIPT = CI_DIR / "ensure_runner_registered.sh"
+SPEC = CI_DIR / "runner.env"
 
-LISTEN_MARKER = "Listening for Jobs"
-DELETED_MARKER = "the runner registration has been deleted from the server"
-FAKE_PAT = "github_pat_11FAKE0000remediationtokennotdeployed"
-
-DIAG_NAME = "Runner_20261114-223000.log"
+FAKE_PAT = "github_pat_11FAKE0000orchestratortokennotdeployed"
+FAKE_TOKEN = "FAKE_REGISTRATION_TOKEN"
 
 
-def _install(path: pathlib.Path, body: str, mode: int = 0o755) -> None:
+def _write(path: pathlib.Path, body: str, mode: int = 0o755) -> None:
     path.write_text(body)
     path.chmod(mode)
 
 
 @pytest.fixture()
-def env(tmp_path: pathlib.Path) -> dict[str, str]:
-    """Build a fake host: shim PATH, runner dir, PAT file, state files."""
+def host(tmp_path: pathlib.Path):
+    """A fake host: fake doctor, PATH shims, PAT, runner dir, state files."""
     state = tmp_path / "state"
     state.mkdir()
-    shim_dir = tmp_path / "shims"
-    shim_dir.mkdir()
+    shims = tmp_path / "shims"
+    shims.mkdir()
 
-    # systemctl reads its desired state from files in SHIM_STATE so tests can
-    # flip the service between healthy and broken without restarting anything.
-    state.joinpath("is-active").write_text("active\n")
-    state.joinpath("active-state").write_text("active")
-    state.joinpath("sub-state").write_text("running")
-    state.joinpath("restarts").write_text("0\n")
-    state.joinpath("listener-alive").write_text("1\n")
-    state.joinpath("worker-alive").write_text("0\n")
-    state.joinpath("curl-args.log").write_text("")
-    state.joinpath("runuser-args.log").write_text("")
+    # --- fake doctor: verdict/cause/code are files the test flips -------------
+    _write(
+        shims / "doctor",
+        """#!/usr/bin/env bash
+STATE="${SHIM_STATE:?}"
+printf '%s\\n' "$*" >> "${STATE}/doctor-calls.log"
+python3 - "$(cat "${STATE}/doctor-verdict")" "$(cat "${STATE}/doctor-cause")" \\
+  "$(cat "${STATE}/doctor-code")" <<'PY'
+import json
+import sys
 
-    shim_dir.joinpath("systemctl").write_text(textwrap.dedent("""\
-        #!/usr/bin/env bash
-        STATE_DIR="${SHIM_STATE:?}"
-        case "$1" in
-          is-active)
-            if [ "$2" = "--quiet" ]; then
-              grep -q '^active$' "${STATE_DIR}/is-active"; exit $?
-            fi
-            cat "${STATE_DIR}/is-active"; exit 0 ;;
-          show)
-            echo "$(cat "${STATE_DIR}/active-state")"
-            echo "$(cat "${STATE_DIR}/sub-state")"
-            exit 0 ;;
-          start|restart|stop)
-            n=$(cat "${STATE_DIR}/restarts"); echo $((n + 1)) > "${STATE_DIR}/restarts"
-            printf 'active\\n' > "${STATE_DIR}/is-active"
-            printf 'active'  > "${STATE_DIR}/active-state"
-            printf 'running' > "${STATE_DIR}/sub-state"
-            exit 0 ;;
-          *) echo "systemctl shim: unhandled $*" >&2; exit 1 ;;
-        esac
-        """))
-    shim_dir.joinpath("pgrep").write_text(textwrap.dedent("""\
-        #!/usr/bin/env bash
-        STATE_DIR="${SHIM_STATE:?}"
-        case "$*" in
-          *Listener*) [ "$(cat "${STATE_DIR}/listener-alive")" = 1 ]; exit $? ;;
-          *Worker*)   [ "$(cat "${STATE_DIR}/worker-alive")" = 1 ]; exit $? ;;
-          *) echo "pgrep shim: unhandled $*" >&2; exit 1 ;;
-        esac
-        """))
-    # The old bug: a moving journal window that contains no startup marker
-    # (exactly the host journal the auditor quoted: marker 30 min old).
-    shim_dir.joinpath("journalctl").write_text(
-        "#!/usr/bin/env bash\n# no marker inside the moving window; the fixed\n"
-        "# script must never gate health on this output\nexit 0\n"
+verdict, cause, code = sys.argv[1:4]
+print(json.dumps({
+    "verdict": verdict,
+    "cause": cause,
+    "exit_code": int(code),
+    "warnings": 0,
+    "generated_at": "2026-11-14T00:00:00Z",
+    "checks": [],
+}))
+PY
+exit "$(cat "${STATE}/doctor-code")"
+""",
     )
-    shim_dir.joinpath("sleep").write_text("#!/usr/bin/env bash\nexit 0\n")
-    # curl serves a fake registration-token answer and records its argv:
-    # the PAT-not-in-argv assertion inspects this record.
-    shim_dir.joinpath("curl").write_text(textwrap.dedent("""\
-        #!/usr/bin/env bash
-        STATE_DIR="${SHIM_STATE:?}"
-        printf '%s\\n' "$*" >> "${SHIM_CURL_ARGS:?}"
-        out=""; prev=""
-        for a in "$@"; do
-          [ "$prev" = "-o" ] && out="$a"
-          prev="$a"
-        done
-        if printf '%s\\n' "$*" | grep -qF 'registration-token'; then
-          printf '{"token": "FAKE_REGISTRATION_TOKEN"}' > "$out"
-          exit 0
-        fi
-        echo "curl shim: unhandled $*" >&2
-        exit 1
-        """))
-    shim_dir.joinpath("runuser").write_text(textwrap.dedent("""\
-        #!/usr/bin/env bash
-        STATE_DIR="${SHIM_STATE:?}"
-        printf '%s\\n' "$*" >> "${SHIM_RUNUSER_ARGS:?}"
-        # runuser -u USER -- cmd args...
-        shift 3
-        exec "$@"
-        """))
-    for shim in shim_dir.iterdir():
-        shim.chmod(0o755)
+    (state / "doctor-verdict").write_text("HEALTHY\n")
+    (state / "doctor-cause").write_text("\n")
+    (state / "doctor-code").write_text("0\n")
+    (state / "doctor-calls.log").write_text("")
 
+    # --- systemctl: restart increments a counter, start records the alert ----
+    _write(
+        shims / "systemctl",
+        """#!/usr/bin/env bash
+STATE="${SHIM_STATE:?}"
+printf '%s\\n' "$*" >> "${STATE}/systemctl.log"
+case "$1" in
+  restart)
+    n="$(cat "${STATE}/restarts")"; printf '%s\\n' "$((n + 1))" > "${STATE}/restarts" ;;
+  start) : ;;
+esac
+exit 0
+""",
+    )
+    (state / "restarts").write_text("0\n")
+    (state / "systemctl.log").write_text("")
+
+    # --- pgrep: only Runner.Worker is modelled here --------------------------
+    _write(
+        shims / "pgrep",
+        """#!/usr/bin/env bash
+STATE="${SHIM_STATE:?}"
+if printf '%s\\n' "$*" | grep -q 'Worker'; then
+  if [ "$(cat "${STATE}/worker-alive")" = 1 ]; then
+    printf '9999\\n'; exit 0
+  fi
+fi
+exit 1
+""",
+    )
+    (state / "worker-alive").write_text("0\n")
+
+    # --- curl: serves a registration token and records its argv --------------
+    _write(
+        shims / "curl",
+        """#!/usr/bin/env bash
+STATE="${SHIM_STATE:?}"
+printf '%s\\n' "$*" >> "${STATE}/curl-args.log"
+out=""; prev=""
+for a in "$@"; do
+  [ "$prev" = "-o" ] && out="$a"
+  prev="$a"
+done
+if printf '%s\\n' "$*" | grep -qF 'registration-token'; then
+  printf '{"token": "FAKE_REGISTRATION_TOKEN"}' > "$out"
+  exit 0
+fi
+echo "curl shim: unhandled $*" >&2
+exit 1
+""",
+    )
+    (state / "curl-args.log").write_text("")
+
+    # --- runuser: records argv, then runs config.sh as the same user ---------
+    _write(
+        shims / "runuser",
+        """#!/usr/bin/env bash
+STATE="${SHIM_STATE:?}"
+printf '%s\\n' "$*" >> "${STATE}/runuser-args.log"
+shift 3
+exec "$@"
+""",
+    )
+    (state / "runuser-args.log").write_text("")
+
+    # --- sleep: the verify poll must not slow the suite ----------------------
+    _write(shims / "sleep", "#!/usr/bin/env bash\nexit 0\n")
+
+    # --- runner dir + a config.sh that heals the fake doctor -----------------
     runner_dir = tmp_path / "actions-runner"
-    diag_dir = runner_dir / "_diag"
-    diag_dir.mkdir(parents=True)
-    diag = diag_dir / DIAG_NAME
-    diag.write_text(f"{LISTEN_MARKER}\n")
-    # Make the listen marker over 30 minutes old, matching the host journal
-    # the auditor quoted; the fixed script must not judge health by marker age.
-    old = time.time() - 1800
-    os.utime(diag, (old, old))
-
-    # Fake config.sh: on re-registration the diag log is refreshed without the
-    # deleted-registration line, and its argv is recorded (the registration
-    # token DOES appear there by design — documented, accepted, low severity).
+    (runner_dir / "_diag").mkdir(parents=True)
     config = runner_dir / "config.sh"
-    config.write_text(textwrap.dedent(f"""\
-        #!/usr/bin/env bash
-        STATE_DIR="${{SHIM_STATE:?}}"
-        printf '%s\\n' "$*" >> "${{SHIM_RUNUSER_ARGS:?}}"
-        diag="$(cat "${{STATE_DIR}}/diag-path")"
-        printf '%s\\n' "{LISTEN_MARKER}" > "$diag"
-        """))
+    config.write_text(
+        """#!/usr/bin/env bash
+STATE="${SHIM_STATE:?}"
+printf '%s\\n' "$*" >> "${STATE}/config-args.log"
+printf 'HEALTHY\\n' > "${STATE}/doctor-verdict"
+printf '\\n' > "${STATE}/doctor-cause"
+printf '0\\n' > "${STATE}/doctor-code"
+"""
+    )
     config.chmod(0o755)
-    state.joinpath("diag-path").write_text(str(diag))
+    (state / "config-args.log").write_text("")
 
     pat_file = tmp_path / "runner.pat"
-    pat_file.write_text(f"{FAKE_PAT}\n")
+    pat_file.write_text(FAKE_PAT + "\n")
     pat_file.chmod(0o600)
 
+    env = os.environ.copy()
+    env.update(
+        {
+            "PATH": f"{shims}:{env.get('PATH', '/usr/bin:/bin')}",
+            "SHIM_STATE": str(state),
+            "RUNNER_ENV": str(SPEC),
+            "RUNNER_DOCTOR": str(shims / "doctor"),
+            "RUNNER_DIR": str(runner_dir),
+            "RUNNER_NAME": "fake-host",
+            "RUNNER_USER": env.get("USER", "nobody"),
+            "RUNNER_LABELS": "gfx1150,rocm",
+            "RUNNER_WORK": "_work",
+            "SERVICE_UNIT": "actions.runner.fake.fake.service",
+            "REPO_SLUG": "owner/repo",
+            "PAT_FILE": str(pat_file),
+            "PAT_OWNER": pwd.getpwuid(os.getuid()).pw_name,
+            "PAT_MODE": "600",
+            "LOG_FILE": str(tmp_path / "ensure-runner.log"),
+            "COOLDOWN_FILE": str(state / "last-repair"),
+            "STATE_FILE": str(state / "runner.state"),
+            "ALERT_UNIT": "fake-alert.service",
+            "COOLDOWN_SECS": "1800",
+            "DOCTOR_TIMEOUT_SECS": "10",
+            "REPAIR_VERIFY_SECS": "0",
+            "REPAIR_VERIFY_POLLS": "1",
+            "CURL_MAX_TIME_SECS": "10",
+            "CONFIG_TIMEOUT_SECS": "10",
+            "RESTART_TIMEOUT_SECS": "10",
+            "TMPDIR": str(tmp_path),
+        }
+    )
     return {
-        "PATH": f"{shim_dir}:{os.environ.get('PATH', '/usr/bin:/bin')}",
-        "SHIM_STATE": str(state),
-        "SHIM_CURL_ARGS": str(state / "curl-args.log"),
-        "SHIM_RUNUSER_ARGS": str(state / "runuser-args.log"),
-        "RUNNER_DIR": str(runner_dir),
-        "SERVICE_UNIT": "actions.runner.fake.fake.service",
-        "SERVICE_USER": "kupipi",
-        "PAT_FILE": str(pat_file),
-        "PAT_OWNER": pwd.getpwuid(os.getuid()).pw_name,
-        "LOG_FILE": str(tmp_path / "ensure-runner.log"),  # sandbox: not /var/log
-        "COOLDOWN_FILE": str(state / "last-repair"),
-        "COOLDOWN_SECS": "1800",
-        "TMPDIR": str(tmp_path),
+        "env": env,
+        "state": state,
+        "tmp": tmp_path,
+        "runner_dir": runner_dir,
+        "pat": pat_file,
+        "log": tmp_path / "ensure-runner.log",
+        "shims": shims,
     }
 
 
-def _mark_deleted(env: dict[str, str]) -> None:
-    diag = pathlib.Path(
-        pathlib.Path(env["SHIM_STATE"]).joinpath("diag-path").read_text()
-    )
-    diag.write_text(f"{LISTEN_MARKER}\n{DELETED_MARKER}\n")
+def _set_doctor(host, verdict: str, cause: str = "", code: int = 0) -> None:
+    state = host["state"]
+    (state / "doctor-verdict").write_text(verdict + "\n")
+    (state / "doctor-cause").write_text(cause + "\n")
+    (state / "doctor-code").write_text(f"{code}\n")
 
 
-def _run(env: dict[str, str], *args: str) -> subprocess.CompletedProcess[str]:
+def _run(host, *args: str, env: dict[str, str] | None = None):
     return subprocess.run(
         ["bash", str(SCRIPT), *args],
-        env=env,
+        env=env or host["env"],
         capture_output=True,
         text=True,
         timeout=60,
     )
 
 
-# ---------------------------------------------------------------- healthy --
+def _read(host, name: str) -> str:
+    path = host["state"] / name
+    return path.read_text() if path.exists() else ""
 
 
-def test_check_is_zero_on_healthy_runner_up_over_ten_minutes(env):
-    """Auditor acceptance: healthy runner, up > 10 min -> --check exits 0,
-    performs no repair (no curl call), and does NOT gate on the moving
-    journal window that reports nothing (the exact BLOCKER-7G-C-1 failure)."""
-    result = _run(env, "--check")
-    assert result.returncode == 0, result.stderr
-    assert pathlib.Path(env["SHIM_CURL_ARGS"]).read_text() == ""
+def _log(host) -> str:
+    return host["log"].read_text() if host["log"].exists() else ""
 
 
-# ------------------------------------------------------- deleted registration
+# ------------------------------------------------------------------ healthy --
 
 
-def test_deleted_registration_performs_exactly_one_repair_then_healthy(env):
-    """Auditor acceptance: with the registration deleted, the script performs
-    exactly one repair (one registration-token request) and then reports
-    healthy."""
-    _mark_deleted(env)
-
-    result = _run(env)
+def test_healthy_verdict_does_nothing(host):
+    result = _run(host)
 
     assert result.returncode == 0, result.stderr
-    curl_calls = [
-        line
-        for line in pathlib.Path(env["SHIM_CURL_ARGS"]).read_text().splitlines()
-        if line.strip()
-    ]
-    assert len(curl_calls) == 1, curl_calls
-    assert "registration-token" in curl_calls[0]
+    assert _read(host, "curl-args.log") == ""
+    assert _read(host, "restarts").strip() == "0"
+    assert _read(host, "runner.state").strip() == "HEALTHY"
+    assert "ALERT:" not in _log(host)
 
 
-def test_pat_never_appears_in_any_process_argument_vector(env):
-    """BLOCKER-7G-C-2 acceptance: during the repair the PAT must not appear in
-    curl's argv (it may only travel through the curl config file), while the
-    short-lived registration token is expected IN argv of runuser/config.sh —
-    the documented, accepted low-severity window."""
-    _mark_deleted(env)
+def test_job_in_flight_is_a_deferral_not_an_alert(host):
+    _set_doctor(host, "HEALTHY", "JOB_IN_FLIGHT", 0)
 
-    result = _run(env)
-    assert result.returncode == 0, result.stderr
-
-    curl_args = pathlib.Path(env["SHIM_CURL_ARGS"]).read_text()
-    runuser_args = pathlib.Path(env["SHIM_RUNUSER_ARGS"]).read_text()
-    assert FAKE_PAT not in curl_args
-    assert "Bearer" not in curl_args
-    # the registration token did reach argv of config.sh, exactly as the
-    # audit says it must be documented
-    assert "FAKE_REGISTRATION_TOKEN" in runuser_args
-    # the header temp file was removed on exit
-    for cfg in pathlib.Path(env["TMPDIR"]).glob(".runner-hdr.*"):
-        assert FAKE_PAT not in cfg.read_text()
-
-
-def test_repair_skipped_while_worker_process_is_alive(env):
-    """A Runner.Worker process means a job is in flight: no repair, exit 0,
-    next tick re-checks."""
-    state = pathlib.Path(env["SHIM_STATE"])
-    state.joinpath("worker-alive").write_text("1\n")
-    _mark_deleted(env)
-
-    result = _run(env)
+    result = _run(host)
 
     assert result.returncode == 0, result.stderr
-    assert state.joinpath("restarts").read_text().strip() == "0"
-    assert state.joinpath("curl-args.log").read_text() == ""
+    assert _read(host, "curl-args.log") == ""
+    assert _read(host, "restarts").strip() == "0"
+    assert "ALERT:" not in _log(host)
+    assert "JOB_IN_FLIGHT" in _log(host)
 
 
-def test_second_offline_tick_inside_cooldown_makes_no_new_attempt(env):
-    """No more than one repair attempt per cooldown period, also for failed
-    attempts."""
-    _mark_deleted(env)
-
-    first = _run(env)
-    assert first.returncode == 0, first.stderr
-
-    # force the runner offline again immediately: inside the cooldown
-    state = pathlib.Path(env["SHIM_STATE"])
-    state.joinpath("active-state").write_text("failed")
-    state.joinpath("sub-state").write_text("failed")
-    _mark_deleted(env)
-
-    second = _run(env)
-    assert second.returncode != 0
-    assert "cooldown" in second.stderr
-    curl_calls = [
-        line
-        for line in state.joinpath("curl-args.log").read_text().splitlines()
-        if line.strip()
-    ]
-    assert len(curl_calls) == 1
+# --------------------------------------------------------------- clock skew --
 
 
-def test_check_is_nonzero_on_deleted_registration(env):
-    _mark_deleted(env)
+def test_clock_skew_never_repairs(host):
+    _set_doctor(host, "CLOCK_SKEW", "CLOCK_SKEW: host is 3600s from GitHub", 2)
 
-    result = _run(env, "--check")
+    result = _run(host)
+
+    assert result.returncode == 2, result.stderr
+    assert _read(host, "curl-args.log") == ""
+    assert _read(host, "restarts").strip() == "0"
+    assert "repair forbidden" in _log(host)
+    assert "ALERT: runner CLOCK_SKEW" in _log(host)
+
+
+# ------------------------------------------------------------------- repair --
+
+
+def test_offline_repairs_once_then_recovers(host):
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert len([x for x in _read(host, "curl-args.log").splitlines() if x]) == 1
+    assert _read(host, "restarts").strip() == "1"
+    assert "ALERT: runner OFFLINE" in _log(host)
+    assert "RECOVERED:" in _log(host)
+    assert "repaired and healthy" in _log(host)
+
+
+def test_missing_pat_is_a_clear_failure_without_a_token_call(host):
+    host["pat"].unlink()
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+
+    result = _run(host)
 
     assert result.returncode == 1
-    assert "verify-only" in result.stderr
+    assert _read(host, "curl-args.log") == ""
+    assert "PAT file" in result.stderr
+    # one alert for the outage, no recovery
+    assert _log(host).count("ALERT: runner OFFLINE") == 1
+    assert "RECOVERED:" not in _log(host)
 
 
-def test_health_check_requires_a_live_listener_process(env):
-    """Active service but no Runner.Listener process (crash loop) is offline,
-    even though every other signal looks fine."""
-    state = pathlib.Path(env["SHIM_STATE"])
-    state.joinpath("listener-alive").write_text("0\n")
+def test_pat_never_appears_in_argv_or_the_log(host):
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
 
-    result = _run(env, "--check")
+    result = _run(host)
+
+    assert result.returncode == 0, result.stderr
+    assert FAKE_PAT not in _read(host, "curl-args.log")
+    assert "Bearer" not in _read(host, "curl-args.log")
+    assert FAKE_PAT not in _log(host)
+    # The one-time registration token does reach config.sh argv (documented).
+    assert FAKE_TOKEN in _read(host, "runuser-args.log")
+    assert FAKE_TOKEN in _read(host, "config-args.log")
+
+
+def test_repair_uses_the_spec_labels(host):
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stderr
+    config_args = _read(host, "config-args.log")
+    assert "--labels gfx1150,rocm" in config_args
+    assert "--name fake-host" in config_args
+    assert "--work _work" in config_args
+
+
+def test_job_in_flight_blocks_repair_even_if_the_doctor_says_offline(host):
+    (host["state"] / "worker-alive").write_text("1\n")
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stderr
+    assert _read(host, "curl-args.log") == ""
+    assert _read(host, "restarts").strip() == "0"
+    assert "job in flight" in _log(host)
+
+
+def test_cooldown_suppresses_a_second_attempt(host):
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+    (host["state"] / "last-repair").write_text(f"{int(time.time())}\n")
+
+    result = _run(host)
 
     assert result.returncode == 1
+    assert _read(host, "curl-args.log") == ""
+    assert _read(host, "restarts").strip() == "0"
+    assert "cooldown" in _log(host)
+    assert "ALERT: runner OFFLINE" in _log(host)
 
 
-def test_registration_request_timeout_is_bounded(env):
-    _mark_deleted(env)
-    curl = pathlib.Path(env["PATH"].split(":", 1)[0]) / "curl"
-    curl.write_text("#!/usr/bin/env bash\n/bin/sleep 5\n")
-    curl.chmod(0o755)
-    bounded_env = env | {"CURL_MAX_TIME_SECS": "1"}
+# ---------------------------------------------------------- misconfiguration --
+
+
+def test_labels_mismatch_repairs_with_the_spec_labels(host):
+    _set_doctor(
+        host,
+        "MISCONFIGURED",
+        "LABELS_MISMATCH: missing ['rocm']; labels=['gfx1150']",
+        3,
+    )
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stderr
+    assert len([x for x in _read(host, "curl-args.log").splitlines() if x]) == 1
+    assert "--labels gfx1150,rocm" in _read(host, "config-args.log")
+    assert "ALERT: runner MISCONFIGURED" in _log(host)
+    assert "RECOVERED:" in _log(host)
+
+
+def test_registration_not_visible_repairs(host):
+    _set_doctor(
+        host,
+        "MISCONFIGURED",
+        "REGISTRATION_NOT_VISIBLE: fake-host is not available to this repo",
+        3,
+    )
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stderr
+    assert len([x for x in _read(host, "curl-args.log").splitlines() if x]) == 1
+
+
+def test_other_misconfiguration_is_an_owner_action(host):
+    _set_doctor(host, "MISCONFIGURED", "job name 'wrong' != required check", 3)
+
+    result = _run(host)
+
+    assert result.returncode == 3
+    assert _read(host, "curl-args.log") == ""
+    assert _read(host, "restarts").strip() == "0"
+    assert "owner action" in _log(host)
+    assert "ALERT: runner MISCONFIGURED" in _log(host)
+
+
+# -------------------------------------------------------------- verify-only --
+
+
+def test_check_mode_reports_without_repairing_or_writing_state(host):
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+
+    result = _run(host, "--check")
+
+    assert result.returncode == 1
+    assert _read(host, "curl-args.log") == ""
+    assert _read(host, "restarts").strip() == "0"
+    assert not (host["state"] / "runner.state").exists()
+    assert not (host["state"] / "last-repair").exists()
+    assert "verify-only" in _log(host)
+
+
+def test_check_mode_preserves_the_misconfigured_exit_code(host):
+    _set_doctor(host, "MISCONFIGURED", "LABELS_MISMATCH: missing ['rocm']", 3)
+
+    result = _run(host, "--check")
+
+    assert result.returncode == 3
+    assert _read(host, "curl-args.log") == ""
+
+
+# ------------------------------------------------------------ alert dedup ----
+
+
+def test_alert_dedup_one_alert_and_one_recovery(host):
+    # healthy -> broken -> broken (cooldown) -> healthy
+    assert _run(host).returncode == 0
+
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+    host["pat"].unlink()  # force the repair to fail fast
+    assert _run(host).returncode == 1
+    assert _run(host).returncode == 1  # inside cooldown
+
+    _set_doctor(host, "HEALTHY")
+    assert _run(host).returncode == 0
+
+    log = _log(host)
+    assert log.count("ALERT: runner OFFLINE") == 1, log
+    assert log.count("RECOVERED:") == 1, log
+
+
+# ------------------------------------------------------------------ bounded --
+
+
+def test_hung_doctor_is_bounded_and_refuses_to_repair(host):
+    _write(host["shims"] / "doctor", "#!/usr/bin/env bash\nexec /bin/sleep 5\n")
+    env = host["env"] | {"DOCTOR_TIMEOUT_SECS": "1"}
 
     started = time.monotonic()
-    result = _run(bounded_env)
+    result = _run(host, "--check", env=env)
+    elapsed = time.monotonic() - started
+
+    assert result.returncode == 3
+    assert elapsed < 4
+    assert _read(host, "curl-args.log") == ""
+
+
+def test_registration_request_timeout_is_bounded(host):
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+    _write(host["shims"] / "curl", "#!/usr/bin/env bash\nexec /bin/sleep 5\n")
+    env = host["env"] | {"CURL_MAX_TIME_SECS": "1"}
+
+    started = time.monotonic()
+    result = _run(host, env=env)
     elapsed = time.monotonic() - started
 
     assert result.returncode == 1
@@ -331,40 +484,25 @@ def test_registration_request_timeout_is_bounded(env):
     assert elapsed < 4
 
 
-def test_configure_timeout_is_bounded(env):
-    _mark_deleted(env)
-    config = pathlib.Path(env["RUNNER_DIR"]) / "config.sh"
-    config.write_text("#!/usr/bin/env bash\n/bin/sleep 5\n")
-    config.chmod(0o755)
-    bounded_env = env | {"CONFIG_TIMEOUT_SECS": "1"}
-
-    started = time.monotonic()
-    result = _run(bounded_env)
-    elapsed = time.monotonic() - started
-
-    assert result.returncode == 1
-    assert "config.sh --replace failed" in result.stderr
-    assert elapsed < 4
-
-
-# ---------------------------------------------------------- static guarantees
+# ---------------------------------------------------------- static guards ----
 
 
 def test_script_never_passes_the_pat_in_a_header_argument():
-    """Static guard: the PAT may only reach curl through --config; a literal
-    Authorization header interpolation would regress BLOCKER-7G-C-2."""
-    body = SCRIPT.read_text()
+    body = SCRIPT.read_text(encoding="utf-8")
     assert 'header = "Authorization: Bearer %s"' in body
-    assert '-K "${HDR_CFG}"' in body
+    assert '-K "${hdr_cfg}"' in body
     for line in body.splitlines():
         stripped = line.strip()
         if stripped.startswith("-H"):
-            assert "${PAT}" not in stripped
+            assert "${pat}" not in stripped
+            assert "Bearer" not in stripped
 
 
-def test_health_check_does_not_use_a_moving_journal_window():
-    """Static guard for BLOCKER-7G-C-1: no journalctl/moving-window gating of
-    the startup-only marker."""
-    body = SCRIPT.read_text()
+def test_script_does_not_reimplement_health():
+    """The watchdog must consume the doctor, not grep the diag log itself."""
+    body = SCRIPT.read_text(encoding="utf-8")
+    assert "Listening for Jobs" not in body
+    assert "registration has been deleted" not in body
     assert "journalctl" not in body
-    assert "--since" not in body
+    assert "ls -t" not in body
+    assert "runner_doctor.sh" in body

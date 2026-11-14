@@ -65,6 +65,7 @@ def host(tmp_path: pathlib.Path):
     (state / "start-ts").write_text(start_str + "\n")
     (state / "nrestarts").write_text("0\n")
     (state / "listener-alive").write_text("1\n")
+    (state / "worker-alive").write_text("0\n")
     (state / "local-rtc").write_text("no\n")
     (state / "ntp-synced").write_text("yes\n")
     (state / "timer-enabled").write_text("disabled\n")
@@ -105,6 +106,12 @@ STATE="${SHIM_STATE:?}"
 if printf '%s\\n' "$*" | grep -q 'Listener'; then
   if [ "$(cat "${STATE}/listener-alive")" = 1 ]; then
     printf '4242\\n'
+    exit 0
+  fi
+fi
+if printf '%s\\n' "$*" | grep -q 'Worker'; then
+  if [ "$(cat "${STATE}/worker-alive")" = 1 ]; then
+    printf '4343\\n'
     exit 0
   fi
 fi
@@ -276,6 +283,23 @@ def test_listener_dead_is_offline(host):
     assert "LISTENER_DEAD" in result.stdout
 
 
+def test_job_in_flight_is_healthy_and_defers(host):
+    """A live Runner.Worker means a job is running: exit 0, cause JOB_IN_FLIGHT,
+    so the watchdog never repairs under a job (BLOCKER-7G-C-1)."""
+    _set_state(host, "worker-alive", "1")
+    # Even with a deletion marker after listening, a live worker wins by
+    # precedence (state machine order 4 < 7).
+    _mark_current(host, f"{LISTEN}\n{DELETED}\n")
+
+    result = _run(host, "--json")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["verdict"] == "HEALTHY"
+    assert payload["cause"] == "JOB_IN_FLIGHT"
+    assert "JOB_IN_FLIGHT" in result.stdout
+
+
 def test_service_down_is_offline(host):
     _set_state(host, "active-state", "failed")
     _set_state(host, "sub-state", "failed")
@@ -408,7 +432,10 @@ def test_doctor_keeps_the_pat_out_of_argv():
 
 def test_doctor_takes_runner_configuration_from_the_spec():
     body = DOCTOR.read_text(encoding="utf-8")
-    assert '. "${SCRIPT_DIR}/runner.env"' in body
+    # The spec is searched next to the script (repo) and under /etc (installed),
+    # with RUNNER_ENV as the explicit override.
+    assert 'for candidate in "${RUNNER_ENV:-}" "${SCRIPT_DIR}/runner.env" "/etc/gfx1150-runner/runner.env"' in body
+    assert '. "${RUNNER_ENV_FILE}"' in body
     assert "actions.runner." not in body
 
 

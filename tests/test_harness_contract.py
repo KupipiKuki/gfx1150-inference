@@ -360,6 +360,12 @@ EXPECTED_LANES = {
     # Phase 7G-C (C2a rebuild): the layered runner doctor. Same pattern:
     # real bash script, PATH-shimmed systemctl/pgrep/timedatectl, no network.
     "test_runner_doctor.py": "cpu",
+    # Phase 7G-C (C2f): the runner/workflow contract. Regex parsing of
+    # ci-gpu.yml against scripts/ci/runner.env; no PyYAML, no GPU.
+    "test_ci_contract.py": "cpu",
+    # Phase 7G-C (C2d): the installer + drift check. Runs the real script
+    # into a sandbox with a systemctl shim; no GPU, no network.
+    "test_install_runner_watchdog.py": "cpu",
 }
 
 

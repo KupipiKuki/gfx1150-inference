@@ -1,213 +1,308 @@
 #!/usr/bin/env bash
-# 7G-C (C2) — self-hosted runner registration self-repair (G6-QF-2).
+# 7G-C (C2b) — gfx1150 runner watchdog: doctor -> decision -> repair -> verify.
 #
-# The runner's server-side registration is deleted server-side (observed four
-# times in four days, no local action): the local `.runner`/`.credentials`
-# stay stale, the service exits with "the runner registration has been deleted
-# from the server", and the required GPU check queues forever.
+# The watchdog no longer decides health itself. It runs the single layered
+# doctor (scripts/ci/runner_doctor.sh) and acts on its verdict:
 #
-# This script runs ON the gfx1150 host as root (systemd timer, every 5
-# minutes) and repairs the registration without human action:
+#   HEALTHY / JOB_IN_FLIGHT / STARTING  -> exit 0, no repair, no alert
+#   CLOCK_SKEW                          -> exit 2, alert once, repair FORBIDDEN
+#   OFFLINE                             -> repair once (subject to cooldown)
+#   MISCONFIGURED (labels/not-visible)  -> repair once (re-register with labels)
+#   MISCONFIGURED (anything else)       -> exit 3, alert once, owner action
 #
-#   1. Is the runner healthy? Health is decided from the CURRENT state only:
-#      the service is active+running, a Runner.Listener process of the runner
-#      user is alive, and the newest _diag/Runner_*.log shows that the runner
-#      is listening AND that its registration was not deleted (a restart on
-#      the same start refreshes nothing there: a deleted registration stays
-#      visible in that log until config.sh rewrites it).
-#      -> healthy, exit 0 and do nothing.
-#      A RUNNING RUNNER IS NEVER "OFFLINE" BECAUSE IT HAS BEEN UP A WHILE:
-#      no moving journal window is used for the startup-only
-#      "Listening for Jobs" marker (audit BLOCKER-7G-C-1).
-#   2. Otherwise obtain a fresh registration token with the repo-admin PAT
-#      (Administration: write), stored OUTSIDE the repository:
-#        /etc/gfx1150-runner/runner.pat   (mode 0600, owner root)
-#      via POST /repos/{owner}/{repo}/actions/runners/registration-token.
-#   3. Re-run config.sh --replace --unattended with the existing name/labels.
-#   4. Restart the service.
+# This split is the point of the rebuild: the two failure modes that produced
+# four false "registration deleted" episodes on this host (a moving journal
+# window, and a clock-skew rejection misread as a deletion) are decided in the
+# doctor, where they are unit-tested, and the watchdog can no longer repair a
+# clock problem.
 #
-# Secret handling. The PAT is never written to a log, a file in the
-# repository, a workflow, the service environment, or echoed, and it NEVER
-# appears in argv: it is written to a root-owned 0600 temp curl config file
-# and handed to curl via --config, which keeps the Authorization header out
-# of /proc/<pid>/cmdline (audit BLOCKER-7G-C-2).
-# The one-time registration token is a different matter: it is passed to
-# config.sh as a single argument of a process run AS THE RUNNER USER (via
-# runuser -u), so it appears transiently in /proc/<pid>/cmdline and there is
-# readable by any local user for roughly the one second config.sh needs. It
-# is single-use, short-lived and grants only runner registration, which is
-# accepted as low severity — this is documented here, not hidden.
+# Repair discipline (unchanged, still normative):
+#   * never under a live Runner.Worker (a job is in flight);
+#   * at most one attempt per COOLDOWN_SECS, recorded before the attempt so a
+#     failure is rate-limited too;
+#   * the PAT is read from PAT_FILE (0600, owner root) and handed to curl via
+#     -K (a 0600 temp config file), never argv (BLOCKER-7G-C-2);
+#   * the one-time registration token appears transiently in config.sh argv,
+#     run as the runner user — documented, accepted, low severity.
 #
-# Repair discipline (audit BLOCKER-7G-C-1): a repair is never attempted
-# while a Runner.Worker process exists (a job is in flight), and attempts
-# are rate-limited to one per cooldown period (default 30 minutes, recorded
-# on tmpfs at /run/ensure-runner.last-repair) so a persistent failure cannot
-# loop the 5-minute timer. Every attempt is logged and failures exit
-# non-zero.
-#
-# Watchdog contract: exit 0 = healthy or repaired; non-zero = the runner is
-# NOT online after the repair attempt (the OnFailure alert + the log line
-# "RUNNER-REGISTRATION-OFFLINE" make the outage visible before it blocks a
-# PR).
+# Alerts are transition-based (state file on tmpfs): one line when the runner
+# becomes broken, one recovery line when it is healthy again, never one per
+# tick.
 #
 # Usage: sudo scripts/ci/ensure_runner_registered.sh [--check]
-#   --check  verify-only (no repair); exit 0 healthy / 1 offline.
+#   --check  verify-only: run the doctor, report, never repair or write state.
+#
+# Exit: 0 healthy/deferred/repaired, 1 still offline, 2 clock skew,
+#       3 misconfigured (owner action).
 
-set -euo pipefail
+set -uo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/KupipiKuki/gfx1150-inference}"
-RUNNER_DIR="${RUNNER_DIR:-/home/kupipi/actions-runner}"
-RUNNER_NAME="${RUNNER_NAME:-gfx1150-host}"
-RUNNER_LABELS="${RUNNER_LABELS:-gfx1150,rocm}"
-SERVICE_UNIT="${SERVICE_UNIT:-actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service}"
-SERVICE_USER="${SERVICE_USER:-kupipi}"
-PAT_FILE="${PAT_FILE:-/etc/gfx1150-runner/runner.pat}"
-PAT_OWNER="${PAT_OWNER:-root}"
-LISTEN_MARKER="Listening for Jobs"
-LOG_TAG="ensure-runner"
-LOG_FILE="${LOG_FILE:-/var/log/${LOG_TAG}.log}"
-CURL_CONNECT_TIMEOUT_SECS="${CURL_CONNECT_TIMEOUT_SECS:-10}"
-CURL_MAX_TIME_SECS="${CURL_MAX_TIME_SECS:-60}"
-CONFIG_TIMEOUT_SECS="${CONFIG_TIMEOUT_SECS:-120}"
-RESTART_TIMEOUT_SECS="${RESTART_TIMEOUT_SECS:-30}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+# Same spec search as the doctor: explicit override, next to the script in the
+# repository, then the installed location.
+RUNNER_ENV_FILE=""
+for candidate in "${RUNNER_ENV:-}" "${SCRIPT_DIR}/runner.env" "/etc/gfx1150-runner/runner.env"; do
+  if [ -n "${candidate}" ] && [ -r "${candidate}" ]; then
+    RUNNER_ENV_FILE="${candidate}"
+    break
+  fi
+done
+if [ -z "${RUNNER_ENV_FILE}" ]; then
+  printf 'ensure_runner_registered: runner.env not found (set RUNNER_ENV)\n' >&2
+  exit 3
+fi
+# shellcheck source=runner.env
+. "${RUNNER_ENV_FILE}"
+
+# The doctor is next to the script in the repository and installed under
+# /usr/local/sbin by C2d.
+if [ -z "${RUNNER_DOCTOR:-}" ]; then
+  for candidate in "${SCRIPT_DIR}/runner_doctor.sh" "${DOCTOR_INSTALLED}"; do
+    if [ -x "${candidate}" ]; then
+      RUNNER_DOCTOR="${candidate}"
+      break
+    fi
+  done
+fi
+if [ -z "${RUNNER_DOCTOR:-}" ] || [ ! -r "${RUNNER_DOCTOR}" ]; then
+  printf 'ensure_runner_registered: doctor not found (set RUNNER_DOCTOR)\n' >&2
+  exit 3
+fi
+
+LOG_FILE="${LOG_FILE:-${WATCHDOG_LOG}}"
+COOLDOWN_FILE="${COOLDOWN_FILE:-/run/ensure-runner.last-repair}"
+
+CHECK_ONLY=0
+case "${1:-}" in
+  "") ;;
+  --check) CHECK_ONLY=1 ;;
+  -h|--help)
+    printf 'Usage: ensure_runner_registered.sh [--check]\n'
+    exit 0
+    ;;
+  *)
+    printf 'ensure_runner_registered: unknown option: %s\n' "$1" >&2
+    exit 3
+    ;;
+esac
 
 log() {
   local line
   line="$(printf '%s %s' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*")"
   printf '%s\n' "${line}" >&2
-  # best-effort persistent log; never fatal (non-root --check runs)
+  # Best effort: a non-root --check run may not be able to write /var/log.
   { printf '%s\n' "${line}" >>"${LOG_FILE}" ; } 2>/dev/null || true
 }
 
 die() { log "RUNNER-REGISTRATION-OFFLINE: $*"; exit 1; }
 
-CHECK_ONLY=0
-[ "${1:-}" = "--check" ] && CHECK_ONLY=1
+# ------------------------------------------------------------------ doctor --
 
-runner_online() {
-  systemctl is-active --quiet "${SERVICE_UNIT}" || return 1
-  # The service must be genuinely active/running (not activating or
-  # crash-looping), not merely "not failed". The output is captured before
-  # grepping: grep -q over a live pipe under pipefail races the writer
-  # (early exit can SIGPIPE it) and would make health flaky.
-  local svc_state
-  svc_state="$(systemctl show "${SERVICE_UNIT}" -p ActiveState -p SubState --value 2>/dev/null || true)"
-  grep -q '^active$' <<<"${svc_state}" || return 1
-  # The listener process of the *current* service start must be alive.
-  pgrep -u "${SERVICE_USER}" -f 'Runner\.Listener' >/dev/null || return 1
-  # And the newest diag log of the current start must show a live,
-  # non-deleted registration. "Listening for Jobs" is a startup-only
-  # marker: it is judged from the newest diag file, never from a moving
-  # journal window of the last N minutes (a runner that has been up for
-  # 30 minutes is still healthy — see audit BLOCKER-7G-C-1).
-  local newest
-  # `|| true` guards the ls|head against the same SIGPIPE race.
-  newest="$(ls -t "${RUNNER_DIR}"/_diag/Runner_*.log 2>/dev/null | head -1 || true)"
-  [ -n "${newest}" ] || return 1
-  grep -q "${LISTEN_MARKER}" "${newest}" || return 1
-  ! grep -q "registration has been deleted" "${newest}" || return 1
-  return 0
+DOCTOR_JSON=""
+DOCTOR_RC=0
+DOCTOR_VERDICT=""
+DOCTOR_CAUSE=""
+DOCTOR_CODE=""
+
+run_doctor() {
+  local err="${LOG_FILE}"
+  { : >>"${err}" ; } 2>/dev/null || err=/dev/null
+  DOCTOR_JSON="$(timeout "${DOCTOR_TIMEOUT_SECS}s" \
+    bash "${RUNNER_DOCTOR}" --check --json 2>>"${err}")"
+  DOCTOR_RC=$?
 }
 
-if runner_online; then
-  log "runner ${RUNNER_NAME} is online (service active, listening for jobs)"
-  exit 0
-fi
+parse_doctor() {
+  local parsed rest
+  parsed="$(python3 - "${DOCTOR_JSON}" <<'PY' 2>/dev/null || true
+import json
+import sys
 
-_svc_state="$(systemctl is-active "${SERVICE_UNIT}" 2>/dev/null || true)"
-log "runner ${RUNNER_NAME} offline (service: ${_svc_state:-unknown}); repair start"
+try:
+    data = json.loads(sys.argv[1])
+except Exception:
+    print("||")
+    raise SystemExit(0)
+print(f"{data.get('verdict', '')}|{data.get('cause', '')}|{data.get('exit_code', '')}")
+PY
+)"
+  DOCTOR_VERDICT="${parsed%%|*}"
+  rest="${parsed#*|}"
+  DOCTOR_CAUSE="${rest%%|*}"
+  DOCTOR_CODE="${rest##*|}"
+}
 
-if [ "${CHECK_ONLY}" = "1" ]; then
-  die "verify-only: runner offline (repair skipped)"
-fi
+# ------------------------------------------------------------------- alert --
 
-# Repair discipline (audit BLOCKER-7G-C-1): never touch the registration
-# under a running job, and never attempt repairs more often than once per
-# cooldown period, so a persistent failure cannot loop the timer.
-if pgrep -u "${SERVICE_USER}" -f 'Runner\.Worker' >/dev/null; then
-  log "job in flight (Runner.Worker alive); skipping repair — re-checked next tick"
-  exit 0
-fi
-
-now="$(date +%s)"
-COOLDOWN_FILE="${COOLDOWN_FILE:-/run/ensure-runner.last-repair}"
-COOLDOWN_SECS="${COOLDOWN_SECS:-1800}"
-if [ -r "${COOLDOWN_FILE}" ]; then
-  _last="$(cat "${COOLDOWN_FILE}" 2>/dev/null || echo 0)"
-  case "${_last}" in
-    ''|*[!0-9]*) _last=0 ;;
-  esac
-  if [ "$(( now - _last ))" -lt "${COOLDOWN_SECS}" ]; then
-    die "still offline, but a repair was attempted $(( now - _last ))s ago (cooldown ${COOLDOWN_SECS}s) — no new attempt"
+notify() {  # $1 = verdict/state, $2 = cause
+  local state="$1" cause="$2" last=""
+  [ "${CHECK_ONLY}" = 1 ] && return 0
+  [ -r "${STATE_FILE}" ] && last="$(cat "${STATE_FILE}" 2>/dev/null || true)"
+  { printf '%s\n' "${state}" >"${STATE_FILE}" ; } 2>/dev/null || true
+  [ "${state}" = "${last}" ] && return 0
+  if [ "${state}" = "HEALTHY" ]; then
+    # The first observation of a healthy runner is not a recovery.
+    if [ -n "${last}" ]; then
+      log "RECOVERED: runner is healthy again (was ${last})"
+    fi
+  else
+    log "ALERT: runner ${state} - ${cause}"
+    systemctl start --no-block "${ALERT_UNIT}" >/dev/null 2>&1 || true
   fi
-fi
-# The attempt is recorded before it runs, so a failed attempt is also
-# rate-limited; the file lives on tmpfs and resets at boot.
-{ printf '%s\n' "${now}" >"${COOLDOWN_FILE}"; } 2>/dev/null \
-  || log "warning: could not write ${COOLDOWN_FILE} (cooldown not persisted)"
+}
 
-[ -r "${PAT_FILE}" ] || die "PAT file ${PAT_FILE} not readable (create it: Administration: write PAT of a repo admin, mode 0600, owner root)"
-PAT_PERMS="$(stat -c '%a:%U' "${PAT_FILE}")"
-[ "${PAT_PERMS}" = "600:${PAT_OWNER}" ] || die "PAT file ${PAT_FILE} must be 0600, owner ${PAT_OWNER} (is ${PAT_PERMS})"
-PAT="$(cat "${PAT_FILE}")"
-case "${PAT}" in
-  github_pat_*|ghp_*) ;;
-  "") die "PAT file ${PAT_FILE} is empty" ;;
-  *) die "PAT file ${PAT_FILE} does not contain a GitHub PAT" ;;
+# ------------------------------------------------------------------ repair --
+
+repair() {
+  local cause="$1"
+  local pat perms token_json hdr_cfg token
+
+  [ -r "${PAT_FILE}" ] || die "PAT file ${PAT_FILE} not readable (Administration: write PAT of a repo admin, mode ${PAT_MODE}, owner ${PAT_OWNER})"
+  perms="$(stat -c '%a:%U' "${PAT_FILE}" 2>/dev/null || true)"
+  [ "${perms}" = "${PAT_MODE}:${PAT_OWNER}" ] || die "PAT file ${PAT_FILE} must be ${PAT_MODE}, owner ${PAT_OWNER} (is ${perms:-unknown})"
+  pat="$(tr -d '\r\n' <"${PAT_FILE}")"
+  case "${pat}" in
+    github_pat_*|ghp_*) ;;
+    "") die "PAT file ${PAT_FILE} is empty" ;;
+    *) die "PAT file ${PAT_FILE} does not contain a GitHub PAT" ;;
+  esac
+
+  token_json="$(mktemp "${TMPDIR:-/tmp}/runner-regjson.XXXXXX")"
+  hdr_cfg="$(mktemp "${TMPDIR:-/tmp}/.runner-hdr.XXXXXX")"
+  chmod 600 "${token_json}" "${hdr_cfg}"
+  # shellcheck disable=SC2064
+  trap "rm -f '${token_json}' '${hdr_cfg}'" EXIT
+  printf 'header = "Authorization: Bearer %s"\n' "${pat}" >"${hdr_cfg}"
+  unset pat
+
+  if ! timeout "${CURL_MAX_TIME_SECS:-60}s" curl -fsS -X POST \
+    --connect-timeout "${CURL_CONNECT_TIMEOUT_SECS:-10}" \
+    --max-time "${CURL_MAX_TIME_SECS:-60}" \
+    -K "${hdr_cfg}" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/${REPO_SLUG}/actions/runners/registration-token" \
+    -o "${token_json}" 2>/dev/null; then
+    die "registration-token API call failed (check the PAT scope: Administration: write)"
+  fi
+
+  token="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["token"])' "${token_json}" 2>/dev/null || true)"
+  rm -f "${token_json}" "${hdr_cfg}"
+  trap - EXIT
+  [ -n "${token}" ] || die "could not parse a registration token from the API answer"
+
+  log "re-registering runner ${RUNNER_NAME} (labels: ${RUNNER_LABELS}); cause: ${cause}"
+  if ! timeout "${CONFIG_TIMEOUT_SECS:-120}s" \
+    runuser -u "${RUNNER_USER}" -- "${RUNNER_DIR}/config.sh" \
+    --url "${REPO_URL}" \
+    --token "${token}" \
+    --name "${RUNNER_NAME}" \
+    --labels "${RUNNER_LABELS}" \
+    --work "${RUNNER_WORK}" \
+    --replace --unattended >>"${LOG_FILE}" 2>&1; then
+    die "config.sh --replace failed (see ${LOG_FILE})"
+  fi
+  unset token
+
+  log "re-registered; restarting ${SERVICE_UNIT}"
+  if ! timeout "${RESTART_TIMEOUT_SECS:-30}s" systemctl restart "${SERVICE_UNIT}"; then
+    die "service restart failed or timed out"
+  fi
+}
+
+verify_repair() {
+  local i
+  for i in $(seq 1 "${REPAIR_VERIFY_POLLS}"); do
+    sleep "${REPAIR_VERIFY_SECS}"
+    run_doctor
+    parse_doctor
+    if [ "${DOCTOR_RC}" -eq 0 ] && [ "${DOCTOR_VERDICT}" = "HEALTHY" ]; then
+      notify HEALTHY ""
+      log "runner ${RUNNER_NAME} repaired and healthy"
+      exit 0
+    fi
+  done
+  log "repair ran but the runner is still ${DOCTOR_VERDICT:-unknown}: ${DOCTOR_CAUSE}"
+  exit 1
+}
+
+handle_broken() {  # $1 = state, $2 = cause, $3 = verify-only exit code
+  local state="$1" cause="$2" check_code="$3" now last
+
+  notify "${state}" "${cause}"
+
+  if [ "${CHECK_ONLY}" = 1 ]; then
+    log "verify-only: ${state} - ${cause}"
+    exit "${check_code}"
+  fi
+
+  # The doctor already treats a live worker as JOB_IN_FLIGHT/exit 0. This is a
+  # belt-and-braces guard against a race between the doctor's pgrep and ours.
+  if pgrep -u "${RUNNER_USER}" -f 'Runner\.Worker' >/dev/null 2>&1; then
+    log "job in flight (Runner.Worker alive); deferring repair to the next tick"
+    exit 0
+  fi
+
+  now="$(date +%s)"
+  if [ -r "${COOLDOWN_FILE}" ]; then
+    last="$(cat "${COOLDOWN_FILE}" 2>/dev/null || echo 0)"
+    case "${last}" in
+      ''|*[!0-9]*) last=0 ;;
+    esac
+    if [ "$(( now - last ))" -lt "${COOLDOWN_SECS}" ]; then
+      log "still ${state}; a repair was attempted $(( now - last ))s ago (cooldown ${COOLDOWN_SECS}s) — no new attempt"
+      exit 1
+    fi
+  fi
+
+  # Record the attempt before it runs, so a failed attempt is rate-limited too.
+  { printf '%s\n' "${now}" >"${COOLDOWN_FILE}" ; } 2>/dev/null \
+    || log "warning: could not write ${COOLDOWN_FILE} (cooldown not persisted)"
+
+  repair "${cause}"
+  verify_repair
+}
+
+# -------------------------------------------------------------------- main --
+
+run_doctor
+parse_doctor
+
+if [ -z "${DOCTOR_VERDICT}" ]; then
+  log "doctor produced no verdict (exit ${DOCTOR_RC}); refusing to repair"
+  notify MISCONFIGURED "doctor failed (exit ${DOCTOR_RC})"
+  exit 3
+fi
+
+case "${DOCTOR_VERDICT}" in
+  HEALTHY)
+    notify HEALTHY ""
+    log "runner ${RUNNER_NAME} healthy${DOCTOR_CAUSE:+ (${DOCTOR_CAUSE})}"
+    exit 0
+    ;;
+  CLOCK_SKEW)
+    notify CLOCK_SKEW "${DOCTOR_CAUSE}"
+    log "CLOCK_SKEW: ${DOCTOR_CAUSE}; repair forbidden (fix timekeeping first)"
+    exit 2
+    ;;
+  OFFLINE)
+    handle_broken OFFLINE "${DOCTOR_CAUSE}" 1
+    ;;
+  MISCONFIGURED)
+    case "${DOCTOR_CAUSE}" in
+      *LABELS_MISMATCH*|*REGISTRATION_NOT_VISIBLE*)
+        handle_broken MISCONFIGURED "${DOCTOR_CAUSE}" 3
+        ;;
+      *)
+        notify MISCONFIGURED "${DOCTOR_CAUSE}"
+        log "MISCONFIGURED: ${DOCTOR_CAUSE}; owner action required"
+        exit 3
+        ;;
+    esac
+    ;;
+  *)
+    notify OFFLINE "${DOCTOR_CAUSE}"
+    log "unexpected verdict '${DOCTOR_VERDICT}': ${DOCTOR_CAUSE}"
+    exit 1
+    ;;
 esac
-
-OWNER="$(sed -E 's#https://github\.com/([^/]+)/.*#\1#' <<<"${REPO_URL}")"
-REPO="$(sed -E 's#https://github\.com/[^/]+/(.*)#\1#' <<<"${REPO_URL}")"
-
-# A fresh registration token (one-time, short-lived). The PAT never enters
-# argv (audit BLOCKER-7G-C-2): it is written to a root-owned, 0600 temp curl
-# config file and handed to curl via -K/--config, so no header value can be
-# read from /proc/<pid>/cmdline by any local user during the request. Both
-# temp files are removed on exit (including the failure paths via die).
-TOKEN_JSON="$(mktemp "${TMPDIR:-/tmp}/runner-regjson.XXXXXX")"
-HDR_CFG="$(mktemp "${TMPDIR:-/tmp}/.runner-hdr.XXXXXX")"
-chmod 600 "${TOKEN_JSON}" "${HDR_CFG}"
-trap 'rm -f "${TOKEN_JSON}" "${HDR_CFG}"' EXIT
-printf 'header = "Authorization: Bearer %s"\n' "${PAT}" >"${HDR_CFG}"
-if ! timeout "${CURL_MAX_TIME_SECS}s" curl -fsS -X POST \
-  --connect-timeout "${CURL_CONNECT_TIMEOUT_SECS}" \
-  --max-time "${CURL_MAX_TIME_SECS}" \
-  -K "${HDR_CFG}" \
-  -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token" \
-  -o "${TOKEN_JSON}" 2>/dev/null; then
-  die "registration-token API call failed (check the PAT scope: Administration: write)"
-fi
-unset PAT
-TOKEN="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["token"])' "${TOKEN_JSON}")"
-rm -f "${TOKEN_JSON}" "${HDR_CFG}"
-[ -n "${TOKEN}" ] || die "could not parse a registration token from the API answer"
-trap - EXIT
-
-# Re-register (config.sh --replace). Run as the runner user so file ownership
-# matches the existing service installation.
-log "re-registering runner ${RUNNER_NAME} (labels: ${RUNNER_LABELS})"
-if ! timeout "${CONFIG_TIMEOUT_SECS}s" \
-  runuser -u "${SERVICE_USER}" -- "${RUNNER_DIR}/config.sh" \
-  --url "${REPO_URL}" \
-  --token "${TOKEN}" \
-  --name "${RUNNER_NAME}" \
-  --labels "${RUNNER_LABELS}" \
-  --work "_work" \
-  --replace --unattended >>"${LOG_FILE}" 2>&1; then
-  die "config.sh --replace failed (see ${LOG_FILE})"
-fi
-unset TOKEN
-
-log "re-registered; restarting ${SERVICE_UNIT}"
-if ! timeout "${RESTART_TIMEOUT_SECS}s" \
-  systemctl restart "${SERVICE_UNIT}"; then
-  die "service restart failed or timed out"
-fi
-
-sleep 15
-if runner_online; then
-  log "runner ${RUNNER_NAME} repaired and online"
-  exit 0
-fi
-die "repair ran but the runner is still not listening"
