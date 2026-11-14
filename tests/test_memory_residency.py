@@ -99,6 +99,13 @@ def _build_layer_model(
         )
     with open(path, "wb") as fh:
         write_synthetic_gguf(fh, metadata, tensors)
+        # 7G-C (C1): force the synthetic pages out of the kernel's dirty
+        # state before the eviction probe runs — `posix_fadvise(DONTNEED)`
+        # will not drop dirty pages, so a still-dirty fixture makes the
+        # refault probe (`assert refault_majflt > 0`) flake on hosts whose
+        # page cache retains the file (G6-QF-1).
+        fh.flush()
+        os.fsync(fh.fileno())
     return os.path.getsize(path)
 
 
@@ -251,6 +258,57 @@ class TestEvictionHonesty:
             with pytest.warns(EvictionFallbackWarning, match="failed"):
                 ws.release_layer(0)
             assert ws._eviction_warned is True, "warn-once flag set after failure"
+
+    def test_failing_pageout_falls_back_to_dontneed(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        """7G-C (C1, G6-QF-1): when MADV_PAGEOUT is available but *raises*, the
+        span must still have its PTEs dropped via MADV_DONTNEED — a mapped span
+        cannot be evicted by the subsequent posix_fadvise."""
+        import mmap as _mmap
+
+        from weight_loader import EvictionFallbackWarning, WeightStreamer
+
+        model = str(tmp_path / "badpageout.gguf")
+        _build_layer_model(model, num_layers=1)
+        if not hasattr(_mmap, "MADV_PAGEOUT"):
+            monkeypatch.setattr(_mmap, "MADV_PAGEOUT", 21, raising=False)
+        assert hasattr(_mmap, "MADV_DONTNEED")
+
+        advice_calls: List[int] = []
+
+        if not hasattr(_mmap, "MADV_DONTNEED") or not hasattr(_mmap, "MADV_PAGEOUT"):
+            pytest.skip("host exposes neither MADV_PAGEOUT nor MADV_DONTNEED")
+
+        class _FailingPageoutMmap:
+            """Proxy around the real mapping: PAGEOUT raises, DONTNEED passes
+            through (mmap.mmap is immutable, so wrap the instance)."""
+
+            def __init__(self, mm):
+                self._real = mm
+
+            def madvise(self, advice, offset=0, length=None):
+                advice_calls.append(int(advice))
+                if int(advice) == int(_mmap.MADV_PAGEOUT):
+                    raise OSError(12, "Cannot allocate memory")
+                return self._real.madvise(advice, offset, length)
+
+            def __len__(self):
+                return len(self._real)
+
+            def __getattr__(self, name):
+                return getattr(self._real, name)
+
+        with WeightStreamer(model, policy=ResidencyPolicy.STREAM) as ws:
+            ws._mm = _FailingPageoutMmap(ws._mm)
+            with pytest.warns(
+                EvictionFallbackWarning, match="MADV_PAGEOUT failed"
+            ):
+                ws.release_layer(0)
+        assert int(_mmap.MADV_PAGEOUT) in advice_calls, "PAGEOUT was attempted"
+        assert int(_mmap.MADV_DONTNEED) in advice_calls, (
+            "the failed PAGEOUT must be followed by a MADV_DONTNEED PTE drop"
+        )
 
     def test_pin_all_skips_eviction(self, tmp_path, monkeypatch) -> None:
         from weight_loader import ResidencyPolicy as _P
@@ -488,6 +546,192 @@ class TestKVHardening:
             )
         assert "cgroup=" in str(ctx.value), "the cgroup source must be named"
 
+    # ------------------------------------------------------------------ #
+    # 7G-C (C6): pool-dependent KV budgets
+    # ------------------------------------------------------------------ #
+
+    def test_kv_cpu_offload_not_bounded_by_gtt(self, kv_modules, monkeypatch) -> None:
+        """A small GTT share must not refuse a CPU-offloaded KV that host RAM
+        can back (long-context runs were refused for the wrong reason)."""
+        kv_cache, _ = kv_modules
+        tiny_gtt = 1 << 20  # 1 MiB
+        big_host = 1 << 40  # 1 TiB
+        monkeypatch.setattr(
+            memory_budget,
+            "read_budget_sources",
+            lambda: BudgetSources(
+                readings={"gtt_sysfs": tiny_gtt, "host_memavailable": big_host}
+            ),
+        )
+        # Device-resident pool: still GTT-bounded — this refuses.
+        with pytest.raises(ValueError) as ctx:
+            kv_cache.KVCacheManager(
+                num_layers=4,
+                max_seq_len=4096,
+                num_kv_heads=8,
+                head_dim=128,
+            )
+        assert "gtt_sysfs=" in str(ctx.value)
+        # CPU-offloaded pool: identical request succeeds on host RAM.
+        with kv_cache.KVCacheManager(
+            num_layers=4,
+            max_seq_len=4096,
+            num_kv_heads=8,
+            head_dim=128,
+            offload_to_cpu=True,
+        ) as kv:
+            assert kv.mode == "cpu"
+            assert kv.kv_budget_sources.get("gtt_sysfs") is None, (
+                "the GTT reading must not bound an offloaded pool"
+            )
+            assert kv.kv_budget_sources["host_memavailable"] == big_host
+
+    def test_kv_cpu_offload_still_bounded_by_host(
+        self, kv_modules, monkeypatch
+    ) -> None:
+        """Dropping the GTT bound does not drop the host RAM bound."""
+        kv_cache, _ = kv_modules
+        monkeypatch.setattr(
+            memory_budget,
+            "read_budget_sources",
+            lambda: BudgetSources(
+                readings={"gtt_sysfs": 1 << 40, "host_memavailable": 1 << 20}
+            ),
+        )
+        with pytest.raises(ValueError) as ctx:
+            kv_cache.KVCacheManager(
+                num_layers=4,
+                max_seq_len=4096,
+                num_kv_heads=8,
+                head_dim=128,
+                offload_to_cpu=True,
+            )
+        assert "host_memavailable=" in str(ctx.value)
+
+    def test_kv_mmap_bounded_by_disk_free(self, kv_modules, tmp_path, monkeypatch) -> None:
+        """The mmap-backed pool is bounded by free disk space with a clear
+        error naming the shortfall (in addition to the host RAM bound)."""
+        kv_cache, _ = kv_modules
+        mmap_dir = tmp_path / "kvdisk"
+        mmap_dir.mkdir()
+        monkeypatch.setattr(
+            memory_budget,
+            "read_budget_sources",
+            lambda: BudgetSources(readings={"host_memavailable": 1 << 40}),
+        )
+        # 1 MiB free disk: refuses the allocation before any file is created.
+        monkeypatch.setattr(
+            os,
+            "statvfs",
+            lambda p: types.SimpleNamespace(f_bsize=4096, f_bavail=256),
+        )
+        with pytest.raises(ValueError) as ctx:
+            kv_cache.KVCacheManager(
+                num_layers=4,
+                max_seq_len=4096,
+                num_kv_heads=8,
+                head_dim=128,
+                mmap_dir=str(mmap_dir),
+            )
+        assert "mmap_disk_free=" in str(ctx.value), (
+            "the disk-free source must be named in the refusal"
+        )
+        assert os.listdir(str(mmap_dir)) == [], "no partial files after refusal"
+
+    def test_kv_mmap_missing_dir_statvfs_ancestor(
+        self, kv_modules, tmp_path, monkeypatch
+    ) -> None:
+        """A not-yet-created mmap_dir falls back to its nearest existing
+        ancestor for the statvfs reading; when no ancestor can be stat'ed the
+        source is skipped from the budget and the alloc-time disk check names
+        the stat failure instead."""
+        kv_cache, _ = kv_modules
+        mmap_dir = tmp_path / "not" / "yet" / "created"
+        monkeypatch.setattr(
+            memory_budget,
+            "read_budget_sources",
+            lambda: BudgetSources(readings={"host_memavailable": 1 << 40}),
+        )
+        monkeypatch.setattr(
+            os,
+            "statvfs",
+            lambda p: (_ for _ in ()).throw(OSError(2, "No such file or directory")),
+        )
+        # Budget passes on host RAM only (no fabricated disk source), then the
+        # alloc-time `statvfs` check refuses cleanly.
+        with pytest.raises(OSError, match="Cannot stat the KV mmap directory"):
+            kv_cache.KVCacheManager(
+                num_layers=2,
+                max_seq_len=64,
+                num_kv_heads=2,
+                head_dim=8,
+                mmap_dir=str(mmap_dir),
+            )
+
+    def test_kv_mmap_dir_free_bytes_walks_to_ancestors(
+        self, kv_modules, tmp_path
+    ) -> None:
+        kv_cache, _ = kv_modules
+        missing = tmp_path / "a" / "b" / "c"
+        free = kv_cache._mmap_dir_free_bytes(str(missing))
+        real = kv_cache._mmap_dir_free_bytes(str(tmp_path))
+        assert free is not None and free == real, (
+            "nearest existing ancestor used for the disk reading"
+        )
+
+    def test_kv_device_pool_budget_unchanged(self, kv_modules, monkeypatch) -> None:
+        """Device-resident pool keeps the GTT-bounded budget (G0–G6 evidence
+        reproducible): the effective budget is min over gtt+host+cgroup."""
+        kv_cache, _ = kv_modules
+        readings = {
+            "gtt_sysfs": 10 << 20,
+            "host_memavailable": 20 << 20,
+            "cgroup": 30 << 20,
+        }
+        monkeypatch.setattr(
+            memory_budget,
+            "read_budget_sources",
+            lambda: BudgetSources(readings=dict(readings)),
+        )
+        budget, used = kv_cache._effective_kv_budget(1 << 30)
+        assert used["gtt_sysfs"] == 10 << 20
+        assert used["host_memavailable"] == 20 << 20
+        assert used["cgroup"] == 30 << 20
+        assert budget == (10 << 20) - ((10 << 20) // 10), (
+            "min source (GTT) minus the 10% safety margin"
+        )
+
+    def test_kv_32k_context_cpu_offload_succeeds_on_host(
+        self, kv_modules, monkeypatch
+    ) -> None:
+        """The C6 acceptance shape: a 32K-context CPU-offloaded run succeeds on
+        a host whose GTT share alone would refuse it."""
+        kv_cache, _ = kv_modules
+        gtt = memory_budget.read_gtt_free_bytes()
+        host = memory_budget.read_host_available_bytes()
+        if gtt is None or host is None:
+            pytest.skip("no measurable GTT/host sources on this host")
+        tiny_gtt = min(gtt, 1 << 20)
+        monkeypatch.setattr(
+            memory_budget,
+            "read_budget_sources",
+            lambda: BudgetSources(
+                readings={
+                    "gtt_sysfs": tiny_gtt,
+                    "host_memavailable": max(host, tiny_gtt << 4),
+                }
+            ),
+        )
+        with kv_cache.KVCacheManager(
+            num_layers=22,
+            max_seq_len=32768,
+            num_kv_heads=4,
+            head_dim=64,
+            offload_to_cpu=True,
+        ) as kv:
+            assert kv.nbytes == 2 * kv._k_host.nbytes, "K+V fp16 payload"
+            assert kv.kv_budget_bytes >= kv.nbytes
+
     def test_kv_mmap_files_unlinked_before_map(self, kv_modules, tmp_path) -> None:
         """Unlink-after-map: files are gone while the manager is alive (a crash
         before close() leaves nothing behind), yet the mapping stays usable."""
@@ -514,6 +758,10 @@ class TestKVHardening:
         assert os.listdir(mmap_dir) == []
 
     def test_kv_disk_space_check_refuses_before_alloc(self, kv_modules, tmp_path, monkeypatch) -> None:
+        """The alloc-time `statvfs` guard: with the budget-level disk source
+        skipped (unreadable), a full mmap_dir still refuses before any file is
+        created. 7G-C (C6) additionally bounds the *budget* by disk free (see
+        `test_kv_mmap_bounded_by_disk_free`)."""
         kv_cache, _ = kv_modules
         mmap_dir = tmp_path / "kvfull"
         mmap_dir.mkdir()
@@ -522,6 +770,7 @@ class TestKVHardening:
             "statvfs",
             lambda p: types.SimpleNamespace(f_bsize=4096, f_bavail=1),
         )
+        monkeypatch.setattr(kv_cache, "_mmap_dir_free_bytes", lambda p: None)
         with pytest.raises(OSError, match="Insufficient disk space"):
             kv_cache.KVCacheManager(
                 num_layers=4,

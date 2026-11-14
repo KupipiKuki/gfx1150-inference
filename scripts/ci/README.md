@@ -1,0 +1,44 @@
+# 7G-C (C2) — runner-registration watchdog (deploy on the gfx1150 host)
+
+The units below deploy `scripts/ci/ensure_runner_registered.sh` as a
+root-owned systemd timer. Status: **authored, deployment pending** — the
+owner must create the repo-admin PAT (`Administration: write`) before the
+units will repair anything; see `audit/evidence/G7/7G-C/c2-runner/`.
+
+## One-time setup (root, on the gfx1150 host)
+
+```bash
+# 1. the PAT, outside the repository, root-readable only
+install -d -m 0700 -o root -g root /etc/gfx1150-runner
+# paste the PAT (Administration: write, repo admin):
+install -m 0600 -o root -g root /dev/stdin /etc/gfx1150-runner/runner.pat
+
+# 2. the script, root-owned
+install -m 0755 -o root -g root \
+  /home/kupipi/Documents/git/gfx1150-inference/scripts/ci/ensure_runner_registered.sh \
+  /usr/local/sbin/ensure_runner_registered.sh
+
+# 3. the units
+install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.service /etc/systemd/system/
+install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.timer  /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now gfx1150-runner-watchdog.timer
+```
+
+## Watchdog behaviour
+
+* every 5 minutes: `ensure_runner_registered.sh`;
+* healthy → exit 0, one log line, nothing else;
+* offline → re-register with a fresh registration token, restart the service,
+  verify it is listening again;
+* still offline after the repair → exit non-zero with the log line
+  `RUNNER-REGISTRATION-OFFLINE` (`OnFailure` target), so the outage is
+  visible before it queues a required check.
+
+The verify-only mode (`--check`) exits non-zero when the runner is offline
+without repairing anything; that is what the evidence transcript uses.
+
+The PAT never enters the repository, the logs, a workflow file, the service
+environment, or argv (it is fed to `curl` through a fd; the one-time
+registration token lives only in a root-owned process slot for the seconds
+`config.sh` runs).

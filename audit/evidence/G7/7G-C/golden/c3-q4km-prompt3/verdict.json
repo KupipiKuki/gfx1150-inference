@@ -1,11 +1,13 @@
 {
   "decisive_margin": {
     "decisive_mismatch_at": null,
-    "decisive_steps_compared": 0,
-    "decisive_token_ids_match": null,
+    "decisive_steps_compared": 8,
+    "decisive_token_ids_match": true,
     "first_indecisive_step": 0,
-    "pre_registered_by": "PHASE7_7F_REWORK_BRIEF.md #3 (BLOCKER-7F-3 adjudication)",
-    "result": "INCONCLUSIVE",
+    "fork_step": 13,
+    "min_decisive_steps": 2,
+    "pre_registered_by": "PHASE7_7F_REWORK_BRIEF.md #3 (BLOCKER-7F-3 adjudication); walk + minimum decisive steps refined 7G-C C3(b): audit/evidence/G7/7G-C/golden/PRE-REGISTRATION-walk-refinement.md",
+    "result": "PASS",
     "threshold": 1.0
   },
   "engine_prompt_ids_mode": true,
@@ -90,8 +92,8 @@
   "model_sha256": "9fecc3b3cd76bba89d504f29b616eedf7da85b96540e490ca5824d3f7d2776a0",
   "n_vocab": 32000,
   "ours_logits_sha256": "b40ab61a434bb92d37aa03ff703c9757b8c136232c50b2c4f37f61b4e16f17df",
-  "pass": false,
-  "pass_criterion": "amended (BLOCKER-7F-3): prompt token IDs match + decisive-margin (>= 1.0 logits on both sides) token match; strict 16-step result recorded separately",
+  "pass": true,
+  "pass_criterion": "amended (BLOCKER-7F-3; 7G-C C3(b)): prompt token IDs match + decisive-margin (>= 1.0 logits on both sides) token match on >= 2 steps; strict 16-step result recorded separately",
   "per_step_summary": [
     {
       "argmax_prob_diff": 0.001132,

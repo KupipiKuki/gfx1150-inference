@@ -1,0 +1,8 @@
+[Unit]
+Description=7G-C watchdog alert: gfx1150 runner is offline after self-repair
+
+[Service]
+Type=oneshot
+# The visible alert: a journal line + the persistent log. Extend here (mail,
+# webhook) when the owner wants paging; never put the PAT or a token here.
+ExecStart=/bin/sh -c 'echo "gfx1150 runner-watchdog: RUNNER-REGISTRATION-OFFLINE (self-repair did not restore the runner)" | tee -a /var/log/ensure-runner.log'

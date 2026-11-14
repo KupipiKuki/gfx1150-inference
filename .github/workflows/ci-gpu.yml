@@ -19,8 +19,10 @@ on:
   pull_request:
     branches: ["**"]
   schedule:
-    # Nightly, 03:00 UTC.
-    - cron: "0 3 * * *"
+    # Nightly, 04:00 UTC. 7G-C (C2): moved after the host's ~03:38 UTC boot
+    # window — at 03:00 the nightly job always waited on a still-booting
+    # runner (queued ~38 minutes). Recorded in audit/evidence/G7/7G-C/c2-runner/.
+    - cron: "0 4 * * *"
   workflow_dispatch:
 
 jobs:
