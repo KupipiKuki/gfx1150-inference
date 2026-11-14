@@ -93,3 +93,22 @@ Until then the deviation is open and visible.
 ---
 
 **Signed:** DeepSeek V4.1 Flash, primary auditor — 2026-11-13.
+
+---
+
+## 7G-C addendum (2026-11-14) — waiver remains accurate at closure
+
+Closure item **C2 landed in code** on `wp/7G-C-closure`: the self-repair
+script (`scripts/ci/ensure_runner_registered.sh`), the systemd watchdog units
+(`scripts/ci/gfx1150-runner-watchdog.{service,timer}`), and the nightly cron
+moved to 04:00 UTC (after the host's ~03:38 UTC boot window). The enforcement
+**requirement is still suspended**: restoring it needs the conditions in §6
+above — the owner's PAT deployed at `/etc/gfx1150-runner/runner.pat` (outside
+the repository), the watchdog timer enabled, and the *simulated*
+deletion-and-recovery transcript recorded
+(`audit/evidence/G7/7G-C/c2-runner/`). **C4 is decided and recorded
+(2026-11-13, `audit/evidence/G7/7G-C/notes.md` §C4): no push trigger is
+added** — `ci-gpu.yml` keeps its `pull_request` / `schedule` /
+`workflow_dispatch` triggers and stays advisory while this waiver is in
+force. The waiver is a process exception only: the G0–G6 evidence, the claim
+set and the release scope are untouched.

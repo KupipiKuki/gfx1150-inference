@@ -1,5 +1,10 @@
 # gfx1150-inference
 
+> **STATUS: CLOSED** — dense APU inference engine with an evidence discipline
+> (gate G7-C, 2026-11-14). Final record: [`docs/RELEASE_RECORD.md`](docs/RELEASE_RECORD.md);
+> measured capabilities: [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md);
+> follow-on project seed: [`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md).
+
 > **SSD-offloaded LLM inference engine for AMD gfx1150 (Radeon 890M / Ryzen AI 9 HX 370)**
 
 Built with **ROCm, HIP, and memory-mapped I/O (`mmap` + `madvise`)** for overnight research workloads.
