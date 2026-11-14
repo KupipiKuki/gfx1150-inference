@@ -647,6 +647,7 @@ git diff "$(git merge-base HEAD origin/main)" -- audit/CLAIMS_LEDGER.md README.m
 Strata-class project (MoE + heterogeneous CPU/GPU compute + speculation on
 discrete-VRAM hardware). Seed: [`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md).
 **Plan:** [`PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md`](PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md).
+**Coder brief:** [`PHASE7_7G_CLOSURE_BRIEF.md`](PHASE7_7G_CLOSURE_BRIEF.md).
 **Capability record (what this engine can do):** [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
 **Enforcement deviation (2026-11-13):** the *required* GPU status check is temporarily waived (the runner's server-side registration was deleted four times in four days, leaving the check queued) — [`audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md`](audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md); the other three required checks and the strict claims gate remain in force; restore with closure item C2.
 

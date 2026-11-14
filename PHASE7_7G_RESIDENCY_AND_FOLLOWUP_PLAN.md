@@ -141,6 +141,9 @@ the release-state record is on `main`; the ruleset lists only live branches.
 
 ### 7G-C — Closure package (Gate G7-C) — **this project's last work package**
 
+**Coder brief:** [`PHASE7_7G_CLOSURE_BRIEF.md`](PHASE7_7G_CLOSURE_BRIEF.md) (authoritative package detail,
+acceptance criteria, evidence contract, QAQC checks).
+
 **Decision (owner, 2026-11-13):** this project is **completed and closed** as a
 verified, dense, single-device inference engine with an evidence discipline; the
 Strata-class thesis moves to a **new project** (seed:
@@ -153,7 +156,7 @@ M3/M4/M6.
 | **C1** | G6-QF-1 — residency-probe flake: `fsync` the fixture, fall back from a failed `MADV_PAGEOUT` to `MADV_DONTNEED`, or document a skip | small; the CI flake is a defect in *this* repo |
 | **C2** | G6-QF-2 — runner registration durability + nightly cron vs the host's ~03:38 UTC boot. **Observed three times** (2026-11-11/12/13/14): the server-side registration for `agentId 21` is deleted server-side while the local `.runner`/`.credentials` stay stale, so the service exits with “the runner registration has been deleted from the server” and the required GPU check queues forever. **Fix:** let the runner re-register itself with a repo-admin PAT (`POST /repos/{owner}/{repo}/actions/runners/registration-token` → `config.sh --replace`), stored root-readable only, plus a watchdog that alerts when the registration is missing; align the nightly cron with the host's boot window | infrastructure of *this* repo's CI, and it is now the recurring cause of blocked PRs |
 | **C3** | G6-QF-3 — decisive-margin evidence: more prompts with decisive first steps, or a minimum decisive-step count | closes a G6 evidence gap |
-| **C4** | G6-QF-4 — `ci-gpu.yml` triggers on PR/schedule/dispatch only, so a protected-branch **push** can never satisfy the required GPU check | a deadlock in *this* repo's gate design |
+| **C4** | G6-QF-4 — **decided 2026-11-13: no push trigger.** `ci-gpu.yml` keeps its existing triggers (PR / schedule / dispatch) and stays advisory while the enforcement waiver is in force; the *requirement* is restored with C2. No code work | the deadlock was a symptom of the registration deletion (C2), not of the trigger set |
 | **C5** | `--prompt-file <path>` and `--prompt -` (stdin) | measured need: the research profile needs multi-KB prompts, and a 45 KB prompt on the command line is unusable (the CLI rejected it during the 2026-11-13 measurement) |
 | **C6** | KV budget for `--offload-kv-cpu` / `--kv-mmap-dir` must be bounded by **host RAM** (and free disk for mmap), not by the GTT share | a long-context research run on a small device share is currently refused by a device-side budget; measured need |
 | **C7** | The closing record: [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) (done), [`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md) (done), ledger row 32 + README pointer (done), the final release record and the deferral note | closes the audit trail honestly |
