@@ -657,6 +657,9 @@ class TestKVHardening:
             "statvfs",
             lambda p: (_ for _ in ()).throw(OSError(2, "No such file or directory")),
         )
+        assert kv_cache._mmap_dir_free_bytes(str(mmap_dir)) is None, (
+            "an unreadable tree yields no fabricated disk source"
+        )
         # Budget passes on host RAM only (no fabricated disk source), then the
         # alloc-time `statvfs` check refuses cleanly.
         with pytest.raises(OSError, match="Cannot stat the KV mmap directory"):

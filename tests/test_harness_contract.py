@@ -350,6 +350,9 @@ EXPECTED_LANES = {
     # and stay CPU-lane.
     "test_telemetry_gpu.py": "gpu",
     "test_bench_gate.py": "cpu",
+    # Phase 7G-C (C5): --prompt/--prompt-file CLI contract. Pure argparse and
+    # filesystem behaviour around src/inference.py, no HIP extension needed.
+    "test_cli_prompt_source.py": "cpu",
 }
 
 
