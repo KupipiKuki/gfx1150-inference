@@ -430,6 +430,30 @@ def test_doctor_keeps_the_pat_out_of_argv():
             assert "Bearer" not in line
 
 
+def test_doctor_uses_a_manifest_for_installed_drift(host):
+    """The installed doctor cannot see the repository; the installer writes a
+    sha256 manifest, and L6 compares against it."""
+    installed = host["tmp"] / "gfx1150-runner-watchdog"
+    installed.write_text("#!/usr/bin/env bash\n")
+    manifest = host["tmp"] / "watchdog.sha256"
+    digest = subprocess.check_output(
+        ["sha256sum", str(installed)], text=True
+    ).split()[0]
+    manifest.write_text(digest + "\n")
+    host["env"]["WATCHDOG_INSTALLED"] = str(installed)
+    host["env"]["WATCHDOG_LEGACY_INSTALLED"] = str(host["tmp"] / "absent")
+    host["env"]["DRIFT_MANIFEST"] = str(manifest)
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "matches the installed manifest" in result.stdout
+
+    installed.write_text("#!/usr/bin/env bash\n# drift\n")
+    drifted = _run(host)
+    assert "DRIFTED from the installed manifest" in drifted.stdout
+
+
 def test_doctor_takes_runner_configuration_from_the_spec():
     body = DOCTOR.read_text(encoding="utf-8")
     # The spec is searched next to the script (repo) and under /etc (installed),
