@@ -92,6 +92,18 @@ lanes stay green; the 7D evidence bundle and the ledger wording are unchanged.
 
 ### C2 — runner registration durability (G6-QF-2)
 
+> **C2 SUPERSEDED (2026-11-14): redeveloped as
+> [`PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md`](PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md).**
+> The original approach below produced a script whose health check could not
+> recognise a healthy runner and whose PAT handling contradicted the brief;
+> live verification then found three more defects (mtime-based log selection,
+> host clock skew, missing label assertion). The rebuild plan replaces the
+> ad-hoc checks with one spec (`scripts/ci/runner.env`), one layered doctor
+> (`scripts/ci/runner_doctor.sh`), a current-session health algorithm, a
+> transition-based watchdog, a drift-checking installer and a contract test.
+> **New acceptance for C2 is §14 of that plan**; the text below is kept for
+> traceability only.
+
 **Defect.** The runner's **server-side registration was deleted four times in
 four days with no local action** (the local `.runner`/`.credentials` are
 unchanged since 2026-11-09). Each deletion leaves the required GPU check

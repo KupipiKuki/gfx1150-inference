@@ -1,44 +1,75 @@
-# 7G-C (C2) — runner-registration watchdog (deploy on the gfx1150 host)
+# Runner watchdog — operations reference
 
-The units below deploy `scripts/ci/ensure_runner_registered.sh` as a
-root-owned systemd timer. Status: **authored, deployment pending** — the
-owner must create the repo-admin PAT (`Administration: write`) before the
-units will repair anything; see `audit/evidence/G7/7G-C/c2-runner/`.
+**Authoritative design and rollout:** [`PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md`](../../PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md).
+This directory holds the current C2 implementation; the rebuild plan
+supersedes its health algorithm and adds the doctor, installer and contract
+tests.
 
-## One-time setup (root, on the gfx1150 host)
+## Diagnose first
+
+Do **not** re-register the runner before checking the clock and the labels —
+those were the actual causes of every "registration deleted" episode on this
+host.
 
 ```bash
-# 1. the PAT, outside the repository, root-readable only
+# until scripts/ci/runner_doctor.sh lands (C2a), use the plan's Appendix A:
+cd /home/kupipi/Documents/git/gfx1150-inference
+sed -n '/## Appendix A/,/Rule of thumb/p' PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md
+```
+
+Order of suspicion:
+
+1. **L0 clock** — `timedatectl` (RTC must be UTC, NTP synchronized) and skew
+   vs GitHub's `Date:` header. Skew > 60 s makes the runner reject its own
+   token and *report it as a deleted registration*.
+2. **L4 labels** — the agent must carry `gfx1150` **and** `rocm`; a missing
+   label queues every job forever while the runner looks idle.
+3. **L3 session** — a restart with a correct clock fixes a stale session.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `ensure_runner_registered.sh` | health check + PAT-based re-registration |
+| `gfx1150-runner-watchdog.service` | oneshot systemd unit (root) |
+| `gfx1150-runner-watchdog.timer` | every 5 minutes, after boot |
+| `gfx1150-runner-watchdog-alert.service` | visible alert line |
+
+## Deployment (root, on the gfx1150 host)
+
+```bash
+# 1. the PAT (repo admin, Administration: write), outside the repository
 install -d -m 0700 -o root -g root /etc/gfx1150-runner
-# paste the PAT (Administration: write, repo admin):
 install -m 0600 -o root -g root /dev/stdin /etc/gfx1150-runner/runner.pat
+stat -c '%a:%U' /etc/gfx1150-runner/runner.pat      # expect 600:root
 
-# 2. the script, root-owned
-install -m 0755 -o root -g root \
-  /home/kupipi/Documents/git/gfx1150-inference/scripts/ci/ensure_runner_registered.sh \
+# 2. the script and units
+install -m 0755 -o root -g root scripts/ci/ensure_runner_registered.sh \
   /usr/local/sbin/ensure_runner_registered.sh
-
-# 3. the units
-install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.service /etc/systemd/system/
-install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.timer  /etc/systemd/system/
+install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.service \
+  /etc/systemd/system/
+install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.timer \
+  /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now gfx1150-runner-watchdog.timer
 ```
 
-## Watchdog behaviour
+## Verify
 
-* every 5 minutes: `ensure_runner_registered.sh`;
-* healthy → exit 0, one log line, nothing else;
-* offline → re-register with a fresh registration token, restart the service,
-  verify it is listening again;
-* still offline after the repair → exit non-zero with the log line
-  `RUNNER-REGISTRATION-OFFLINE` (`OnFailure` target), so the outage is
-  visible before it queues a required check.
+```bash
+sudo /usr/local/sbin/ensure_runner_registered.sh --check   # exit 0 = healthy
+sudo journalctl -u gfx1150-runner-watchdog.service -n 20 --no-pager
+sudo tail -20 /var/log/ensure-runner.log
+```
 
-The verify-only mode (`--check`) exits non-zero when the runner is offline
-without repairing anything; that is what the evidence transcript uses.
+`--check` is read-only: it never re-registers. The timer runs the same script
+without `--check`, which repairs only when the runner is offline, never while
+a job is in flight, and at most once per 30 minutes.
 
-The PAT never enters the repository, the logs, a workflow file, the service
-environment, or argv (it is fed to `curl` through a fd; the one-time
-registration token lives only in a root-owned process slot for the seconds
-`config.sh` runs).
+## Secret handling
+
+The PAT reaches `curl` through a root-owned, mode-0600 `--config` file
+(`-K`), never argv; it is unset after use and never logged. The one-time
+registration token is passed to `config.sh --token` as the runner user, so it
+is visible in `/proc/<pid>/cmdline` for roughly one second — single-use,
+short-lived, registration-only, and documented rather than hidden.
