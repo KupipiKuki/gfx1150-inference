@@ -648,6 +648,7 @@ Strata-class project (MoE + heterogeneous CPU/GPU compute + speculation on
 discrete-VRAM hardware). Seed: [`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md).
 **Plan:** [`PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md`](PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md).
 **Capability record (what this engine can do):** [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
+**Enforcement deviation (2026-11-13):** the *required* GPU status check is temporarily waived (the runner's server-side registration was deleted four times in four days, leaving the check queued) — [`audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md`](audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md); the other three required checks and the strict claims gate remain in force; restore with closure item C2.
 
 **7G-C (last package here):** the four G6 carry-forwards (G6-QF-1..4), two
 small research-workflow fixes (`--prompt-file`/stdin prompts; KV budgeting for
