@@ -1,0 +1,259 @@
+{
+  "decisive_margin": {
+    "decisive_mismatch_at": null,
+    "decisive_steps_compared": 0,
+    "decisive_token_ids_match": null,
+    "first_indecisive_step": 0,
+    "pre_registered_by": "PHASE7_7F_REWORK_BRIEF.md #3 (BLOCKER-7F-3 adjudication)",
+    "result": "INCONCLUSIVE",
+    "threshold": 1.0
+  },
+  "engine_prompt_ids_mode": true,
+  "logits_excerpt_top8": [
+    {
+      "ours_logits_top8": [
+        10.6953,
+        10.1719,
+        10.4922,
+        9.7812,
+        9.8906,
+        9.7188,
+        9.2734,
+        9.2266
+      ],
+      "ref_logits_top8": [
+        10.7835,
+        10.6526,
+        10.3642,
+        9.8659,
+        9.798,
+        9.7361,
+        9.5001,
+        9.4825
+      ],
+      "step": 0,
+      "token_id": 29966
+    },
+    {
+      "ours_logits_top8": [
+        18.8906,
+        9.5312,
+        8.7031,
+        8.7109,
+        8.3984,
+        8.1484,
+        8.3906,
+        8.4062
+      ],
+      "ref_logits_top8": [
+        19.2587,
+        9.6785,
+        8.918,
+        8.6149,
+        8.5685,
+        8.5169,
+        8.5115,
+        8.4777
+      ],
+      "step": 1,
+      "token_id": 29989
+    },
+    {
+      "ours_logits_top8": [
+        19.9219,
+        18.6562,
+        16.9219,
+        13.5312,
+        11.9844,
+        12.2188,
+        12.2969,
+        11.7266
+      ],
+      "ref_logits_top8": [
+        20.1752,
+        19.1891,
+        16.9973,
+        13.3591,
+        12.3577,
+        12.2153,
+        12.0098,
+        11.8139
+      ],
+      "step": 2,
+      "token_id": 1792
+    }
+  ],
+  "logits_max_abs_diff_observed": 19.97422,
+  "logits_role": "diagnostic (BLOCKER-7F-3 adjudication)",
+  "logits_tolerance": 0.5,
+  "logits_within_tolerance": false,
+  "model_sha256": "9fecc3b3cd76bba89d504f29b616eedf7da85b96540e490ca5824d3f7d2776a0",
+  "n_vocab": 32000,
+  "ours_logits_sha256": "6db888a96005f91357b3cdc9a2095a13e058ed28f64dda15cd0e886c7938a00f",
+  "pass": false,
+  "pass_criterion": "amended (BLOCKER-7F-3): prompt token IDs match + decisive-margin (>= 1.0 logits on both sides) token match; strict 16-step result recorded separately",
+  "per_step_summary": [
+    {
+      "argmax_prob_diff": 0.006708,
+      "max_abs_diff": 0.95456,
+      "step": 0,
+      "top1_margin_ours": 0.20312,
+      "top1_margin_ref": 0.13083
+    },
+    {
+      "argmax_prob_diff": 0.000294,
+      "max_abs_diff": 0.90144,
+      "step": 1,
+      "top1_margin_ours": 9.35938,
+      "top1_margin_ref": 9.58011
+    },
+    {
+      "argmax_prob_diff": 0.043079,
+      "max_abs_diff": 1.11678,
+      "step": 2,
+      "top1_margin_ours": 1.26562,
+      "top1_margin_ref": 0.98602
+    },
+    {
+      "argmax_prob_diff": 0.00017,
+      "max_abs_diff": 1.50592,
+      "step": 3,
+      "top1_margin_ours": 7.53125,
+      "top1_margin_ref": 7.90984
+    },
+    {
+      "argmax_prob_diff": 1.3e-05,
+      "max_abs_diff": 0.81625,
+      "step": 4,
+      "top1_margin_ours": 11.01562,
+      "top1_margin_ref": 11.27713
+    },
+    {
+      "argmax_prob_diff": 0.000843,
+      "max_abs_diff": 1.23296,
+      "step": 5,
+      "top1_margin_ours": 6.26562,
+      "top1_margin_ref": 6.12396
+    },
+    {
+      "argmax_prob_diff": 0.0044,
+      "max_abs_diff": 0.58976,
+      "step": 6,
+      "top1_margin_ours": 2.03125,
+      "top1_margin_ref": 2.11016
+    },
+    {
+      "argmax_prob_diff": 0.000109,
+      "max_abs_diff": 0.52412,
+      "step": 7,
+      "top1_margin_ours": 8.01562,
+      "top1_margin_ref": 8.02797
+    },
+    {
+      "argmax_prob_diff": 0.004823,
+      "max_abs_diff": 0.44984,
+      "step": 8,
+      "top1_margin_ours": 0.01562,
+      "top1_margin_ref": 0.02645
+    },
+    {
+      "argmax_prob_diff": 0.703328,
+      "max_abs_diff": 9.42129,
+      "step": 9,
+      "top1_margin_ours": 0.14062,
+      "top1_margin_ref": 7.51683
+    },
+    {
+      "argmax_prob_diff": 0.334244,
+      "max_abs_diff": 13.62903,
+      "step": 10,
+      "top1_margin_ours": 5.17188,
+      "top1_margin_ref": 1.40444
+    },
+    {
+      "argmax_prob_diff": 0.600526,
+      "max_abs_diff": 14.08282,
+      "step": 11,
+      "top1_margin_ours": 0.33594,
+      "top1_margin_ref": 3.42198
+    },
+    {
+      "argmax_prob_diff": 0.714072,
+      "max_abs_diff": 18.93407,
+      "step": 12,
+      "top1_margin_ours": 0.52344,
+      "top1_margin_ref": 5.33139
+    },
+    {
+      "argmax_prob_diff": 0.949805,
+      "max_abs_diff": 17.76747,
+      "step": 13,
+      "top1_margin_ours": 6.64844,
+      "top1_margin_ref": 0.49458
+    },
+    {
+      "argmax_prob_diff": 0.101766,
+      "max_abs_diff": 19.97422,
+      "step": 14,
+      "top1_margin_ours": 0.35938,
+      "top1_margin_ref": 0.18176
+    },
+    {
+      "argmax_prob_diff": 0.406435,
+      "max_abs_diff": 14.44935,
+      "step": 15,
+      "top1_margin_ours": 1.95312,
+      "top1_margin_ref": 0.8988
+    }
+  ],
+  "probs_max_abs_diff_observed": 0.949805,
+  "probs_tolerance": 0.02,
+  "probs_within_tolerance": false,
+  "prompt_ids_engine": [
+    1,
+    450,
+    11564,
+    310,
+    7375,
+    338,
+    11220,
+    29889,
+    450,
+    11564,
+    310,
+    4802,
+    338,
+    13
+  ],
+  "prompt_ids_fed": [
+    1,
+    450,
+    11564,
+    310,
+    7375,
+    338,
+    11220,
+    29889,
+    450,
+    11564,
+    310,
+    4802,
+    338,
+    13
+  ],
+  "prompt_len_ours": 14,
+  "prompt_len_ref": 14,
+  "prompt_token_ids_match": true,
+  "prompt_tokenization_engine_matches_reference": true,
+  "report_only": false,
+  "steps": 16,
+  "strict_16_step": {
+    "logits_within_tolerance": false,
+    "prompt_token_ids_match": true,
+    "result": "FAIL",
+    "token_ids_match": false,
+    "token_mismatch_first_step": 8
+  },
+  "token_ids_match": false,
+  "token_mismatch_first_step": 8
+}
