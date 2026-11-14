@@ -15,6 +15,14 @@ the host at bundle-assembly time and the live simulation could not run.
 
 ## What was verified without the PAT (functional, this host, 2026-11-13)
 
+**Historical note (2026-11-14):** the checks below exercised the *pre-remediation*
+health check the audit rejected (BLOCKER-7G-C-1): "online path" meant
+"`Listening for Jobs` inside a 10-minute journal window", which misjudges a
+long-up healthy runner. The fix, its discipline and the new scripted check
+(`tests/test_runner_watchdog.py`) are recorded in
+`REMEDIATION-2026-11-14.md`; the live re-run required below must use the
+fixed script.
+
 Both code paths of `scripts/ci/ensure_runner_registered.sh` were exercised
 with fake `systemctl`/`journalctl` on `PATH` (no PAT involved — the repair
 path exits before the API call when the PAT file is absent, check mode reports

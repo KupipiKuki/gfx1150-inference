@@ -353,6 +353,10 @@ EXPECTED_LANES = {
     # Phase 7G-C (C5): --prompt/--prompt-file CLI contract. Pure argparse and
     # filesystem behaviour around src/inference.py, no HIP extension needed.
     "test_cli_prompt_source.py": "cpu",
+    # Phase 7G-C (C2 remediation): the runner-registration watchdog script.
+    # Pure bash-driven subprocess checks with PATH-shimmed systemctl/pgrep/
+    # curl; no HIP extension, no GPU, no network.
+    "test_runner_watchdog.py": "cpu",
 }
 
 

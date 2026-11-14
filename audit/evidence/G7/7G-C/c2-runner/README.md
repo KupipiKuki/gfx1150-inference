@@ -31,6 +31,9 @@ systemctl enable --now gfx1150-runner-watchdog.timer
 * healthy → exit 0, one log line, nothing else;
 * offline → re-register with a fresh registration token, restart the service,
   verify it is listening again;
+* a repair is never attempted while a `Runner.Worker` process exists (a job
+  is in flight), and attempts are rate-limited to one per 30-minute cooldown
+  (see `REMEDIATION-2026-11-14.md`);
 * still offline after the repair → exit non-zero with the log line
   `RUNNER-REGISTRATION-OFFLINE` (`OnFailure` target), so the outage is
   visible before it queues a required check.
@@ -38,7 +41,11 @@ systemctl enable --now gfx1150-runner-watchdog.timer
 The verify-only mode (`--check`) exits non-zero when the runner is offline
 without repairing anything; that is what the evidence transcript uses.
 
-The PAT never enters the repository, the logs, a workflow file, the service
-environment, or argv (it is fed to `curl` through a fd; the one-time
-registration token lives only in a root-owned process slot for the seconds
-`config.sh` runs).
+Secret handling (post-remediation, matching the script's header): the PAT
+never enters the repository, the logs, a workflow file, the service
+environment, **or argv** — it travels to `curl` through a root-owned, 0600
+temp config file passed via `--config`, which keeps `Authorization` out of
+`/proc/<pid>/cmdline`. The one-time registration token **does** appear
+transiently in the argv of `runuser`/`config.sh` (readable by any local user
+for roughly one second); it is single-use, short-lived and grants only runner
+registration — documented and accepted as low severity.
