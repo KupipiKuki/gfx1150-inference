@@ -357,6 +357,9 @@ EXPECTED_LANES = {
     # Pure bash-driven subprocess checks with PATH-shimmed systemctl/pgrep/
     # curl; no HIP extension, no GPU, no network.
     "test_runner_watchdog.py": "cpu",
+    # Phase 7G-C (C2a rebuild): the layered runner doctor. Same pattern:
+    # real bash script, PATH-shimmed systemctl/pgrep/timedatectl, no network.
+    "test_runner_doctor.py": "cpu",
 }
 
 

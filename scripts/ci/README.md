@@ -7,17 +7,18 @@ tests.
 
 ## Diagnose first
 
-Do **not** re-register the runner before checking the clock and the labels —
-those were the actual causes of every "registration deleted" episode on this
-host.
+Run the doctor; it answers L0–L6 with a stable exit code:
 
 ```bash
-# until scripts/ci/runner_doctor.sh lands (C2a), use the plan's Appendix A:
 cd /home/kupipi/Documents/git/gfx1150-inference
-sed -n '/## Appendix A/,/Rule of thumb/p' PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md
+scripts/ci/runner_doctor.sh --check          # 0 healthy, 1 offline, 2 clock, 3 misconfigured
+scripts/ci/runner_doctor.sh --check --json   # machine-readable
+scripts/ci/runner_doctor.sh --check --no-network   # offline diagnosis
 ```
 
-Order of suspicion:
+Do **not** re-register the runner before checking the clock and the labels —
+those were the actual causes of every "registration deleted" episode on this
+host. The doctor checks them in order:
 
 1. **L0 clock** — `timedatectl` (RTC must be UTC, NTP synchronized) and skew
    vs GitHub's `Date:` header. Skew > 60 s makes the runner reject its own
@@ -30,6 +31,8 @@ Order of suspicion:
 
 | File | Purpose |
 |---|---|
+| `runner.env` | single source of truth for name, labels, unit, user, paths, thresholds |
+| `runner_doctor.sh` | read-only layered diagnosis (L0–L6) with stable exit codes |
 | `ensure_runner_registered.sh` | health check + PAT-based re-registration |
 | `gfx1150-runner-watchdog.service` | oneshot systemd unit (root) |
 | `gfx1150-runner-watchdog.timer` | every 5 minutes, after boot |

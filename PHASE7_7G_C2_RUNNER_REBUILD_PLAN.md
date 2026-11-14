@@ -1,7 +1,8 @@
 # 7G-C2 — Runner & CI Rebuild Plan (redeveloped 2026-11-14)
 
-**Status:** PROPOSED — supersedes the C2 implementation approach in
-`PHASE7_7G_CLOSURE_BRIEF.md` §C2.
+**Status:** IN PROGRESS — C2a landed 2026-11-14 (`scripts/ci/runner.env` +
+read-only `scripts/ci/runner_doctor.sh` + 19 tests); C2b–C2g pending.
+Supersedes the C2 implementation approach in `PHASE7_7G_CLOSURE_BRIEF.md` §C2.
 **Gate:** G7-C (last gate of this project).
 **Branch:** `wp/7G-C-closure`.
 **Roles:** Owner (host admin + GitHub admin) · Coder · QAQC · Auditor.
@@ -313,7 +314,7 @@ session_log() {
   local start stamp f best="" best_delta=999999 delta fsec
   start="$(systemctl show -p ExecMainStartTimestamp --value "${SERVICE_UNIT}" 2>/dev/null)" || return 1
   [ -n "${start}" ] || return 1
-  stamp="$(date -d "${start}" -u +%s 2>/dev/null)" || return 1
+  stamp="$(date -d "${start}" +%s 2>/dev/null)" || return 1   # local -> epoch; -u would parse it as UTC
   for f in "${RUNNER_DIR}"/_diag/Runner_*-utc.log; do
     [ -e "${f}" ] || continue
     local base="${f##*/Runner_}"; base="${base%-utc.log}"
@@ -766,7 +767,7 @@ recovery. D3 must **never** change the host clock.
 One package per commit; each has its own acceptance and evidence. No package
 merges before the auditor signs the gate.
 
-### C2a — spec + doctor skeleton (read-only)
+### C2a — spec + doctor skeleton (read-only) — **LANDED 2026-11-14**
 
 - Add `scripts/ci/runner.env`, `scripts/ci/runner_doctor.sh` (L0–L6, `--check`,
   `--json`, `--no-network`).
