@@ -79,7 +79,7 @@ DECISIVE_MARGIN_THRESHOLD = 1.0
 
 #: Minimum number of decisive steps for a run to count as a decisive PASS
 #: (7G-C C3(b), pre-registered in
-#: audit/evidence/G7/7G-C/golden/PRE-REGISTRATION-walk-refinement.md before
+#: audit/evidence/G7/7G-C/c3-golden/PRE-REGISTRATION-walk-refinement.md before
 #: the re-adjudication). Two is the decisive-step basis the G6 Q6_K PASS
 #: rests on; a run that compares fewer decisive steps stays INCONCLUSIVE —
 #: recorded honestly, never counted as a pass.
@@ -327,7 +327,7 @@ def compare(out_dir: str, ref_prefix: str, report_only: bool = False) -> dict:
         "pre_registered_by": (
             "PHASE7_7F_REWORK_BRIEF.md #3 (BLOCKER-7F-3 adjudication); "
             "walk + minimum decisive steps refined 7G-C C3(b): "
-            "audit/evidence/G7/7G-C/golden/PRE-REGISTRATION-walk-refinement.md"
+            "audit/evidence/G7/7G-C/c3-golden/PRE-REGISTRATION-walk-refinement.md"
         ),
         "decisive_steps_compared": decisive_compared,
         "first_indecisive_step": first_indecisive_step,

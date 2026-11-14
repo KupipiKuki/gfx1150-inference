@@ -30,7 +30,7 @@ share one physical pool, and the device-visible share is roughly half of it.
 | Model class | Status | Evidence |
 |---|---|---|
 | llama-family **dense** `Q4_0` / `Q4_K` / `Q8_0` | kernel paths hardware-verified on synthetic GGUFs | `audit/evidence/G0/7.0-baseline/gpu-suite.log` |
-| llama-family `Q4_K_M` (Q4_K+Q6_K mix) / `Q6_K` | kernels verified; **real** GGUF runs exist; **no exact golden** (strict 16-step FAIL recorded on every run; the 7G-C re-adjudication records decisive-margin comparisons passing on four of five prompts — Q6_K, both original Q4_K_M prompt 1 and two new forced-completion prompts — and one Q4_K_M prompt staying INCONCLUSIVE, 1 decisive step < the pre-registered minimum of 2) | `audit/evidence/G6/7F/golden/`, `audit/evidence/G7/7G-C/golden/` |
+| llama-family `Q4_K_M` (Q4_K+Q6_K mix) / `Q6_K` | kernels verified; **real** GGUF runs exist; **no exact golden** (strict 16-step FAIL recorded on every run; the 7G-C re-adjudication records decisive-margin comparisons passing on four of five prompts — Q6_K, both original Q4_K_M prompt 1 and two new forced-completion prompts — and one Q4_K_M prompt staying INCONCLUSIVE, 1 decisive step < the pre-registered minimum of 2) | `audit/evidence/G6/7F/golden/`, `audit/evidence/G7/7G-C/c3-golden/` |
 | `phi3` / `gemma` | **synthetic-fixture verified only** — no real GGUF ever run | `audit/evidence/G3/7C/` |
 | `qwen2` | **metadata/bias regression target only** — not a support claim | `audit/evidence/G3/7C/` |
 | Chat templates | **not** verified end-to-end for any family | — |
