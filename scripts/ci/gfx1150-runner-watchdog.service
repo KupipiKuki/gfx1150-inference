@@ -10,4 +10,5 @@ ExecStart=/usr/local/sbin/ensure_runner_registered.sh
 # never widen: the script needs root only for systemctl/journalctl and the
 # root-owned PAT file
 User=root
-NumberOfFiles=1024
+LimitNOFILE=1024
+TimeoutStartSec=240s

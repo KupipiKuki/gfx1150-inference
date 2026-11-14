@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import pwd
 import textwrap
 import time
 import subprocess
@@ -175,7 +176,7 @@ def env(tmp_path: pathlib.Path) -> dict[str, str]:
         "SERVICE_UNIT": "actions.runner.fake.fake.service",
         "SERVICE_USER": "kupipi",
         "PAT_FILE": str(pat_file),
-        "PAT_OWNER": "kupipi",  # no root in the sandbox; production default is root
+        "PAT_OWNER": pwd.getpwuid(os.getuid()).pw_name,
         "LOG_FILE": str(tmp_path / "ensure-runner.log"),  # sandbox: not /var/log
         "COOLDOWN_FILE": str(state / "last-repair"),
         "COOLDOWN_SECS": "1800",
@@ -312,6 +313,38 @@ def test_health_check_requires_a_live_listener_process(env):
     result = _run(env, "--check")
 
     assert result.returncode == 1
+
+
+def test_registration_request_timeout_is_bounded(env):
+    _mark_deleted(env)
+    curl = pathlib.Path(env["PATH"].split(":", 1)[0]) / "curl"
+    curl.write_text("#!/usr/bin/env bash\n/bin/sleep 5\n")
+    curl.chmod(0o755)
+    bounded_env = env | {"CURL_MAX_TIME_SECS": "1"}
+
+    started = time.monotonic()
+    result = _run(bounded_env)
+    elapsed = time.monotonic() - started
+
+    assert result.returncode == 1
+    assert "registration-token API call failed" in result.stderr
+    assert elapsed < 4
+
+
+def test_configure_timeout_is_bounded(env):
+    _mark_deleted(env)
+    config = pathlib.Path(env["RUNNER_DIR"]) / "config.sh"
+    config.write_text("#!/usr/bin/env bash\n/bin/sleep 5\n")
+    config.chmod(0o755)
+    bounded_env = env | {"CONFIG_TIMEOUT_SECS": "1"}
+
+    started = time.monotonic()
+    result = _run(bounded_env)
+    elapsed = time.monotonic() - started
+
+    assert result.returncode == 1
+    assert "config.sh --replace failed" in result.stderr
+    assert elapsed < 4
 
 
 # ---------------------------------------------------------- static guarantees

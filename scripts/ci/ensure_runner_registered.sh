@@ -66,6 +66,10 @@ PAT_OWNER="${PAT_OWNER:-root}"
 LISTEN_MARKER="Listening for Jobs"
 LOG_TAG="ensure-runner"
 LOG_FILE="${LOG_FILE:-/var/log/${LOG_TAG}.log}"
+CURL_CONNECT_TIMEOUT_SECS="${CURL_CONNECT_TIMEOUT_SECS:-10}"
+CURL_MAX_TIME_SECS="${CURL_MAX_TIME_SECS:-60}"
+CONFIG_TIMEOUT_SECS="${CONFIG_TIMEOUT_SECS:-120}"
+RESTART_TIMEOUT_SECS="${RESTART_TIMEOUT_SECS:-30}"
 
 log() {
   local line
@@ -165,7 +169,9 @@ HDR_CFG="$(mktemp "${TMPDIR:-/tmp}/.runner-hdr.XXXXXX")"
 chmod 600 "${TOKEN_JSON}" "${HDR_CFG}"
 trap 'rm -f "${TOKEN_JSON}" "${HDR_CFG}"' EXIT
 printf 'header = "Authorization: Bearer %s"\n' "${PAT}" >"${HDR_CFG}"
-if ! curl -fsS -X POST \
+if ! timeout "${CURL_MAX_TIME_SECS}s" curl -fsS -X POST \
+  --connect-timeout "${CURL_CONNECT_TIMEOUT_SECS}" \
+  --max-time "${CURL_MAX_TIME_SECS}" \
   -K "${HDR_CFG}" \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token" \
@@ -181,7 +187,8 @@ trap - EXIT
 # Re-register (config.sh --replace). Run as the runner user so file ownership
 # matches the existing service installation.
 log "re-registering runner ${RUNNER_NAME} (labels: ${RUNNER_LABELS})"
-if ! runuser -u "${SERVICE_USER}" -- "${RUNNER_DIR}/config.sh" \
+if ! timeout "${CONFIG_TIMEOUT_SECS}s" \
+  runuser -u "${SERVICE_USER}" -- "${RUNNER_DIR}/config.sh" \
   --url "${REPO_URL}" \
   --token "${TOKEN}" \
   --name "${RUNNER_NAME}" \
@@ -193,7 +200,10 @@ fi
 unset TOKEN
 
 log "re-registered; restarting ${SERVICE_UNIT}"
-systemctl restart "${SERVICE_UNIT}"
+if ! timeout "${RESTART_TIMEOUT_SECS}s" \
+  systemctl restart "${SERVICE_UNIT}"; then
+  die "service restart failed or timed out"
+fi
 
 sleep 15
 if runner_online; then

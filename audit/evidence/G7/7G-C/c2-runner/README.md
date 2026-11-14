@@ -20,6 +20,7 @@ install -m 0755 -o root -g root \
 
 # 3. the units
 install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.service /etc/systemd/system/
+install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog-alert.service /etc/systemd/system/
 install -m 0644 -o root -g root scripts/ci/gfx1150-runner-watchdog.timer  /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now gfx1150-runner-watchdog.timer
