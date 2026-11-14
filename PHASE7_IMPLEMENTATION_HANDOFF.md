@@ -640,7 +640,53 @@ git diff "$(git merge-base HEAD origin/main)" -- audit/CLAIMS_LEDGER.md README.m
 
 ---
 
-### 7G — Post-release polish (Gate G7, deferred)
+### 7G — Closure package (Gate G7-C) + deferrals to the next project
+
+**Status (2026-11-13): AUTHORIZED as the closure package; the project closes here.**
+**Decision (owner):** complete and document this project, then start a **new**
+Strata-class project (MoE + heterogeneous CPU/GPU compute + speculation on
+discrete-VRAM hardware). Seed: [`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md).
+**Plan:** [`PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md`](PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md).
+**Coder brief:** [`PHASE7_7G_CLOSURE_BRIEF.md`](PHASE7_7G_CLOSURE_BRIEF.md).
+**Capability record (what this engine can do):** [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
+**Enforcement deviation (2026-11-13):** the *required* GPU status check is temporarily waived (the runner's server-side registration was deleted four times in four days, leaving the check queued) — [`audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md`](audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md); the other three required checks and the strict claims gate remain in force; restore with closure item C2.
+
+**7G-C (last package here):** the four G6 carry-forwards (G6-QF-1..4), two
+small research-workflow fixes (`--prompt-file`/stdin prompts; KV budgeting for
+CPU/mmap modes against host RAM and free disk rather than the device share),
+and the closing record (capability document, seed note, ledger row 32, final
+release record).
+
+**Why:** there is **no** "cap my RAM usage and stream the rest" control today.
+`--residency {auto,pin,stream}` is all-or-nothing (whole model pinned or whole
+model streamed), `--residency-budget-mb` only flips AUTO between them, and
+`--max-kv-bytes` caps the KV cache only. Measured on this host (Mistral-7B
+Q4_K_M, 16 decode tokens): pinned = 2.63 tok/s and 4.19 GB read; streamed =
+0.42 tok/s and **62.8 GB** read (the whole model re-read per token), with
+**zero** copy/compute overlap. 7G-1 adds `--max-resident-mb` /
+`--max-resident-pct` and a hybrid policy whose cap is *measured* (mincore);
+7G-2 fixes the copy-bound streaming path (prefetch/overlap) and gates a
+stream benchmark lane; 7G-0 closes the G6 carry-forwards (G6-QF-1..4) and the
+release hygiene.
+
+**7G-3 (added 2026-11-13) — Large-model capacity:** the weight budget is
+currently `min(GTT free, MemAvailable, cgroup)` = **45.9 GiB** here, while the
+host has **89.5 GiB** usable RAM — the weights live in host RAM and are copied
+H2D per tensor, so budgeting them against the device share throws away ~44 GiB.
+7G-3 splits the host-RAM and GTT budgets, adds a `--max-model-size-report`
+dry run, and runs a stress ladder (13–20B → **70B** → 100–120B → 220B-scale
+sparse synthetic fixture). Practical ceilings after the split: **~85 GiB
+resident (≈ 120B at Q4_K_M)**; a 220B model (~141 GiB) is **streaming-only**
+on this box and must never be published as support.
+
+**Deferred to the next project (recorded, not dropped):** 7G-1 bounded
+residency → the next project's expert-cache residency (M3); 7G-2 copy/compute
+overlap → the next project's overlap work (M4); 7G-3 RAM/GTT budget split +
+max-model-size report → the next project's capacity report (M0/M3).
+
+**Gate:** one package (7G-C) with its own gate.
+
+### 7G (prior scope) — Post-release polish items
 
 Only after v0.7.0. Candidate items: PEP 639 license, `__version__`, namespace package (`gfx1150/`), `top_k`/`top_p` validation, `dequantize_q6_k_cpu` block guard, `embed_tokens` boundary guard, `matmul` positive-dim validation, flash-style attention + GQA sharing, RoPE scaling (linear/YaRN), sliding-window attention, continuous batching, prompt cache. Each gets its own work package and gate; do not bundle.
 
