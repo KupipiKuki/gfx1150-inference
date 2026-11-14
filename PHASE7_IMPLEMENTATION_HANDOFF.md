@@ -642,7 +642,7 @@ git diff "$(git merge-base HEAD origin/main)" -- audit/CLAIMS_LEDGER.md README.m
 
 ### 7G — Closure package (Gate G7-C) + deferrals to the next project
 
-**Status (2026-11-13): AUTHORIZED as the closure package; the project closes here.**
+**Status (2026-11-14): G7-C REVIEW NOT SIGNED — C1/C3/C4/C5/C6/C7 accepted; C2 needs a short rework (watchdog health check + PAT handling).** Audit: [`audit/AUDIT_7G_C_2026-11-14.md`](audit/AUDIT_7G_C_2026-11-14.md).
 **Decision (owner):** complete and document this project, then start a **new**
 Strata-class project (MoE + heterogeneous CPU/GPU compute + speculation on
 discrete-VRAM hardware). Seed: [`docs/NEXT_PROJECT_SEED.md`](docs/NEXT_PROJECT_SEED.md).
