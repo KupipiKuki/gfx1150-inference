@@ -5,25 +5,41 @@ This directory holds a **prompt** for the Mistral-7B long run and the auditor's
 
 | File | Purpose |
 |---|---|
-| `prompt.txt` | the research prompt (manual Mistral `[INST]` format, 841 words) |
+| `prompt.txt` | the research prompt (manual Mistral `[INST]` format, 842 words, no tables) |
 | `auditor-memo.md` | the auditor's independent memo (the comparison baseline) |
+| `v0.3-run-note.md` | the first v0.3 attempt: engine telemetry + the table-degeneration failure |
 | `README.md` | this run/comparison note |
 
 ## Run
 
+The memo run does **not** use `--stats`: the trace is ~100 kB/s and not needed
+for the comparison. Use the revised prompt, which forbids tables.
+
 ```bash
-mkdir -p research/strata-memo
 PYTHONPATH=build:src python3 src/inference.py \
   -m /path/to/mistral-7b-instruct-v0.2.Q4_K_M.gguf \
   --prompt-file research/strata-memo/prompt.txt \
   --max-seq-len 4096 \
-  --max-new-tokens 2200 \
-  --temperature 0.0 --seed 42 \
-  --stats > research/strata-memo/mistral-output.md \
-  2> research/strata-memo/mistral-stats.log
+  --max-new-tokens 1600 \
+  --temperature 0.0 --repetition-penalty 1.1 --seed 42 \
+  > research/strata-memo/mistral-v02-output.md
 ```
 
-The prompt is ~1.2K tokens; 4K sequence length leaves room for the ~2K-token
+A 300-token pilot first is cheap and catches a degenerate start:
+
+```bash
+# same command, --max-new-tokens 300, output to ...-pilot.md
+```
+
+If you also want telemetry, run a separate short pass with `--stats` and
+`2> ...-stats.log`; extract the final `[stats]` block with `tail -40`, and
+discard the trace.
+
+The first v0.3 attempt degenerated into a 33K-space Markdown table; see
+`v0.3-run-note.md`. That is why `prompt.txt` now says "do not use Markdown
+tables" explicitly.
+
+The prompt is ~1.2K tokens; 4K sequence length leaves room for the ~1.6K-token
 memo. For a genuinely long-context run, append the full
 `Strata/docs/HOW_IT_WORKS.md`, `Strata/AGENTS.md` and the llama.cpp v1.0.0
 release notes before the `## Task` section, then use `--max-seq-len 24576` and

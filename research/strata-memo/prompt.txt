@@ -1,7 +1,7 @@
 [INST]
 You are a senior systems engineer advising a solo owner who has just finished
-a verified dense-APU inference engine and is deciding the next project. Your
-job is to produce a decision memo, not to write code.
+a verified dense-APU inference engine and is deciding the next project. Produce
+a decision memo. Do not write code.
 
 ## Decision
 
@@ -81,32 +81,33 @@ D. A hybrid: reuse the current project's evidence/claims substrate, adopt an
 
 ## Task
 
-Write a decision memo in Markdown with exactly these sections:
+Write a decision memo in Markdown with these sections, in this exact order:
 
 1. **Recommendation** - one of A, B, C, D, or a clearly named variant, in two
    or three sentences.
-2. **Criteria table** - rows for capability fit (MoE, expert cache, CPU
-   fallback, speculation), abstraction fit (device-resident loop, no per-layer
-   Python sync), hardware/backend fit (ROCm gfx1100), license/maintenance,
-   testability/evidence, and time-to-first-result. Columns: criterion, A, B,
-   C, D, and a short note.
-3. **Why the recommendation wins** - the two or three decisive reasons.
-4. **Risks and unknowns** - what must be verified before committing, with the
-   specific artifact or experiment that would verify it.
-5. **Reuse/rewrite table** - what to reuse from the current project, what to
-   take from llama.cpp/Strata, and what must be written new.
-6. **First three experiments** - concrete, cheap, ordered; each with a success
-   criterion. M0 is an ADR, so the experiments must inform it.
-7. **What would change the recommendation** - the evidence that would flip it.
+2. **Decisive reasons** - three bullets. Each names a fact above.
+3. **Risks and unknowns** - four bullets. Each says what must be verified and
+   the artifact or experiment that verifies it.
+4. **First three experiments** - numbered, ordered cheapest first; each with a
+   concrete success criterion. They must inform the M0 ADR.
+5. **Reuse/rewrite** - three bullets: reuse from the current project, take from
+   llama.cpp/Strata, write new.
+6. **What would change the recommendation** - two bullets.
+7. **Criteria comparison** - a bullet list, one bullet per criterion
+   (capability fit, abstraction fit, hardware/backend fit, license/maintenance,
+   testability/evidence, time-to-first-result). Short phrases only.
 
-## Constraints
+## Format rules (important)
 
+- Use bullet lists. **Do not use Markdown tables.** A wide table with long
+  cells degenerates at greedy decoding.
+- Do not pad with spaces, do not repeat a token or a line, and keep every line
+  under 120 characters.
+- Stop after section 7. No appendix, no repeated summary.
+- Keep the whole memo under 1,200 words.
 - Use only the facts above. Mark anything you are unsure about as UNKNOWN
-  rather than inventing it.
-- Do not invent benchmark numbers, stars, licenses, or hardware support.
+  rather than inventing it. Do not invent benchmark numbers, stars, licenses,
+  or hardware support.
 - Do not recommend "build everything from scratch" without naming the hard
   parts and their cost.
-- Be explicit about the difference between forking a product and building a
-  research engine; the owner's differentiator matters.
-- Keep the memo under 1,800 words.
 [/INST]
