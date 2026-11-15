@@ -1,5 +1,9 @@
 # 01 — Hardware matrix and ROCm/build status
 
+> **Scope note (2026-11-15):** the 780M is a separate dense project
+> (`10-project-split.md`). The gfx1103 row/section is retained for reference
+> only; it is not a Strata target.
+
 **Sources:** `Strata/docs/AMD_HIP.md` (fetched 2026-11-15), ROCm gfx1103
 discussions, card specifications. Treat "maintainer-tested" vs "opt-in" vs
 "not supported" as the planning boundary; do not upgrade a status without a

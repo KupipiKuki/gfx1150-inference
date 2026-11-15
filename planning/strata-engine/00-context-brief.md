@@ -12,19 +12,19 @@ trail. The priority is:
 
 - **gfx1150** — Radeon 890M (current APU host): **primary**; it is the machine
   we run on and what matters.
-- **gfx1103** — Radeon 780M (Phoenix/Hawk Point iGPU, shared memory): **next**;
-  a host is available for small MoE models. It shares the APU execution model
-  with gfx1150.
 - **gfx1100** — RX 7900 XTX/XT/GRE: **future**; no card yet; Strata already
   supports it as a maintainer-tested target.
 - **gfx900** — Instinct MI25 (Vega 10, 16 GB HBM2): **deferred**; the OCuLink
   adapters and a hardware build are not ready. `06-mi25-feasibility.md` is the
   plan for when they are.
+- **gfx1103** — Radeon 780M: **separate project**; full `gfx-inference`
+  continuation (dense), not Strata. See `10-project-split.md`.
 
 The starting route is the audit's **Route 2** (modify Strata directly, pinned
-patch overlay) for gfx1150 then gfx1103; the P0–P9 capability framework is the
-escalation annex for the day gfx1100/gfx900 enters the critical path. See
-`07-plan-audit.md` and `08-roadmap-decision.md`.
+patch overlay) for **gfx1150**; the 780M is a separate dense project. The
+P0–P9 capability framework is the escalation annex for the day gfx1100/gfx900
+enters the critical path. See `07-plan-audit.md`, `08-roadmap-decision.md` and
+`10-project-split.md`.
 
 ## 2. Non-goals
 
@@ -43,8 +43,9 @@ escalation annex for the day gfx1100/gfx900 enters the critical path. See
 - The starting route is **Route 2** (modify Strata directly, pinned patch
   overlay) per `07-plan-audit.md`; a fork or a thin llama.cpp layer is the
   escalation path, not the default.
-- The 780M is experimental but next; the MI25 is deferred. Their support is an
-  **engineering claim**, not a marketing claim, until measured.
+- The 780M is a separate dense project; the MI25 is deferred. Neither is a
+  Strata critical-path target. Support is an **engineering claim**, not a
+  marketing claim, until measured.
 - The current gfx1150 host has 91.94 GiB RAM and a 45.92 GiB GTT share; it can
   validate the engine before a discrete card exists.
 
@@ -52,11 +53,11 @@ escalation annex for the day gfx1100/gfx900 enters the critical path. See
 
 1. A device-capability descriptor and runtime probe that report arch, memory
    model (unified/discrete), wave size, dtypes, matrix-core support, ROCm
-   version, and supported model families for **gfx1150 and gfx1103 now**;
-   gfx1100/gfx900 are later entries.
-2. A build matrix that compiles the engine for **gfx1150 first, then gfx1103**,
-   with a documented ROCm version and driver per target. gfx1100 is future;
-   gfx900 is deferred and not a P2 gate.
+   version, and supported model families for **gfx1150 now**; gfx1100/gfx900
+   are later entries. gfx1103 is out of scope (separate project).
+2. A build matrix that compiles the engine for **gfx1150**, with a documented
+   ROCm version and driver. gfx1100 is future; gfx900 is deferred; gfx1103 is
+   a separate project.
 3. A synthetic MoE correctness fixture that runs on the gfx1150 host and
    selects the expected kernel path per capability, with a NumPy reference.
 4. No recoding required to add a card: adding a target is a descriptor entry +
@@ -74,4 +75,5 @@ escalation annex for the day gfx1100/gfx900 enters the critical path. See
 | `06-mi25-feasibility.md` | the separate 5× MI25 / OCuLink general-LLM test (deferred) |
 | `07-plan-audit.md` | the independent audit: Route 2 first, P0–P9 escalation |
 | `08-roadmap-decision.md` | the adopted priority and the gfx1150 first action |
-| `09-model-strategy.md` | test models vs end targets; the 32 GB 780M |
+| `09-model-strategy.md` | the three gfx1150 test beds and the end targets |
+| `10-project-split.md` | Strata (gfx1150) vs the 780M dense continuation |

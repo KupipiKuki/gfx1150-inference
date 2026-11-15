@@ -1,5 +1,9 @@
 # 02 — Capability abstraction: include the cards before the kernels
 
+> **Scope note (2026-11-15):** Strata is gfx1150-only for now. gfx1103 is a
+> separate dense project (`10-project-split.md`); the descriptor can express it
+> later, but it is not in the Strata plan.
+
 **Purpose:** make a new GPU a **data** change (descriptor + build target +
 validation run), not a new kernel branch. This is the P1–P2 deliverable that
 prevents the "add the 780M or a stretch card later and recode" failure.

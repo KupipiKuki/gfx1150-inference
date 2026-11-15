@@ -102,5 +102,7 @@ If the immediate goal is **working, fast, reliable MoE inference on `gfx1150` an
 
 ---
 
-**Owner decision (2026-11-15):** adopted Route 2, gfx1150 first, 780M next,
-MI25 deferred. See [`08-roadmap-decision.md`](08-roadmap-decision.md).
+**Owner decision (2026-11-15):** adopted Route 2, **gfx1150 only**; the 780M is
+a separate `gfx-inference` dense project; MI25 deferred; gfx1100 future. See
+[`08-roadmap-decision.md`](08-roadmap-decision.md) and
+[`10-project-split.md`](10-project-split.md).

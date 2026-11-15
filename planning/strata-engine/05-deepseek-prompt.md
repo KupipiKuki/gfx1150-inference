@@ -10,15 +10,16 @@ facts, mark unknowns, and not invent ROCm/hardware support.
 
 You are a senior systems architect. Expand the attached planning pack into a
 detailed, phased implementation plan for a Strata-class MoE inference engine
-that starts on **gfx1150** (the current host), then the **780M** (gfx1103). The
-starting route is **Route 2** — modify Strata directly with a pinned patch
-overlay — per `07-plan-audit.md`; the P0–P9 fork plan is the escalation annex.
+that starts on **gfx1150** (the current host) only. The 780M is a separate
+dense project (`10-project-split.md`), not part of Strata. The starting route
+is **Route 2** — modify Strata directly with a pinned patch overlay — per
+`07-plan-audit.md`; the P0–P9 fork plan is the escalation annex.
 
 ### Inputs
 
 - `00-context-brief.md` — goal, non-goals, constraints, success criteria.
-- `01-hardware-matrix.md` — gfx1100, gfx1103 (780M), gfx900 (MI25), gfx1150,
-  gfx906 reference; ROCm/build support; risks.
+- `01-hardware-matrix.md` — gfx1150, gfx1100 (future), gfx900 (MI25, defer),
+  gfx906 reference; gfx1103 is a separate project.
 - `02-capability-abstraction.md` — descriptor, probe, build matrix, dispatch
   ladder, telemetry, tests.
 - `03-phased-plan.md` — the P0–P9 escalation annex (not the starting plan).
@@ -36,20 +37,20 @@ Produce a plan with these sections, in order:
 
 1. **Assumptions and decisions needed.** List what the pack leaves open; ask
    for the answers. Do not silently assume hardware, model or license.
-2. **Architecture.** The gfx1150/gfx1103 **APU profile** (unified memory,
+2. **Architecture.** The gfx1150 **APU profile** (unified memory,
    Wave32, WMMA, iGPU switches), the Strata engine boundary (what can be
    patched without forking), and the evidence harness. The full
    descriptor/dispatch framework is the escalation annex.
 3. **Phased plan.** Start from the audit's 4-stage lean plan (`07` §2, `08`):
-   gfx1150 baseline/tune, gfx1103 promote, evidence/packaging. For each stage:
+   gfx1150 baseline/tune, the three test beds, evidence/packaging. For each stage:
    goal, work packages, tasks, deliverables, measurable acceptance criteria,
    dependencies, effort (S/M/L), gate. Then give the P0–P9 escalation annex in
    a separate, clearly-labelled section.
-4. **Build and validation matrix.** One row per target (gfx1100, gfx1103,
+4. **Build and validation matrix.** One row per target (gfx1150, gfx1100,
    gfx900, gfx1150, gfx906 reference): ROCm/LLVM, CMake flags, table, model
    families, smoke test, expected refusal messages.
 5. **Risk register.** Likelihood, impact, mitigation, trigger, owner. Include
-   the MI25 toolchain, 780M firmware resets, fork drift, model/license,
+   the MI25 toolchain, fork drift, model/license,
    hardware availability, and the one-person schedule.
 6. **First two weeks.** The smallest ordered experiments that reduce the most
    uncertainty, each with a success criterion and an artifact. The first must
@@ -68,14 +69,15 @@ Produce a plan with these sections, in order:
 - Use only the supplied facts. Mark anything else **UNKNOWN**.
 - Do not invent ROCm versions, kernel support, model licenses, or benchmark
   numbers.
-- **gfx1150 is primary; the 780M is next; gfx1100 is future; the MI25 is
-  deferred.** Do not put gfx1100/MI25 on the critical path.
-- Design the APU profile for gfx1150/gfx1103 now; the full descriptor/dispatch
+- **gfx1150 is the only Strata target; gfx1100 is future; the MI25 is
+  deferred; the 780M is a separate dense project.** Do not put gfx1100/MI25
+  on the critical path.
+- Design the APU profile for gfx1150 now; the full descriptor/dispatch
   framework is escalation.
 - Evidence discipline: no performance claim without an artifact; one row per
   `(capability_profile, model_family, workload)`; the strict claims gate stays.
 - One person, limited hours: prefer the smallest plan that reaches a measured
-  gfx1150 result, then the 780M.
+  gfx1150 result with the three test beds.
 - Use tables and short bullets. No filler.
 
 ### Output

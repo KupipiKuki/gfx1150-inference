@@ -7,24 +7,23 @@ invent an answer.
 
 1. **gfx1150 (primary):** the current host; no decision needed. The first
    spike starts here.
-2. **780M (next):** the host is available; what is its RAM, and which small MoE
-   fits? Is it Linux-only, and is the firmware-reset risk acceptable?
+2. **780M:** **separate project** (gfx-inference dense continuation); not a
+   Strata question. See `10-project-split.md`.
 3. **gfx1100 (future):** which card (RX 7900 XTX 24 GB, XT 20 GB, GRE 16 GB)
    and when is it available? The expert-cache ceiling depends on the VRAM size.
 4. **MI25 / OCuLink (deferred):** adapters and a hardware build are not ready.
    Revisit only after one card is physically usable; `06` is the test plan.
-5. **CI:** gfx1150 now; the 780M as a manual gate until a runner exists. One
-   self-hosted runner serializes jobs.
+5. **CI:** gfx1150 now. The 780M is a separate project; it does not share the
+   Strata runner. One self-hosted runner serializes jobs.
 
 ## Model and license
 
-6. **Test model:** Mixtral 8x7B Q4_K_M (architecture-adjacent to 8x22B) or
-   Qwen3-30B-A3B (smaller/faster) for the gfx1150 spike? End targets (Qwen
-   Next, DeepSeek v2/V4, 8x22B) are gfx1150/gfx1100 only; the 780M (32 GB)
-   uses Qwen3-30B-A3B or Qwen1.5-MoE-A2.7B.
+6. **Test beds:** confirm the order Mixtral 8x7B → Qwen3-30B-A3B → DeepSeek
+   (V2-Lite if supported, else MoE-16B). End targets (Qwen Next, DeepSeek
+   v2/V4, 8x22B) are gfx1150/gfx1100 only.
 7. **Reference:** is there a known-good reference implementation/GGUF pack for
    the chosen model, and under what license? The MI25 work is deferred; do not
-   gate the gfx1150/780M model choice on it.
+   gate the gfx1150 model choice on it.
 8. **MTP:** does the chosen model have an MTP head, or is speculation
    prompt-lookup only?
 
@@ -38,13 +37,14 @@ invent an answer.
    maintains it and how is it versioned?
 11. **Product scope:** is the desktop app/server dropped (engine + CLI only),
     or kept? The app is a large surface and not part of the engine plan.
-12. **Windows:** the 780M (and the deferred MI25) are Linux-only in this plan;
-    confirm.
+12. **Windows:** the MI25 is Linux-only in this plan; the 780M is a separate
+    project. Confirm the MI25 scope when it is un-deferred.
 
 ## Process and resources
 
 13. **Time budget:** how many hours per week; is the first milestone the
-    audit's Stage 1–2 (gfx1150) only, or through Stage 3 (780M)?
+    audit's Stage 1–2 (gfx1150) only, and does the separate 780M dense Phase 8
+    start in parallel?
 14. **Evidence home:** new repository, or a branch in this one? Reuse the
     current claims ledger/checker or start a fresh ledger?
 15. **Audit/QAQC:** keep the full ceremony per milestone, or one gate per
@@ -55,8 +55,8 @@ invent an answer.
 ## Decisions already made by the owner
 
 - The next project is Strata-class (MoE + heterogeneous compute + speculation).
-- Priority: **gfx1150 first, 780M next, gfx1100 future, MI25 deferred.**
-- The 780M host is available for small MoE models.
+- Priority: **gfx1150 first, gfx1100 future, MI25 deferred; 780M separate.**
+- The 780M is a separate dense project; it is not a Strata target.
 - The starting route is Route 2 (modify Strata directly, pinned patch overlay);
   P0–P9 is the escalation annex.
 - Planning/architecting moves to the DeepSeek API; OpenCode usage is conserved
