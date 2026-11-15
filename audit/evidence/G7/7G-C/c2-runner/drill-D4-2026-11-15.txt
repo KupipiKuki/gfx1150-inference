@@ -1,0 +1,113 @@
+sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api /repos/KupipiKuki/gfx1150-inference/actions/runners/24/labels --jq ".[] | .name"'
+[sudo] password for kupipi:             
+
+Get "https://api.github.com/repos/KupipiKuki/gfx1150-inference/actions/runners/24/labels": net/http: TLS handshake timeout
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api /repos/KupipiKuki/gfx1150-inference/actions/runners/24/labels --jq ".[] | .name"'
+expected an object but got: array ([{"id":0,"name":"self-hos ...])
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api /repos/KupipiKuki/gfx1150-inference/actions/runners/24/labels --jq ".[] | .name"'
+expected an object but got: array ([{"id":0,"name":"self-hos ...])
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api /repos/KupipiKuki/gfx1150-inference/actions/runners/24/labels --jq ".labels[] | .name"'
+self-hosted
+Linux
+X64
+gfx1150
+rocm
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ # 1. remove the custom label
+sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api -X DELETE /repos/KupipiKuki/gfx1150-inference/actions/runners/24/labels/rocm'
+
+# 2. observe before the watchdog acts: expect L4 FAIL LABELS_MISMATCH, exit 3
+sudo scripts/ci/runner_doctor.sh --check; echo "exit=$?"
+{
+  "total_count": 4,
+  "labels": [
+    {
+      "id": 0,
+      "name": "self-hosted",
+      "type": "read-only"
+    },
+    {
+      "id": 0,
+      "name": "Linux",
+      "type": "read-only"
+    },
+    {
+      "id": 0,
+      "name": "X64",
+      "type": "read-only"
+    },
+    {
+      "id": 0,
+      "name": "gfx1150",
+      "type": "custom"
+    }
+  ]
+}
+gfx1150 runner doctor - 2026-11-15T03:35:14Z
+  L0  PASS  rtc=utc ntp=synchronized skew=5s
+  L1  PASS  active/running since Sat 2026-11-14 21:30:22 EST
+  L2  PASS  Runner.Listener pid=110464 user=kupipi
+  L3  PASS  log=Runner_20261115-023022-utc.log listening, no later rejection
+  L4  FAIL  LABELS_MISMATCH: missing ['rocm']; labels=['Linux', 'X64', 'gfx1150', 'self-hosted']
+VERDICT: MISCONFIGURED - LABELS_MISMATCH: missing ['rocm']; labels=['Linux', 'X64', 'gfx1150', 'self-hosted']
+exit=3
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo rm -f /run/ensure-runner.last-repair
+
+# 3. trigger one repair now (or wait up to 5 minutes for the timer)
+sudo /usr/local/sbin/gfx1150-runner-watchdog; echo "exit=$?"
+
+# 4. watch the log
+sudo tail -f /var/log/ensure-runner.log
+2026-11-15T03:35:47Z ALERT: runner MISCONFIGURED - LABELS_MISMATCH: missing ['rocm']; labels=['Linux', 'X64', 'gfx1150', 'self-hosted']
+2026-11-15T03:35:48Z stopping actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service and removing the stale local runner config
+2026-11-15T03:35:48Z re-registering runner gfx1150-host (labels: gfx1150,rocm); cause: LABELS_MISMATCH: missing ['rocm']; labels=['Linux', 'X64', 'gfx1150', 'self-hosted']
+2026-11-15T03:35:49Z re-registered; restarting actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service
+2026-11-15T03:36:06Z RECOVERED: runner is healthy again (was MISCONFIGURED)
+2026-11-15T03:36:06Z runner gfx1150-host repaired and healthy
+exit=0
+√ Successfully replaced the runner
+
+# Runner settings
+
+
+√ Settings Saved.
+
+2026-11-15T03:35:49Z re-registered; restarting actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service
+2026-11-15T03:36:06Z RECOVERED: runner is healthy again (was MISCONFIGURED)
+2026-11-15T03:36:06Z runner gfx1150-host repaired and healthy
+^C
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/runner_doctor.sh --check
+sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api /repos/KupipiKuki/gfx1150-inference/actions/runners --jq ".runners[] | {id, name, status, labels: [.labels[].name]}"'
+gfx1150 runner doctor - 2026-11-15T03:36:26Z
+  L0  WARN  clock is 7s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 22:35:49 EST
+  L2  PASS  Runner.Listener pid=116392 user=kupipi
+  L3  PASS  STARTING (no listen marker yet, 36s up)
+  L4  PASS  agent=24 status=online labels=['Linux', 'X64', 'gfx1150', 'rocm', 'self-hosted']
+  L5  PASS  runs-on ['gfx1150', 'rocm', 'self-hosted'] is covered by the runner labels
+  L5  PASS  job name matches the required check
+  L5  PASS  cron 0 5 * * * clears boot 03:38 by 82 min
+  L5  PASS  no push trigger
+  L5  PASS  permissions block present
+  L5  PASS  concurrency group present
+  L5  PASS  fork-PR guard present
+  L5  PASS  junit skip-is-not-pass guard present
+  L6  PASS  timer gfx1150-runner-watchdog.timer enabled and active
+  L6  PASS  installed watchdog matches the installed manifest /etc/gfx1150-runner/watchdog.sha256
+  L6  PASS  PAT /etc/gfx1150-runner/runner.pat is 600:root
+  L6  PASS  PAT content looks valid
+  L6  PASS  watchdog log updated 20s ago
+VERDICT: HEALTHY (1 warning(s))
+{
+  "id": 24,
+  "labels": [
+    "self-hosted",
+    "Linux",
+    "X64",
+    "gfx1150",
+    "rocm"
+  ],
+  "name": "gfx1150-host",
+  "status": "online"
+}
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ 
+
