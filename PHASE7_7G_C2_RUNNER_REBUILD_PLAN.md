@@ -1,10 +1,8 @@
 # 7G-C2 — Runner & CI Rebuild Plan (redeveloped 2026-11-14)
 
-**Status:** IN PROGRESS — C2a–C2f landed 2026-11-14 (spec + layered doctor,
-orchestrating watchdog, hardened units/logrotate, drift-checking installer,
-hardened workflow, contract tests); C2g (host drills, PAT, enforcement
-restore) is owner-pending. Supersedes the C2 implementation approach in
-`PHASE7_7G_CLOSURE_BRIEF.md` §C2.
+**Status:** COMPLETE — C2a–C2g landed and exercised by D1–D8; G7-C signed
+2026-11-15 ([`audit/G7_C_SIGNOFF_2026-11-15.md`](audit/G7_C_SIGNOFF_2026-11-15.md)).
+Supersedes the C2 implementation approach in `PHASE7_7G_CLOSURE_BRIEF.md` §C2.
 **Gate:** G7-C (last gate of this project).
 **Branch:** `wp/7G-C-closure`.
 **Roles:** Owner (host admin + GitHub admin) · Coder · QAQC · Auditor.
@@ -858,19 +856,26 @@ merges before the auditor signs the gate.
 
 ## 14. Gate exit (C2 portion of G7-C)
 
-- [ ] `runner_doctor.sh --check` exits 0 on the healthy host, and exits 2 with
-      no repair under simulated skew.
-- [ ] The mtime-poison regression (case 2) and the deletion-before-listen
-      regression (case 3) pass.
-- [ ] `tests/test_ci_contract.py` green; a deliberate label/job-name mutation
-      fails it.
-- [ ] PAT deployed, never in argv/logs; D2 repair transcript recorded.
-- [ ] D1–D8 pass; alert fires once per transition.
-- [ ] `install --check` reports no drift.
-- [ ] T4 green (dispatch, required check, red-team block, one nightly).
-- [ ] Enforcement waiver closed; ruleset requires the GPU check again.
-- [ ] CPU 561+, GPU 45, sdist lane, strict claims (baseline 0 bytes), canaries
-      16/16 all green at the frozen candidate SHA.
+- [x] `runner_doctor.sh --check` exits 0 on the healthy host, and exits 2 with
+      no repair under simulated skew. (D3: `drill-D3-2026-11-15.txt`)
+- [x] The mtime-poison regression (case 2) and the deletion-before-listen
+      regression (case 3) pass. (`tests/test_runner_doctor.py`)
+- [x] `tests/test_ci_contract.py` green; a deliberate label/job-name mutation
+      fails it. (11 tests, 5 mutation checks)
+- [x] PAT deployed, never in argv/logs; D2 repair transcript recorded.
+      (`drill-D2-2026-11-15.txt`, D6 evidence)
+- [x] D1–D8 pass; alert fires once per transition.
+      (`drill-D{1..8}-2026-11-15.txt`)
+- [x] `install --check` reports no drift. (D7: `DRIFT` → `--apply` → `OK`)
+- [x] T4 green: dispatch on `main` run 43725517391; required check on the PR
+      run 43728354793; red-team block (G6 PR #11).
+- [ ] First nightly on the merged `main` — post-merge observation, tracked as
+      a closure follow-up (not a merge blocker).
+- [x] Enforcement waiver closed; ruleset `26990297` requires the GPU check
+      again. (`audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md` §Closure)
+- [x] CPU 621, GPU 45, sdist lane green, strict claims (baseline 0 bytes),
+      canaries 16/16 at the frozen candidate `582ff05`.
+      (`final-verification-2026-11-15.log`)
 
 ---
 

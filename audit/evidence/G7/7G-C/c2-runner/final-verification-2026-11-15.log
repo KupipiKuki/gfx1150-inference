@@ -1,14 +1,14 @@
-# G7-C candidate verification — 2026-11-15T14:31:51Z
-# candidate SHA: 8d863efac5cc1e3d45ceb81608e8d971b2b7c8f3
+# G7-C candidate verification — 2026-11-15T17:39:02Z
+# candidate SHA: 582ff058dc69bea8ae39958c15e9a5ad1e178536
 # branch: wp/7G-C-closure
 
 $ pytest -m "not gpu" -q
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-620 passed, 45 deselected, 16 warnings in 55.91s
+621 passed, 45 deselected, 16 warnings in 56.05s
 
 $ pytest -m gpu -q
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-45 passed, 620 deselected, 14 warnings in 2.50s
+45 passed, 621 deselected, 14 warnings in 2.30s
 
 $ check_claims.py --strict
 
