@@ -1,0 +1,7 @@
+Current runner version: '2.338.2'
+Runner name: 'gfx1150-host'
+Runner group name: 'Default'
+Machine name: 'kupipi-AI-Series'
+=============== 45 passed, 527 deselected, 14 warnings in 2.49s ================
+GPU lane: 45 passed, 0 skipped, 0 failed, 0 errors, 45 collected
+PASS: the GPU lane ran, with no skips
