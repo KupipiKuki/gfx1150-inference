@@ -1,0 +1,6 @@
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ RUNNER_DOCTOR_FAKE_SKEW=3600 scripts/ci/runner_doctor.sh --check; echo "exit=$?"
+gfx1150 runner doctor - 2026-11-15T01:52:12Z
+  L0  FAIL  CLOCK_SKEW: host is 3600s from GitHub (limit 60s); fix timekeeping first
+VERDICT: CLOCK_SKEW - CLOCK_SKEW: host is 3600s from GitHub (limit 60s); fix timekeeping first
+exit=2
+
