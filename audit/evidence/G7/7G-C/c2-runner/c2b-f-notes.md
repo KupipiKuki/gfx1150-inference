@@ -145,9 +145,10 @@ with the same name is replaced too. Regression:
 `test_repair_removes_the_stale_local_config`; the fake `config.sh` fails if the
 stale files are still present.
 
-The live runner was recovered with the fixed watchdog. The D2 evidence should
-record the first failed attempt, the root cause, the fix, and the successful
-repair.
+The live runner was recovered with the fixed watchdog: agent 23 was deleted,
+agent 24 registered with the same labels, and the doctor is HEALTHY. The
+successful transcript is `drill-D2-2026-11-15.txt`; the failure, root cause and
+fix are in `d2-incident-2026-11-15.txt`.
 
 ## Evidence
 

@@ -1,0 +1,150 @@
+# D2 — server-side deletion + self-repair (2026-11-15)
+
+Host: gfx1150-host (gfx1150, rocm)
+Branch: wp/7G-C-closure
+Operator: kupipi (owner)
+
+## Result
+
+- The server-side registration (agent **23**) was deleted; the local runner
+  went offline.
+- The first repair attempt failed with `Cannot configure the runner because it
+  is already configured` (runner 2.338.2 checks the local `.runner`/
+  `.credentials` before `--replace`; see `d2-incident-2026-11-15.txt`).
+- Fix `c4a82a6`: the repair stops the service and removes the stale local
+  config before `config.sh --replace`.
+- The second repair succeeded: agent **24** registered, same labels, doctor
+  `VERDICT: HEALTHY` (exit 0).
+- One successful repair sequence in the log; one `RECOVERED` line.
+- `ps -eo args | grep -i github_pat_` → none; the PAT is not in the log.
+
+## Transcript
+
+```text
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api /repos/KupipiKuki/gfx1150-inference/actions/runners --jq ".runners[] | {id, name, status, labels: [.labels[].name]}"'
+{
+  "id": 23,
+  "labels": [
+    "self-hosted",
+    "Linux",
+    "X64",
+    "gfx1150",
+    "rocm"
+  ],
+  "name": "gfx1150-host",
+  "status": "online"
+}
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api -X DELETE /repos/KupipiKuki/gfx1150-inference/actions/runners/23'
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api /repos/KupipiKuki/gfx1150-inference/actions/runners --jq ".runners[] | {id, name, status}"'
+
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo tail -f /var/log/ensure-runner.log
+|                       Self-hosted runner registration                        |
+|                                                                              |
+--------------------------------------------------------------------------------
+Cannot configure the runner because it is already configured. To reconfigure the runner, run 'config.cmd remove' or './config.sh remove' first.
+2026-11-15T02:04:11Z RUNNER-REGISTRATION-OFFLINE: config.sh --replace failed (see /var/log/ensure-runner.log)
+2026-11-15T02:09:22Z ALERT: runner OFFLINE - SERVICE_DOWN: service is inactive/dead, not active/running
+2026-11-15T02:09:22Z still OFFLINE; a repair was attempted 312s ago (cooldown 1800s) — no new attempt
+2026-11-15T02:14:29Z still OFFLINE; a repair was attempted 619s ago (cooldown 1800s) — no new attempt
+2026-11-15T02:19:59Z still OFFLINE; a repair was attempted 949s ago (cooldown 1800s) — no new attempt
+2026-11-15T02:25:02Z still OFFLINE; a repair was attempted 1252s ago (cooldown 1800s) — no new attempt
+^C
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/install_runner_watchdog.sh --apply
+installed: /usr/local/sbin/gfx1150-runner-watchdog, /usr/local/sbin/gfx1150-runner-doctor, /etc/gfx1150-runner/runner.env, /etc/systemd/system/gfx1150-runner-watchdog.timer
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo rm -f /run/ensure-runner.last-repair
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo tail -f /var/log/ensure-runner.log
+|                       Self-hosted runner registration                        |
+|                                                                              |
+--------------------------------------------------------------------------------
+Cannot configure the runner because it is already configured. To reconfigure the runner, run 'config.cmd remove' or './config.sh remove' first.
+2026-11-15T02:04:11Z RUNNER-REGISTRATION-OFFLINE: config.sh --replace failed (see /var/log/ensure-runner.log)
+2026-11-15T02:09:22Z ALERT: runner OFFLINE - SERVICE_DOWN: service is inactive/dead, not active/running
+2026-11-15T02:09:22Z still OFFLINE; a repair was attempted 312s ago (cooldown 1800s) — no new attempt
+2026-11-15T02:14:29Z still OFFLINE; a repair was attempted 619s ago (cooldown 1800s) — no new attempt
+2026-11-15T02:19:59Z still OFFLINE; a repair was attempted 949s ago (cooldown 1800s) — no new attempt
+2026-11-15T02:25:02Z still OFFLINE; a repair was attempted 1252s ago (cooldown 1800s) — no new attempt
+2026-11-15T02:30:21Z stopping actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service and removing the stale local runner config
+2026-11-15T02:30:21Z re-registering runner gfx1150-host (labels: gfx1150,rocm); cause: SERVICE_DOWN: service is inactive/dead, not active/running
+ldd: ./bin/libcoreclr.so: No such file or directory
+ldd: ./bin/libSystem.Security.Cryptography.Native.OpenSsl.so: No such file or directory
+ldd: ./bin/libSystem.IO.Compression.Native.so: No such file or directory
+
+--------------------------------------------------------------------------------
+|        ____ _ _   _   _       _          _        _   _                      |
+|       / ___(_) |_| | | | |_   _| |__      / \   ___| |_(_) ___  _ __  ___      |
+|      | |  _| | __| |_| | | | | '_ \    / _ \ / __| __| |/ _ \| '_ \/ __|     |
+|      | |_| | | |_|  _  | |_| | |_) |  / ___ \ (__| |_| | (_) | | | \__ \     |
+|       \____|_|\__|_| |_|\__,_|_.__/  /_/   \_\___|\__|_|\___/|_| |_|___/     |
+|                                                                              |
+|                       Self-hosted runner registration                        |
+|                                                                              |
+--------------------------------------------------------------------------------
+
+# Authentication
+
+
+√ Connected to GitHub
+
+# Runner Registration
+
+
+
+
+√ Runner successfully added
+
+# Runner settings
+
+
+√ Settings Saved.
+
+2026-11-15T02:30:22Z re-registered; restarting actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service
+2026-11-15T02:30:40Z RECOVERED: runner is healthy again (was OFFLINE)
+2026-11-15T02:30:40Z runner gfx1150-host repaired and healthy
+^C
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/runner_doctor.sh --check
+gfx1150 runner doctor - 2026-11-15T02:31:10Z
+  L0  WARN  clock is 8s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 21:30:22 EST
+  L2  PASS  Runner.Listener pid=110464 user=kupipi
+  L3  PASS  log=Runner_20261115-023022-utc.log listening, no later rejection
+  L4  PASS  agent=24 status=online labels=['Linux', 'X64', 'gfx1150', 'rocm', 'self-hosted']
+  L5  PASS  runs-on ['gfx1150', 'rocm', 'self-hosted'] is covered by the runner labels
+  L5  PASS  job name matches the required check
+  L5  PASS  cron 0 5 * * * clears boot 03:38 by 82 min
+  L5  PASS  no push trigger
+  L5  PASS  permissions block present
+  L5  PASS  concurrency group present
+  L5  PASS  fork-PR guard present
+  L5  PASS  junit skip-is-not-pass guard present
+  L6  PASS  timer gfx1150-runner-watchdog.timer enabled and active
+  L6  PASS  installed watchdog matches the installed manifest /etc/gfx1150-runner/watchdog.sha256
+  L6  PASS  PAT /etc/gfx1150-runner/runner.pat is 600:root
+  L6  PASS  PAT content looks valid
+  L6  PASS  watchdog log updated 30s ago
+VERDICT: HEALTHY (1 warning(s))
+{
+  "id": 24,
+  "labels": [
+    "self-hosted",
+    "Linux",
+    "X64",
+    "gfx1150",
+    "rocm"
+  ],
+  "name": "gfx1150-host",
+  "status": "online"
+}
+```
+
+## Post-drill checks (read-only)
+
+```text
+$ ps -eo args | grep -i github_pat_ | grep -v grep
+none
+$ grep -c github_pat_ /var/log/ensure-runner.log
+0
+$ systemctl is-active gfx1150-runner-watchdog.timer
+active
+$ systemctl is-active actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service
+active
+```
