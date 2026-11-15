@@ -1,15 +1,15 @@
-# C2b–C2f test evidence — 2026-11-15T02:19:27Z
+# C2b–C2f test evidence — 2026-11-15T04:12:18Z
 # branch: wp/7G-C-closure
-# parent commit: 3dd997c5d276b137efdf366ebe99760256ad5f0a
-# working tree: C2b–C2f + D2 re-registration fix
+# parent commit: fa76bbc7f5b4ae71fcf33cafcfb67807cfb8fb06
+# working tree: C2b–C2f + D2/D5 fixes
 
 $ pytest tests/test_runner_doctor.py -q
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-22 passed, 13 warnings in 1.48s
+23 passed, 13 warnings in 1.55s
 
 $ pytest tests/test_runner_watchdog.py -q
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-20 passed, 13 warnings in 4.36s
+20 passed, 13 warnings in 4.38s
 
 $ pytest tests/test_ci_contract.py -q
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
@@ -17,15 +17,15 @@ $ pytest tests/test_ci_contract.py -q
 
 $ pytest tests/test_install_runner_watchdog.py -q
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-8 passed, 13 warnings in 0.37s
+8 passed, 13 warnings in 0.36s
 
 $ pytest -m "not gpu" -q
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-619 passed, 45 deselected, 16 warnings in 55.93s
+620 passed, 45 deselected, 16 warnings in 56.22s
 
 $ pytest -m gpu -q
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-45 passed, 619 deselected, 14 warnings in 2.31s
+45 passed, 620 deselected, 14 warnings in 2.47s
 
 $ check_claims.py --strict
 

@@ -251,6 +251,35 @@ def test_starting_grace_exits_zero(host):
     assert "STARTING" in result.stdout
 
 
+def test_session_log_prefers_the_listener_over_the_config_log(host):
+    """On a restart the runner writes a config log and a listener log ~1 s
+    apart. A closest-timestamp tie can select the config log (no listen
+    marker) and report a healthy runner as NOT_LISTENING. The listener log
+    (at/after the service start) must win."""
+    start_epoch = int(subprocess.check_output(
+        ["date", "-d", host["state"].joinpath("start-ts").read_text().strip(), "+%s"],
+        text=True,
+    ).strip())
+    host["current"].unlink()
+
+    config_stamp = subprocess.check_output(
+        ["date", "-u", "-d", f"@{start_epoch - 1}", "+%Y%m%d-%H%M%S"], text=True
+    ).strip()
+    (host["diag"] / f"Runner_{config_stamp}-utc.log").write_text("configuration output\n")
+
+    listener_stamp = subprocess.check_output(
+        ["date", "-u", "-d", f"@{start_epoch + 1}", "+%Y%m%d-%H%M%S"], text=True
+    ).strip()
+    listener = host["diag"] / f"Runner_{listener_stamp}-utc.log"
+    listener.write_text(f"{LISTEN}\n")
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "listening, no later rejection" in result.stdout
+    assert listener.name in result.stdout
+
+
 # ---------------------------------------------------------------- offline --
 
 

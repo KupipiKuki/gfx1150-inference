@@ -80,11 +80,11 @@ self-repair layer is the part that is not deployed. The installer refuses
 ## Verification
 
 ```text
-22 passed  tests/test_runner_doctor.py
+23 passed  tests/test_runner_doctor.py
 20 passed  tests/test_runner_watchdog.py
 10 passed  tests/test_ci_contract.py
  8 passed  tests/test_install_runner_watchdog.py
-619 passed pytest -m "not gpu"
+620 passed pytest -m "not gpu"
 45 passed  pytest -m gpu
 PASS       check_claims.py --strict (baseline 0 bytes)
 16/16      canary_claims.py
@@ -149,6 +149,24 @@ The live runner was recovered with the fixed watchdog: agent 23 was deleted,
 agent 24 registered with the same labels, and the doctor is HEALTHY. The
 successful transcript is `drill-D2-2026-11-15.txt`; the failure, root cause and
 fix are in `d2-incident-2026-11-15.txt`.
+
+
+## Addendum 3 — D5 exposed the L3 config/listener tie (2026-11-15)
+
+D5 triggered a real GPU job. The busy guard worked (`JOB_IN_FLIGHT`, exit 0,
+job succeeded, 45 passed / 0 skipped), but the doctor first reported
+`NOT_LISTENING` while the runner was in fact listening, and the watchdog later
+performed an unnecessary repair.
+
+Root cause: on a restart the runner writes a configuration log and a listener
+log ~1-2 s apart. The old `session_log()` picked the file with the smallest
+absolute delta; when the service start fell between them the deltas tied, and
+the configuration log (no `Listening for Jobs` marker) won by glob order.
+
+Fix: prefer a file at/after the service start, falling back to the closest
+before only when no at/after file exists. Regression:
+`test_session_log_prefers_the_listener_over_the_config_log`. The incident is
+recorded in `d5-incident-2026-11-15.txt`.
 
 ## Evidence
 

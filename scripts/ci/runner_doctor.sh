@@ -271,12 +271,17 @@ service_uptime_secs() {
 }
 
 session_log() {
-  # The runner names each diag file with its own start time
-  # (Runner_YYYYMMDD-HHMMSS-utc.log). systemd records the same start time.
-  # Match by NAME, never by mtime: this host's clock jumps reorder mtimes.
-  # Only a file at/after the service start (minus 5 s of granularity) can
-  # belong to this session.
-  local start stamp f base fsec delta best="" best_delta=999999
+  # The runner writes two diag files about a second apart on a restart: a
+  # configuration/start log and the listener log. Only the listener log has
+  # "Listening for Jobs". systemd records the service start between them, so a
+  # closest-timestamp tie can select the configuration log and report a
+  # healthy runner as NOT_LISTENING (D5 exposed exactly this).
+  #
+  # Match by NAME, never by mtime (clock jumps reorder mtimes). Prefer a file
+  # at or after the service start; fall back to the closest file within the
+  # 5 s granularity window only when no at/after file exists.
+  local start stamp f base fsec delta
+  local after="" after_delta=999999 before="" before_delta=999999
   start="$(systemctl show "${SERVICE_UNIT}" -p ExecMainStartTimestamp --value 2>/dev/null || true)"
   [ -n "${start}" ] || return 1
   stamp="$(date -d "${start}" +%s 2>/dev/null)" || return 1
@@ -287,15 +292,26 @@ session_log() {
     fsec="$(date -u -d "${base:0:8} ${base:9:2}:${base:11:2}:${base:13:2}" +%s 2>/dev/null)" || continue
     [ "${fsec}" -ge "$((stamp - 5))" ] || continue
     [ "${fsec}" -le "$((stamp + 180))" ] || continue
-    delta=$((fsec - stamp))
-    [ "${delta}" -lt 0 ] && delta=$(( -delta ))
-    if [ "${delta}" -lt "${best_delta}" ]; then
-      best="${f}"
-      best_delta="${delta}"
+    if [ "${fsec}" -ge "${stamp}" ]; then
+      delta=$((fsec - stamp))
+      if [ "${delta}" -lt "${after_delta}" ]; then
+        after="${f}"
+        after_delta="${delta}"
+      fi
+    else
+      delta=$((stamp - fsec))
+      if [ "${delta}" -lt "${before_delta}" ]; then
+        before="${f}"
+        before_delta="${delta}"
+      fi
     fi
   done
-  [ -n "${best}" ] || return 1
-  printf '%s\n' "${best}"
+  if [ -n "${after}" ]; then
+    printf '%s\n' "${after}"
+    return 0
+  fi
+  [ -n "${before}" ] || return 1
+  printf '%s\n' "${before}"
 }
 
 layer_l3() {
