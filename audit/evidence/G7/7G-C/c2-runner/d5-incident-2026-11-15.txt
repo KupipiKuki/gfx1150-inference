@@ -1,0 +1,30 @@
+# D5 incident — false NOT_LISTENING and an unnecessary repair (2026-11-15)
+
+## What D5 showed
+
+The GPU job ran and succeeded (45 passed, 0 skipped), and the busy guard
+worked: at 04:05:30 the doctor reported JOB_IN_FLIGHT (exit 0) while
+Runner.Worker pid=122201 was alive.
+
+But at 04:04:14 and 04:04:37 the doctor reported NOT_LISTENING while the
+runner was in fact listening (the job started at 04:05:28). After the
+30-minute cooldown expired, the watchdog performed an unnecessary repair
+at 04:08:47 (cause: NOT_LISTENING).
+
+## Root cause
+
+On a restart the runner writes two diag files about a second apart:
+  Runner_20261115-033548-utc.log  (configuration/start log, 0 listen markers)
+  Runner_20261115-033550-utc.log  (listener log, 1 listen marker)
+systemd recorded the service start at 03:35:49, between them. The old
+session_log() picked the file with the smallest absolute delta; both were
+1 s away, so the first in glob order (the configuration log) won and L3
+reported never listened.
+
+## Fix
+
+session_log() now prefers a file at/after the service start and falls back
+to the closest before only when no at/after file exists. Regression:
+test_session_log_prefers_the_listener_over_the_config_log.
+
+The live runner is healthy now (L3 PASS, listener log selected).

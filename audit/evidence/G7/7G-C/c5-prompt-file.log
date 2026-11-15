@@ -1,0 +1,52 @@
+# C5 evidence: --prompt-file/--prompt - battery (script /tmp/c5/run_c5_evidence.py)
+# model: TinyLlama-1.1B-Chat Q4_K_M, host gfx1150, HEAD cac3eed
+# case 1: 46080-byte prompt file, --max-seq-len 16384, --stats, 8 greedy tokens
+# case 2: --prompt - with stdin sentence
+# case 3: five failure modes -> exit 2, no traceback
+# case 4: sentinel leak scan over stdout+stderr (telemetry/stats) -> no hits
+# case 5: no-source legacy default retained (documented design note)
+
+prompt file size: 46080 bytes
+
+== case 1: 45 KB --prompt-file, --stats, greedy, 8 new tokens ==
+exit: 0
+stdout tail: rhr11111
+
+stderr tail: n=1.7845 mean=494.4665 min=0.8721 max=4142.4 p95=4126.1 n=176.0000 layer_copy_ms=median=2.6909 mean=2.5784 min=0.8999 max=3.2033 p95=2.9768 n=176.0000 layer_overlap_ms=median=1.2296 mean=1.1279 min=0.0192 max=1.8873 p95=1.3059 n=176.0000
+[stats] per-projection kernel ms (median): down=0.3319 gate=0.5866 k=0.0519 o=0.1118 q=0.1154 up=0.5945 v=0.0330
+[stats] model: arch=llama num_layers=22 hidden_size=2048 vocab_size=32000
+[stats] residency: decision=ResidencyDecision(requested=<ResidencyPolicy.AUTO: 'auto'>, effective=<ResidencyPolicy.PIN_ALL: 'pin_all'>, reason='AUTO: weight bytes (667078656) fit the budget (47990605312); pinning in the host page cache', weight_bytes=667078656, weight_budget=47990605312, over_budget=False) weight_bytes=667078656 kv_device_bytes=369098752 max_seq_len=16384
+
+
+== case 2: --prompt - (stdin) ==
+exit: 0
+stdout tail: a 100000
+
+stderr tail: 0.0191 max=1.0784 p95=0.9138 n=176.0000
+[stats] per-projection kernel ms (median): down=0.1693 gate=0.2314 k=0.0268 o=0.0753 q=0.0829 up=0.2144 v=0.0272
+[stats] model: arch=llama num_layers=22 hidden_size=2048 vocab_size=32000
+[stats] residency: decision=ResidencyDecision(requested=<ResidencyPolicy.AUTO: 'auto'>, effective=<ResidencyPolicy.PIN_ALL: 'pin_all'>, reason='AUTO: weight bytes (667078656) fit the budget (48552642048); pinning in the host page cache', weight_bytes=667078656, weight_budget=48552642048, over_budget=False) weight_bytes=667078656 kv_device_bytes=46137344 max_seq_len=2048
+
+
+== case 3: error cases (expect exit 2, one line, no traceback) ==
+  missing-file: exit=2 stderr_lines=0 traceback=False
+    stderr: gfx1150-infer: error: cannot read the prompt file '/tmp/c5/no-such-file.txt': [Errno 2] No such file or directory: '/tmp/c5/no-such-file.txt'
+  directory: exit=2 stderr_lines=0 traceback=False
+    stderr: gfx1150-infer: error: cannot read the prompt file '/tmp/c5': [Errno 21] Is a directory: '/tmp/c5'
+  empty-file: exit=2 stderr_lines=0 traceback=False
+    stderr: gfx1150-infer: error: the prompt file '/tmp/c5/empty.txt' is empty
+  non-utf8: exit=2 stderr_lines=0 traceback=False
+    stderr: gfx1150-infer: error: the prompt file '/tmp/c5/binary.bin' is not valid UTF-8: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+  both-sources: exit=2 stderr_lines=13 traceback=False
+    stderr: usage: gfx1150-infer [-h] --model MODEL [--prompt PROMPT]
+                     [--prompt-file PROMPT_FILE]
+                     [--max-new-tokens MAX_NEW_TOKENS
+
+== case 5: no-source keeps the documented legacy default 'Hello' ==
+exit: 0 (legacy default prompt used; see notes.md)
+
+== case 4: leak check — prompt content must not reach telemetry/stats/stderr ==
+  45k-file: sentinel-in-output=False
+  stdin: sentinel-in-output=False
+
+ALL C5 EVIDENCE CASES PASSED

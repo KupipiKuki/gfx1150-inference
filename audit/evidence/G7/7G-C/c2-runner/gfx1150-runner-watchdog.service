@@ -1,0 +1,13 @@
+[Unit]
+Description=7G-C watchdog: gfx1150 self-hosted runner registration self-repair
+# Repair (re-register + restart) when the server-side registration was
+# deleted. Fails (OnFailure) when the runner is still not listening.
+OnFailure=gfx1150-runner-watchdog-alert.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ensure_runner_registered.sh
+# never widen: the script needs root only for systemctl/journalctl and the
+# root-owned PAT file
+User=root
+NumberOfFiles=1024

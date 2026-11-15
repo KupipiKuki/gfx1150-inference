@@ -1,0 +1,12 @@
+[Unit]
+Description=gfx1150 runner watchdog alert (transition hook)
+Documentation=file:///home/kupipi/Documents/git/gfx1150-inference/scripts/ci/README.md
+# Started by the watchdog only on a healthy->broken transition. Extend this
+# unit (mail, webhook, paging) when the owner wants active notification; never
+# put the PAT or a token here.
+
+[Service]
+Type=oneshot
+# The durable record is /var/log/ensure-runner.log (written by the watchdog)
+# and the journal. This unit adds one clearly-tagged journal line per outage.
+ExecStart=/bin/sh -c 'echo "gfx1150 runner-watchdog: ALERT transition (state=$(cat /run/gfx1150-runner.state 2>/dev/null || echo unknown); see /var/log/ensure-runner.log)" >&2'

@@ -1,0 +1,52 @@
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/runner_doctor.sh --check
+gfx1150 runner doctor - 2026-11-15T14:06:59Z
+  L0  WARN  clock is 12s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 23:08:49 EST
+  L2  PASS  Runner.Listener pid=124356 user=kupipi
+  L3  PASS  log=Runner_20261115-040849-utc.log listening, no later rejection
+  L4  PASS  agent=24 status=online labels=['Linux', 'X64', 'gfx1150', 'rocm', 'self-hosted']
+  L5  PASS  runs-on ['gfx1150', 'rocm', 'self-hosted'] is covered by the runner labels
+  L5  PASS  job name matches the required check
+  L5  PASS  cron 0 5 * * * clears boot 03:38 by 82 min
+  L5  PASS  no push trigger
+  L5  PASS  permissions block present
+  L5  PASS  concurrency group present
+  L5  PASS  fork-PR guard present
+  L5  PASS  junit skip-is-not-pass guard present
+  L6  PASS  timer gfx1150-runner-watchdog.timer enabled and active
+  L6  PASS  installed watchdog matches the installed manifest /etc/gfx1150-runner/watchdog.sha256
+  L6  PASS  PAT /etc/gfx1150-runner/runner.pat is 600:root
+  L6  PASS  PAT content looks valid
+  L6  PASS  watchdog log updated 170s ago
+VERDICT: HEALTHY (1 warning(s))
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api -X POST /repos/KupipiKuki/gfx1150-inference/actions/runners/registration-token --jq ".token | length"'
+29
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/runner_doctor.sh --check
+gfx1150 runner doctor - 2026-11-15T14:09:58Z
+  L0  WARN  clock is 13s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 23:08:49 EST
+  L2  PASS  Runner.Listener pid=124356 user=kupipi
+  L3  PASS  log=Runner_20261115-040849-utc.log listening, no later rejection
+  L4  PASS  agent=24 status=online labels=['Linux', 'X64', 'gfx1150', 'rocm', 'self-hosted']
+  L5  PASS  runs-on ['gfx1150', 'rocm', 'self-hosted'] is covered by the runner labels
+  L5  PASS  job name matches the required check
+  L5  PASS  cron 0 5 * * * clears boot 03:38 by 82 min
+  L5  PASS  no push trigger
+  L5  PASS  permissions block present
+  L5  PASS  concurrency group present
+  L5  PASS  fork-PR guard present
+  L5  PASS  junit skip-is-not-pass guard present
+  L6  PASS  timer gfx1150-runner-watchdog.timer enabled and active
+  L6  PASS  installed watchdog matches the installed manifest /etc/gfx1150-runner/watchdog.sha256
+  L6  PASS  PAT /etc/gfx1150-runner/runner.pat is 600:root
+  L6  PASS  PAT content looks valid
+  L6  PASS  watchdog log updated 45s ago
+VERDICT: HEALTHY (1 warning(s))
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh api -X POST /repos/KupipiKuki/gfx1150-inference/actions/runners/registration-token --jq "keys, (.token | length), .expires_at"'
+[
+  "expires_at",
+  "token"
+]
+29
+2026-11-15T10:10:17.318-05:00
+

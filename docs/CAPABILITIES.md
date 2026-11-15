@@ -30,7 +30,7 @@ share one physical pool, and the device-visible share is roughly half of it.
 | Model class | Status | Evidence |
 |---|---|---|
 | llama-family **dense** `Q4_0` / `Q4_K` / `Q8_0` | kernel paths hardware-verified on synthetic GGUFs | `audit/evidence/G0/7.0-baseline/gpu-suite.log` |
-| llama-family `Q4_K_M` (Q4_K+Q6_K mix) / `Q6_K` | kernels verified; **real** GGUF runs exist; **no exact golden** (strict 16-step FAIL recorded; a decisive-margin comparison passes for one flavor, is inconclusive for the mixed recipe) | `audit/evidence/G6/7F/golden/` |
+| llama-family `Q4_K_M` (Q4_K+Q6_K mix) / `Q6_K` | kernels verified; **real** GGUF runs exist; **no exact golden** (strict 16-step FAIL recorded on every run; the 7G-C re-adjudication records decisive-margin comparisons passing on four of five prompts — Q6_K, both original Q4_K_M prompt 1 and two new forced-completion prompts — and one Q4_K_M prompt staying INCONCLUSIVE, 1 decisive step < the pre-registered minimum of 2) | `audit/evidence/G6/7F/golden/`, `audit/evidence/G7/7G-C/c3-golden/` |
 | `phi3` / `gemma` | **synthetic-fixture verified only** — no real GGUF ever run | `audit/evidence/G3/7C/` |
 | `qwen2` | **metadata/bias regression target only** — not a support claim | `audit/evidence/G3/7C/` |
 | Chat templates | **not** verified end-to-end for any family | — |
@@ -86,7 +86,11 @@ Mistral-7B (32K native context), a 9,121-token prompt, 8 decode steps:
 This is the profile the project is built for: **long prompts, long contexts,
 hours of wall-clock, no interactivity requirement.** The KV cache refuses
 allocations it cannot back (a 4.29 GB request against a 3 GiB cap is rejected
-with an explicit error, not an OOM).
+with an explicit error, not an OOM). Since 7G-C (C6), the offloaded-pool
+budget is bounded by host RAM (and free disk for the mmap pool) rather than
+the GTT share, so this profile works on hosts with a small device slice; the
+32K-context `--offload-kv-cpu` acceptance run is recorded in
+`audit/evidence/G7/7G-C/c6-kv-budget.log`.
 
 ## 4. Two execution paths — know which one you get
 
@@ -113,8 +117,9 @@ hidden.
 | `--residency {auto,pin,stream}` | whole model pinned in the host page cache, or evicted per layer | **all-or-nothing**; there is no partial cap today |
 | `--residency-budget-mb` | overrides the *computed* weight budget | absolute MB only; flips AUTO between pin/stream |
 | `--max-kv-bytes` | hard cap on the KV cache | the 10% safety margin is applied on top |
-| `--offload-kv-cpu` | KV lives in host RAM, **0 device bytes** | runs the Python path (§4) |
-| `--kv-mmap-dir` | KV is a disk-backed mmap, unlinked immediately | disk-backed; frees device memory |
+| `--offload-kv-cpu` | KV lives in host RAM, **0 device bytes** | runs the Python path (§4); its allocation budget is **host RAM** (`MemAvailable`, cgroup), not the GTT share (7G-C/C6) |
+| `--kv-mmap-dir` | KV is a disk-backed mmap, unlinked immediately | disk-backed; frees device memory; budget is host RAM **and** free disk space, with explicit refusals naming the shortfall (7G-C/C6) |
+| `--prompt-file PATH` / `--prompt -` | read the prompt from a UTF-8 file or stdin (mutually exclusive with `--prompt`) | 7G-C/C5: multi-KB research prompts; clean one-line errors (exit 2) on missing/empty/directory/non-UTF-8; prompt content never enters the telemetry payload |
 | `--prefill-chunk-size` | chunked prefill | long-prompt path |
 
 Budget sources (7D): GTT free, host `MemAvailable`, cgroup v2/v1 — intersected,

@@ -13,6 +13,21 @@
 
 ---
 
+> **AUDIT REWORK (2026-11-14): G7-C is NOT SIGNED.** C1, C3, C4, C5, C6 and C7 are
+> accepted (independently reproduced). **C2 has two defects** in
+> `scripts/ci/ensure_runner_registered.sh`:
+> **(1, High)** the health check greps the journal for `Listening for Jobs`
+> inside a *moving 10-minute window*, but that marker is written **once per
+> runner start** (3 occurrences vs 8 service starts on this host) — so a healthy
+> runner is misread as offline and the 5-minute timer would re-register and
+> restart it every 5 minutes (or alert every 5 minutes without a PAT);
+> **(2, Medium)** the PAT is passed in `curl`'s **argv**
+> (`-H "Authorization: Bearer ${PAT}"`), contradicting both the script's own
+> comment and the brief's "never in the process list" requirement. Exact fixes
+> are in [`audit/AUDIT_7G_C_2026-11-14.md`](audit/AUDIT_7G_C_2026-11-14.md) §3.
+> Also noted there: the logits blobs should be hashes only (N1) and the C3
+> pre-registration should live in its own commit (N2).
+
 ## 0. Read first
 
 1. `PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md` §7G-C (the package table and the
@@ -76,6 +91,21 @@ change** — a flake, not a pass.
 lanes stay green; the 7D evidence bundle and the ledger wording are unchanged.
 
 ### C2 — runner registration durability (G6-QF-2)
+
+> **C2 SUPERSEDED (2026-11-14): redeveloped as
+> [`PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md`](PHASE7_7G_C2_RUNNER_REBUILD_PLAN.md).**
+> The original approach below produced a script whose health check could not
+> recognise a healthy runner and whose PAT handling contradicted the brief;
+> live verification then found three more defects (mtime-based log selection,
+> host clock skew, missing label assertion). The rebuild plan replaces the
+> ad-hoc checks with one spec (`scripts/ci/runner.env`), one layered doctor
+> (`scripts/ci/runner_doctor.sh`), a current-session health algorithm, a
+> transition-based watchdog, a drift-checking installer and a contract test.
+> **Status 2026-11-15:** C2a–C2g complete; drills D1–D8 recorded; ruleset
+> `26990297` restored; waiver closed; G7-C signed
+> ([`audit/G7_C_SIGNOFF_2026-11-15.md`](audit/G7_C_SIGNOFF_2026-11-15.md)).
+> **New acceptance for C2 is §14 of that plan**; the text below is kept for
+> traceability only.
 
 **Defect.** The runner's **server-side registration was deleted four times in
 four days with no local action** (the local `.runner`/`.credentials` are

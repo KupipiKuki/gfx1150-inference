@@ -1,0 +1,6 @@
+# GPU lane (interim control): PYTHONPATH=build python -m pytest -m gpu -q
+# host: gfx1150 runner host, cac3eeddc02164fcb98e654c24b4b8aa27d6a05c
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+45 passed, 547 deselected, 14 warnings in 2.20s
+exit=0

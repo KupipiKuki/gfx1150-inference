@@ -1,0 +1,47 @@
+
+sudo sh -c 'GH_TOKEN=$(tr -d "\r\n" < /etc/gfx1150-runner/runner.pat) gh workflow run "Self-Hosted GPU CI" --ref wp/7G-C-closure'
+[sudo] password for kupipi:             
+GraphQL: Resource not accessible by personal access token (repo_000.defaultBranchRef)
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/runner_doctor.sh --check; echo "exit=$?"
+gfx1150 runner doctor - 2026-11-15T04:04:14Z
+  L0  WARN  clock is 8s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 22:35:49 EST
+  L2  PASS  Runner.Listener pid=116392 user=kupipi
+  L3  FAIL  NOT_LISTENING: service is up but never listened (crash loop or rejected session)
+VERDICT: OFFLINE - NOT_LISTENING: service is up but never listened (crash loop or rejected session) (1 warning(s))
+exit=1
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/runner_doctor.sh --check; echo "exit=$?"
+gfx1150 runner doctor - 2026-11-15T04:04:37Z
+  L0  WARN  clock is 7s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 22:35:49 EST
+  L2  PASS  Runner.Listener pid=116392 user=kupipi
+  L3  FAIL  NOT_LISTENING: service is up but never listened (crash loop or rejected session)
+VERDICT: OFFLINE - NOT_LISTENING: service is up but never listened (crash loop or rejected session) (1 warning(s))
+exit=1
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/runner_doctor.sh --check; echo "exit=$?"
+gfx1150 runner doctor - 2026-11-15T04:05:30Z
+  L0  WARN  clock is 15s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 22:35:49 EST
+  L2  PASS  JOB_IN_FLIGHT: Runner.Worker pid=122201 (listener pid=116392)
+VERDICT: HEALTHY - JOB_IN_FLIGHT (1 warning(s))
+exit=0
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ systemctl show -p ExecMainStartTimestamp --value actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service
+Sat 2026-11-14 22:35:49 EST
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ ls -t ~/actions-runner/_diag/Worker_*.log | head -1
+grep -E 'Job result after all job steps finish|Succeeded' "$(ls -t ~/actions-runner/_diag/Worker_*.log | head -1)"
+/home/kupipi/actions-runner/_diag/Worker_20261115-040528-utc.log
+[2026-11-15 04:05:31Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:31Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:33Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:33Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:35Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:39Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:43Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:44Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:44Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-11-15 04:05:44Z INFO JobRunner] Job result after all job steps finish: Succeeded
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ 
+
+
+GPU lane: 45 passed, 0 skipped, 0 failed, 0 errors, 45 collected
+PASS: the GPU lane ran, with no skips

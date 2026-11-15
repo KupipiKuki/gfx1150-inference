@@ -7,8 +7,9 @@ on the model file descriptor as the **primary** page-cache hint. Because the ker
 will not free pages that a live mapping still maps, the span is first dropped from
 this read-only mapping's page table — ``mmap.MADV_PAGEOUT`` when the host exposes
 it, otherwise ``mmap.MADV_DONTNEED`` (the same PTE drop on an ``ACCESS_READ``
-mapping; an enabler for the fadvise, not page-cache eviction in itself, no data
-loss — pages re-fault from the file on next use). When neither fadvise nor
+mapping; ``MADV_DONTNEED`` is also the fallback when ``MADV_PAGEOUT`` fails);
+an enabler for the fadvise, not page-cache eviction in itself, no data loss
+— pages re-fault from the file on next use). When neither fadvise nor
 ``MADV_PAGEOUT`` exists, the PTE drop alone is a best-effort fallback with a
 one-time warning. All advice is best-effort: it is not a hard RAM bound.
 
@@ -389,9 +390,19 @@ class WeightStreamer:
                 try:
                     madvise(pageout, offset, length)
                 except OSError as exc:
+                    # 7G-C (C1, G6-QF-1): a failing MADV_PAGEOUT must not leave
+                    # the span mapped — the subsequent fadvise cannot evict
+                    # pages a live PTE still maps. Fall back to the identical
+                    # PTE drop on this ACCESS_READ mapping (MADV_DONTNEED).
                     self._warn_eviction_once(
-                        f"MADV_PAGEOUT failed and was skipped (best-effort): {exc}"
+                        f"MADV_PAGEOUT failed ({exc}); falling back to "
+                        f"MADV_DONTNEED (PTE drop, best-effort)"
                     )
+                    if have_dontneed:
+                        try:
+                            madvise(mmap.MADV_DONTNEED, offset, length)
+                        except OSError:
+                            pass  # best-effort advice; never fatal
             elif madvise is not None and have_dontneed:
                 try:
                     madvise(mmap.MADV_DONTNEED, offset, length)

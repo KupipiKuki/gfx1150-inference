@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the gfx1150 runner watchdog every 5 minutes
+Documentation=file:///home/kupipi/Documents/git/gfx1150-inference/scripts/ci/README.md
+
+[Timer]
+# The host boots at ~03:38 UTC and the runner needs a few minutes to register;
+# 5 min keeps the first tick clear of the boot window.
+OnBootSec=5min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -18,3 +18,14 @@ recursive-include tests/fixtures *
 # and the baseline .json).
 recursive-include scripts/bench *.py *.json
 
+# Phase 7G-C (C2): the runner/CI tests exercise the real scripts, the runner
+# spec, the watchdog units and the workflow contract. They must ship with the
+# sdist, or the extracted-tree lane cannot collect them (the tests locate
+# scripts/ci/ and .github/workflows/ relative to the repository root).
+recursive-include scripts/ci *.sh *.env *.service *.timer *.logrotate
+include .github/workflows/ci-gpu.yml
+
+# Do not ship interpreter caches (the fixtures directory is copied with a
+# wildcard, which would otherwise include __pycache__/*.pyc).
+global-exclude *.py[cod]
+

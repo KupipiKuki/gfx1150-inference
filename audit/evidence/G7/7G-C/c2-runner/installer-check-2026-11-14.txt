@@ -1,0 +1,16 @@
+# C2b–C2f installer --check (pre-deploy, expected DRIFT) — 2026-11-14T22:47:04Z
+
+$ scripts/ci/install_runner_watchdog.sh --check
+script     /usr/local/sbin/gfx1150-runner-watchdog              MISSING
+script     /usr/local/sbin/gfx1150-runner-doctor                MISSING
+spec       /etc/gfx1150-runner/runner.env                       MISSING
+unit       /etc/systemd/system/gfx1150-runner-watchdog.service  DRIFT
+unit       /etc/systemd/system/gfx1150-runner-watchdog.timer    DRIFT
+unit       /etc/systemd/system/gfx1150-runner-watchdog-alert.service DRIFT
+logrotate  /etc/logrotate.d/gfx1150-runner-watchdog             MISSING
+manifest   /etc/gfx1150-runner/watchdog.sha256                  MISSING
+unit       gfx1150-runner-watchdog.timer                        NOT ENABLED (disabled)
+unit       gfx1150-runner-watchdog.timer                        NOT ACTIVE (inactive)
+PAT        /etc/gfx1150-runner/runner.pat                       MISSING (owner action)
+RESULT: DRIFT
+exit=1

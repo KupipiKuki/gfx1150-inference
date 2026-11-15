@@ -1,0 +1,16 @@
+[Unit]
+Description=gfx1150 runner watchdog (doctor + self-repair)
+Documentation=file:///home/kupipi/Documents/git/gfx1150-inference/scripts/ci/README.md
+# Timekeeping is the first health layer: never run before NTP has settled.
+After=network-online.target time-sync.target
+Wants=network-online.target
+# No OnFailure: alerts are transition-based inside the script, so one outage
+# produces one alert and one recovery line, not one alert per tick.
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/sbin/gfx1150-runner-watchdog
+# The doctor bounds its own network calls; this is the outer guard for the
+# whole tick (doctor + one repair + verify poll).
+TimeoutStartSec=240s

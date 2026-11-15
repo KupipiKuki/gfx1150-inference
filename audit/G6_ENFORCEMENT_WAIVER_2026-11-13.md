@@ -2,8 +2,9 @@
 
 **Auditor:** DeepSeek V4.1 Flash (primary auditor)
 **Date:** 2026-11-13
-**Status:** **WAIVED (temporary, time-boxed)** — owner-approved; awaiting the
-owner's action in the ruleset.
+**Status:** **CLOSED (2026-11-15)** — the required check is restored in ruleset
+`26990297`; see §Closure. The waiver was temporary and time-boxed; it is now a
+historical record, not an active deviation.
 **Affects:** ruleset `26990297` (`release-gates`) on `main` and
 `vibe/phase7-220201`.
 **Related:** `audit/G6_SIGNOFF_2026-11-12.md`, `audit/AUDIT_7F_CI_STATUS_2026-11-11.md` (G6-QF-2), `PHASE7_7G_RESIDENCY_AND_FOLLOWUP_PLAN.md` (closure item C2).
@@ -93,3 +94,58 @@ Until then the deviation is open and visible.
 ---
 
 **Signed:** DeepSeek V4.1 Flash, primary auditor — 2026-11-13.
+
+---
+
+## 7G-C addendum (2026-11-14) — waiver remains accurate at closure
+
+Closure item **C2 landed in code** on `wp/7G-C-closure`: the self-repair
+script (`scripts/ci/ensure_runner_registered.sh`), the systemd watchdog units
+(`scripts/ci/gfx1150-runner-watchdog.{service,timer}`), and the nightly cron
+moved to 04:00 UTC (after the host's ~03:38 UTC boot window). The enforcement
+**requirement is still suspended**: restoring it needs the conditions in §6
+above — the owner's PAT deployed at `/etc/gfx1150-runner/runner.pat` (outside
+the repository), the watchdog timer enabled, and the *simulated*
+deletion-and-recovery transcript recorded
+(`audit/evidence/G7/7G-C/c2-runner/`). **C4 is decided and recorded
+(2026-11-13, `audit/evidence/G7/7G-C/notes.md` §C4): no push trigger is
+added** — `ci-gpu.yml` keeps its `pull_request` / `schedule` /
+`workflow_dispatch` triggers and stays advisory while this waiver is in
+force. The waiver is a process exception only: the G0–G6 evidence, the claim
+set and the release scope are untouched.
+
+---
+
+## Closure (2026-11-15)
+
+**The waiver is closed. `GPU correctness (self-hosted gfx1150)` is required
+again in ruleset `26990297` (`release-gates`).**
+
+The §6 conditions are met:
+
+1. **C2 lands.** C2a–C2f are implemented on `wp/7G-C-closure` and the live drill
+   matrix D1–D8 is recorded in `audit/evidence/G7/7G-C/c2-runner/`. The drills
+   found and fixed two real bugs: `config.sh --replace` refused an
+   already-configured local runner (`c4a82a6`), and the L3 session selector
+   could pick the config log over the listener log (`192bdb8`). The sdist now
+   ships the runner/CI fixtures (`582ff05`).
+2. **A green GPU run on the protected branch is observed.** Manual
+   `workflow_dispatch` on `main`, run
+   [43725517391](https://github.com/KupipiKuki/gfx1150-inference/actions/runs/43725517391):
+   `GPU lane: 45 passed, 0 skipped, 0 failed, 0 errors, 45 collected` and
+   `PASS: the GPU lane ran, with no skips`.
+3. **The requirement is restored and green on the PR.** Ruleset `26990297`
+   requires the check again; the PR GPU run
+   [43728354793](https://github.com/KupipiKuki/gfx1150-inference/actions/runs/43728354793)
+   is green. The PR is mergeable with all required checks.
+
+The §5 interim control (a local `pytest -m gpu` before merge) remains a useful
+pre-merge check, but it no longer substitutes for enforcement: the required
+check is blocking again.
+
+The first nightly on the merged `main` (cron `0 5 * * *`) is a **post-merge
+observation**, not a condition of this closure; its queue time will be recorded
+when it runs.
+
+**Closed by:** DeepSeek V4.1 Flash, primary auditor — 2026-11-15.
+

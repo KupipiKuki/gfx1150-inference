@@ -17,10 +17,13 @@ Supports three storage backends for 7B–70B models:
    the mapping stays usable through its open file descriptor).
 
 Allocation discipline (Phase 7D): before any allocation, the requested bytes are checked
-against an effective budget — `min(max user cap, free GTT, MemAvailable, cgroup v2/v1
-headroom) minus a safety margin` — and a request that cannot fit fails with a `ValueError`
-naming the requested bytes, the effective budget, and the sources used. The manager never
-attempts an allocation that can OOM.
+against an effective budget — `min(max user cap, MemAvailable, cgroup v2/v1 headroom)`
+for the CPU-offloaded/mmap-backed pools, `min(max user cap, free GTT, MemAvailable,
+cgroup headroom)` for the device-resident pool (7G-C/C6: the offloaded pools do not live
+on the device, so the GTT share does not bound them; the mmap-backed pool is also bounded
+by free disk space via `statvfs`) — always minus a safety margin — and a request that
+cannot fit fails with a `ValueError` naming the requested bytes, the effective budget,
+and the sources used. The manager never attempts an allocation that can OOM.
 """
 
 from __future__ import annotations
@@ -65,7 +68,34 @@ DEFAULT_MAX_KV_BYTES = 32 * (1 << 30)  # 32 GiB user sanity cap against malforme
 _KV_SAFETY_MARGIN_FRACTION = 10
 
 
-def _effective_kv_budget(max_kv_bytes: int) -> Tuple[int, Dict[str, int]]:
+def _mmap_dir_free_bytes(mmap_dir: str) -> Optional[int]:
+    """Free disk bytes for the KV mmap directory via ``os.statvfs``.
+
+    When the directory does not exist yet, the nearest existing ancestor is
+    used (all its future children share the same filesystem). Returns ``None``
+    when neither the directory nor any ancestor can be stat'ed — the source is
+    then skipped (never fabricated), and the allocation-time
+    ``_check_mmap_disk_space`` check still refuses an unbackable mapping.
+    """
+    path = os.path.abspath(mmap_dir)
+    while True:
+        if os.path.exists(path):
+            try:
+                st = os.statvfs(path)
+            except OSError:
+                return None
+            return int(st.f_bsize) * int(st.f_bavail)
+        parent = os.path.dirname(path)
+        if parent == path:
+            return None
+        path = parent
+
+
+def _effective_kv_budget(
+    max_kv_bytes: int,
+    offload_to_cpu: bool = False,
+    mmap_dir: Optional[str] = None,
+) -> Tuple[int, Dict[str, int]]:
     """Return `(effective_budget_bytes, sources)` for a KV allocation.
 
     The cap is `min(max_kv_bytes, free GTT, MemAvailable, cgroup headroom)`
@@ -73,11 +103,30 @@ def _effective_kv_budget(max_kv_bytes: int) -> Tuple[int, Dict[str, int]]:
     and recorded), minus a 10% safety margin. `max_kv_bytes` is always a
     component so a test/user cap reproduces deterministically even when no
     host source is readable.
+
+    7G-C (C6): the source set depends on where the KV cache lives.
+
+    - Device-resident pool (default): `gtt_sysfs` stays a component — the
+      G0–G6 evidence depends on this GTT-bounded behaviour.
+    - CPU-offloaded / mmap-backed pools (`offload_to_cpu`/`mmap_dir`): the KV
+      does **not** live on the device, so `gtt_sysfs` is **not** a bound (on a
+      host with a small GTT share it refused long-context runs for the wrong
+      reason). The bounds are host RAM (`MemAvailable`, cgroup); the
+      mmap-backed pool is additionally bounded by free disk space
+      (`os.statvfs` over `mmap_dir`).
     """
     sources = memory_budget.read_budget_sources()
+    readings: Dict[str, int] = dict(sources.readings)
+    offloaded = bool(offload_to_cpu) or mmap_dir is not None
+    if offloaded:
+        readings.pop("gtt_sysfs", None)
+    if mmap_dir is not None:
+        disk_free = _mmap_dir_free_bytes(mmap_dir)
+        if disk_free is not None:
+            readings["mmap_disk_free"] = disk_free
     cap = int(max_kv_bytes)
     used: Dict[str, int] = {"max_kv_bytes": cap}
-    for name, value in sources.readings.items():
+    for name, value in readings.items():
         used[name] = int(value)
         cap = min(cap, int(value))
     margin = max(0, cap // _KV_SAFETY_MARGIN_FRACTION)
@@ -135,7 +184,11 @@ class KVCacheManager:
 
         # 7D-3: refuse requests that cannot fit the effective budget instead
         # of attempting an allocation that can OOM.
-        self.kv_budget_bytes, self.kv_budget_sources = _effective_kv_budget(max_kv_bytes)
+        self.kv_budget_bytes, self.kv_budget_sources = _effective_kv_budget(
+            max_kv_bytes,
+            offload_to_cpu=self.offload_to_cpu,
+            mmap_dir=self.mmap_dir,
+        )
         if self.nbytes > self.kv_budget_bytes:
             sources_desc = ", ".join(
                 f"{name}={value}" for name, value in self.kv_budget_sources.items()

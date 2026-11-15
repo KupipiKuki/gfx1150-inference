@@ -1089,13 +1089,75 @@ class LlamaInferenceEngine:
         self.close()
 
 
+def _read_prompt_source(args, parser) -> str:
+    """Resolve the prompt from exactly one source (7G-C/C5).
+
+    Sources: ``--prompt TEXT`` (with ``--prompt -`` reading **stdin**),
+    ``--prompt-file PATH`` (UTF-8), or the built-in default ``"Hello"`` when
+    neither is given (unchanged legacy behaviour). ``--prompt`` and
+    ``--prompt-file`` are mutually exclusive. A missing/directory/empty or
+    non-UTF-8 prompt file fails with a one-line error and exit code 2 — no
+    traceback. The prompt **content** never enters the telemetry payload or
+    the stats output (the collector only ever receives a token count).
+    """
+    if args.prompt is not None and args.prompt_file is not None:
+        parser.error(
+            "--prompt and --prompt-file are mutually exclusive; give exactly "
+            "one prompt source"
+        )
+    if args.prompt_file is not None:
+        path = args.prompt_file
+        try:
+            with open(path, "rb") as fh:
+                raw = fh.read()
+        except OSError as exc:
+            parser.exit(
+                2,
+                f"gfx1150-infer: error: cannot read the prompt file "
+                f"{path!r}: {exc}\n",
+            )
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            parser.exit(
+                2,
+                f"gfx1150-infer: error: the prompt file {path!r} is not "
+                f"valid UTF-8: {exc}\n",
+            )
+        if not text:
+            parser.exit(
+                2,
+                f"gfx1150-infer: error: the prompt file {path!r} is empty\n",
+            )
+        return text
+    if args.prompt == "-":
+        text = sys.stdin.read()
+        if not text:
+            parser.exit(
+                2,
+                "gfx1150-infer: error: the stdin prompt ('--prompt -') is empty\n",
+            )
+        return text
+    return args.prompt if args.prompt is not None else "Hello"
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="gfx1150-infer",
         description="SSD-offloaded GGUF LLM inference engine for AMD gfx1150 GPUs",
     )
     parser.add_argument("--model", "-m", required=True, help="Path to .gguf model file")
-    parser.add_argument("--prompt", "-p", default="Hello", help="Input prompt text")
+    parser.add_argument(
+        "--prompt",
+        "-p",
+        default=None,
+        help="Input prompt text; '-' reads the prompt from stdin",
+    )
+    parser.add_argument(
+        "--prompt-file",
+        default=None,
+        help="Read the input prompt from a UTF-8 file (mutually exclusive with --prompt; for multi-KB research prompts)",
+    )
     parser.add_argument("--max-new-tokens", "-n", type=int, default=32, help="Tokens to generate")
     parser.add_argument("--max-seq-len", type=int, default=2048, help="Max KV cache sequence length")
     parser.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature (0 = greedy)")
@@ -1156,6 +1218,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         ),
     )
     args = parser.parse_args(argv)
+    # 7G-C (C5): resolve exactly one prompt source before anything else runs;
+    # errors here are one-line CLI errors, not tracebacks.
+    prompt_text = _read_prompt_source(args, parser)
 
     telemetry_enabled = args.stats or args.json
     collector_ctx = TelemetryCollector() if telemetry_enabled else None
@@ -1177,7 +1242,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             if collector is not None:
                 collector.record_engine(engine)
             text, metrics = engine.generate(
-                prompt=args.prompt,
+                prompt=prompt_text,
                 max_new_tokens=args.max_new_tokens,
                 temperature=args.temperature,
                 top_k=args.top_k,
@@ -1188,7 +1253,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
             if collector is not None:
                 prompt_token_count = (
-                    len(engine.tokenizer.encode(args.prompt))
+                    len(engine.tokenizer.encode(prompt_text))
                     if engine.tokenizer is not None
                     else None
                 )

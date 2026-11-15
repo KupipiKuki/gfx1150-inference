@@ -1,0 +1,34 @@
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo systemctl stop gfx1150-runner-watchdog.timer
+[sudo] password for kupipi:             
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo systemctl stop actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ scripts/ci/runner_doctor.sh --check; echo "exit=$?"
+gfx1150 runner doctor - 2026-11-15T00:53:53Z
+  L0  WARN  clock is 16s from GitHub (warn > 5s)
+  L1  FAIL  SERVICE_DOWN: service is inactive/dead, not active/running
+VERDICT: OFFLINE - SERVICE_DOWN: service is inactive/dead, not active/running (1 warning(s))
+exit=1
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo systemctl start actions.runner.KupipiKuki-gfx1150-inference.gfx1150-host.service
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sleep 5
+scripts/ci/runner_doctor.sh --check; echo "exit=$?"
+gfx1150 runner doctor - 2026-11-15T00:54:29Z
+  L0  WARN  clock is 10s from GitHub (warn > 5s)
+  L1  PASS  active/running since Sat 2026-11-14 19:54:05 EST
+  L2  PASS  Runner.Listener pid=92277 user=kupipi
+  L3  PASS  log=Runner_20261115-005405-utc.log listening, no later rejection
+  L4  WARN  PAT /etc/gfx1150-runner/runner.pat missing; labels/group not verifiable (owner action)
+  L5  PASS  runs-on ['gfx1150', 'rocm', 'self-hosted'] is covered by the runner labels
+  L5  PASS  job name matches the required check
+  L5  PASS  cron 0 5 * * * clears boot 03:38 by 82 min
+  L5  PASS  no push trigger
+  L5  PASS  permissions block present
+  L5  PASS  concurrency group present
+  L5  PASS  fork-PR guard present
+  L5  PASS  junit skip-is-not-pass guard present
+  L6  WARN  timer gfx1150-runner-watchdog.timer enabled but inactive
+  L6  PASS  installed watchdog matches the repository copy
+  L6  WARN  PAT /etc/gfx1150-runner/runner.pat missing: self-repair cannot run (owner action)
+  L6  PASS  watchdog log updated 293s ago
+VERDICT: HEALTHY (4 warning(s))
+exit=0
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo systemctl start gfx1150-runner-watchdog.timer
+

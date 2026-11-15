@@ -350,6 +350,22 @@ EXPECTED_LANES = {
     # and stay CPU-lane.
     "test_telemetry_gpu.py": "gpu",
     "test_bench_gate.py": "cpu",
+    # Phase 7G-C (C5): --prompt/--prompt-file CLI contract. Pure argparse and
+    # filesystem behaviour around src/inference.py, no HIP extension needed.
+    "test_cli_prompt_source.py": "cpu",
+    # Phase 7G-C (C2 remediation): the runner-registration watchdog script.
+    # Pure bash-driven subprocess checks with PATH-shimmed systemctl/pgrep/
+    # curl; no HIP extension, no GPU, no network.
+    "test_runner_watchdog.py": "cpu",
+    # Phase 7G-C (C2a rebuild): the layered runner doctor. Same pattern:
+    # real bash script, PATH-shimmed systemctl/pgrep/timedatectl, no network.
+    "test_runner_doctor.py": "cpu",
+    # Phase 7G-C (C2f): the runner/workflow contract. Regex parsing of
+    # ci-gpu.yml against scripts/ci/runner.env; no PyYAML, no GPU.
+    "test_ci_contract.py": "cpu",
+    # Phase 7G-C (C2d): the installer + drift check. Runs the real script
+    # into a sandbox with a systemctl shim; no GPU, no network.
+    "test_install_runner_watchdog.py": "cpu",
 }
 
 

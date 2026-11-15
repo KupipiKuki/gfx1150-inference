@@ -77,6 +77,14 @@ PROBS_MAX_ABS_DIFF = 0.02
 #: match exactly. The strict 16-step result is still recorded unchanged.
 DECISIVE_MARGIN_THRESHOLD = 1.0
 
+#: Minimum number of decisive steps for a run to count as a decisive PASS
+#: (7G-C C3(b), pre-registered in
+#: audit/evidence/G7/7G-C/c3-golden/PRE-REGISTRATION-walk-refinement.md before
+#: the re-adjudication). Two is the decisive-step basis the G6 Q6_K PASS
+#: rests on; a run that compares fewer decisive steps stays INCONCLUSIVE —
+#: recorded honestly, never counted as a pass.
+MIN_DECISIVE_STEPS = 2
+
 #: Expected splits inside the tokens files.
 TOKENS_SEPARATOR = "---"
 
@@ -268,43 +276,63 @@ def compare(out_dir: str, ref_prefix: str, report_only: bool = False) -> dict:
         ) else "FAIL",
     }
 
-    # --- decisive-margin adjudication (pre-registered, rework brief §3) --
-    # Walk steps in order while the top-1 margin on BOTH sides is >=
-    # DECISIVE_MARGIN_THRESHOLD: those steps are decisive evidence and must
-    # match exactly. Stop at the first step below the threshold and report
-    # it as the decisive-margin fork (post-fork states are not comparable).
+    # --- decisive-margin adjudication (pre-registered, rework brief §3;
+    # walk refined 7G-C C3(b) — see PRE-REGISTRATION-walk-refinement.md) ---
+    # Both runs are greedy chains: when the token IDs MATCH at a step, the
+    # two chains stay in the same model state, so a later decisive step's
+    # token match is equally valid evidence. A chain only actually forks at
+    # a token MISMATCH. The walk therefore walks ALL steps in order:
+    # - a token MISMATCH on a step whose top-1 margin is >= the threshold on
+    #   both sides is a real defect (decisive FAIL);
+    # - a token MISMATCH at an indecisive (near-tie) step is the fork — the
+    #   post-fork states are not comparable; the walk stops;
+    # - token-matching steps below the threshold agree but are NOT decisive
+    #   evidence (weak agreement); matched steps at/above the threshold
+    #   count toward decisive_steps_compared.
     decisive_compared = 0
     first_indecisive_step = None
     decisive_mismatch_at = None
+    fork_step = None
     for s in range(steps):
         margins = per_step[s]
-        if (
+        indecisive = (
             margins["top1_margin_ours"] < DECISIVE_MARGIN_THRESHOLD
             or margins["top1_margin_ref"] < DECISIVE_MARGIN_THRESHOLD
-        ):
-            first_indecisive_step = s
-            break
-        decisive_compared += 1
-        if ours_gen[s] != ref_gen[s]:
+        )
+        matched = ours_gen[s] == ref_gen[s]
+        if matched:
+            if not indecisive:
+                decisive_compared += 1
+            elif first_indecisive_step is None:
+                first_indecisive_step = s
+        elif not indecisive:
             decisive_mismatch_at = s
+            break
+        else:
+            fork_step = s
             break
 
     if decisive_mismatch_at is not None:
         decisive_result = "FAIL"
-    elif decisive_compared == 0:
-        # The chain hit an indecisive step immediately: this run provides no
-        # decisive either way. Recorded honestly, never counted as a pass.
+    elif decisive_compared < MIN_DECISIVE_STEPS:
+        # Fewer decisive steps than the pre-registered minimum: this run
+        # provides no sufficient decisive evidence either way. Recorded
+        # honestly, never counted as a pass.
         decisive_result = "INCONCLUSIVE"
     else:
         decisive_result = "PASS"
     verdict["decisive_margin"] = {
         "threshold": DECISIVE_MARGIN_THRESHOLD,
+        "min_decisive_steps": MIN_DECISIVE_STEPS,
         "pre_registered_by": (
-            "PHASE7_7F_REWORK_BRIEF.md #3 (BLOCKER-7F-3 adjudication)"
+            "PHASE7_7F_REWORK_BRIEF.md #3 (BLOCKER-7F-3 adjudication); "
+            "walk + minimum decisive steps refined 7G-C C3(b): "
+            "audit/evidence/G7/7G-C/c3-golden/PRE-REGISTRATION-walk-refinement.md"
         ),
         "decisive_steps_compared": decisive_compared,
         "first_indecisive_step": first_indecisive_step,
         "decisive_mismatch_at": decisive_mismatch_at,
+        "fork_step": fork_step,
         "decisive_token_ids_match": (
             None if decisive_compared == 0 else decisive_mismatch_at is None
         ),
@@ -314,16 +342,18 @@ def compare(out_dir: str, ref_prefix: str, report_only: bool = False) -> dict:
     # --- amended pass criterion ------------------------------------------
     # PASS requires: the prompt tokenization matches (the 7F-2/BLOCKER-7F-2
     # tokenizer scope) AND the decisive-margin adjudication passes with at
-    # least one compared step. The strict 16-step result and the logits
-    # diagnostics stay recorded above and never gate this boolean silently.
+    # least MIN_DECISIVE_STEPS (7G-C C3(b)) compared steps. The strict
+    # 16-step result and the logits diagnostics stay recorded above and
+    # never gate this boolean silently.
     verdict["pass"] = bool(
         verdict["prompt_token_ids_match"]
         and decisive_result == "PASS"
     )
     verdict["pass_criterion"] = (
-        "amended (BLOCKER-7F-3): prompt token IDs match + decisive-margin "
-        f"(>= {DECISIVE_MARGIN_THRESHOLD} logits on both sides) token match; "
-        "strict 16-step result recorded separately"
+        "amended (BLOCKER-7F-3; 7G-C C3(b)): prompt token IDs match + "
+        f"decisive-margin (>= {DECISIVE_MARGIN_THRESHOLD} logits on both "
+        f"sides) token match on >= {MIN_DECISIVE_STEPS} steps; strict "
+        "16-step result recorded separately"
     )
     verdict["report_only"] = report_only
     return verdict

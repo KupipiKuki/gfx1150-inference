@@ -1,0 +1,18 @@
+# claims ledger
+
+## python scripts/qa/check_claims.py --strict
+--- findings ---
+  none
+
+RESULT: PASS - 0 unqualified occurrence(s) (strict mode ignores the baseline)
+exit=0
+
+## python scripts/qa/check_claims.py (default)
+--- findings ---
+  none
+
+RESULT: PASS - 0 new violation(s), 0 baselined, 0 expired baseline entry(ies), 0 finding(s)
+exit=0
+
+## baseline emptiness: test ! -s audit/claims_baseline.txt
+baseline file empty: OK

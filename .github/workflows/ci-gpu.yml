@@ -12,6 +12,10 @@ name: Self-Hosted GPU CI
 # this lane is required on PRs and the nightly schedule. A skip is still never
 # a pass (the junit check below).
 #
+# 7G-C (C2e): least privilege, one job per ref, no untrusted fork code on the
+# host, a fail-fast preflight, and a recorded pip freeze. The job name is the
+# required-check contract and must not change.
+#
 # No secrets are used and no prompt or model data reaches the logs: the GPU
 # suite runs on synthetic models.
 
@@ -19,26 +23,63 @@ on:
   pull_request:
     branches: ["**"]
   schedule:
-    # Nightly, 03:00 UTC.
-    - cron: "0 3 * * *"
+    # Nightly, 05:00 UTC. 7G-C (C2): the host boots at ~03:38 UTC and needs a
+    # few minutes to register; 04:00 left only ~22 min and GitHub can delay a
+    # scheduled run. 05:00 clears the boot window with margin (see
+    # scripts/ci/runner.env: BOOT_WINDOW_UTC / CRON_MARGIN_MIN).
+    - cron: "0 5 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One self-hosted runner: serialize jobs per ref instead of cancelling a run
+# that is already using the host.
+concurrency:
+  group: gpu-lane-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   gpu-correctness:
     name: GPU correctness (self-hosted gfx1150)
     runs-on: [self-hosted, gfx1150, rocm]
     timeout-minutes: 60
+    # Never run untrusted fork code on the host, even if the repository goes
+    # public. Same-repository PRs and scheduled/manual runs still run.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Preflight (fail fast, with a clear cause)
+        # Tools and hardware only. The Python imports are checked after the
+        # install step, so a fresh host is provisioned rather than rejected.
+        run: |
+          set -euo pipefail
+          command -v python3 cmake hipcc git rocminfo
+          python3 -VV
+          python3 -m pip --version
+          rocminfo | grep -q gfx1150
+          test -e /dev/kfd
+          compgen -G "/dev/dri/renderD*" >/dev/null
+
       - name: Install the documented test/build prerequisites
         # The host Python is used on purpose: the runner's Python and ROCm
         # toolchain are provisioned together, and the same interpreter must
-        # build and import the extension.
+        # build and import the extension. The freeze is recorded as an
+        # artifact so a run is reproducible.
         run: |
+          set -euo pipefail
           python3 -m pip install --upgrade pip \
             "numpy>=1.24.0" "setuptools>=64" wheel "pybind11>=2.12" pytest
+          python3 -m pip freeze > pip-freeze.txt
+
+      - name: Verify the Python toolchain
+        run: |
+          set -euo pipefail
+          python3 -c "import numpy, pytest, pybind11; print('python deps ok')"
 
       - name: Configure the project (the documented command)
         # The README-documented command, with the 7A-8 discovery fix: no
@@ -103,5 +144,6 @@ jobs:
             build.log
             gpu-lane.log
             gpu-lane.xml
+            pip-freeze.txt
           if-no-files-found: warn
           retention-days: 14
