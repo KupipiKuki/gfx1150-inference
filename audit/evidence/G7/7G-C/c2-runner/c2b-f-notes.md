@@ -80,11 +80,11 @@ self-repair layer is the part that is not deployed. The installer refuses
 ## Verification
 
 ```text
-21 passed  tests/test_runner_doctor.py
+22 passed  tests/test_runner_doctor.py
 19 passed  tests/test_runner_watchdog.py
 10 passed  tests/test_ci_contract.py
  8 passed  tests/test_install_runner_watchdog.py
-617 passed pytest -m "not gpu"
+618 passed pytest -m "not gpu"
 45 passed  pytest -m gpu
 PASS       check_claims.py --strict (baseline 0 bytes)
 16/16      canary_claims.py
@@ -98,6 +98,28 @@ PASS       check_claims.py --strict (baseline 0 bytes)
   rotation, drift, alert dedup), each with an evidence file.
 - Restore `GPU correctness (self-hosted gfx1150)` in ruleset `26990297`.
 - Close `audit/G6_ENFORCEMENT_WAIVER_2026-11-13.md`.
+
+## Addendum — installed-doctor path (2026-11-15)
+
+The first live install exposed a real integration bug that the repo-local
+tests could not see: the installed doctor runs from `/usr/local/sbin`, so its
+`REPO_ROOT` default resolved to `/usr`, L5 looked for
+`/usr/.github/workflows/ci-gpu.yml`, failed, and the watchdog exited `3`
+(`MISCONFIGURED`) every tick instead of staying healthy.
+
+Fix:
+
+- `runner.env` now records `REPO_ROOT` (the checkout path), so the installed
+  doctor reads the real workflow;
+- L5 **warns** rather than fails when the workflow file is absent — a missing
+  read-only cross-check must not disable self-repair;
+- `test_missing_workflow_checkout_is_a_warning_not_a_failure` is the
+  regression.
+
+The live host also had a partial install (scripts/units/logrotate present, but
+`/etc/gfx1150-runner/runner.env` and the drift manifest absent), so the doctor
+could not start at all. The installer must be re-run to write the spec and
+manifest; the timer should be stopped until that is done.
 
 ## Evidence
 

@@ -400,7 +400,12 @@ PY
 
 layer_l5() {
   if [ ! -r "${WORKFLOW}" ]; then
-    fail L5 "workflow ${WORKFLOW} is missing or unreadable" 3
+    # The installed doctor may run on a host without the checkout. That is not
+    # a runner fault: the CPU contract test (tests/test_ci_contract.py) is the
+    # authoritative workflow check. Warn and continue so self-repair is not
+    # disabled by a missing read-only cross-check.
+    warn L5 "workflow ${WORKFLOW} not available; contract not checked on this host"
+    return 0
   fi
   while IFS='|' read -r status msg; do
     [ -n "${status}" ] || continue

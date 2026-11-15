@@ -433,6 +433,12 @@ Checks (all read-only, no network):
 These same checks live in `tests/test_ci_contract.py` (§10, T1) so a drift is
 caught by the CPU lane, not only by the doctor.
 
+The installed doctor runs from `/usr/local/sbin` and may not have the checkout.
+`runner.env` therefore records `REPO_ROOT` (the checkout path), and L5 **warns**
+rather than fails when the workflow file is absent: a missing read-only
+cross-check must not turn a healthy runner into `MISCONFIGURED` and disable
+self-repair. The CPU contract test remains authoritative.
+
 ### 5.7 L6 — watchdog health
 
 - timer unit enabled **and** active;

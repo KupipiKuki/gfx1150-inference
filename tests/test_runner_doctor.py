@@ -357,6 +357,19 @@ def test_json_output_is_parseable(host):
     assert {row["layer"] for row in payload["checks"]} >= {"L0", "L1", "L2", "L3"}
 
 
+def test_missing_workflow_checkout_is_a_warning_not_a_failure(host):
+    """The installed doctor may run without the repository checkout. L5 must
+    warn, not turn a healthy runner into MISCONFIGURED/exit 3 and disable
+    self-repair."""
+    host["env"]["REPO_ROOT"] = str(host["tmp"] / "no-such-repo")
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "not available; contract not checked" in result.stdout
+    assert "VERDICT: HEALTHY" in result.stdout
+
+
 def test_quiet_prints_only_the_verdict(host):
     result = _run(host, "--quiet")
 

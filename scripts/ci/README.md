@@ -88,6 +88,12 @@ runner becomes broken, one recovery line when it is healthy again — never one
 per tick. Repairs never run under a live `Runner.Worker` and are rate-limited
 to one per 30 minutes (`/run/ensure-runner.last-repair`).
 
+If the timer is active but the service fails with `runner.env not found` or
+`workflow ... not available`, the install is partial (the spec was not
+installed). Re-run `sudo scripts/ci/install_runner_watchdog.sh --apply`
+(add `--allow-no-pat` to stage without the PAT); the installer writes the spec
+and the drift manifest that the installed doctor reads.
+
 ## Uninstall
 
 ```bash
