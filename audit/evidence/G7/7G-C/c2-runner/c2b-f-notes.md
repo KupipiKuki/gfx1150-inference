@@ -81,10 +81,10 @@ self-repair layer is the part that is not deployed. The installer refuses
 
 ```text
 22 passed  tests/test_runner_doctor.py
-19 passed  tests/test_runner_watchdog.py
+20 passed  tests/test_runner_watchdog.py
 10 passed  tests/test_ci_contract.py
  8 passed  tests/test_install_runner_watchdog.py
-618 passed pytest -m "not gpu"
+619 passed pytest -m "not gpu"
 45 passed  pytest -m gpu
 PASS       check_claims.py --strict (baseline 0 bytes)
 16/16      canary_claims.py
@@ -120,6 +120,34 @@ The live host also had a partial install (scripts/units/logrotate present, but
 `/etc/gfx1150-runner/runner.env` and the drift manifest absent), so the doctor
 could not start at all. The installer must be re-run to write the spec and
 manifest; the timer should be stopped until that is done.
+
+
+## Addendum 2 — D2 exposed a re-registration bug (2026-11-15)
+
+D2 deleted the server-side runner (agent 23) as intended, but the repair
+failed:
+
+```text
+Cannot configure the runner because it is already configured. To reconfigure
+the runner, run 'config.cmd remove' or './config.sh remove' first.
+```
+
+Root cause: runner 2.338.2's `ConfigureAsync` checks `IsConfigured()` (the
+local `.runner`/`.credentials`) **before** it looks at `--replace`;
+`--replace` only replaces the server-side runner with the same name. A
+server-side deletion leaves the local config in place, so `config.sh
+--replace` refuses.
+
+Fix: the repair now stops the service and removes the stale local config
+(`.runner`, `.credentials`, `.credentials_rsaparams`) before running
+`config.sh --replace`. `--replace` is kept so a still-existing server runner
+with the same name is replaced too. Regression:
+`test_repair_removes_the_stale_local_config`; the fake `config.sh` fails if the
+stale files are still present.
+
+The live runner was recovered with the fixed watchdog. The D2 evidence should
+record the first failed attempt, the root cause, the fix, and the successful
+repair.
 
 ## Evidence
 

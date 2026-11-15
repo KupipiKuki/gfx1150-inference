@@ -157,11 +157,21 @@ exec "$@"
     # --- runner dir + a config.sh that heals the fake doctor -----------------
     runner_dir = tmp_path / "actions-runner"
     (runner_dir / "_diag").mkdir(parents=True)
+    # A server-side deletion leaves the local config behind; the watchdog must
+    # remove it before config.sh, which refuses an already-configured runner.
+    (runner_dir / ".runner").write_text('{"agentId": 23}\n')
+    (runner_dir / ".credentials").write_text("stale\n")
+    (runner_dir / ".credentials_rsaparams").write_text("stale\n")
     config = runner_dir / "config.sh"
     config.write_text(
         """#!/usr/bin/env bash
 STATE="${SHIM_STATE:?}"
 printf '%s\\n' "$*" >> "${STATE}/config-args.log"
+here="$(cd -- "$(dirname -- "$0")" && pwd)"
+if [ -e "${here}/.runner" ] || [ -e "${here}/.credentials" ]; then
+  echo "config.sh: stale local config still present" >&2
+  exit 1
+fi
 printf 'HEALTHY\\n' > "${STATE}/doctor-verdict"
 printf '\\n' > "${STATE}/doctor-cause"
 printf '0\\n' > "${STATE}/doctor-code"
@@ -296,6 +306,19 @@ def test_offline_repairs_once_then_recovers(host):
     assert "ALERT: runner OFFLINE" in _log(host)
     assert "RECOVERED:" in _log(host)
     assert "repaired and healthy" in _log(host)
+
+
+def test_repair_removes_the_stale_local_config(host):
+    """config.sh refuses an already-configured runner; --replace only replaces
+    the server-side record. The repair must remove .runner/.credentials first."""
+    _set_doctor(host, "OFFLINE", "REGISTRATION_DELETED: rejected after listening", 1)
+
+    result = _run(host)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert not (host["runner_dir"] / ".runner").exists()
+    assert not (host["runner_dir"] / ".credentials").exists()
+    assert not (host["runner_dir"] / ".credentials_rsaparams").exists()
 
 
 def test_missing_pat_is_a_clear_failure_without_a_token_call(host):

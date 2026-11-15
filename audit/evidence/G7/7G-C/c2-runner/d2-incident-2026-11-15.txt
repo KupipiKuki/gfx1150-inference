@@ -1,0 +1,38 @@
+# D2 incident — failed repair, root cause, fix (2026-11-15)
+
+## Live log (watchdog, first attempt)
+
+  2026-11-15T02:04:10Z ALERT: runner MISCONFIGURED - REGISTRATION_NOT_VISIBLE: gfx1150-host is not available to this repo (deleted or runner-group access)
+  2026-11-15T02:04:11Z re-registering runner gfx1150-host (labels: gfx1150,rocm); cause: REGISTRATION_NOT_VISIBLE: gfx1150-host is not available to this repo (deleted or runner-group access)
+  ldd: ./bin/libcoreclr.so: No such file or directory
+  ldd: ./bin/libSystem.Security.Cryptography.Native.OpenSsl.so: No such file or directory
+  ldd: ./bin/libSystem.IO.Compression.Native.so: No such file or directory
+  
+  --------------------------------------------------------------------------------
+  |        ____ _ _   _   _       _          _        _   _                      |
+  |       / ___(_) |_| | | |_   _| |__      / \   ___| |_(_) ___  _ __  ___      |
+  |      | |  _| | __| |_| | | | | '_ \    / _ \ / __| __| |/ _ \| '_ \/ __|     |
+  |      | |_| | | |_|  _  | |_| | |_) |  / ___ \ (__| |_| | (_) | | | \__ \     |
+  |       \____|_|\__|_| |_|\__,_|_.__/  /_/   \_\___|\__|_|\___/|_| |_|___/     |
+  |                                                                              |
+  |                       Self-hosted runner registration                        |
+  |                                                                              |
+  --------------------------------------------------------------------------------
+  Cannot configure the runner because it is already configured. To reconfigure the runner, run 'config.cmd remove' or './config.sh remove' first.
+  2026-11-15T02:04:11Z RUNNER-REGISTRATION-OFFLINE: config.sh --replace failed (see /var/log/ensure-runner.log)
+  2026-11-15T02:09:22Z ALERT: runner OFFLINE - SERVICE_DOWN: service is inactive/dead, not active/running
+  2026-11-15T02:09:22Z still OFFLINE; a repair was attempted 312s ago (cooldown 1800s) — no new attempt
+  2026-11-15T02:14:29Z still OFFLINE; a repair was attempted 619s ago (cooldown 1800s) — no new attempt
+
+## Root cause
+
+Runner 2.338.2 checks IsConfigured() (local .runner/.credentials) before
+it looks at --replace. --replace only replaces the server-side runner,
+so a server-side deletion leaves the local config and config.sh refuses
+with: Cannot configure the runner because it is already configured.
+
+## Fix
+
+ensure_runner_registered.sh now stops the service and removes
+.runner, .credentials and .credentials_rsaparams before running
+config.sh --replace. Regression: test_repair_removes_the_stale_local_config.

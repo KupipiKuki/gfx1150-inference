@@ -191,6 +191,20 @@ repair() {
   trap - EXIT
   [ -n "${token}" ] || die "could not parse a registration token from the API answer"
 
+  # A server-side deletion leaves .runner/.credentials in place, and config.sh
+  # refuses to configure an already-configured runner ("Cannot configure the
+  # runner because it is already configured"). --replace only replaces the
+  # server-side runner; it does not clear the local config. Stop the service,
+  # remove the stale local config (the same files `config.sh remove --local`
+  # deletes), then configure with --replace so a still-existing server runner
+  # with the same name is replaced too.
+  log "stopping ${SERVICE_UNIT} and removing the stale local runner config"
+  systemctl stop "${SERVICE_UNIT}" >/dev/null 2>&1 || true
+  if ! rm -f "${RUNNER_DIR}/.runner" "${RUNNER_DIR}/.credentials" \
+    "${RUNNER_DIR}/.credentials_rsaparams"; then
+    die "could not remove the stale local runner config in ${RUNNER_DIR}"
+  fi
+
   log "re-registering runner ${RUNNER_NAME} (labels: ${RUNNER_LABELS}); cause: ${cause}"
   if ! timeout "${CONFIG_TIMEOUT_SECS:-120}s" \
     runuser -u "${RUNNER_USER}" -- "${RUNNER_DIR}/config.sh" \
