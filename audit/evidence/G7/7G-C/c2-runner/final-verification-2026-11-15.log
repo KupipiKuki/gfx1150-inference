@@ -1,0 +1,26 @@
+# G7-C candidate verification — 2026-11-15T14:31:51Z
+# candidate SHA: 8d863efac5cc1e3d45ceb81608e8d971b2b7c8f3
+# branch: wp/7G-C-closure
+
+$ pytest -m "not gpu" -q
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+620 passed, 45 deselected, 16 warnings in 55.91s
+
+$ pytest -m gpu -q
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+45 passed, 620 deselected, 14 warnings in 2.50s
+
+$ check_claims.py --strict
+
+RESULT: PASS - 0 unqualified occurrence(s) (strict mode ignores the baseline)
+
+$ canary_claims.py
+
+RESULT: PASS - all 16 canaries behaved as required
+
+$ wc -c audit/claims_baseline.txt
+0 audit/claims_baseline.txt
+
+$ scripts/ci/runner_doctor.sh --check --quiet
+VERDICT: HEALTHY
+exit=0
