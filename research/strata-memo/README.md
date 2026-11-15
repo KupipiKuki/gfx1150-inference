@@ -39,6 +39,10 @@ The first v0.3 attempt degenerated into a 33K-space Markdown table; see
 `v0.3-run-note.md`. That is why `prompt.txt` now says "do not use Markdown
 tables" explicitly.
 
+The v0.2 rerun (432 words, no degeneration) is compared point by point in
+`comparison-v02.md`: it matches the hybrid headline but misses the
+abstraction-fit argument and the decision-critical unknowns.
+
 The prompt is ~1.2K tokens; 4K sequence length leaves room for the ~1.6K-token
 memo. For a genuinely long-context run, append the full
 `Strata/docs/HOW_IT_WORKS.md`, `Strata/AGENTS.md` and the llama.cpp v1.0.0
