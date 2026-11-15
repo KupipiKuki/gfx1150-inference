@@ -54,12 +54,15 @@ measurement.
   plan should prefer the supported ROCm 7.1+ path and only build a custom
   stack if the measured gap justifies it.
 
-### gfx900 — Instinct MI25
+### gfx900 — Instinct MI25 (stretch goal)
 
-- Vega 10, 16 GB HBM2, ~484 GB/s, 9.8 TFLOPS FP32 / ~25 TFLOPS FP16 (vendor
-  specs). **Wave64, no WMMA, no bf16.**
+- **Five cards owned for $200**, 16 GB HBM2 each (80 GB aggregate), used over
+  **OCuLink** in the existing builds. That is a cheap lab, not a supported
+  target.
+- Vega 10, ~484 GB/s, 9.8 TFLOPS FP32 / ~25 TFLOPS FP16 (vendor specs).
+  **Wave64, no WMMA, no bf16.**
 - Current ROCm releases do not ship gfx900 libraries. The Strata doc's gfx906
-  section is the closest precedent: a separate opt-in wave64 build
+  section is the closest precedent: an opt-in wave64 build
   (`STRATA_HIP_GFX906=ON`), a CUDA-source compat layer, a community ROCm image
   (`mixa3607/rocm-gfx906:7.14-complete`), no hipBLASLt, and a different
   grouped-expert mode.
@@ -68,10 +71,17 @@ measurement.
   scalar/rocBLAS fallback), and a model-family check. The Qwen3.6 family is
   explicitly not part of the gfx906 build; the MI25 support must state which
   families it can run.
-- Treat MI25 as a **research/experimental** target: a toolchain workstream
-  (legacy ROCm/LLVM, gfx900 kernels, a minimal HIP test) before any engine
-  work. If the toolchain cannot produce a stable gfx900 build, the MI25 runs
-  the CPU fallback only, and that is a documented result, not a failure.
+- **OCuLink changes the problem.** Each card gets PCIe x4 (typically 3.0/4.0),
+  far below the card's HBM2 bandwidth. That is fine for single-card inference
+  and model loads, poor for tensor parallel or expert streaming across five
+  cards. Five 300 W cards also mean ~1.5 kW, cooling, and enough PCIe
+  lanes/bifurcation; check above-4G decoding and IOMMU.
+- **The first question is not Strata; it is general LLM software.** Can
+  llama.cpp (HIP), a legacy ROCm, PyTorch, or Ollama use one MI25 at all? The
+  separate plan in `06-mi25-feasibility.md` answers that before any Strata
+  work. If it works, the five cards are a multi-GPU lab and a later Strata
+  stretch target; if it does not, they are repurposed and the Strata plan does
+  not block on them.
 
 ### gfx1150 — the current APU host
 
@@ -79,7 +89,7 @@ measurement.
   an unvalidated target; the community report is 15–19 tok/s decode and
   125–130 tok/s prompt, 1.5–1.7x with the table.
 - This is the host that can validate the capability layer, the synthetic MoE
-  fixture and the evidence harness **before** a gfx1100/780M/MI25 machine is
+  fixture and the evidence harness **before** a gfx1100/780M machine is
   available. Use it for M1–M2; do not claim gfx1100 performance from it.
 
 ## 3. What the matrix means for the plan
@@ -90,9 +100,9 @@ measurement.
 2. **The capability layer must express wave size, matrix cores, dtypes,
    memory model and supported model families as data.** A gfx900 build cannot
    be a gfx1100 build with a different `-DCMAKE_HIP_ARCHITECTURES`.
-3. **The MI25 is the schedule risk.** Do the toolchain spike in P1; if it does
-   not produce a stable gfx900 build, descope to CPU-only for the MI25 and
-   record it. Do not let the MI25 block the gfx1100/780M milestones.
+3. **The MI25 is a stretch, not a schedule risk.** Test general LLM software
+   first (`06-mi25-feasibility.md`); only if one card works do we add a gfx900
+   stretch descriptor. It never blocks the gfx1100/780M milestones.
 4. **The 780M is the early-inclusion win.** The Linux opt-in path and the
    table already exist; the work is validation, firmware handling, and the
    capability descriptor. It can be a P2 deliverable.

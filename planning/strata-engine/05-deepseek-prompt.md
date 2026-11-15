@@ -21,6 +21,8 @@ mixed AMD hardware.
   ladder, telemetry, tests.
 - `03-phased-plan.md` — the P0–P9 skeleton to expand.
 - `04-open-questions.md` — the owner decisions you must ask for, not invent.
+- `06-mi25-feasibility.md` — the separate 5× MI25 / OCuLink general-LLM test
+  (stretch; not on the Strata critical path).
 - Optional: `auditor-memo.md`, `b-vs-c.md`, and the Strata
   `HOW_IT_WORKS.md` / `AMD_HIP.md` excerpts.
 
@@ -50,16 +52,20 @@ Produce a plan with these sections, in order:
 8. **Red-team your own plan.** Find the missing work, the hidden dependency,
    the place where "early capability inclusion" becomes a late port, and the
    claim that has no artifact.
+9. **Stretch track (separate).** Plan the MI25 / OCuLink general-LLM
+   feasibility test in `06-mi25-feasibility.md` as its own track with its own
+   go/no-go. It must not block P0–P9.
 
 ### Constraints
 
 - Use only the supplied facts. Mark anything else **UNKNOWN**.
 - Do not invent ROCm versions, kernel support, model licenses, or benchmark
   numbers.
-- The 780M and MI25 are **experimental**; the MI25 may descope to CPU-only if
-  the gfx900 toolchain fails. Say so explicitly.
-- Early capability inclusion is mandatory: the gfx1103/gfx900 descriptors and
-  build targets exist before the first MoE kernel, not after.
+- The 780M is experimental but on the critical path. The MI25 is a **stretch
+  goal** with a separate feasibility track (`06-mi25-feasibility.md`); do not
+  put it on the critical path or inside P0–P9 gates.
+- Early capability inclusion is mandatory for gfx1103; the gfx900 descriptor is
+  optional and only after the feasibility test passes.
 - Evidence discipline: no performance claim without an artifact; one row per
   `(capability_profile, model_family, workload)`; the strict claims gate stays.
 - One person, limited hours: prefer the smallest plan that reaches a measured

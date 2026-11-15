@@ -2,7 +2,7 @@
 
 **Purpose:** make a new GPU a **data** change (descriptor + build target +
 validation run), not a new kernel branch. This is the P1–P2 deliverable that
-prevents the "add the 780M/MI25 later and recode" failure.
+prevents the "add the 780M or a stretch card later and recode" failure.
 
 ## 1. Principles
 
@@ -77,7 +77,7 @@ source for the build matrix and the runtime probe tests.
 | gfx1100 | `-DSTRATA_ENABLE_HIP=ON -DCMAKE_HIP_ARCHITECTURES=gfx1100` | tuning table | gfx1100 |
 | gfx1103 | `-DCMAKE_HIP_ARCHITECTURES=gfx1103` | `STRATA_EXPERIMENTAL_GFX1103=1`, 1103 table | gfx1103 |
 | gfx1150 | `-DCMAKE_HIP_ARCHITECTURES=gfx1150` | 1150 table | gfx1150 |
-| gfx900 | a new `STRATA_HIP_GFX900` compat build (wave64) | legacy/custom ROCm + gfx900 kernels; no hipBLASLt | gfx900 |
+| gfx900 (stretch) | a new `STRATA_HIP_GFX900` compat build (wave64) | only after `06-mi25-feasibility.md` passes; legacy/custom ROCm + gfx900 kernels; no hipBLASLt | gfx900 |
 | gfx906 (reference) | `-DSTRATA_HIP_GFX906=ON` | community ROCm image | gfx906 |
 
 Rules:
@@ -88,9 +88,10 @@ Rules:
   descriptor that says so.
 - The build records its arch list in the binary; the probe compares it, not a
   hand-maintained string.
-- **gfx900 is a new compat target, not `STRATA_HIP_GFX906` with a different
-  number.** The gfx906 build is the template for the wave64 layer, but gfx900
-  needs its own LLVM/rocBLAS targets and a model-family decision.
+- **gfx900 is a stretch target, not a P2 gate.** It is a new wave64 compat
+  build (the gfx906 build is only the template), and it is attempted only if
+  the general-LLM feasibility test passes. The descriptor schema must be able
+  to express it, but the card is not required for P2 acceptance.
 
 ## 5. Dispatch and fallback ladder
 
@@ -139,8 +140,9 @@ workload)`. A gfx1100 result never stands in for a 780M or MI25 result.
 4. **Numerical parity:** a synthetic MoE fixture (routing + grouped GEMM) run
    through each path, compared with a NumPy reference. Record KL/top-1; no
    performance claim.
-5. **Host smoke:** gfx1150 now; gfx1100, gfx1103, gfx900 when hardware is
-   available; each records the descriptor and a one-line result.
+5. **Host smoke:** gfx1150 now; gfx1100 and gfx1103 when hardware is
+   available; the stretch gfx900 only if the feasibility track passes. Each
+   records the descriptor and a one-line result.
 6. **Model gate:** a family not in the descriptor is refused with the
    supported list.
 

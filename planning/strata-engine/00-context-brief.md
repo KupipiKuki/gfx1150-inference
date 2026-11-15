@@ -13,8 +13,9 @@ trail. The engine must support, from the first architecture decision:
 - **gfx1100** — RX 7900 XTX/XT/GRE (24/20/16 GB), the primary discrete target.
 - **gfx1103** — Radeon 780M (Phoenix/Hawk Point iGPU, shared memory), an
   early-inclusion target with a special ROCm/build path.
-- **gfx900** — Instinct MI25 (Vega 10, 16 GB HBM2), an early-inclusion
-  research target that needs a legacy/custom ROCm and a wave64 compat path.
+- **gfx900** — Instinct MI25 (Vega 10, 16 GB HBM2), a **stretch goal**: five
+  cards owned, connected over OCuLink, tested as general LLM hardware first.
+  Not on the Strata critical path; `06-mi25-feasibility.md` is the gate.
 - **gfx1150** — Radeon 890M (current APU host), the development/validation
   host until a gfx1100 machine exists.
 
@@ -39,8 +40,8 @@ works.
   checker, one gate per milestone.
 - The engine is expected to be **Strata-derived** (fork) or a **thin layer on
   llama.cpp v1.0.0**; M0 decides. The capability layer must not assume either.
-- The 780M and MI25 are experimental; their support is an **engineering
-  claim**, not a marketing claim, until measured.
+- The 780M is experimental; the MI25 is a stretch goal. Their support is an
+  **engineering claim**, not a marketing claim, until measured.
 - The current gfx1150 host has 91.94 GiB RAM and a 45.92 GiB GTT share; it can
   validate the engine before a discrete card exists.
 
@@ -49,9 +50,9 @@ works.
 1. A device-capability descriptor and runtime probe that report arch, memory
    model (unified/discrete), wave size, dtypes, matrix-core support, ROCm
    version, and supported model families for every target.
-2. A build matrix that compiles the engine for gfx1100, gfx1103, gfx900 and
-   gfx1150 (the last two via their compat paths), with a documented ROCm
-   version and driver per target.
+2. A build matrix that compiles the engine for gfx1100, gfx1103 and gfx1150
+   (the last via its experimental path), with a documented ROCm version and
+   driver per target. gfx900 is a **stretch descriptor**, not a P2 gate.
 3. A synthetic MoE correctness fixture that runs on the gfx1150 host and
    selects the expected kernel path per capability, with a NumPy reference.
 4. No recoding required to add a card: adding a target is a descriptor entry +
@@ -66,3 +67,4 @@ works.
 | `03-phased-plan.md` | P0–P8, work packages, gates, deliverables, dependencies |
 | `04-open-questions.md` | owner decisions the plan cannot make |
 | `05-deepseek-prompt.md` | the prompt to turn this pack into the detailed plan |
+| `06-mi25-feasibility.md` | the separate 5× MI25 / OCuLink general-LLM test (stretch) |
