@@ -267,6 +267,14 @@ def test_pat_only_travels_through_a_curl_config_file():
                 assert "pat" not in stripped
 
 
+def test_sdist_manifest_ships_the_runner_ci_fixtures():
+    """The C2 tests read scripts/ci/ and the workflow; the sdist must carry
+    them or the extracted-tree lane cannot collect those tests."""
+    manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
+    assert "recursive-include scripts/ci" in manifest
+    assert ".github/workflows/ci-gpu.yml" in manifest
+
+
 def test_no_moving_journal_window_in_health_checks():
     for name in ("runner_doctor.sh", "ensure_runner_registered.sh"):
         body = (CI_DIR / name).read_text(encoding="utf-8")

@@ -110,10 +110,22 @@ jobs:
           # in the sdist, or the extracted-tree lane is red. The shipped CPU
           # lane imports scripts/bench/aggregate.py (tests/test_bench_gate.py);
           # the bench baselines gate against the checked-in JSON baselines.
+          # Phase 7G-C (C2): the runner/CI tests also read scripts/ci/ and the
+          # workflow contract, so a missing fixture must fail here with a clear
+          # packaging message, not as a collection error in the lane.
           for required in scripts/bench/aggregate.py \
                           scripts/bench/regress.py \
                           scripts/bench/baseline-synthetic.json \
-                          scripts/bench/baseline-7b.json; do
+                          scripts/bench/baseline-7b.json \
+                          scripts/ci/runner.env \
+                          scripts/ci/runner_doctor.sh \
+                          scripts/ci/ensure_runner_registered.sh \
+                          scripts/ci/install_runner_watchdog.sh \
+                          scripts/ci/gfx1150-runner-watchdog.service \
+                          scripts/ci/gfx1150-runner-watchdog.timer \
+                          scripts/ci/gfx1150-runner-watchdog-alert.service \
+                          scripts/ci/gfx1150-runner-watchdog.logrotate \
+                          .github/workflows/ci-gpu.yml; do
             if ! grep -qE "^[^/]+/${required}$" sdist-contents.txt; then
               echo "FAIL: the sdist does not contain ${required}"
               echo "      (a shipped test imports it - check MANIFEST.in)"

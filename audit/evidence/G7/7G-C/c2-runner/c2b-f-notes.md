@@ -82,9 +82,9 @@ self-repair layer is the part that is not deployed. The installer refuses
 ```text
 23 passed  tests/test_runner_doctor.py
 20 passed  tests/test_runner_watchdog.py
-10 passed  tests/test_ci_contract.py
+11 passed  tests/test_ci_contract.py
  8 passed  tests/test_install_runner_watchdog.py
-620 passed pytest -m "not gpu"
+621 passed pytest -m "not gpu"
 45 passed  pytest -m gpu
 PASS       check_claims.py --strict (baseline 0 bytes)
 16/16      canary_claims.py

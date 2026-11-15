@@ -1,0 +1,52 @@
+# Sdist packaging fix for the C2 tests (2026-11-15)
+
+## The two sdist jobs are not duplicates
+
+| Job | Workflow | What it proves |
+|---|---|---|
+| `Sdist Install (CPU-only path, GFX1150_SKIP_CMAKE=1)` | `ci-cpu.yml` | builds the sdist, asserts its contents, installs it CPU-only, runs the shipped suite in the extracted tree |
+| `Clean-clone documented build (G0 C-1)` | `ci-build.yml` | documented clean-clone configure/build with ROCm, then installs the full sdist (extension built) in a clean venv and imports it |
+
+They are both required checks and exercise different paths; neither runs
+"old" tests.
+
+## Root cause of the sdist-lane failure
+
+The new C2 tests are shipped (`recursive-include tests *.py`) but their
+fixtures were not: `scripts/ci/*` (doctor, watchdog, installer, spec, units,
+logrotate) and `.github/workflows/ci-gpu.yml`. In the extracted sdist tree the
+tests locate those files relative to the repository root, so
+`test_ci_contract.py` failed at import (`_spec()`), and the doctor/watchdog/
+installer tests could not find their scripts.
+
+## Fix
+
+- `MANIFEST.in`: `recursive-include scripts/ci *.sh *.env *.service *.timer *.logrotate`
+  and `include .github/workflows/ci-gpu.yml`; `global-exclude *.py[cod]` so the
+  fixtures wildcard no longer ships `__pycache__`.
+- `ci-cpu.yml`: the sdist-content assertion now requires the C2 files, so a
+  future omission fails there with a packaging message, not a collection error.
+- `tests/test_ci_contract.py`: static guard that `MANIFEST.in` lists them.
+
+## Local reproduction
+
+```text
+$ python setup.py sdist
+sdist contains: scripts/ci/{runner.env,runner_doctor.sh,ensure_runner_registered.sh,
+  install_runner_watchdog.sh,gfx1150-runner-watchdog.{service,timer,logrotate},
+  gfx1150-runner-watchdog-alert.service}, .github/workflows/ci-gpu.yml
+sdist __pycache__ entries: 0
+
+$ pytest -m "not gpu and not slow" -q        # extracted sdist tree
+616 passed, 49 deselected
+
+$ pytest -m "not slow" -q -rs                # extracted sdist tree
+616 passed, 42 skipped (GPU skips visible), 7 deselected
+
+$ pip install --no-build-isolation dist/*.tar.gz   # full install, extension
+installed OK  (import inference, gguf_parser, matmul_module)
+```
+
+The `ci-build.yml` full install now succeeds locally with the updated sdist.
+If that job still fails on the PR, the failing step log is needed; the missing
+fixtures do not explain it and the full install is green here.
