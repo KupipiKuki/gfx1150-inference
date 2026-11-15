@@ -58,10 +58,11 @@ result.
 
 ## First handoff to write
 
-`HO-STRATA-001 — gfx1150 Stage 1 spike`: build upstream Strata for gfx1150,
-record the toolchain/friction, run the three test beds (Mixtral 8x7B,
-Qwen3-30B-A3B, DeepSeek), and record a baseline per family. The architect
-writes it; the coder executes; QAQC/auditor review; the architect signs.
+`HO-STRATA-001` — build upstream Strata for gfx1150, record the
+toolchain/friction, run `strata --families`/`--plan`, and write the
+engine-boundary note. `OT-STRATA-001` is the owner task; the session kickoff is
+in `workflow/SESSION_KICKOFF.md`. After 001 is signed: 002 Mixtral, 003 Qwen,
+004 DeepSeek, 005 Route 2 vs Route 3.
 
 ## Reuse in the next repo
 

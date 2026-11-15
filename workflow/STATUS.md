@@ -5,11 +5,12 @@ row is invisible.
 
 | ID | Title | State | Owner | Branch | Next action | Blocker | Evidence |
 |---|---|---|---|---|---|---|---|
-| HO-STRATA-001 | gfx1150 Stage 1 spike | PROPOSED | Architect | `wp/strata-001-gfx1150-spike` | write the handoff (DoR) | model/support check | — |
-| HO-STRATA-002 | Mixtral 8x7B baseline | PROPOSED | Architect | — | after 001 | 001 | — |
-| HO-STRATA-003 | Qwen3-30B-A3B baseline | PROPOSED | Architect | — | after 001 | 001 | — |
-| HO-STRATA-004 | DeepSeek baseline | PROPOSED | Architect | — | after 001 | 001 | — |
-| OT-STRATA-001 | Owner: first milestone | INTAKE | Auditor | — | owner decisions | — | — |
+| OT-STRATA-001 | Owner: start Strata on gfx1150 | INTAKE | Auditor | — | validate the OT; assign HO-001 | owner decisions (packs/commit) | — |
+| HO-STRATA-001 | gfx1150 build, support, engine boundary | PROPOSED | Architect | `wp/strata-001-gfx1150-build` | pin the Strata commit; DoR; set READY | pinned commit | — |
+| HO-STRATA-002 | Mixtral 8x7B baseline | PROPOSED | Architect | — | after 001 SIGNED | 001 | — |
+| HO-STRATA-003 | Qwen3-30B-A3B baseline | PROPOSED | Architect | — | after 002 | 002 | — |
+| HO-STRATA-004 | DeepSeek baseline | PROPOSED | Architect | — | after 003 | 003 | — |
+| HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after 001–004 | 001–004 | — |
 
 ## States
 
