@@ -1,0 +1,35 @@
+sudo scripts/ci/install_runner_watchdog.sh --apply
+[sudo] password for kupipi:             
+installed: /usr/local/sbin/gfx1150-runner-watchdog, /usr/local/sbin/gfx1150-runner-doctor, /etc/gfx1150-runner/runner.env, /etc/systemd/system/gfx1150-runner-watchdog.timer
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo /usr/local/sbin/gfx1150-runner-doctor --check --quiet
+VERDICT: HEALTHY
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo sh -c 'echo "# drift" >> /usr/local/sbin/gfx1150-runner-watchdog'
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo scripts/ci/install_runner_watchdog.sh --check   # DRIFT, exit 1
+sudo scripts/ci/install_runner_watchdog.sh --apply   # restores
+sudo scripts/ci/install_runner_watchdog.sh --check   # OK
+script     /usr/local/sbin/gfx1150-runner-watchdog              DRIFT
+script     /usr/local/sbin/gfx1150-runner-doctor                OK (sha256 match)
+spec       /etc/gfx1150-runner/runner.env                       OK (sha256 match)
+unit       /etc/systemd/system/gfx1150-runner-watchdog.service  OK (sha256 match)
+unit       /etc/systemd/system/gfx1150-runner-watchdog.timer    OK (sha256 match)
+unit       /etc/systemd/system/gfx1150-runner-watchdog-alert.service OK (sha256 match)
+logrotate  /etc/logrotate.d/gfx1150-runner-watchdog             OK (sha256 match)
+manifest   /etc/gfx1150-runner/watchdog.sha256                  OK
+unit       gfx1150-runner-watchdog.timer                        OK (enabled)
+unit       gfx1150-runner-watchdog.timer                        OK (active)
+PAT        /etc/gfx1150-runner/runner.pat                       OK (600:root)
+RESULT: DRIFT
+installed: /usr/local/sbin/gfx1150-runner-watchdog, /usr/local/sbin/gfx1150-runner-doctor, /etc/gfx1150-runner/runner.env, /etc/systemd/system/gfx1150-runner-watchdog.timer
+script     /usr/local/sbin/gfx1150-runner-watchdog              OK (sha256 match)
+script     /usr/local/sbin/gfx1150-runner-doctor                OK (sha256 match)
+spec       /etc/gfx1150-runner/runner.env                       OK (sha256 match)
+unit       /etc/systemd/system/gfx1150-runner-watchdog.service  OK (sha256 match)
+unit       /etc/systemd/system/gfx1150-runner-watchdog.timer    OK (sha256 match)
+unit       /etc/systemd/system/gfx1150-runner-watchdog-alert.service OK (sha256 match)
+logrotate  /etc/logrotate.d/gfx1150-runner-watchdog             OK (sha256 match)
+manifest   /etc/gfx1150-runner/watchdog.sha256                  OK
+unit       gfx1150-runner-watchdog.timer                        OK (enabled)
+unit       gfx1150-runner-watchdog.timer                        OK (active)
+PAT        /etc/gfx1150-runner/runner.pat                       OK (600:root)
+RESULT: OK
+

@@ -1,0 +1,14 @@
+kupipi@kupipi-AI-Series:~/Documents/git/gfx1150-inference$ sudo rm -f /run/gfx1150-runner.state
+sudo RUNNER_DOCTOR_FAKE_SKEW=3600 /usr/local/sbin/gfx1150-runner-watchdog
+sudo RUNNER_DOCTOR_FAKE_SKEW=3600 /usr/local/sbin/gfx1150-runner-watchdog
+sudo RUNNER_DOCTOR_FAKE_SKEW=3600 /usr/local/sbin/gfx1150-runner-watchdog
+sudo /usr/local/sbin/gfx1150-runner-watchdog   # healthy → RECOVERED
+sudo grep -c 'ALERT: runner CLOCK_SKEW' /var/log/ensure-runner.log   # expect 1
+2026-11-15T13:57:01Z ALERT: runner CLOCK_SKEW - CLOCK_SKEW: host is 3600s from GitHub (limit 60s); fix timekeeping first
+2026-11-15T13:57:01Z CLOCK_SKEW: CLOCK_SKEW: host is 3600s from GitHub (limit 60s); fix timekeeping first; repair forbidden (fix timekeeping first)
+2026-11-15T13:57:01Z CLOCK_SKEW: CLOCK_SKEW: host is 3600s from GitHub (limit 60s); fix timekeeping first; repair forbidden (fix timekeeping first)
+2026-11-15T13:57:01Z CLOCK_SKEW: CLOCK_SKEW: host is 3600s from GitHub (limit 60s); fix timekeeping first; repair forbidden (fix timekeeping first)
+2026-11-15T13:57:02Z RECOVERED: runner is healthy again (was CLOCK_SKEW)
+2026-11-15T13:57:02Z runner gfx1150-host healthy
+1
+
