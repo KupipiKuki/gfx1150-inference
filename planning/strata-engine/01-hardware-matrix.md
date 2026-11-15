@@ -10,7 +10,7 @@ measurement.
 | | **gfx1100** | **gfx1103** | **gfx900** | **gfx1150** |
 |---|---|---|---|---|
 | Card | RX 7900 XTX/XT/GRE | Radeon 780M / 760M | Instinct MI25 (Vega 10) | Radeon 890M (Strix Point) |
-| Memory | 24/20/16 GB GDDR6 | shared LPDDR5 (iGPU) | 16 GB HBM2 | shared LPDDR5 (iGPU) |
+| Memory | 24/20/16 GB GDDR6 | shared LPDDR5 (iGPU), **32 GB host** | 16 GB HBM2 | shared LPDDR5 (iGPU) |
 | Memory model | discrete | unified | discrete | unified |
 | Bandwidth (vendor) | ~960/800/576 GB/s | ~100 GB/s class | ~484 GB/s | ~100 GB/s class |
 | Wave | 32 | 32 | **64** | 32 |
@@ -37,7 +37,10 @@ measurement.
 ### gfx1103 — Radeon 780M
 
 - The 780M is an **iGPU with shared memory**; the "VRAM" is a carve-out of
-  system RAM. The engine's integrated-GPU detection and prompt switches
+  system RAM. **The owner's host has 32 GB unified**, which makes it a
+  small-MoE test bed and a dense continuation target, not an end-target host
+  (the end targets need the gfx1150's 92 GB or gfx1100 + RAM/SSD). The engine's
+  integrated-GPU detection and prompt switches
   (`STRATA_IGPU_PROMPT_SET`, `STRATA_PF_FUSED`, `STRATA_HIP_PROMPT_F16`) are
   the relevant path.
 - ROCm: gfx1103 is supported in ROCm 7.1+ (rocBLAS); older stacks need

@@ -18,9 +18,10 @@ invent an answer.
 
 ## Model and license
 
-6. **Model family:** Qwen3.6-35B-A3B (the realistic APU target) or a smaller
-   Qwen3.6 pack? Which fits the gfx1150 host (91.94 GiB RAM / 45.92 GiB GTT)
-   and the 780M host?
+6. **Test model:** Mixtral 8x7B Q4_K_M (architecture-adjacent to 8x22B) or
+   Qwen3-30B-A3B (smaller/faster) for the gfx1150 spike? End targets (Qwen
+   Next, DeepSeek v2/V4, 8x22B) are gfx1150/gfx1100 only; the 780M (32 GB)
+   uses Qwen3-30B-A3B or Qwen1.5-MoE-A2.7B.
 7. **Reference:** is there a known-good reference implementation/GGUF pack for
    the chosen model, and under what license? The MI25 work is deferred; do not
    gate the gfx1150/780M model choice on it.

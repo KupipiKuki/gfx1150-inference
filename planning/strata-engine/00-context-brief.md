@@ -74,3 +74,4 @@ escalation annex for the day gfx1100/gfx900 enters the critical path. See
 | `06-mi25-feasibility.md` | the separate 5× MI25 / OCuLink general-LLM test (deferred) |
 | `07-plan-audit.md` | the independent audit: Route 2 first, P0–P9 escalation |
 | `08-roadmap-decision.md` | the adopted priority and the gfx1150 first action |
+| `09-model-strategy.md` | test models vs end targets; the 32 GB 780M |
