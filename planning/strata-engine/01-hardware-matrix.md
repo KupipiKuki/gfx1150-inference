@@ -54,7 +54,7 @@ measurement.
   plan should prefer the supported ROCm 7.1+ path and only build a custom
   stack if the measured gap justifies it.
 
-### gfx900 — Instinct MI25 (stretch goal)
+### gfx900 — Instinct MI25 (deferred)
 
 - **Five cards owned for $200**, 16 GB HBM2 each (80 GB aggregate), used over
   **OCuLink** in the existing builds. That is a cheap lab, not a supported

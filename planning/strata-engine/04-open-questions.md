@@ -5,47 +5,45 @@ invent an answer.
 
 ## Hardware
 
-1. **gfx1100:** which card (RX 7900 XTX 24 GB, XT 20 GB, GRE 16 GB), when is it
-   available for development and for CI? The expert-cache ceiling depends on
-   the VRAM size.
-2. **780M:** which machine/APU (Ryzen 7040/8040/200), is it Linux-only, and is
-   the firmware-reset risk acceptable on that host?
-3. **MI25 (stretch):** which existing build hosts the five cards, how many
-   OCuLink ports/bifurcation, PSU and cooling, above-4G and IOMMU? Is the first
-   test llama.cpp HIP or a legacy ROCm stack? Is a no-go acceptable (repurpose
-   the cards) without blocking the Strata plan?
-4. **OCuLink topology:** one host with all five cards, or several hosts with
-   one or two each? The answer changes the power, cooling and bandwidth
-   budget and whether a multi-GPU test is meaningful.
-5. **CI:** one self-hosted runner per card, or a single host that swaps cards?
-   The current project learned that one runner serializes jobs.
+1. **gfx1150 (primary):** the current host; no decision needed. The first
+   spike starts here.
+2. **780M (next):** the host is available; what is its RAM, and which small MoE
+   fits? Is it Linux-only, and is the firmware-reset risk acceptable?
+3. **gfx1100 (future):** which card (RX 7900 XTX 24 GB, XT 20 GB, GRE 16 GB)
+   and when is it available? The expert-cache ceiling depends on the VRAM size.
+4. **MI25 / OCuLink (deferred):** adapters and a hardware build are not ready.
+   Revisit only after one card is physically usable; `06` is the test plan.
+5. **CI:** gfx1150 now; the 780M as a manual gate until a runner exists. One
+   self-hosted runner serializes jobs.
 
 ## Model and license
 
-6. **Model family:** Qwen3.8-Flash-Next (the Strata default) or
-   Qwen3.6-35B-A3B (the smaller MoE), or both? Which fits the 16 GB target?
+6. **Model family:** Qwen3.6-35B-A3B (the realistic APU target) or a smaller
+   Qwen3.6 pack? Which fits the gfx1150 host (91.94 GiB RAM / 45.92 GiB GTT)
+   and the 780M host?
 7. **Reference:** is there a known-good reference implementation/GGUF pack for
-   the chosen model, and under what license? The MI25/gfx900 build may not
-   support the Qwen3.6 family at all.
+   the chosen model, and under what license? The MI25 work is deferred; do not
+   gate the gfx1150/780M model choice on it.
 8. **MTP:** does the chosen model have an MTP head, or is speculation
    prompt-lookup only?
 
 ## Approach
 
-9. **Fork vs thin layer:** P0.1. The recommendation is B (fork the Strata
-   engine), C as fallback; confirm.
-10. **Driver ownership:** use supported ROCm/TheRock builds, or build ROCm/LLVM
-   from source for gfx1103/gfx900? If from source, who maintains it and how is
-   it versioned?
+9. **Route:** Route 2 (modify Strata directly, pinned patch overlay) is the
+   starting route; Route 3 (fork + P0–P9) is the escalation. Confirm the
+   patch-overlay vs upstream-PR default.
+10. **Driver ownership:** use supported ROCm/TheRock builds for gfx1150/gfx1103,
+   or build ROCm/LLVM from source? (gfx900 is deferred.) If from source, who
+   maintains it and how is it versioned?
 11. **Product scope:** is the desktop app/server dropped (engine + CLI only),
     or kept? The app is a large surface and not part of the engine plan.
-12. **Windows:** the 780M (and the MI25 stretch) are Linux-only in this plan;
+12. **Windows:** the 780M (and the deferred MI25) are Linux-only in this plan;
     confirm.
 
 ## Process and resources
 
-13. **Time budget:** how many hours per week, and which phases are must-have
-    (P0–P4) vs optional (P5–P8) for the first milestone?
+13. **Time budget:** how many hours per week; is the first milestone the
+    audit's Stage 1–2 (gfx1150) only, or through Stage 3 (780M)?
 14. **Evidence home:** new repository, or a branch in this one? Reuse the
     current claims ledger/checker or start a fresh ledger?
 15. **Audit/QAQC:** keep the full ceremony per milestone, or one gate per
@@ -56,9 +54,10 @@ invent an answer.
 ## Decisions already made by the owner
 
 - The next project is Strata-class (MoE + heterogeneous compute + speculation).
-- The 780M is an early-inclusion target with a special ROCm/build path; the
-  five MI25 cards are a stretch/general-LLM experiment, not a Strata
-  critical-path target.
+- Priority: **gfx1150 first, 780M next, gfx1100 future, MI25 deferred.**
+- The 780M host is available for small MoE models.
+- The starting route is Route 2 (modify Strata directly, pinned patch overlay);
+  P0–P9 is the escalation annex.
 - Planning/architecting moves to the DeepSeek API; OpenCode usage is conserved
   for coding models.
 - Evidence discipline is non-negotiable.

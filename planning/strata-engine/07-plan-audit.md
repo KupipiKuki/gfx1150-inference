@@ -99,3 +99,8 @@ If the immediate goal is **working, fast, reliable MoE inference on `gfx1150` an
      2. Incompatible hardware enters the active critical path (e.g., `gfx1100` discrete VRAM + `gfx900` wave64 MI25 passing [`06-mi25-feasibility.md`](06-mi25-feasibility.md)), making [`02-capability-abstraction.md`](02-capability-abstraction.md) necessary; or
      3. The deliverable becomes an independent, machine-gated research engine (`check_claims.py --strict`, telemetry/budget guarantees) rather than a tuned Strata deployment.
 
+
+---
+
+**Owner decision (2026-11-15):** adopted Route 2, gfx1150 first, 780M next,
+MI25 deferred. See [`08-roadmap-decision.md`](08-roadmap-decision.md).

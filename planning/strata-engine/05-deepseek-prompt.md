@@ -9,8 +9,10 @@ facts, mark unknowns, and not invent ROCm/hardware support.
 ## Prompt
 
 You are a senior systems architect. Expand the attached planning pack into a
-detailed, phased implementation plan for a Strata-class MoE inference engine on
-mixed AMD hardware.
+detailed, phased implementation plan for a Strata-class MoE inference engine
+that starts on **gfx1150** (the current host), then the **780M** (gfx1103). The
+starting route is **Route 2** — modify Strata directly with a pinned patch
+overlay — per `07-plan-audit.md`; the P0–P9 fork plan is the escalation annex.
 
 ### Inputs
 
@@ -19,10 +21,12 @@ mixed AMD hardware.
   gfx906 reference; ROCm/build support; risks.
 - `02-capability-abstraction.md` — descriptor, probe, build matrix, dispatch
   ladder, telemetry, tests.
-- `03-phased-plan.md` — the P0–P9 skeleton to expand.
+- `03-phased-plan.md` — the P0–P9 escalation annex (not the starting plan).
 - `04-open-questions.md` — the owner decisions you must ask for, not invent.
-- `06-mi25-feasibility.md` — the separate 5× MI25 / OCuLink general-LLM test
-  (stretch; not on the Strata critical path).
+- `06-mi25-feasibility.md` — the separate 5× MI25 / OCuLink test (**deferred**;
+  not on the Strata critical path).
+- `07-plan-audit.md` — the independent audit (Route 2 first).
+- `08-roadmap-decision.md` — the adopted priority and first action.
 - Optional: `auditor-memo.md`, `b-vs-c.md`, and the Strata
   `HOW_IT_WORKS.md` / `AMD_HIP.md` excerpts.
 
@@ -32,12 +36,15 @@ Produce a plan with these sections, in order:
 
 1. **Assumptions and decisions needed.** List what the pack leaves open; ask
    for the answers. Do not silently assume hardware, model or license.
-2. **Architecture.** The capability descriptor, runtime probe, build matrix
-   and dispatch/fallback ladder as concrete components with interfaces. Name
-   the files/modules and the data that flows between them.
-3. **Phased plan (P0–P9).** For each phase: goal, work packages (IDs), tasks,
-   deliverables/artifacts, acceptance criteria (measurable), dependencies,
-   effort (S/M/L), and the gate. Expand the skeleton; do not just repeat it.
+2. **Architecture.** The gfx1150/gfx1103 **APU profile** (unified memory,
+   Wave32, WMMA, iGPU switches), the Strata engine boundary (what can be
+   patched without forking), and the evidence harness. The full
+   descriptor/dispatch framework is the escalation annex.
+3. **Phased plan.** Start from the audit's 4-stage lean plan (`07` §2, `08`):
+   gfx1150 baseline/tune, gfx1103 promote, evidence/packaging. For each stage:
+   goal, work packages, tasks, deliverables, measurable acceptance criteria,
+   dependencies, effort (S/M/L), gate. Then give the P0–P9 escalation annex in
+   a separate, clearly-labelled section.
 4. **Build and validation matrix.** One row per target (gfx1100, gfx1103,
    gfx900, gfx1150, gfx906 reference): ROCm/LLVM, CMake flags, table, model
    families, smoke test, expected refusal messages.
@@ -54,22 +61,21 @@ Produce a plan with these sections, in order:
    claim that has no artifact.
 9. **Stretch track (separate).** Plan the MI25 / OCuLink general-LLM
    feasibility test in `06-mi25-feasibility.md` as its own track with its own
-   go/no-go. It must not block P0–P9.
+   go/no-go. It must not block the starting plan.
 
 ### Constraints
 
 - Use only the supplied facts. Mark anything else **UNKNOWN**.
 - Do not invent ROCm versions, kernel support, model licenses, or benchmark
   numbers.
-- The 780M is experimental but on the critical path. The MI25 is a **stretch
-  goal** with a separate feasibility track (`06-mi25-feasibility.md`); do not
-  put it on the critical path or inside P0–P9 gates.
-- Early capability inclusion is mandatory for gfx1103; the gfx900 descriptor is
-  optional and only after the feasibility test passes.
+- **gfx1150 is primary; the 780M is next; gfx1100 is future; the MI25 is
+  deferred.** Do not put gfx1100/MI25 on the critical path.
+- Design the APU profile for gfx1150/gfx1103 now; the full descriptor/dispatch
+  framework is escalation.
 - Evidence discipline: no performance claim without an artifact; one row per
   `(capability_profile, model_family, workload)`; the strict claims gate stays.
 - One person, limited hours: prefer the smallest plan that reaches a measured
-  gfx1100 result, then the 780M, then the MI25.
+  gfx1150 result, then the 780M.
 - Use tables and short bullets. No filler.
 
 ### Output

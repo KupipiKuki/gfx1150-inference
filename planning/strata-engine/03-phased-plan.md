@@ -1,9 +1,10 @@
 # 03 — Phased implementation plan (skeleton)
 
-**How to use:** this is the plan skeleton. `05-deepseek-prompt.md` asks the
-planning model to expand each WP into tasks, acceptance criteria, artifacts and
-estimates. Do not start P3 before P1/P2 are gated: the whole point is that the
-780M is designed in, not ported later; the MI25 is a separate stretch track.
+**How to use:** this is the **escalation annex**, not the starting plan. The
+starting route is the audit's 4-stage lean plan (`07-plan-audit.md` §2,
+`08-roadmap-decision.md`): gfx1150 baseline/tune, then gfx1103, then evidence.
+P0–P9 is adopted only if Strata's engine is structurally rigid or
+gfx1100/gfx900 enters the critical path. The MI25 is deferred.
 
 **Effort scale:** S (days), M (1–2 weeks), L (3–6 weeks), XL (6+ weeks), for one
 person. Calendar dates are deliberately omitted.
@@ -13,7 +14,7 @@ person. Calendar dates are deliberately omitted.
 | Phase | Milestone | Gate |
 |---|---|---|
 | P0 | ADR and scope | signed ADR: fork vs thin layer, hardware, model, process |
-| P1 | Toolchain and driver matrix | `rocminfo` + HIP vector-add on gfx1100/gfx1150/gfx1103 (MI25 is a separate stretch track) |
+| P1 | Toolchain and driver matrix | `rocminfo` + HIP vector-add on gfx1100/gfx1150/gfx1103 (MI25 is deferred) |
 | P2 | Capability abstraction + build matrix | descriptor/probe/dispatch accepted for gfx1100/gfx1103/gfx1150; gfx900 is an optional stretch descriptor |
 | P3 | Engine substrate | ported golden rig reproduces the current verdicts |
 | P4 | MoE correctness spike | synthetic routing/grouped GEMM parity |
@@ -186,10 +187,11 @@ that was not measured.
 
 ---
 
-## S0 — MI25 feasibility (stretch, parallel)
+## S0 — MI25 feasibility (deferred, not a priority)
 
 **Goal:** decide whether five MI25 (gfx900) cards on OCuLink are usable for
-general LLM software, **before** any Strata work. This track never blocks
+general LLM software. **Deferred:** the OCuLink adapters and a hardware build
+are not ready; this track does not start until they are. It never blocks
 P0–P9.
 
 | WP | Work | Deliverable |
@@ -209,7 +211,7 @@ cards; the Strata plan proceeds unchanged.
 ## Cross-cutting rules
 
 1. **The 780M is in P1/P2, not a late port.** Its descriptor and build target
-   exist before the first MoE kernel. The MI25 is a separate stretch track.
+   exist before the first MoE kernel. The MI25 is deferred.
 2. **The gfx1150 host is the development target** until a gfx1100/780M machine
    exists. It can gate P2–P4; it cannot gate gfx1100 claims.
 3. **The MI25 is a stretch.** The general LLM feasibility test decides; it

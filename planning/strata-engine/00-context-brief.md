@@ -8,21 +8,23 @@
 
 Build a Strata-class engine that runs a large MoE model on consumer AMD
 hardware by sharing work across GPU, CPU, RAM and SSD, with an honest evidence
-trail. The engine must support, from the first architecture decision:
+trail. The priority is:
 
-- **gfx1100** — RX 7900 XTX/XT/GRE (24/20/16 GB), the primary discrete target.
-- **gfx1103** — Radeon 780M (Phoenix/Hawk Point iGPU, shared memory), an
-  early-inclusion target with a special ROCm/build path.
-- **gfx900** — Instinct MI25 (Vega 10, 16 GB HBM2), a **stretch goal**: five
-  cards owned, connected over OCuLink, tested as general LLM hardware first.
-  Not on the Strata critical path; `06-mi25-feasibility.md` is the gate.
-- **gfx1150** — Radeon 890M (current APU host), the development/validation
-  host until a gfx1100 machine exists.
+- **gfx1150** — Radeon 890M (current APU host): **primary**; it is the machine
+  we run on and what matters.
+- **gfx1103** — Radeon 780M (Phoenix/Hawk Point iGPU, shared memory): **next**;
+  a host is available for small MoE models. It shares the APU execution model
+  with gfx1150.
+- **gfx1100** — RX 7900 XTX/XT/GRE: **future**; no card yet; Strata already
+  supports it as a maintainer-tested target.
+- **gfx900** — Instinct MI25 (Vega 10, 16 GB HBM2): **deferred**; the OCuLink
+  adapters and a hardware build are not ready. `06-mi25-feasibility.md` is the
+  plan for when they are.
 
-The point of early inclusion is to avoid recoding later. The capability layer,
-the build matrix, the dispatch/fallback ladder and the evidence hooks must be
-designed for all four targets in P1–P2, not bolted on after the gfx1100 path
-works.
+The starting route is the audit's **Route 2** (modify Strata directly, pinned
+patch overlay) for gfx1150 then gfx1103; the P0–P9 capability framework is the
+escalation annex for the day gfx1100/gfx900 enters the critical path. See
+`07-plan-audit.md` and `08-roadmap-decision.md`.
 
 ## 2. Non-goals
 
@@ -38,9 +40,10 @@ works.
 - The owner is one person; maintenance cost is a first-class criterion.
 - Evidence discipline: claims ledger, golden rig, bench gate, strict claims
   checker, one gate per milestone.
-- The engine is expected to be **Strata-derived** (fork) or a **thin layer on
-  llama.cpp v1.0.0**; M0 decides. The capability layer must not assume either.
-- The 780M is experimental; the MI25 is a stretch goal. Their support is an
+- The starting route is **Route 2** (modify Strata directly, pinned patch
+  overlay) per `07-plan-audit.md`; a fork or a thin llama.cpp layer is the
+  escalation path, not the default.
+- The 780M is experimental but next; the MI25 is deferred. Their support is an
   **engineering claim**, not a marketing claim, until measured.
 - The current gfx1150 host has 91.94 GiB RAM and a 45.92 GiB GTT share; it can
   validate the engine before a discrete card exists.
@@ -49,10 +52,11 @@ works.
 
 1. A device-capability descriptor and runtime probe that report arch, memory
    model (unified/discrete), wave size, dtypes, matrix-core support, ROCm
-   version, and supported model families for every target.
-2. A build matrix that compiles the engine for gfx1100, gfx1103 and gfx1150
-   (the last via its experimental path), with a documented ROCm version and
-   driver per target. gfx900 is a **stretch descriptor**, not a P2 gate.
+   version, and supported model families for **gfx1150 and gfx1103 now**;
+   gfx1100/gfx900 are later entries.
+2. A build matrix that compiles the engine for **gfx1150 first, then gfx1103**,
+   with a documented ROCm version and driver per target. gfx1100 is future;
+   gfx900 is deferred and not a P2 gate.
 3. A synthetic MoE correctness fixture that runs on the gfx1150 host and
    selects the expected kernel path per capability, with a NumPy reference.
 4. No recoding required to add a card: adding a target is a descriptor entry +
@@ -64,7 +68,9 @@ works.
 |---|---|
 | `01-hardware-matrix.md` | per-card facts, ROCm/build status, Strata support, risks |
 | `02-capability-abstraction.md` | the early-inclusion design: descriptor, probe, dispatch, build matrix, tests |
-| `03-phased-plan.md` | P0–P8, work packages, gates, deliverables, dependencies |
+| `03-phased-plan.md` | P0–P9 (escalation annex), work packages, gates, deliverables, dependencies |
 | `04-open-questions.md` | owner decisions the plan cannot make |
 | `05-deepseek-prompt.md` | the prompt to turn this pack into the detailed plan |
-| `06-mi25-feasibility.md` | the separate 5× MI25 / OCuLink general-LLM test (stretch) |
+| `06-mi25-feasibility.md` | the separate 5× MI25 / OCuLink general-LLM test (deferred) |
+| `07-plan-audit.md` | the independent audit: Route 2 first, P0–P9 escalation |
+| `08-roadmap-decision.md` | the adopted priority and the gfx1150 first action |

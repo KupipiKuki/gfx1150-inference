@@ -1,8 +1,12 @@
-# 06 — MI25 feasibility (stretch, separate from Strata)
+# 06 — MI25 feasibility (deferred, separate from Strata)
+
+**Status: DEFERRED (2026-11-15).** The OCuLink adapters and a hardware build
+are not ready; this is not a priority. The file is the test plan for when one
+card is physically usable.
 
 **Goal:** decide whether five Instinct MI25 cards on OCuLink are usable for
 **general LLM software** before spending Strata time on gfx900. This track is
-independent; it never blocks the Strata P0–P9 plan.
+independent; it never blocks the Strata plan.
 
 ## 1. Inventory and constraints
 
@@ -20,6 +24,10 @@ tensor parallel or expert streaming **across** five cards is bandwidth-bound.
 Do not expect NVLink-like scaling.
 
 ## 2. Pre-flight (before any model)
+
+Prerequisites before this track starts: OCuLink adapters/cables, a host with
+enough PCIe lanes/bifurcation, a PSU and cooling for ~1.5 kW, and above-4G
+decoding. None of these are ready today.
 
 - Physical: OCuLink cables/adapters seated, PCIe bifurcation, above-4G
   decoding, IOMMU setting, airflow, PSU rails.
