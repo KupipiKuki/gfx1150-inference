@@ -4,6 +4,20 @@ Use **after the workflow’s own cycle** (QAQC PASS → auditor PASS → archite
 SIGNED) and **before owner acceptance/merge**. The owner is independent of the
 coder, QAQC, auditor and architect; this is the final check on the evidence.
 
+## Owner audit record
+
+| Field | Value |
+|---|---|
+| Auditor | Owner (independent of the workflow roles) |
+| Model/tool | **Mistral 4** |
+| Date | |
+| Handoff/commit | |
+| Verdict | ACCEPT / REJECT |
+| Notes | |
+
+The owner audit is a **fresh, read-only session**: it may write only this record
+and the owner verdict in `OT-STRATA-001`.
+
 ## 1. Contract and scope
 
 - [ ] Handoff state is `SIGNED`/`DONE`; the signature is the architect’s.
@@ -36,10 +50,14 @@ coder, QAQC, auditor and architect; this is the final check on the evidence.
 - [ ] The OpenCode usage UI shows the expected model for each role; no silent
       session-model fallback.
 - [ ] No per-call `model` override was used by the architect.
+- [ ] The owner audit model is recorded (**Mistral 4**) and is independent of
+      the coder, QAQC, auditor and architect; it is not one of the role models.
 
 ## 4. Rework
 
 - [ ] The rework handoff names the failed criterion and the exact evidence.
+- [ ] QAQC returned findings/rework, **not code edits**; the coder made the
+      fix.
 - [ ] The coder fixed only the failed scope; no expansion.
 - [ ] QAQC re-verified the fix; the report records the re-check.
 - [ ] A second failure on the same criterion escalated.

@@ -235,3 +235,17 @@ this file did not happen.
   active agent is free.
 - **Affected:** `MODEL_POLICY.md`, QAQC handoff/report, HO-001,
   `SESSION_KICKOFF.md`, architect prompt (when free).
+
+## DEC-014 — Owner audit uses Mistral 4
+
+- **Date:** 2026-11-15
+- **Context:** the owner will perform the final independent audit of HO-001
+  with **Mistral 4** after the workflow cycle.
+- **Decision:** the owner audit model is Mistral 4; it is outside the five role
+  models and must be independent of them (not DeepSeek/Argon/Claude/GPT). The
+  audit is a fresh, read-only session; it records the model, version, date and
+  verdict in the owner audit record and in `OT-STRATA-001`.
+- **Consequences:** the final audit is a different family from the coder
+  (DeepSeek), QAQC (Argon/Gemini), auditor (DeepSeek) and architect (DeepSeek);
+  no role model changes; the owner audit record is part of the evidence.
+- **Affected:** `workflow/OWNER_AUDIT_CHECKLIST.md`, `OT-STRATA-001`.
