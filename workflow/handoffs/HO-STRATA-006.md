@@ -4,11 +4,11 @@
 |---|---|
 | **ID** | HO-STRATA-006 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** |
+| **State** | **DEFERRED** — owner hold (DEC-016); not cancelled, DoR kept for restart |
 | **Created / updated (UTC)** | 2026-11-16 / 2026-11-16 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-006-model-support` |
-| **Priority / timebox** | P0 · 1 working day |
+| **Priority / timebox** | P1 · 1 working day when reopened |
 | **Owner task** | OT-STRATA-001 (checkpoint 1a/2); decision DEC-010 |
 
 ## 0. Repositories, branches and base commits
@@ -154,3 +154,8 @@ engine run **one** additional model class, and what each class costs. This is an
 - 2026-11-16 Architect: `READY`. This is the cheapest possible next step — it
   costs reading, not building, and it decides whether the owner's three test
   beds are a day of work or a kernel project.
+- 2026-11-16 Architect: **DEFERRED by owner decision (DEC-016).** The owner chose to keep
+  DEC-003 unchanged and block the three test beds rather than accept the support-first path
+  (DEC-010), and to hold technical work until OT-STRATA-001 decisions 2–5 are answered. No
+  coder is launched. The DoR checklist above stays valid, so restarting this handoff later is a
+  state change, not a rewrite. Nothing was executed under this ID.

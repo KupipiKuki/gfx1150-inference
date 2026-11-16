@@ -5,14 +5,17 @@ row is invisible.
 
 | ID | Title | State | Owner | Branch | Next action | Blocker | Evidence |
 |---|---|---|---|---|---|---|---|
-| OT-STRATA-001 | Owner: start Strata on gfx1150 | INTAKE | Auditor | — | auditor: owner decisions 2–5 (packs, timebox) + **DEC-003 family deviation** before HO-002 | owner decisions 2–5; Mixtral/DeepSeek unsupported at pin | `workflow/evidence/HO-STRATA-001/` |
+| OT-STRATA-001 | Owner: start Strata on gfx1150 | INTAKE (paused) | Auditor | — | auditor: record the owner's answers (DEC-016) and the still-open decisions 2–5 | owner decisions 2–5; DEC-003 beds unimplemented | `workflow/evidence/HO-STRATA-001/` |
 | HO-STRATA-001 | gfx1150 build, support, engine boundary | **DONE** (SIGNED 2026-11-16) | Architect | `wp/strata-001-gfx1150-build` @ `76034a0` (bundle) | merge per DEC-015 when the branch is quiet | merge deferred (DEC-015), not a defect | `workflow/evidence/HO-STRATA-001/`, `reports/qaqc/`, `reports/audit/`, `HO-STRATA-001-APPROVAL.md` |
 | RW-HO-STRATA-001-1 | rework: family mapping + tuning-gate citations | **CLOSED — PASS** | QAQC | `wp/strata-001-gfx1150-build` @ `76034a0` | none (F1–F7 + N1–N3 closed) | — | bundle at `76034a0` |
-| HO-STRATA-002 | Mixtral 8x7B baseline | **DEFERRED** | Architect | — | after HO-006; family unimplemented at `baf16363` | Mixtral not in `--families` (DEC-010) | — |
-| HO-STRATA-003 | Qwen3-30B-A3B baseline | **DEFERRED** | Architect | — | after HO-006; **not** `qwen35moe` (that is Qwen3.6-35B-A3B) | family unimplemented at `baf16363` | — |
-| HO-STRATA-004 | DeepSeek baseline | **DEFERRED** | Architect | — | after HO-006; retired family refused by the Control | not implemented; needs attention path | — |
-| HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after HO-006 + the first low-tier test (DEC-010) | support results | — |
-| HO-STRATA-006 | model-support investigation (read-only) | **READY** | Coder (`coder-primary`) | `wp/strata-006-model-support` | coder accepts → IN_PROGRESS | — | `workflow/evidence/HO-STRATA-006/` |
+| HO-STRATA-002 | Mixtral 8x7B baseline | **BLOCKED** | Architect | — | nothing until the family exists in a runnable build + owner pack decision | family unimplemented at `baf16363`; DEC-003 kept, DEC-016 | — |
+| HO-STRATA-003 | Qwen3-30B-A3B baseline | **BLOCKED** | Architect | — | nothing until the family exists (**not** `qwen35moe`) | unimplemented at `baf16363`; DEC-003 kept, DEC-016 | — |
+| HO-STRATA-004 | DeepSeek baseline | **BLOCKED** | Architect | — | nothing until the family exists; needs an attention path | unimplemented; Control refuses it | — |
+| HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after at least one measured baseline | no baseline yet | — |
+| HO-STRATA-006 | model-support investigation (read-only) | **DEFERRED** (owner hold) | Architect | `wp/strata-006-model-support` @ `750dd2f` | restart only on the owner's go-ahead (DEC-016) | owner hold; OT decisions 2–5 | `workflow/evidence/HO-STRATA-006/` |
+
+**Project state (2026-11-16):** HO-STRATA-001 is DONE and reproducible; every other
+handoff is blocked by an owner decision (DEC-016). No technical work is running.
 
 Pinned inputs: Strata `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (DEC-007) at
 `/home/kupipi/Documents/git/strata`; profile **gfx1150 / Radeon 890M / Ryzen AI 9

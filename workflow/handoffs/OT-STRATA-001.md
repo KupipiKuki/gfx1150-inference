@@ -33,11 +33,11 @@
 
 | # | Decision | Options | Recommendation | Owner choice |
 |---|---|---|---|---|
-| 1 | Strata commit | latest `main` vs a pinned release/tag | pin a commit and record it | |
-| 2 | Mixtral pack | Mixtral 8x7B Q4_K_M | start here (8x22B-adjacent) | |
-| 3 | Qwen pack | Qwen3-30B-A3B Q4_K_M vs Qwen1.5-MoE-A2.7B | Qwen3-30B-A3B, fallback A2.7B | |
-| 4 | DeepSeek pack | DeepSeek-V2-Lite vs DeepSeek-MoE-16B | V2-Lite if supported, else MoE-16B | |
-| 5 | Timebox | 1–2 days for the build spike | 1 day build + 1 day first run | |
+| 1 | Strata commit | latest `main` vs a pinned release/tag | pin a commit and record it | **decided** — DEC-007: `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (§9.2) |
+| 2 | Mixtral pack | Mixtral 8x7B Q4_K_M | start here (8x22B-adjacent) | **open — moot until the family exists** (§9.2, DEC-016) |
+| 3 | Qwen pack | Qwen3-30B-A3B Q4_K_M vs Qwen1.5-MoE-A2.7B | Qwen3-30B-A3B, fallback A2.7B | **open — moot until the family exists**; `qwen35moe` is not a substitute (§9.2, DEC-016) |
+| 4 | DeepSeek pack | DeepSeek-V2-Lite vs DeepSeek-MoE-16B | V2-Lite if supported, else MoE-16B | **open — moot until the family exists** (§9.2, DEC-016) |
+| 5 | Timebox | 1–2 days for the build spike | 1 day build + 1 day first run | **open** — not answered (§9.2) |
 
 ## 3. Detailed instructions
 
@@ -161,3 +161,78 @@ executed. The choices, for the owner (not for the architect):
 
 Nothing is downloaded, installed or run while this is unanswered. **Status: awaiting the owner.**
 
+---
+
+## 9. Owner decisions — 2026-11-16 (UTC)
+
+> Appended by the **Auditor**, owner-task intake of record. Source: the owner's answers given
+> directly to the architect. The architect recorded the operational consequences as **DEC-016**
+> (`workflow/DECISIONS.md`); `workflow/STATUS.md` and `HO-STRATA-001-APPROVAL.md` already reflect
+> them. §1–§7 above are unchanged. This section is the owner-decision record and supersedes §8.1
+> where they differ (it does not contradict §8.2).
+
+### 9.1 The owner's answers (attributed, quoted)
+
+| # | Question put to the owner | Owner's answer |
+|---|---|---|
+| Q1 | Launch **HO-STRATA-006** (read-only model-support investigation) now? | **"Wait for my owner decisions first."** |
+| Q2 | Amend **DEC-003** — replace the three test beds (Mixtral 8x7B / Qwen3-30B-A3B / DeepSeek) with the two supported Qwen families? | **"Keep DEC-003 unchanged and block."** |
+
+### 9.2 Decisions 1–5 — state as recorded
+
+| # | Decision | Owner choice / state | Basis |
+|---|---|---|---|
+| 1 | Strata commit | **DECIDED** — pin `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` | `DEC-007`, under the owner's session directive "pin the Strata commit and record it"; provenance in `workflow/evidence/HO-STRATA-001/artifacts/pinned-commit.txt` |
+| 2 | Mixtral pack | **OPEN — and moot until the family exists.** No pack is chosen; there is nothing to choose while Mixtral is not an engine family at the pin | §8.2; DEC-016 |
+| 3 | Qwen pack | **OPEN — and moot until the family exists.** Qwen3-30B-A3B vs Qwen1.5-MoE-A2.7B: neither is implemented. `qwen35moe` = Qwen3.6-35B-A3B is **not** Qwen3-30B-A3B and is not a substitute | §8.2; DEC-016 |
+| 4 | DeepSeek pack | **OPEN — and moot until the family exists.** V2-Lite / MoE-16B: the family is retired and refused by the Control | §8.2; DEC-016 |
+| 5 | Timebox | **OPEN — the owner has not answered it.** One day of the build-spike budget was consumed by checkpoint 1 | §8.1 |
+
+### 9.3 Progress checkpoints (updated)
+
+| Checkpoint | Owner | Status |
+|---|---|---|
+| 1 — Build spike (001) | Architect/Coder | **done — SIGNED 2026-11-16** (QAQC PASS after `RW-…-1`, audit PASS; `HO-STRATA-001-APPROVAL.md`) |
+| 1a — model policy `--strict` | Architect | pending — exits 2 (architect + both coders unset); runs under DEC-009 / WAIVER-001 |
+| 2 — Mixtral baseline (002) | Coder/QAQC | **blocked** — family unimplemented at the pin; owner hold (DEC-016) |
+| 3 — Qwen3-30B-A3B baseline (003) | Coder/QAQC | **blocked** — same |
+| 4 — DeepSeek baseline (004) | Coder/QAQC | **blocked** — same |
+| 5 — Route decision (005) | Architect | **blocked** — needs at least one measured baseline |
+| Owner acceptance | Owner | pending |
+
+### 9.4 The fact that changes the wording of this task
+
+Criterion 3 in §6 — "one measured baseline per family, with the model hash and the limits" — **cannot
+be satisfied at this pin** for Mixtral 8x7B, Qwen3-30B-A3B or DeepSeek. `strata --families` reports
+`qwen4exp qwen35moe`; Mixtral and Qwen3-30B-A3B have no source match; DeepSeek is retired and refused
+by the Control (§8.2). The owner chose to **block rather than substitute** the supported Qwen families
+(DEC-003 unchanged, DEC-016).
+
+Consequence, stated plainly:
+
+- **Criteria 1, 2 and 5 are satisfied by HO-STRATA-001** (SIGNED 2026-11-16): reproducible build with
+  the toolchain recorded, `--families`/`--plan` output plus the engine-boundary note, complete
+  evidence bundle, no unsupported claims.
+- **Criterion 3** needs one of: **(a)** a runnable family — an implementation of one of the three
+  beds, which is a **deviation** requiring the owner's written go-ahead; or **(b)** an owner-approved
+  support deviation that changes the beds. Until then it cannot be met.
+- **Criterion 4** (Route 2 vs Route 3 recorded in `DECISIONS.md`) needs a measured baseline, so it
+  cannot be met while criterion 3 is unmet.
+
+So the task is not "in progress and slow"; it is **paused on the owner**, with checkpoint 1 banked and
+reproducible.
+
+### 9.5 What the auditor needs from the owner to unpause
+
+1. **Decision 2** — Mixtral 8x7B: confirm the Q4_K_M pack, **or** confirm the bed stays blocked until
+   the family is implemented.
+2. **Decision 3** — Qwen: choose Qwen3-30B-A3B vs Qwen1.5-MoE-A2.7B (or confirm blocked), and confirm
+   that `qwen35moe` / Qwen3.6-35B-A3B is not an acceptable substitute.
+3. **Decision 4** — DeepSeek: DeepSeek-V2-Lite vs DeepSeek-MoE-16B (or confirm blocked).
+4. **Decision 5** — the timebox for the baselines and for any support work.
+5. **One explicit go-ahead: either** launch `HO-STRATA-006` read-only (support investigation, no
+   downloads, DoR kept), **or** authorise a support deviation naming the family, the kernel/attention
+   risk and the budget. Per DEC-016, no technical work starts without one of these.
+
+**Status: awaiting the owner.** State remains `INTAKE` (paused). No downloads, no support changes, no
+commits while this is open.

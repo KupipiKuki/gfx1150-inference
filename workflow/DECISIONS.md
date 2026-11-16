@@ -280,3 +280,46 @@ this file did not happen.
   evidence stays byte-identical to what QAQC and the auditor verified; the
   PENDING model policy cannot reach `main` through this handoff.
 - **Affected:** HO-STRATA-001, HO-STRATA-002…006, `STATUS.md`.
+
+## DEC-016 — Owner holds the support-first path: DEC-003 stays, 002–004 blocked
+
+- **Date:** 2026-11-16
+- **Context:** HO-STRATA-001 SIGNED with the measured family list
+  (`qwen4exp` = Qwen3.8-Flash-Next, `qwen35moe` = Qwen3.6-35B-A3B) and the
+  finding that Mixtral 8x7B, Qwen3-30B-A3B and DeepSeek are **not implemented**
+  at the pin. DEC-010 (written while 001 was in review) proposed support-first:
+  investigate (HO-006), implement the cheapest family, then low-tier tests, with
+  HO-STRATA-002/003/004 blocked on HO-006. HO-006 was made `READY`.
+  The owner was asked two questions and answered:
+  1. **Do not launch HO-006 now** — "wait for my owner decisions first" (the
+     OT-STRATA-001 decisions 2–5: packs, timebox).
+  2. **Keep DEC-003 unchanged and block** — do not amend the three test beds,
+     do not substitute the two supported Qwen families.
+- **Options:** accept DEC-010 support-first; replace the beds with the supported
+  Qwen families; keep DEC-003 and block. The owner chose **keep and block**.
+- **Decision:**
+  - **DEC-003 stands as written.** The three beds (Mixtral 8x7B,
+    Qwen3-30B-A3B, DeepSeek-V2-Lite/MoE-16B) remain the cross-family test.
+  - **HO-STRATA-002/003/004 → `BLOCKED`**, not "deferred on 006". They unblock
+    only when (a) the family is implemented in a Strata build we can run on
+    `gfx1150`, and (b) the owner has answered decisions 2–4 for the pack.
+    A family-support implementation is a **deviation** and needs the owner's
+    written go-ahead; nothing is forked or patched before that.
+  - **HO-STRATA-006 → `DEFERRED`** (was READY). It is not cancelled: it stays
+    the cheapest first step whenever the owner reopens support work. No coder is
+    launched on it now.
+  - **DEC-010 is superseded** on its sequence (006 → implement → low-tier):
+    its premise (owner wants support work now) is not what the owner decided.
+    The low-tier test definition in `planning/strata-engine/11` §2 is kept as a
+    definition, not as an active plan.
+  - **No new technical work starts** until the owner's OT decisions 2–5 are
+    recorded by the auditor. The only open work is bookkeeping and the pending
+    model-policy application.
+- **Consequences:** the project pauses with 001 DONE and everything else blocked
+  by an owner decision, which is honest rather than busy. The gfx1150 build
+  baseline, the support surface and the engine boundary are established and
+  reproducible; the next measured number requires either a supported family run
+  (`qwen35moe` fits this host, ≈20–21 GiB at Q4) or an owner-approved support
+  deviation.
+- **Affected:** DEC-003, DEC-010, DEC-015; HO-STRATA-002…006; `STATUS.md`;
+  `OT-STRATA-001.md`.
