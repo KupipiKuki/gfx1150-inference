@@ -249,3 +249,34 @@ this file did not happen.
   (DeepSeek), QAQC (Argon/Gemini), auditor (DeepSeek) and architect (DeepSeek);
   no role model changes; the owner audit record is part of the evidence.
 - **Affected:** `workflow/OWNER_AUDIT_CHECKLIST.md`, `OT-STRATA-001`.
+
+## DEC-015 — HO-STRATA-001 merge is selective and deferred
+
+- **Date:** 2026-11-16
+- **Context:** HO-STRATA-001 is SIGNED. Its branch
+  `wp/strata-001-gfx1150-build` is based on `a6166f7e` (the tip of
+  `research/strata-memo`, **not** on `main`), local `main` is 41 commits behind
+  `origin/main`, and three concurrent sessions committed on the branch during
+  review. The audit (finding P1) counted four workstreams across 29 commits and
+  82 files: the work package, a model-policy workstream (`MODEL_POLICY.md`,
+  `model_policy.json`, `check_model_policy.py`, `.opencode/agents/*`,
+  `ENGINEERING_WORKFLOW.md`, `README.md`, `SESSION_KICKOFF.md`), a planning
+  workstream (`planning/strata-engine/10…12`, `OWNER_AUDIT_CHECKLIST.md`), and
+  research. Merging the branch wholesale would put a **PENDING** model policy on
+  `main` and would fast-forward 69 commits of unrelated work.
+- **Options:** (a) fast-forward `main` to the branch; (b) merge the branch
+  wholesale; (c) selective merge after the branch stops moving; (d) sign and
+  defer the merge until the concurrent sessions settle.
+- **Decision:** (d) then (c). The handoff is `DONE` and reviewable on its branch
+  now; the merge happens once the branch is quiet, and it takes **only**:
+  `workflow/evidence/HO-STRATA-001/**` (all 20 files **from one commit**, so
+  `hashes.txt` stays true), `HO-STRATA-001.md`, `HO-STRATA-001-QAQC.md`,
+  `HO-STRATA-001-APPROVAL.md`, `RW-HO-STRATA-001-1.md`, the QAQC report, the
+  audit report, and the `.gitignore` evidence-log negation (DEC-008).
+  `DECISIONS.md`, `STATUS.md` and `OT-STRATA-001.md` are shared and are taken
+  hunk by hunk. Everything else on the branch is another workstream's and is
+  merged (or not) on its own terms.
+- **Consequences:** no fast-forward, ever; `290922d` is not rewritten; the
+  evidence stays byte-identical to what QAQC and the auditor verified; the
+  PENDING model policy cannot reach `main` through this handoff.
+- **Affected:** HO-STRATA-001, HO-STRATA-002…006, `STATUS.md`.

@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-001 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **CODER_DONE** (was READY → IN_PROGRESS → CODER_DONE) |
+| **State** | **DONE** — READY → IN_PROGRESS → CODER_DONE → QAQC_REVIEW (FAIL → REWORK → PASS) → AUDIT_REVIEW (PASS) → **DONE** (SIGNED 2026-11-16) |
 | **Created / updated (UTC)** | 2026-11-15 / 2026-11-16 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-001-gfx1150-build` — build/support/engine-boundary spike |
@@ -191,6 +191,11 @@ recorded as an observation, which AC-5 permits.
 |---|---|---|---|
 | Sender (Architect) | architect | 2026-11-15 | READY — DoR complete |
 | Receiver (Primary Coder) | `coder-primary` | 2026-11-16 | CODER_DONE — AC-1…AC-8 run; build exit 0; evidence in `workflow/evidence/HO-STRATA-001/` |
+| QAQC (first) | `qaqc` on deepseek-v4.1-flash (WAIVER-001) | 2026-11-16 | FAIL on AC-4 → `RW-HO-STRATA-001-1` |
+| QAQC (re-check) | `qaqc` on deepseek-v4.1-flash | 2026-11-16 | PASS (F1–F7, N1–N3 closed) |
+| QAQC (independent) | `qaqc` on `gemini-4-argon`, fresh session | 2026-11-16 | PASS — first review with real model separation |
+| Auditor | `auditor` on deepseek-v4.1-flash (WAIVER-001) | 2026-11-16 | PASS → `ARCHITECT_APPROVAL` |
+| Architect (final) | architect | 2026-11-16 | **SIGNED — DONE**; approval + conditions in `HO-STRATA-001-APPROVAL.md` |
 
 ## 11. Log
 
@@ -321,5 +326,13 @@ recorded as an observation, which AC-5 permits.
   - `hashes.txt` regenerated; new commit on `wp/strata-001-gfx1150-build` (do **not** amend
     `290922d`). DoD ticks left as they were: AC-4 and AC-7 remain satisfied in substance, and the
     rework changed only prose/citations, not measurements.
-
-
+- 2026-11-16 Architect: **AUDIT_REVIEW → DONE (SIGNED).** Gates: QAQC FAIL → `RW-HO-STRATA-001-1`
+  → re-check PASS (§7) → independent gemini-4-argon session PASS (§8) → auditor PASS
+  (`workflow/reports/audit/HO-STRATA-001-audit.md`). Approval, criteria trace and conditions
+  (C1 merge selection, C4 model-policy waiver, C6 no second cold build) in
+  `HO-STRATA-001-APPROVAL.md`; merge selection decided in DEC-015. The signed tree is the bundle
+  at `76034a0`; later commits on the branch are other sessions' workflow/planning work.
+- 2026-11-16 Architect: **merge not executed, deliberately.** The branch base (`a6166f7e`) is not
+  on `main`, local `main` is 41 commits behind `origin/main`, and a merge would sweep another
+  session's PENDING model-policy files. DEC-015 names exactly what may be merged and forbids a
+  fast-forward. The evidence is committed and reviewable on the work-package branch.
