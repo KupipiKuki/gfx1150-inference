@@ -2,6 +2,7 @@
 description: Secondary coder — low-priority work packages under the same handoff contract
 mode: subagent
 steps: 80
+model: opencode-go/qwen3.8-flash#low
 permissions:
   - action: edit
     resource: "*"

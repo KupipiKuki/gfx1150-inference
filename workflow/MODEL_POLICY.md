@@ -1,10 +1,10 @@
 # Model selection policy
 
 **Status:** adopted 2026-11-15 · **auditor applied under WAIVER-001; QAQC
-applied (Gemini); architect/coders pending.** The HO-001 QAQC review ran before
-the QAQC assignment on the session model; it is a setup exception, not an
-independent QAQC, and must be re-run on Gemini before the audit. The active agent
-must not be modified while in use.
+(Gemini), coder-primary (Kimi), coder-secondary (Qwen) applied; architect
+pending (session model).** The HO-001 QAQC setup exception was closed by the
+Gemini/Argon re-run; the audit accepted it. The active agent must not be
+modified while in use.
 **Enforcement:** `workflow/check_model_policy.py` (`--strict` once all five are
 assigned).
 **Decisions:** `DECISIONS.md` DEC-006 (rules), DEC-009 (temporary auditor
@@ -130,14 +130,14 @@ mode with unassigned roles.
 ## 6. Current state
 
 - **Auditor:** `opencode-go/deepseek-v4.1-flash` — applied, WAIVED (WAIVER-001).
-- **QAQC:** `opencode-go/gemini-4-argon#high` — applied. The HO-001 QAQC review
-  started before the assignment and ran on the session model (DeepSeek V4.1
-  Flash); it is a setup exception and does not satisfy the QAQC/auditor
-  separation. Re-run the QAQC review on Gemini before the audit.
-- **Architect, coder-primary, coder-secondary:** proposed in §3, unset in the
-  agent files; the active agent must not be modified while in use.
-- `check_model_policy.py` reports `PENDING` for the architect/coders; `--strict`
-  exits 2. With the architect set, the auditor/architect conflict is `WAIVED`;
-  QAQC (Gemini) and auditor (DeepSeek) are distinct families.
+- **QAQC:** `opencode-go/gemini-4-argon#high` — applied; the HO-001 re-run passed
+  on Argon, closing the setup exception.
+- **coder-primary:** `opencode-go/kimi-k2.7-code` — applied.
+- **coder-secondary:** `opencode-go/qwen3.8-flash#low` — applied.
+- **Architect:** pending — the active session model is DeepSeek; set an explicit
+  model in a new session.
+- `check_model_policy.py` reports `PENDING` for the architect; `--strict` exits
+  2. QAQC/coders/auditor are distinct; the architect/auditor same family is
+  `WAIVED` when the architect is set.
 - Closure of WAIVER-001: move the auditor to a different family, rerun the
   check, remove the waiver, record the change.

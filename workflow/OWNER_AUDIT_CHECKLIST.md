@@ -10,10 +10,10 @@ coder, QAQC, auditor and architect; this is the final check on the evidence.
 |---|---|
 | Auditor | Owner (independent of the workflow roles) |
 | Model/tool | **Mistral 4** |
-| Date | |
-| Handoff/commit | |
-| Verdict | ACCEPT / REJECT |
-| Notes | |
+| Date | 2026-11-16 |
+| Handoff/commit | HO-STRATA-001 @ `76034a0`; independent report `95c4cec` |
+| Verdict | **ACCEPT (build/support portion)** |
+| Notes | Grade A; 8/8 HO criteria; 19/19 hashes; cross-family criteria 3–4 remain blocked (DEC-016); qwen35moe low-tier authorized (HO-007/DEC-017). |
 
 The owner audit is a **fresh, read-only session**: it may write only this record
 and the owner verdict in `OT-STRATA-001`.

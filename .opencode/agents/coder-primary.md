@@ -2,6 +2,7 @@
 description: Primary coder — implements an assigned work package under a handoff contract
 mode: subagent
 steps: 80
+model: opencode-go/kimi-k2.7-code
 permissions:
   - action: edit
     resource: "*"

@@ -323,3 +323,26 @@ this file did not happen.
   deviation.
 - **Affected:** DEC-003, DEC-010, DEC-015; HO-STRATA-002…006; `STATUS.md`;
   `OT-STRATA-001.md`.
+
+## DEC-017 — Owner accepts the build/support package; authorizes the qwen35moe low-tier test
+
+- **Date:** 2026-11-16
+- **Context:** the Mistral 4 independent audit accepted HO-STRATA-001 (build,
+  support surface, engine boundary); the owner-facing cross-family criteria 3–4
+  remain blocked by DEC-016 because the requested families are unimplemented at
+  the pin. The supported `qwen35moe` family (Qwen3.6-35B-A3B) is the one real
+  low-tier run available on gfx1150.
+- **Decision:**
+  - **Accept HO-STRATA-001** as the build/support package (criteria 1, 2, 5).
+  - **Keep DEC-003 and HO-STRATA-002/003/004 `BLOCKED`** (no substitution).
+  - **Keep HO-STRATA-006 `DEFERRED`** (read-only support investigation).
+  - **Authorize HO-STRATA-007** — a single low-tier `qwen35moe` run on gfx1150:
+    smallest practical quant, 512–2,048 context, 16–32 tokens, one fixed
+    prompt, temperature 0; no performance/support claim.
+  - **Merge HO-001 selectively later** (DEC-015); the test is its own
+    work-package branch.
+- **Consequences:** one real generation result without reopening family
+  support; HO-005 (Route 2 vs Route 3) can use it; the cross-family beds remain
+  blocked; the coder/QAQC/auditor models are set (architect remains the session
+  model).
+- **Affected:** OT-STRATA-001, `STATUS.md`, HO-STRATA-007, DEC-003, DEC-016.
