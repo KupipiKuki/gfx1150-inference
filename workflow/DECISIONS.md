@@ -134,7 +134,7 @@ this file did not happen.
   `git add -f`, so the contract's `commands.log` is versioned by rule.
 - **Affected:** HO-STRATA-001 … HO-STRATA-005.
 
-## DEC-007 — Temporary auditor model waiver (WAIVER-001)
+## DEC-009 — Temporary auditor model waiver (WAIVER-001)
 
 - **Date:** 2026-11-15
 - **Context:** the owner's other APIs are not incorporated yet; the auditor is
@@ -151,3 +151,22 @@ this file did not happen.
   return PASS), and record the change.
 - **Affected:** `.opencode/agents/auditor.md`, `workflow/MODEL_POLICY.md`,
   `workflow/model_policy.json`, `workflow/check_model_policy.py`.
+
+## DEC-010 — Model-class coverage: support first, then low-tier tests on all
+
+- **Date:** 2026-11-15
+- **Context:** HO-STRATA-001 found the pinned build supports only `qwen4exp`
+  (Qwen3.8-Flash-Next) and `qwen35moe` (Qwen3.6-35B-A3B). The owner wants
+  low-tier tests on **all** model classes, not Qwen-only.
+- **Decision:** after HO-001 is SIGNED, run **HO-006** (read-only support
+  investigation: Qwen3-30B-A3B, Mixtral 8x7B, DeepSeek-V2-Lite/MoE-16B), add
+  support for the cheapest family first, then run low-tier tests on every
+  supported class. No class is declared supported before its low-tier test.
+  HO-STRATA-002/003/004 are blocked on HO-006.
+- **Consequences:** the test-bed plan changes from immediate runs to
+  support-first; the end targets (8x22B, DeepSeek v2/V4) share the path with
+  their small representatives; a class that needs a new kernel/attention path is
+  a large deviation and may be descoped by the architect. The route decision
+  (HO-005) uses the low-tier results.
+- **Affected:** DEC-003, `STATUS.md` 002–005, HO-006,
+  `planning/strata-engine/11-model-support-investigation.md`.

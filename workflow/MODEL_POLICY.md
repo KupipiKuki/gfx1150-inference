@@ -5,7 +5,7 @@ four roles are proposed and unset.** The active agent must not be modified while
 in use.
 **Enforcement:** `workflow/check_model_policy.py` (`--strict` once all five are
 assigned).
-**Decisions:** `DECISIONS.md` DEC-006 (rules), DEC-007 (temporary auditor
+**Decisions:** `DECISIONS.md` DEC-006 (rules), DEC-009 (temporary auditor
 waiver).
 
 ---
