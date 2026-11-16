@@ -105,8 +105,30 @@ After the push: `git revert -m 1 <merge-sha>` (a documented revert, not a force-
   still unset; `--strict` continues to exit 2 under WAIVER-001. Closing that is a
   separate session/model change, not a merge blocker.
 
-## 8. Open decision
+## 8. Executed (2026-11-16)
 
-Execute the merge now, or hold `main` until HO-005 decides Route 2 vs Route 3.
-The evidence is unaffected either way; merging now makes the signed result the
-repository of record.
+- **Merge commit:** `fe54d79` (`--no-ff`), tree identical to the verified
+  `merge-tree` result; pushed as `origin/merge/strata-001-007`.
+- **Local `main`:** reset to `origin/main` (`eccdc39`) after the merge, so the
+  only copy of the merge commit is the remote branch.
+- **`main` is protected:** the direct push was rejected —
+  `GH013: 3 of 4 required status checks have not succeeded`. The repo's history
+  is PR-based (`Merge pull request #12/#14`), so this merge must land as a PR
+  from `merge/strata-001-007` → `main`. The architect cannot open or merge the
+  PR from this session (no `gh` auth, no `GH_TOKEN`); the owner completes it.
+- **Verification on the merge tree:**
+  - `git ls-files workflow/evidence | wc -l` → **36**.
+  - `.gitignore`: `build.log` still ignored; `workflow/evidence/**/commands.log`
+    tracked.
+  - HO-001: **19/19** bundle hashes OK (`hashes.txt` is a documented mixed
+    format; verify by joining basenames with `artifacts/`).
+  - HO-007: **15/15** bundle hashes OK; the signed binary hash still verifies.
+
+### Reproducibility note (non-blocking)
+
+`/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` is **no longer present**
+on this host — temporary storage was cleaned. The recorded SHA256
+(`55983c5a…3fe9f1`) and byte count pin it, and `setup.py:747` carries the same
+digest, so the run is reproducible after a re-download. For future handoffs,
+keep the GGUF on persistent storage (or record the re-download step in the
+evidence manifest) so the model hash can be re-verified without network access.
