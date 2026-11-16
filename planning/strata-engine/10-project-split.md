@@ -4,6 +4,13 @@
 **Decision:** two separate projects with separate plans, branches and evidence
 trails. The 780M leaves the Strata plan until it is logical to add it back.
 
+> **Update 2026-11-15:** the split is the **current execution boundary**, not a
+> permanent architecture. The large-model investigation
+> (`12-large-model-support-investigation.md`) evaluates a **hybrid** that may
+> join the gfx-inference evidence/dense substrate with the Strata MoE engine.
+> No branch merge before HO-007 and an owner decision; the 780M dense
+> continuation remains separate for now.
+
 ## 1. Strata project
 
 - **Host:** gfx1150 (current APU); gfx1100 future; MI25 deferred.

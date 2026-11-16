@@ -190,3 +190,25 @@ this file did not happen.
   low-tier run on the target host.
 - **Affected:** DEC-003, DEC-010, `STATUS.md` HO-005/HO-007,
   `planning/strata-engine/12-large-model-support-investigation.md`.
+
+## DEC-012 — Large-model track is investigative; a hybrid join is a candidate
+
+- **Date:** 2026-11-15
+- **Context:** the owner wants the DeepSeek V4 Flash / MiniMax M3.1 Flash work
+  to remain **purely investigative**. A hybrid path joining the
+  `gfx-inference` and Strata branches may be the outcome, rather than adding
+  the models to Strata or building a new engine.
+- **Decision:** no branch merge and no implementation now. HO-007 compares
+  three routes: **A** add to Strata, **B** an independent large-model engine,
+  **C** a hybrid joining the gfx-inference evidence/capability substrate with
+  the Strata MoE engine. The 780M dense continuation remains separate for now.
+  No merge before HO-007 and an owner decision.
+- **Constraints:** the MoE engine must not import the per-layer Python boundary
+  or the all-or-nothing residency model; one claims ledger/evidence trail across
+  dense and MoE; MIT/attribution preserved; the hybrid is a shared substrate
+  with a hard engine boundary, not one engine.
+- **Consequences:** HO-005 becomes a three-way decision; DEC-001's split is a
+  current boundary, not permanent; the large-model work has no implementation
+  commitment.
+- **Affected:** DEC-001, DEC-011, `planning/strata-engine/10` and `12`,
+  HO-005/HO-007.

@@ -73,8 +73,11 @@ paths, not just a family descriptor.
    + effort/risk + a go/no-go recommendation.
 4. Only then an implementation decision, with a **deviation** and a hardware
    decision (gfx1100 host + RAM).
-5. **HO-005** (Route 2 vs Route 3) uses both the small-model results and the
-   large-model feasibility.
+5. **HO-007** also produces the hybrid join analysis (what joins, what stays
+   separate, migration cost); no branch merge before an owner decision.
+6. **HO-005** (Route 2 vs Route 3) uses both the small-model results and the
+   large-model feasibility, and becomes a **three-way** decision: add to
+   Strata, build independent, or hybrid.
 
 ## 5. Preliminary assessment
 
@@ -87,6 +90,59 @@ paths, not just a family descriptor.
   is not a run; it is a **capacity report** that says which host and quant can
   load the model and what the engine must add.
 - No performance, quality or support claim until a measured low-tier run.
+
+### Hybrid route (candidate)
+
+The investigation may conclude that the right outcome is a **hybrid** that joins
+the two branches, not a choice between "add to Strata" and "build separate".
+Three routes should be compared:
+
+| Route | Shape | Main cost |
+|---|---|---|
+| **A — add to Strata** | new attention/quant paths inside the existing engine | large engine change; one codebase |
+| **B — independent large-model engine** | a new engine for these models | highest; duplicates the substrate |
+| **C — hybrid join** | shared evidence/capability layer + two execution paths (dense and MoE), or a Strata engine inside the gfx-inference evidence platform | integration and boundary discipline; one evidence trail |
+
+**What can join**
+
+- The gfx-inference **evidence substrate**: GGUF parser, tokenizer, model-spec
+  validator, golden rig, claims ledger/checker/canaries, bench gate, CI shape,
+  telemetry.
+- A **shared capability layer** (`devices/*.json`, probe, dispatch, per-profile
+  telemetry) for gfx1150/gfx1103/gfx1100/gfx900.
+- One **claims ledger** and one bench/evidence trail across dense and MoE runs.
+
+**What must stay separate**
+
+- The MoE engine's device-resident loop and expert cache must not import the
+  gfx-inference per-layer Python boundary or the all-or-nothing residency
+  model.
+- The dense path's GTT-budget assumptions must not be applied to discrete VRAM.
+- The 780M dense continuation remains a separate product until the owner
+  decides otherwise; it can be a consumer of the shared substrate, not the MoE
+  engine.
+
+**Join questions (HO-007 must answer)**
+
+1. Is the boundary a shared **evidence/claims library**, a shared **capability
+   descriptor**, or a full repository merge?
+2. One repo with packages (`substrate`, `dense`, `strata-moe`) or two repos with
+   a shared submodule? How is history/claims provenance preserved?
+3. What is the first shared artifact: the claims ledger/bench harness on the
+   Strata engine, or the capability descriptor for both?
+4. Does the 780M dense continuation remain a separate target, or become a
+   consumer of the hybrid?
+5. What is the merge gate and the migration plan? No branch merge before
+   HO-007 and an owner decision.
+6. What is the maintenance model: one engine team or two, one CI or two, one
+   claims gate or two?
+7. Does the hybrid change the Route 2 vs Route 3 decision (HO-005)? It likely
+   does: the hybrid is a third route, not a variant of the fork.
+
+**Recommendation to test:** the likely shape is **C with a hard boundary** — a
+single evidence/claims/capability substrate and two execution modules, not one
+engine. The investigation should say whether that is cheaper than A and whether
+the 780M dense path is in or out.
 
 ## 6. Guard rails for HO-007
 
