@@ -1,8 +1,10 @@
 # Model selection policy
 
-**Status:** adopted 2026-11-15 · **auditor applied under WAIVER-001; the other
-four roles are proposed and unset.** The active agent must not be modified while
-in use.
+**Status:** adopted 2026-11-15 · **auditor applied under WAIVER-001; QAQC
+applied (Gemini); architect/coders pending.** The HO-001 QAQC review ran before
+the QAQC assignment on the session model; it is a setup exception, not an
+independent QAQC, and must be re-run on Gemini before the audit. The active agent
+must not be modified while in use.
 **Enforcement:** `workflow/check_model_policy.py` (`--strict` once all five are
 assigned).
 **Decisions:** `DECISIONS.md` DEC-006 (rules), DEC-009 (temporary auditor
@@ -100,6 +102,14 @@ Do not start the first coding handoff while the policy is `PENDING`; the build
 spike may run under the session model only as a setup exception, recorded in the
 handoff log.
 
+**Launch rule (learned from HO-001).** A subagent's model is fixed when its
+child session starts. Assign the role model *before* launching; a mid-run file
+change does not affect a running child. If the policy is `PENDING` for a role,
+do not launch that role. After changing an agent model, reload the config or
+start a fresh session before launching the review. The architect must never
+pass a `model` override to the subagent tool; the agent file is the source of
+truth.
+
 ## 5. Enforcement
 
 `workflow/check_model_policy.py` reads the five agent files and checks:
@@ -120,10 +130,14 @@ mode with unassigned roles.
 ## 6. Current state
 
 - **Auditor:** `opencode-go/deepseek-v4.1-flash` — applied, WAIVED (WAIVER-001).
-- **Architect, coder-primary, coder-secondary, QAQC:** proposed in §3, unset in
-  the agent files; the active agent must not be modified while in use.
-- `check_model_policy.py` reports `PENDING` for the unset roles; `--strict`
-  exits 2. When the architect is set, the auditor/architect conflict is
-  reported as `WAIVED`.
+- **QAQC:** `opencode-go/gemini-4-argon#high` — applied. The HO-001 QAQC review
+  started before the assignment and ran on the session model (DeepSeek V4.1
+  Flash); it is a setup exception and does not satisfy the QAQC/auditor
+  separation. Re-run the QAQC review on Gemini before the audit.
+- **Architect, coder-primary, coder-secondary:** proposed in §3, unset in the
+  agent files; the active agent must not be modified while in use.
+- `check_model_policy.py` reports `PENDING` for the architect/coders; `--strict`
+  exits 2. With the architect set, the auditor/architect conflict is `WAIVED`;
+  QAQC (Gemini) and auditor (DeepSeek) are distinct families.
 - Closure of WAIVER-001: move the auditor to a different family, rerun the
   check, remove the waiver, record the change.

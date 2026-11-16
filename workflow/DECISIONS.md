@@ -212,3 +212,26 @@ this file did not happen.
   commitment.
 - **Affected:** DEC-001, DEC-011, `planning/strata-engine/10` and `12`,
   HO-005/HO-007.
+
+## DEC-013 — Subagent model is fixed at child-session launch
+
+- **Date:** 2026-11-15
+- **Context:** the HO-001 QAQC review ran on `opencode-go/deepseek-v4.1-flash`
+  even though the QAQC agent was assigned Gemini at 19:42; the child session
+  started at ~19:30. The OpenCode usage shows no Argon. The QAQC report itself
+  flags this as finding F9.
+- **Finding:** a subagent’s model is fixed when its child session starts; a
+  mid-run agent-file change does not affect a running child. The architect can
+  also override the model per `subagent` call, which defeats the file.
+- **Decision:** assign role models before launching; do not launch a role while
+  its model is `PENDING`; after a model change, reload the config or start a
+  fresh session; the architect must not pass a `model` override. The HO-001
+  QAQC review is a **setup exception**, not an independent QAQC; re-run it on
+  Gemini before the audit. The audit cannot cite the DeepSeek QAQC as
+  independent.
+- **Consequences:** the QAQC re-review is a new child session on Gemini; the
+  model usage must show Argon; the auditor reviews after that. The architect
+  prompt gets a “no model override / no review while PENDING” rule when the
+  active agent is free.
+- **Affected:** `MODEL_POLICY.md`, QAQC handoff/report, HO-001,
+  `SESSION_KICKOFF.md`, architect prompt (when free).
