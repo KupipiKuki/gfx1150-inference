@@ -90,6 +90,7 @@
 | Decision | Date | Note |
 |---|---|---|
 | **ACCEPTED (build/support portion)** | 2026-11-16 | Mistral 4 independent audit: HO-001 criteria 1, 2, 5 accepted; criteria 3–4 remain **blocked** under DEC-016. A low-tier **qwen35moe** (Qwen3.6-35B-A3B) baseline is authorized as HO-STRATA-007 / DEC-017. |
+| **ACCEPTED (qwen35moe baseline)** | 2026-11-16 | HO-STRATA-007 SIGNED: the supported `qwen35moe` pack loads and generates 32 deterministic tokens on gfx1150 (5 reproductions; GTT peak ~26.2 GiB; no GPU fault). Accepted on the workflow evidence without a second Mistral 4 audit (DEC-019). No performance/support claim. |
 
 ---
 

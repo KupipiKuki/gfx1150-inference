@@ -15,6 +15,12 @@ coder, QAQC, auditor and architect; this is the final check on the evidence.
 | Verdict | **ACCEPT (build/support portion)** |
 | Notes | Grade A; 8/8 HO criteria; 19/19 hashes; cross-family criteria 3–4 remain blocked (DEC-016); qwen35moe low-tier authorized (HO-007/DEC-017). |
 
+**HO-STRATA-007:** accepted without a second owner audit (DEC-019). The workflow
+chain executed cleanly (independent QAQC on Gemini/Argon; auditor PASS under
+WAIVER-001; architect SIGNED) and the output reproduced five times. No Mistral 4
+record is produced for this handoff; HO-001's audit remains the independent
+check of the process. The earlier HO-001 record above is unaffected.
+
 The owner audit is a **fresh, read-only session**: it may write only this record
 and the owner verdict in `OT-STRATA-001`.
 

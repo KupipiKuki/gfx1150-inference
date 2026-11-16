@@ -13,7 +13,7 @@ row is invisible.
 | HO-STRATA-004 | DeepSeek baseline | **BLOCKED** | Architect | — | nothing until the family exists; needs an attention path | unimplemented; Control refuses it | — |
 | HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after HO-007 (qwen35moe) baseline | no baseline yet | — |
 | HO-STRATA-006 | model-support investigation (read-only) | **DEFERRED** (owner hold) | Architect | `wp/strata-006-model-support` @ `750dd2f` | restart only on the owner's go-ahead (DEC-016) | owner hold; OT decisions 2–5 | `workflow/evidence/HO-STRATA-006/` |
-| HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **DONE (SIGNED 2026-11-16)** | Architect | `wp/strata-007-qwen35moe-lowtier` @ `e066b09` | selective merge with HO-001 (DEC-015); then HO-005 route decision | merge plan | `workflow/evidence/HO-STRATA-007/` · `workflow/reports/qaqc/HO-STRATA-007-qaqc.md` · `workflow/reports/audit/HO-STRATA-007-audit.md` · `workflow/handoffs/HO-STRATA-007-APPROVAL.md` |
+| HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **DONE (SIGNED 2026-11-16)** | Architect | `wp/strata-007-qwen35moe-lowtier` @ `776b6ff` | merge per `MERGE_PLAN.md`; then HO-005 route decision | merge go-ahead | `workflow/evidence/HO-STRATA-007/` · `workflow/reports/qaqc/HO-STRATA-007-qaqc.md` · `workflow/reports/audit/HO-STRATA-007-audit.md` · `workflow/handoffs/HO-STRATA-007-APPROVAL.md` |
 
 **Project state (2026-11-16):** HO-STRATA-001 is DONE and accepted as the
 build/support package; HO-STRATA-007 (qwen35moe low-tier) is **DONE and SIGNED** —

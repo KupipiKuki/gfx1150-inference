@@ -367,3 +367,21 @@ this file did not happen.
   longer contradicts the report; future QAQC runs use this pattern.
 - **Affected:** `ENGINEERING_WORKFLOW.md` §4/§6 interpretation,
   `HO-STRATA-007-QAQC.md`, `templates/QAQC_REPORT.md`.
+
+## DEC-019 — Owner accepts HO-STRATA-007 without a second independent audit
+
+- **Date:** 2026-11-16
+- **Context:** the owner performed the Mistral 4 independent audit for HO-001
+  (grade A). For HO-007 the owner judged that the workflow chain — coder (Kimi) →
+  independent QAQC on Gemini/Argon → auditor on DeepSeek (WAIVED) → architect
+  signoff, with 5 independent reproductions of the output — executed cleanly,
+  and declined a second owner audit.
+- **Decision:** HO-STRATA-007 is **accepted** on the workflow evidence. No new
+  Mistral 4 audit is produced for this handoff; the owner-audit record notes the
+  omission and its reason. HO-001's Mistral 4 audit stands as the independent
+  check of the process itself.
+- **Consequences:** HO-007 is `DONE` and eligible for merge; the evidence chain
+  is unchanged; a future handoff can still request an owner audit. This is an
+  acceptance decision, not a change to the audit requirement in the contract.
+- **Affected:** `OT-STRATA-001`, `STATUS.md`, `OWNER_AUDIT_CHECKLIST.md`,
+  `MERGE_PLAN.md`.
