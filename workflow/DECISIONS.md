@@ -346,3 +346,24 @@ this file did not happen.
   blocked; the coder/QAQC/auditor models are set (architect remains the session
   model).
 - **Affected:** OT-STRATA-001, `STATUS.md`, HO-STRATA-007, DEC-003, DEC-016.
+
+## DEC-018 — QAQC write boundary vs the state-transition duty
+
+- **Date:** 2026-11-16
+- **Context:** `ENGINEERING_WORKFLOW.md` §4 makes QAQC read-only outside
+  `workflow/reports/qaqc/`, while §6 gives QAQC the `QAQC_REVIEW → AUDIT_REVIEW`
+  transition. The HO-007 QAQC run therefore wrote only its report and embedded
+  the `QAQC_TO_AUDITOR` record in it; the coder-to-QAQC handoff still read
+  `PROPOSED` (audit finding A-1).
+- **Decision:**
+  - The **QAQC report** is the authoritative record of the QAQC verdict and of
+    the `QAQC_REVIEW → AUDIT_REVIEW` transition; the embedded
+    `QAQC_TO_AUDITOR` block is sufficient.
+  - The **architect mirrors** the state field and the QAQC signature line in
+    the handoff file, attributing it to the QAQC report; QAQC does not edit
+    handoffs, source, tests, docs, or configuration.
+  - A separate `HO-*-AUDIT.md` file is optional, not required.
+- **Consequences:** the write boundary stays intact and the handoff record no
+  longer contradicts the report; future QAQC runs use this pattern.
+- **Affected:** `ENGINEERING_WORKFLOW.md` §4/§6 interpretation,
+  `HO-STRATA-007-QAQC.md`, `templates/QAQC_REPORT.md`.

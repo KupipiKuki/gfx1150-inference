@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-007 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **AUDIT_REVIEW** — READY → IN_PROGRESS → CODER_DONE → QAQC_REVIEW (PASS) → **AUDIT_REVIEW** |
+| **State** | **ARCHITECT_APPROVAL** — READY → IN_PROGRESS → CODER_DONE → QAQC_REVIEW (PASS) → AUDIT_REVIEW (PASS, WAIVED) → **ARCHITECT_APPROVAL** (conditions C1–C5 open) |
 | **Created / updated (UTC)** | 2026-11-16 / 2026-11-16 |
 | **From → To** | Architect → Primary Coder (`coder-primary`, Kimi K2.7 Code) |
 | **Work package** | `strata-007-qwen35moe-lowtier` |
@@ -132,6 +132,7 @@ and any refusal.
 | Sender (Architect) | architect | 2026-11-16 | READY |
 | Receiver (Coder) | `coder-primary` | 2026-11-16 | accepted |
 | QAQC | `qaqc` (`gemini-4-argon`) | 2026-11-16 | **PASS** → `AUDIT_REVIEW` |
+| Auditor | `auditor` (`deepseek-v4.1-flash`, WAIVED) | 2026-11-16 | **PASS (WAIVED)** → `ARCHITECT_APPROVAL`, conditions C1–C5 |
 
 ## 12. Log
 
@@ -143,3 +144,9 @@ and any refusal.
   reproduced bit-identical token IDs and the resource envelope; 4 Minor
   non-blocking observations (M1–M4) recorded for the auditor in
   `workflow/reports/qaqc/HO-STRATA-007-qaqc.md`.
+- 2026-11-16 Auditor: **PASS (WAIVED — WAIVER-001)** → `ARCHITECT_APPROVAL`;
+  4th independent re-run reproduced 32/32 token IDs and the decode; 13 counter-
+  hypothesis checks; M1–M4 upheld Minor; new findings A-1 (QAQC handoff state),
+  A-2 (no GTT/amd-smi in the coder bundle), A-3 (manifest commit field),
+  A-4 (teardown CPU advisory, no action). Conditions C1–C5 are bookkeeping only.
+  Report: `workflow/reports/audit/HO-STRATA-007-audit.md`.
