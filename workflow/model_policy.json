@@ -1,0 +1,12 @@
+{
+  "waivers": [
+    {
+      "id": "WAIVER-001",
+      "role": "auditor",
+      "family": "deepseek",
+      "conflicts_with": "architect",
+      "reason": "Temporary until the other APIs are incorporated; owner-approved 2026-11-15.",
+      "expires": "when the auditor moves to a different model family"
+    }
+  ]
+}

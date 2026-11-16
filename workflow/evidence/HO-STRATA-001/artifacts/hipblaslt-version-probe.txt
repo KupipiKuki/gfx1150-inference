@@ -1,0 +1,29 @@
+=== hipBLASLt runtime version probe (AC-2/AC-7) ===
+date-utc: 2026-11-16T00:09:34Z
+Harness: /tmp/opencode/hblt-ver/v.cpp (NOT part of either repository; no install, no model)
+cwd for build: /tmp/opencode/hblt-ver
+
+--- v.cpp ---
+#include <hipblaslt/hipblaslt.h>
+#include <cstdio>
+int main() {
+  hipblasLtHandle_t h = nullptr;
+  hipblasStatus_t s = hipblasLtCreate(&h);
+  if (s != HIPBLAS_STATUS_SUCCESS) { std::printf("hipblasLtCreate failed: %d\n", (int)s); return 1; }
+  int v = 0;
+  s = hipblasLtGetVersion(h, &v);
+  if (s != HIPBLAS_STATUS_SUCCESS) { std::printf("hipblasLtGetVersion failed: %d\n", (int)s); return 1; }
+  std::printf("hipblasLtGetVersion = %d\n", v);
+  hipblasLtDestroy(h);
+  return 0;
+}
+--- $ hipcc -o v v.cpp -I/opt/rocm/core-10.1/include -L/opt/rocm/core-10.1/lib -lhipblaslt ---
+(compile exit 0)
+--- $ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./v ---
+hipblasLtGetVersion = 100401
+exit=0
+
+Header constants (/opt/rocm/core-10.1/include/hipblaslt/hipblaslt-version.h):
+#define HIPBLASLT_VERSION_MAJOR     1
+#define HIPBLASLT_VERSION_MINOR     4
+#define HIPBLASLT_VERSION_PATCH     1

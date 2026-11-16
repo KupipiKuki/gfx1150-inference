@@ -1,0 +1,284 @@
+# amd-smi GTT sampling — HO-STRATA-007 audit condition C1b
+# Command: amd-smi metric -g 0 -m
+# Sampling method: explicit pre-run snapshot, background polling every 0.2 s
+# while the generation command ran, and explicit post-run snapshot.
+# CWD: /home/kupipi/Documents/git/strata
+# Generation command:
+#   LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata \
+#     --native /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf \
+#     --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
+
+=== pre-run 2026-11-15T22:54:03-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 770 MB
+        FREE_VRAM: 1278 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 770 MB
+        FREE_VISIBLE_VRAM: 1278 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 99 MB
+        FREE_GTT: 46974 MB
+
+=== during 2026-11-15T22:54:03-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 770 MB
+        FREE_VRAM: 1278 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 770 MB
+        FREE_VISIBLE_VRAM: 1278 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 245 MB
+        FREE_GTT: 46828 MB
+
+=== during 2026-11-15T22:54:04-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 770 MB
+        FREE_VRAM: 1278 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 770 MB
+        FREE_VISIBLE_VRAM: 1278 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 4211 MB
+        FREE_GTT: 42862 MB
+
+=== during 2026-11-15T22:54:04-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 771 MB
+        FREE_VRAM: 1277 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 771 MB
+        FREE_VISIBLE_VRAM: 1277 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 9375 MB
+        FREE_GTT: 37698 MB
+
+=== during 2026-11-15T22:54:05-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 763 MB
+        FREE_VRAM: 1285 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 763 MB
+        FREE_VISIBLE_VRAM: 1285 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 13101 MB
+        FREE_GTT: 33972 MB
+
+=== during 2026-11-15T22:54:06-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 745 MB
+        FREE_VRAM: 1303 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 745 MB
+        FREE_VISIBLE_VRAM: 1303 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 16363 MB
+        FREE_GTT: 30710 MB
+
+=== during 2026-11-15T22:54:06-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 737 MB
+        FREE_VRAM: 1311 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 737 MB
+        FREE_VISIBLE_VRAM: 1311 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 20557 MB
+        FREE_GTT: 26516 MB
+
+=== during 2026-11-15T22:54:07-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 708 MB
+        FREE_VRAM: 1340 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 708 MB
+        FREE_VISIBLE_VRAM: 1340 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 24319 MB
+        FREE_GTT: 22754 MB
+
+=== during 2026-11-15T22:54:07-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 708 MB
+        FREE_VRAM: 1340 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 708 MB
+        FREE_VISIBLE_VRAM: 1340 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26797 MB
+        FREE_GTT: 20276 MB
+
+=== during 2026-11-15T22:54:08-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 704 MB
+        FREE_VRAM: 1344 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 704 MB
+        FREE_VISIBLE_VRAM: 1344 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:08-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 696 MB
+        FREE_VRAM: 1352 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 696 MB
+        FREE_VISIBLE_VRAM: 1352 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:09-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 689 MB
+        FREE_VRAM: 1359 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 689 MB
+        FREE_VISIBLE_VRAM: 1359 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:09-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 689 MB
+        FREE_VRAM: 1359 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 689 MB
+        FREE_VISIBLE_VRAM: 1359 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:10-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 672 MB
+        FREE_VRAM: 1376 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 672 MB
+        FREE_VISIBLE_VRAM: 1376 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:10-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 672 MB
+        FREE_VRAM: 1376 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 672 MB
+        FREE_VISIBLE_VRAM: 1376 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:11-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 672 MB
+        FREE_VRAM: 1376 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 672 MB
+        FREE_VISIBLE_VRAM: 1376 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:11-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 672 MB
+        FREE_VRAM: 1376 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 672 MB
+        FREE_VISIBLE_VRAM: 1376 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:12-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 672 MB
+        FREE_VRAM: 1376 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 672 MB
+        FREE_VISIBLE_VRAM: 1376 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:12-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 672 MB
+        FREE_VRAM: 1376 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 672 MB
+        FREE_VISIBLE_VRAM: 1376 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26798 MB
+        FREE_GTT: 20275 MB
+
+=== during 2026-11-15T22:54:13-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 672 MB
+        FREE_VRAM: 1376 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 672 MB
+        FREE_VISIBLE_VRAM: 1376 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 26734 MB
+        FREE_GTT: 20339 MB
+
+
+=== post-run 2026-11-15T22:54:13-05:00 ===
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 680 MB
+        FREE_VRAM: 1368 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 680 MB
+        FREE_VISIBLE_VRAM: 1368 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 89 MB
+        FREE_GTT: 46984 MB
+
