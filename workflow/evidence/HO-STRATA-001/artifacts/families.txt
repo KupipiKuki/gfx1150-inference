@@ -11,3 +11,55 @@ $ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --families
 
 qwen4exp qwen35moe
 exit=0
+
+=== family ↔ GGUF-architecture mapping (AC-4 correction, RW-1) ===
+cwd: /home/kupipi/Documents/git/strata   HEAD: baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+date-utc: 2026-11-16T00:48:37Z
+Added by RW-HO-STRATA-001-1 (F1). These are reads at the pin; no new measurement.
+
+$ grep -n 'FAMILY_MODEL_NAMES' serve/server.py
+9695:FAMILY_MODEL_NAMES = {"qwen4exp": "qwen3.8-flash-next", "qwen35moe": "qwen3.6-35b-a3b"}
+9719:    return cfg.get("model_name") or FAMILY_MODEL_NAMES.get(cfg.get("arch") or "qwen4exp", "qwen3.8-flash-next")
+exit=0
+
+$ grep -n 'TARGET_ARCH' strata_control/drafting.py
+476:TARGET_ARCH = "qwen4exp"                                    # general.architecture of the Qwen3.8-Flash-Next GGUFs (tools/gguf_writer.py)
+605:    if facts["arch"] != TARGET_ARCH:
+exit=0
+
+$ grep -n 'MODEL_FAMILIES_INSTALLABLE' strata_control/feed.py
+155:MODEL_FAMILIES_INSTALLABLE = ("qwen4exp", "qwen35moe")
+exit=0
+
+--- the compiled-in list (why --families prints exactly these two) ---
+$ sed -n '3566,3574p' src/program/generate.cpp
+        // `strata --families`: the GGUF architectures this build runs (setup asks before it installs one)
+        if (std::strcmp(argv[i], "--families") == 0) {
+#if defined(STRATA_HAVE_QWEN35)
+            std::printf("qwen4exp qwen35moe\n");
+#else
+            std::printf("qwen4exp\n");
+#endif
+            return 0;
+        }
+exit=0
+
+$ grep -n 'STRATA_HAVE_QWEN35' cmake/strata_gpu_engine.cmake
+531:  # STRATA_HAVE_QWEN35, so a gfx906 build links and runs the Qwen3.8 family, and `strata --families` says so
+545:  target_compile_definitions(strata PRIVATE STRATA_HAVE_QWEN35=1)
+exit=0
+
+--- absence checks: families NOT implemented at this pin ---
+$ grep -rni 'mixtral' src/ include/ strata_control/
+exit=1  (1 = no match: Mixtral 8x7B is not implemented)
+
+$ grep -rni 'qwen3moe\|30b-a3b' src/ include/ strata_control/
+exit=1  (1 = no match: Qwen3-30B-A3B is not implemented; note qwen35moe = Qwen3.6-35B-A3B, a different model)
+
+--- DeepSeek: retired, refused by the Control, not an engine family ---
+$ grep -n 'FAMILY = "deepseek41"' strata_control/retired.py
+19:FAMILY = "deepseek41"
+exit=0
+$ grep -n 'def _refuse_deepseek' strata_control/runtime.py
+561:def _refuse_deepseek(name: str) -> None:
+exit=0

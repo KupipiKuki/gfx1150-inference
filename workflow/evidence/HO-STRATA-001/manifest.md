@@ -48,10 +48,10 @@ Full transcript with cwd, env and exit codes: **`commands.log`**. Raw output: **
 | 1 | Pinned commit verified | `git rev-parse HEAD`; `git status --porcelain` | `baf16363b4403ef0ed4f538f5d5ed11c43fb9535`; porcelain empty; origin `https://github.com/Niko1221/Strata` | **PASS** |
 | 2 | Toolchain recorded | see AC-2 row | all exit 0; `gfx1150` / `AMD Radeon 890M Graphics`; HIP 7.16.26385; ROCm `/opt/rocm/core-10.1`; **hipBLASLt = 100401** (measured via `hipblasLtGetVersion`) | **PASS** |
 | 3 | gfx1150 build | configure + `cmake --build … --target strata` | literal command **exit 1** (`hip` package not found — env, not source); with `CMAKE_PREFIX_PATH` configure exit 0 → `Strata: HIP enabled, arch gfx1150`; build **exit 0**; `build-hip/strata` present, 39,736,088 B | **PASS** (with the documented configure-path fix) |
-| 4 | Engine support surface | `--families`; `--geometry` | `qwen4exp qwen35moe` (exit 0); `flash_next` (exit 0). Families **not** supported by this build include **Qwen3.8-Flash-Next** (the family the gfx1150 bench note measured) — recorded as an observation for the Architect | **PASS** |
+| 4 | Engine support surface | `--families`; `--geometry` | `qwen4exp qwen35moe` (exit 0); `flash_next` (exit 0). `--families` prints the **GGUF architectures** this build runs: `qwen4exp` **is** Qwen3.8-Flash-Next and `qwen35moe` **is** Qwen3.6-35B-A3B (`serve/server.py:9695`, `strata_control/drafting.py:476`, `strata_control/feed.py:153-155`); the list is compiled in at `src/program/generate.cpp:3566-3574`, with `qwen35moe` present because `cmake/strata_gpu_engine.cmake:545` sets `STRATA_HAVE_QWEN35=1`. **The family the gfx1150 bench note measured — Qwen3.8-Flash-Next — *is* supported by this build (as `qwen4exp`).** The families **not** implemented at `baf16363` are **Mixtral 8x7B**, **Qwen3-30B-A3B** and **DeepSeek** (`artifacts/families.txt`) | **PASS** |
 | 5 | Control plan (no changes) | `python3 strata.py launch --plan --no-tui` | exit 2, verbatim: `strata: No model fits this computer by Strata's rules, and none was chosen. Name one with --model (strata launch --help lists them); a bigger one will run slowly.` Nothing installed or downloaded | **PASS** (refusal recorded verbatim, as AC-5 allows) |
 | 6 | Engine-boundary note | delivered file | `artifacts/engine-boundary.md`, ≤1 page, headings (a)–(e); headless answer = **yes**, evidenced three ways | **PASS** |
-| 7 | Tuning table match/fallback | `sha256sum`; `head -2`; version probe; `gemm.cu`/docs greps | table SHA256 `aee2867c…54c` (= Architect's pin); header `STRATA_HIPBLASLT_TUNING_V1 gfx1150 100401`; local runtime **100401** → **MATCH**; **default = fallback** on gfx1150 (`gemm.cu:310-311`), opt-in via `STRATA_HIPBLASLT_TUNING`; taken-vs-fallback **not observable** without a model run (stated) | **PASS** |
+| 7 | Tuning table match/fallback | `sha256sum`; `head -2`; version probe; `gemm.cu`/docs greps | table SHA256 `aee2867c…54c` (= Architect's pin); header `STRATA_HIPBLASLT_TUNING_V1 gfx1150 100401`; local runtime **100401** → **MATCH**; **default = fallback** on gfx1150 (`gemm.cu:322`), opt-in via `STRATA_HIPBLASLT_TUNING`; taken-vs-fallback **not observable** without a model run (stated) | **PASS** |
 | 8 | Evidence bundle complete | `ls -R workflow/evidence/HO-STRATA-001/` | manifest, commands.log, test-output.txt, hashes.txt, artifacts/ (16 files) | **PASS** |
 
 ### Family list, transcribed from `artifacts/families.txt`
@@ -115,15 +115,27 @@ Kept verbatim. None of these was hidden or paraphrased.
    binary starts, and it reports its compiled surface. No tok/s, no quality, no support claim.
 5. **Not observed — tuning table taken vs fallback at runtime.** The decision code
    (`create_hipblaslt_state`, `src/prefill/gemm.cu:276`) runs only once the prefill hipBLASLt path
-   initialises with a pack. What is *read* from source (`gemm.cu:310-311`: on `gfx1150`, unset env
+   initialises with a pack. What is *read* from source (`gemm.cu:322`: on `gfx1150`, unset env
    ⇒ `return nullptr` ⇒ plain hipBLAS) is a static reading, not a runtime observation. The start
    line `prefill gemm: hipBLASLt tuning enabled (…)` and the `fallbacks=` count were **not**
    produced. Needs HO-STRATA-002+ with a model.
-6. **Observation, not a criterion — family coverage.** `--families` reports
-   `qwen4exp qwen35moe`. The gfx1150 community bench note in the repo
-   (`bench/results/2026-10-07-community-gfx1150/README.md`, cited by `docs/AMD_HIP.md:542`)
-   measured **Qwen3.8-Flash-Next**, which is *not* in this build's family list. This matters for
-   HO-STRATA-002/003/004 and is flagged for the Architect; it is not an AC-4 failure.
+6. **Family coverage — corrected by RW-1.** `--families` reports `qwen4exp qwen35moe`, which are
+   the **GGUF architectures** this build runs, not the marketing names. `qwen4exp` **is**
+   Qwen3.8-Flash-Next and `qwen35moe` **is** Qwen3.6-35B-A3B (`serve/server.py:9695`,
+   `strata_control/drafting.py:476`, `strata_control/feed.py:153-155`). **Therefore the family the
+   gfx1150 community bench note measured
+   (`bench/results/2026-10-07-community-gfx1150/README.md`, cited by `docs/AMD_HIP.md:542`) —
+   Qwen3.8-Flash-Next — *is* supported by this build, as `qwen4exp`.** The families **not**
+   implemented at `baf16363` are **Mixtral 8x7B**, **Qwen3-30B-A3B** and **DeepSeek**: no such GGUF
+   architecture exists in `src/`, `include/` or `strata_control/` (`grep -rni 'mixtral'` and
+   `grep -rni 'qwen3moe\|30b-a3b'` both exit 1 with no output), and DeepSeek is a *retired* family
+   the Control **refuses** rather than one the engine runs (`strata_control/retired.py:19`,
+   `strata_control/runtime.py:561`). Evidence: the new section of `artifacts/families.txt`.
+   > Supersedes an earlier version of this observation, which wrongly read the printed
+   > architectures as "Qwen3.8-Flash-Next is not supported". That inference was never supported by
+   > a command and is withdrawn; see `RW-HO-STRATA-001-1` F1 and the Architect's log entry in
+   > `workflow/handoffs/HO-STRATA-001.md`. `qwen35moe` is **Qwen3.6-35B-A3B**, which is **not**
+   > Qwen3-30B-A3B — the two are different models and this distinction matters for HO-003.
 7. **`ccache` absent** (`Warning: ccache not found - consider installing it…`). Configure warning
    only; no install was attempted (guard rail), build exit 0 without it.
 8. **No test suite was run.** AC-3 targets `--target strata` only, and the handoff's criteria do

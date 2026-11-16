@@ -72,7 +72,7 @@ strata_control/hipblaslt_tuning.py:39:HEADER = "STRATA_HIPBLASLT_TUNING_V1"
 strata_control/hipblaslt_tuning.py:176:    """A STRATA_HIPBLASLT_TUNING the person set (environment first, then the run config's env): theirs to keep, even if the file is gone."""
 
 === the file-discovery function ===
-=== src/prefill/gemm.cu around 259-320 (engine's own discovery) ===
+=== src/prefill/gemm.cu lines 255-325 (engine's own discovery; absolute file line numbers) ===
 };
 
 // The engine package's own tuning folder (<engine folder>/tuning), for a start that did not come through the launcher (a hand-made

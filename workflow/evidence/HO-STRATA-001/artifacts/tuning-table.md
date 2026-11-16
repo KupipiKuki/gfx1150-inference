@@ -36,7 +36,7 @@ rejects on both arch and version mismatch (`:61-70`).
 
 ## 3. Is it taken automatically on gfx1150? — **No. The default is plain hipBLAS.**
 
-The selection rule is in `src/prefill/gemm.cu:276-337` (`create_hipblaslt_state`):
+The selection rule is in `src/prefill/gemm.cu:276-339` (`create_hipblaslt_state`):
 
 ```cpp
 const char* path = std::getenv("STRATA_HIPBLASLT_TUNING");   // gemm.cu:278
@@ -45,7 +45,7 @@ if (from_package) {
     // Unset or "auto": only Strix Halo (gfx1151) takes the packaged table by itself, the owner's
     // decision of 2026-10-19 ...: on other cards the table changes the answers' last digits for ~1%
     // (gfx1201), so they take it with STRATA_HIPBLASLT_TABLE=on only.
-    if (!table_forced && arch != "gfx1151") return nullptr;    // gemm.cu:310-311
+    if (!table_forced && arch != "gfx1151") return nullptr;    // gemm.cu:322
 ```
 
 Reading it on `gfx1150` with nothing set: `STRATA_HIPBLASLT_TUNING` is unset → the `from_package`
@@ -63,13 +63,13 @@ plain hipBLAS (fallback), not the table.**
 | Mechanism | Effect | Source |
 |---|---|---|
 | `STRATA_HIPBLASLT_TUNING=/abs/path/gfx1150-hipblaslt-100401.txt` | Loads that file directly; `getenv` is checked **before** the gfx1151 gate, so it wins on any card | `gemm.cu:278` |
-| `<engine dir>/tuning/gfx1150-hipblaslt-100401.txt` | Found by `own_tuning_dir()` — but **still gated** by `arch != "gfx1151"` unless `STRATA_HIPBLASLT_TABLE=on` | `gemm.cu:260-274, 310-328` |
-| `STRATA_HIPBLASLT_TABLE=off` | Never takes the packaged table | `gemm.cu:285-289` |
-| `STRATA_HIPBLASLT_TABLE=on` | Forces the packaged table on a card that has one beside the engine | `gemm.cu:290` |
-| `STRATA_HIPBLASLT_VERBOSE=1` | Prints each fallback with its reason (`Lt fallback; no calibration for dtype=… ` / `solution N unavailable …`) | `gemm.cu:346-379` |
+| `<engine dir>/tuning/gfx1150-hipblaslt-100401.txt` | Found by `own_tuning_dir()` — but **still gated** by `arch != "gfx1151"` unless `STRATA_HIPBLASLT_TABLE=on` | `gemm.cu:260-274, 318-330` |
+| `STRATA_HIPBLASLT_TABLE=off` | Never takes the packaged table | `gemm.cu:290` |
+| `STRATA_HIPBLASLT_TABLE=on` | Forces the packaged table on a card that has one beside the engine | `gemm.cu:291` |
+| `STRATA_HIPBLASLT_VERBOSE=1` | Prints each fallback with its reason (`Lt fallback; no calibration for dtype=… ` / `solution N unavailable …`) | `gemm.cu:351-376` |
 
 Success is announced once at start on stderr:
-`prefill gemm: hipBLASLt tuning enabled (<N> rows, gfx1150, version 100401)` (`gemm.cu:334`).
+`prefill gemm: hipBLASLt tuning enabled (<N> rows, gfx1150, version 100401)` (`gemm.cu:336`).
 Absence of that line means no table was taken. `docs/AMD_HIP.md:621-622` recommends looking for
 `fallbacks=0` under `STRATA_HIPBLASLT_VERBOSE=1`.
 
@@ -85,7 +85,7 @@ a model is out of scope for HO-STRATA-001 (§2). So:
   both header fields equal the local device and runtime (`gfx1150`, `100401`).
 - What **is** established, by reading the pinned source: on `gfx1150` with no override the
   function returns `nullptr` **before any file is opened**, so no table is loaded and the
-  fallback is taken. This is a static reading of `gemm.cu:310-311`, not a runtime observation.
+  fallback is taken. This is a static reading of `gemm.cu:322`, not a runtime observation.
 - What is **not** established: the actual start-log line, the `fallbacks=` count, and whether
   every solution id in the 146-line table is valid on this exact hipBLASLt build for this card.
   `docs/AMD_HIP.md:622` warns the smoke test only checks 2 rows and proves no such thing. Those

@@ -9,8 +9,8 @@ AC-3 and its runs in AC-4 (`artifacts/families.txt`, `artifacts/geometry.txt`,
 
 | Layer | Paths | What it is |
 |---|---|---|
-| **Engine core** | `src/` (500 files), `include/` (281 files) — plus the per-platform variants `metal/`, `sycl/` that are *not* in this build | The C++/HIP inference engine. The executable target `strata` is `src/program/generate.cpp` (`cmake/strata_gpu_engine.cmake:510`) linked against `strata_engine strata_prefill strata_spec strata_qwen35` + the HIP runtime (`:513`). |
-| **Control** | `strata.py`, `strata_cli/` (56 files), `strata_control/` (126 files), `bin/strata`, `bin/strata.cmd`, `bin/strata.ps1` | The Python "Terminal". `strata.py` is a 5-line stdlib entry point that imports `strata_cli.cli`; `bin/strata` is a sh launcher that only *finds a Python* and hands over (`bin/strata:1-20`). `strata_control/` holds the policy pieces (acquisition, calibration, `hipblaslt_tuning.py`, `setup_config.py`). |
+| **Engine core** | `src/` (500 files), `include/` (281 files) — plus the per-platform variants `metal/`, `sycl/` that are *not* in this build | The C++/HIP inference engine. The executable target `strata` is `src/program/generate.cpp` (`cmake/strata_gpu_engine.cmake:510`) linked against `strata_engine strata_prefill strata_spec` + the HIP runtime (`:513`) and, inside `if(NOT STRATA_HIP_GFX906)` (`:532-546`), against `strata_qwen35` (`:544`). |
+| **Control** | `strata.py`, `strata_cli/` (56 files), `strata_control/` (126 files), `bin/strata`, `bin/strata.cmd`, `bin/strata.ps1` | The Python "Terminal". `strata.py` is a **43-line** stdlib-only entry point (`wc -l strata.py` → 43) that imports `strata_cli.cli` in `__main__`; `bin/strata` is a sh launcher that only *finds a Python* and hands over (`bin/strata:1-20`). `strata_control/` holds the policy pieces (acquisition, calibration, `hipblaslt_tuning.py`, `setup_config.py`). |
 | **App / server** | `apps/` (1,018 files: `apps/desktop` Tauri shell, `apps/host` Node host + web UI), `serve/` (201 files, `serve/server.py`) | The GUI, and the Python OpenAI/Anthropic-compatible HTTP server. `AGENTS.md:14-22` names exactly this split. |
 
 `serve/server.py:1163` starts the engine as a **child process**: `popen("the Strata engine",
@@ -84,6 +84,6 @@ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib \
   ./build-hip/strata generate --pack <PACK_DIR> --tokens "<id,id,id>" --ple-gguf <SHARD1.gguf>
 ```
 
-`--pack` and `--tokens` are the only required pair (`--tokens-file` substitutes for
-`--tokens`); `--ple-gguf` is not enforced by the parser but is required for a correct run per
-the help text. No `strata.py`, no `serve/`, no `apps/` and no TUI is involved.
+`--tokens` (or `--tokens-file`) is the only **required** flag; `--pack` defaults to `pack/full`
+(`artifacts/help.txt:6-10`); `--ple-gguf` is not enforced by the parser but is required for a
+correct run per the help text. No `strata.py`, no `serve/`, no `apps/` and no TUI is involved.

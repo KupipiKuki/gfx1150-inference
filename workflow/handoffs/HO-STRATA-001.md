@@ -238,7 +238,7 @@ recorded as an observation, which AC-5 permits.
     and the binary ran its surface modes with exit 0 from a build dir containing neither.
   - AC-7 table SHA256 `aee2867c…ec5549c` equals the pin record; header `gfx1150 100401` vs
     measured runtime `100401` → **MATCH**; **default is the fallback** on gfx1150
-    (`src/prefill/gemm.cu:310-311` returns `nullptr` unless `arch == "gfx1151"` or
+    (`src/prefill/gemm.cu:322` returns `nullptr` unless `arch == "gfx1151"` or
     `STRATA_HIPBLASLT_TABLE=on`), opt-in via `STRATA_HIPBLASLT_TUNING` (`gemm.cu:278`, checked
     before the gate). Taken-vs-fallback **not observable without a model run** — stated plainly.
   - AC-8 bundle complete: `manifest.md`, `commands.log`, `test-output.txt`, `hashes.txt`,
@@ -246,11 +246,15 @@ recorded as an observation, which AC-5 permits.
   - Integrity: Strata `git status --porcelain` still empty; `build-hip` ignored by
     `.gitignore:12 build*/`; nothing written in `gfx1150-inference` outside
     `workflow/evidence/HO-STRATA-001/**` and this handoff.
-  - **Observations for the Architect (not criteria, no action taken):** (i) `--families` does
-    **not** list Qwen3.8-Flash-Next, the family the cited gfx1150 community bench measured —
-    relevant to HO-002+; (ii) the documented configure recipe lacks the `CMAKE_PREFIX_PATH` step
-    that this host needs — an upstream-docs candidate, filed as a report suggestion only;
-    (iii) no `ctest` was run (`--target strata` only, per AC-3).
+  - **Observations for the Architect (not criteria, no action taken):** (i) **WITHDRAWN by
+    `RW-HO-STRATA-001-1` F1 — this observation was wrong.** It claimed `--families` does not list
+    Qwen3.8-Flash-Next; in fact `qwen4exp` **is** Qwen3.8-Flash-Next and `qwen35moe` **is**
+    Qwen3.6-35B-A3B (`serve/server.py:9695`), so the family the gfx1150 bench measured *is*
+    supported. The real unsupported families are Mixtral 8x7B, Qwen3-30B-A3B and DeepSeek; see
+    the Architect's entry below and `artifacts/families.txt`. (ii) the documented configure
+    recipe lacks the `CMAKE_PREFIX_PATH` step that this host needs — an upstream-docs candidate,
+    filed as a report suggestion only; (iii) no `ctest` was run (`--target strata` only, per
+    AC-3).
   - `CODER_TO_QAQC` created: `workflow/handoffs/HO-STRATA-001-QAQC.md`.
 - 2026-11-16 `coder-primary`: **commit provenance, recorded so the Auditor is not misled.** The
   bundle and handoff edits were committed by **two** concurrent parent-session commits
@@ -294,5 +298,28 @@ recorded as an observation, which AC-5 permits.
   implemented families at `baf16363`**, so DEC-003's three test beds cannot be run as written.
   This does not affect HO-STRATA-001; it becomes a deviation on DEC-003 for HO-002 and is
   reported to the owner through the auditor (OT-STRATA-001 checkpoint 1).
+- 2026-11-16 `coder-primary`: **rework `RW-HO-STRATA-001-1` accepted and executed** (state stays
+  `CODER_DONE`; the audit gate has not passed). Documentation-only: no rebuild, no re-run of
+  `--families`/`--geometry`/`launch`, no re-measurement, no Strata source change — only the
+  `grep`/mapping reads the RW lists. Conclusions unchanged (build exit 0; `qwen4exp qwen35moe`;
+  `flash_next`; Control exit 2; tuning MATCH with **default = plain hipBLAS**).
+  - **F1 (AC-4, FAIL):** the claim that Qwen3.8-Flash-Next is unsupported is **withdrawn as
+    wrong**. Corrected in all four places (`manifest.md` AC-4 row and §4.6, `commands.log` AC-4,
+    the observation (i) above) to agree with the Architect's entry: `qwen4exp` **is**
+    Qwen3.8-Flash-Next, `qwen35moe` **is** Qwen3.6-35B-A3B; the unimplemented families are
+    **Mixtral 8x7B**, **Qwen3-30B-A3B** and **DeepSeek**. Added the mapping greps with exit codes
+    to `artifacts/families.txt` under a new RW-1 heading.
+  - **F2 (AC-7 citation):** the gfx1151 gate is `gemm.cu:322`, and every citation now says so
+    (`tuning-table.md` ×2, `commands.log`, `manifest.md` ×2, this log). The earlier citation
+    pointed two lines higher, at the HIP **device-query failure branch** (`if (hipGetDevice(...)
+    != hipSuccess || ...`), which is not the gate. The verdict itself was already correct.
+  - **F3–F7:** citation set fixed in `tuning-table.md` (`276-339`, `318-330`, `290`, `291`,
+    `351-376`, `336`); `engine-boundary.md` (`strata.py` is 43 lines not 5; `--tokens` is the only
+    required flag with `--pack` defaulting to `pack/full`; link targets cite `:510`+`:513`+`:544`);
+    `tuning-table-raw.txt` capture header corrected to the true range **255-325** (the RW's
+    suggested `259-325` was off by four at the start — line 255 is `};`).
+  - `hashes.txt` regenerated; new commit on `wp/strata-001-gfx1150-build` (do **not** amend
+    `290922d`). DoD ticks left as they were: AC-4 and AC-7 remain satisfied in substance, and the
+    rework changed only prose/citations, not measurements.
 
 

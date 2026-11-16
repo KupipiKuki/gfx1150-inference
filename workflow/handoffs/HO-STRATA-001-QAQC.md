@@ -167,7 +167,7 @@ whether the handoff's criteria were met — but none of them is a hidden failure
 3. **AC-5 exits 2.** AC-5 explicitly permits the refusal; no model exists and none may be fetched.
 4. **No model was ever run.** Therefore no claim about generation working on gfx1150 is made, and
    AC-7's "taken vs fallback" half is unobservable. The note says this plainly. The *static*
-   reading of `gemm.cu:310-311` is offered as a source fact, labelled as such.
+   reading of `gemm.cu:322` is offered as a source fact, labelled as such.
 5. **No `ctest`.** AC-3 specifies `--target strata` only. The configure summary's
    `-- strata tests: ON - cpu, hip` means the suite was registered, not built or run.
 6. **`--families` omits Qwen3.8-Flash-Next** — flagged to the Architect as an observation for
