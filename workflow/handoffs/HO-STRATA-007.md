@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-007 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **ARCHITECT_APPROVAL** — READY → IN_PROGRESS → CODER_DONE → QAQC_REVIEW (PASS) → AUDIT_REVIEW (PASS, WAIVED) → **ARCHITECT_APPROVAL** (conditions C1–C5 open) |
+| **State** | **DONE** (SIGNED 2026-11-16) — READY → IN_PROGRESS → CODER_DONE → QAQC_REVIEW (PASS) → AUDIT_REVIEW (PASS, WAIVED) → ARCHITECT_APPROVAL (C1–C5 closed) → **DONE** |
 | **Created / updated (UTC)** | 2026-11-16 / 2026-11-16 |
 | **From → To** | Architect → Primary Coder (`coder-primary`, Kimi K2.7 Code) |
 | **Work package** | `strata-007-qwen35moe-lowtier` |
@@ -133,6 +133,7 @@ and any refusal.
 | Receiver (Coder) | `coder-primary` | 2026-11-16 | accepted |
 | QAQC | `qaqc` (`gemini-4-argon`) | 2026-11-16 | **PASS** → `AUDIT_REVIEW` |
 | Auditor | `auditor` (`deepseek-v4.1-flash`, WAIVED) | 2026-11-16 | **PASS (WAIVED)** → `ARCHITECT_APPROVAL`, conditions C1–C5 |
+| Architect | architect | 2026-11-16 | **SIGNED** → `DONE` (`HO-STRATA-007-APPROVAL.md`) |
 
 ## 12. Log
 
@@ -161,3 +162,8 @@ and any refusal.
   memory in exact kB with decimal/binary units, and inlined the Apache-2.0
   license string from `setup.py:758`. State remains `ARCHITECT_APPROVAL`; C5
   (status/merge) is still for the architect.
+- 2026-11-16 Coder: audit conditions C1a–C4 closed (`eae6a9e`); residual unit
+  label corrected and hashes refreshed (`e066b09`); `sha256sum -c` 17/17 OK.
+- 2026-11-16 Architect: **SIGNED** → `DONE`; see
+  `workflow/handoffs/HO-STRATA-007-APPROVAL.md`. Merge deferred to the DEC-015
+  selective-merge plan; no performance/support/quality claim.

@@ -13,13 +13,13 @@ row is invisible.
 | HO-STRATA-004 | DeepSeek baseline | **BLOCKED** | Architect | — | nothing until the family exists; needs an attention path | unimplemented; Control refuses it | — |
 | HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after HO-007 (qwen35moe) baseline | no baseline yet | — |
 | HO-STRATA-006 | model-support investigation (read-only) | **DEFERRED** (owner hold) | Architect | `wp/strata-006-model-support` @ `750dd2f` | restart only on the owner's go-ahead (DEC-016) | owner hold; OT decisions 2–5 | `workflow/evidence/HO-STRATA-006/` |
-| HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **ARCHITECT_APPROVAL** | Auditor → Architect | `wp/strata-007-qwen35moe-lowtier` @ `f6ee355` | close audit conditions C1–C5 (coder bookkeeping), then architect signoff | C1–C5 bookkeeping | `workflow/evidence/HO-STRATA-007/` · `workflow/reports/qaqc/HO-STRATA-007-qaqc.md` · `workflow/reports/audit/HO-STRATA-007-audit.md` |
+| HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **DONE (SIGNED 2026-11-16)** | Architect | `wp/strata-007-qwen35moe-lowtier` @ `e066b09` | selective merge with HO-001 (DEC-015); then HO-005 route decision | merge plan | `workflow/evidence/HO-STRATA-007/` · `workflow/reports/qaqc/HO-STRATA-007-qaqc.md` · `workflow/reports/audit/HO-STRATA-007-audit.md` · `workflow/handoffs/HO-STRATA-007-APPROVAL.md` |
 
 **Project state (2026-11-16):** HO-STRATA-001 is DONE and accepted as the
-build/support package; HO-STRATA-007 (qwen35moe low-tier) ran on gfx1150, passed
-independent QAQC and audit (WAIVED), and is at ARCHITECT_APPROVAL awaiting
-bookkeeping closure (C1–C5). HO-002/003/004 remain BLOCKED by DEC-016; HO-006 is
-DEFERRED; HO-005 waits for 007.
+build/support package; HO-STRATA-007 (qwen35moe low-tier) is **DONE and SIGNED** —
+the supported `qwen35moe` pack loads and generates 32 deterministic tokens on
+gfx1150, confirmed by QAQC (Gemini) and the auditor (WAIVED). HO-002/003/004
+remain BLOCKED by DEC-016; HO-006 is DEFERRED; HO-005 can start.
 
 Pinned inputs: Strata `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (DEC-007) at
 `/home/kupipi/Documents/git/strata`; profile **gfx1150 / Radeon 890M / Ryzen AI 9

@@ -70,11 +70,11 @@
 |---|---|---|
 | Model policy (`--strict`) | Architect | coders/QAQC/auditor set; architect pending (session model) |
 | Build spike (001) | Architect/Coder | **DONE — SIGNED 2026-11-16** |
-| qwen35moe low-tier (007) | Coder/QAQC | **READY** (DEC-017) |
+| qwen35moe low-tier (007) | Coder/QAQC | **DONE — SIGNED 2026-11-16** |
 | Mixtral baseline (002) | Coder/QAQC | **BLOCKED** (DEC-016) |
 | Qwen3-30B-A3B baseline (003) | Coder/QAQC | **BLOCKED** (DEC-016) |
 | DeepSeek baseline (004) | Coder/QAQC | **BLOCKED** (DEC-016) |
-| Route decision (005) | Architect | after 007 |
+| Route decision (005) | Architect | next (007 baseline available) |
 | Owner acceptance | Owner | **ACCEPTED (build/support portion) 2026-11-16** |
 
 ## 6. Acceptance criteria (owner-facing)
@@ -195,7 +195,7 @@ Nothing is downloaded, installed or run while this is unanswered. **Status: awai
 |---|---|---|
 | 1 — Build spike (001) | Architect/Coder | **done — SIGNED 2026-11-16** (QAQC PASS after `RW-…-1`, audit PASS; `HO-STRATA-001-APPROVAL.md`) |
 | 1a — model policy `--strict` | Architect | pending — architect only (session model); coders/QAQC/auditor set; WAIVER-001 |
-| 6 — qwen35moe low-tier (007) | Coder/QAQC | **READY** (DEC-017) |
+| 6 — qwen35moe low-tier (007) | Coder/QAQC | **DONE — SIGNED 2026-11-16** |
 | 2 — Mixtral baseline (002) | Coder/QAQC | **blocked** — family unimplemented at the pin; owner hold (DEC-016) |
 | 3 — Qwen3-30B-A3B baseline (003) | Coder/QAQC | **blocked** — same |
 | 4 — DeepSeek baseline (004) | Coder/QAQC | **blocked** — same |
