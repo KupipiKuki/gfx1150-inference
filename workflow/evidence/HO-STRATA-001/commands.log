@@ -1,0 +1,275 @@
+# commands.log — HO-STRATA-001 (coder-primary)
+
+Profile (one only): AMD Radeon 890M / `gfx1150` / Ryzen AI 9 HX 370 / Linux Mint 22.3 /
+kernel 7.0.0-42-generic / ROCm at `/opt/rocm/core-10.1` / hipBLASLt 1.4.1 (=100401) /
+no model loaded in this handoff.
+
+Two checkouts:
+- Workflow repo: `/home/kupipi/Documents/git/gfx1150-inference`, branch
+  `wp/strata-001-gfx1150-build` @ base `a6166f7ebd48eabaffc4809c76c9460b92441cde`.
+- Strata (read-only input): `/home/kupipi/Documents/git/strata` @
+  `baf16363b4403ef0ed4f538f5d5ed11c43fb9535`, no branch, no commits.
+
+`OUT` below = `/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-001`.
+Every block is copy-paste reproducible from the stated cwd.
+
+---
+
+## AC-1 — pinned commit verified · PASS
+
+```
+cwd: /home/kupipi/Documents/git/strata
+$ git rev-parse HEAD                              exit=0   baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+$ git status --porcelain                          exit=0   (empty)
+$ git remote get-url origin                       exit=0   https://github.com/Niko1221/Strata
+$ git log -1 --format='%H%n%ci%n%s'               exit=0   baf16363b4… / 2026-11-15 20:46:59 +0100 /
+                                                           "release manifest: the Control 0.1.60.1 packages of the 0.2.14.1 update"
+```
+Raw: `artifacts/verify-pin.txt`, section "AC-1" of `test-output.txt`.
+No re-clone was needed. SHA equals the Architect's pin record verbatim.
+
+## AC-2 — toolchain recorded · PASS
+
+```
+cwd: /home/kupipi/Documents/git/strata   (all exit=0 unless noted)
+$ uname -a
+$ cat /etc/os-release
+$ dpkg -l linux-firmware
+$ ls -d /opt/rocm*                → /opt/rocm
+$ readlink -f /opt/rocm           → /opt/rocm   (a real dir holding core, core-10, core-10.1)
+$ ls -ld /opt/rocm /opt/rocm/core /opt/rocm/core-10 /opt/rocm/core-10.1
+$ hipcc --version
+$ ls -l /opt/rocm/*/lib/libhipblaslt.so*
+$ cmake --version
+$ c++ --version
+$ python3 --version
+$ cat /sys/module/ttm/parameters/pages_limit
+$ rocminfo
+$ grep -E 'HIPBLASLT_VERSION_(MAJOR|MINOR|PATCH|TWEAK)' /opt/rocm/core-10.1/include/hipblaslt/hipblaslt-version.h
+```
+Key values: kernel 7.0.0-42-generic; Linux Mint 22.3 (Zena), ubuntu noble base;
+linux-firmware 20240318.git3b128b60.0ubuntu3.1; HIP 7.16.26385-0000000, AMD clang
+24.0.0git; ROCm prefix `/opt/rocm/core-10.1`; libhipblaslt.so.1 → 1.4;
+hipBLASLt header 1.4.1 (tweak 39d8d603); CMake 3.28.3; c++ g++ 13.3.0;
+python3 3.14.10; ttm pages_limit 12050777;
+**rocminfo Agent 2: Name `gfx1150`, Marketing Name `AMD Radeon 890M Graphics`,
+Vendor AMD, ISA `amdgcn-amd-amdhsa--gfx1150` + `gfx11-generic`, wavefront 32**.
+
+**hipBLASLt version number, stated explicitly: `100401`** — measured, not inferred:
+```
+cwd: /tmp/opencode/hblt-ver            (harness lives outside both repos; no install)
+$ hipcc -o v v.cpp -I/opt/rocm/core-10.1/include -L/opt/rocm/core-10.1/lib -lhipblaslt   exit=0
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./v    exit=0
+hipblasLtGetVersion = 100401
+```
+Raw: `artifacts/toolchain.txt`, `artifacts/hipblaslt-version-probe.txt`.
+
+## AC-3 — gfx1150 build · PASS (exit 0, binary present) — after one environment fix, documented below
+
+**Attempt 1, the literal AC-3 command — exit 1:**
+```
+cwd: /home/kupipi/Documents/git/strata
+$ cmake -S . -B build-hip -DCMAKE_BUILD_TYPE=Release -DSTRATA_ENABLE_HIP=ON \
+        -DSTRATA_ENABLE_CUDA=OFF -DCMAKE_HIP_ARCHITECTURES=gfx1150          exit=1
+
+CMake Error at cmake/hip_backend.cmake:58 (find_package):
+  Could not find a package configuration file provided by "hip" with any of
+  the following names:
+
+    hipConfig.cmake
+    hip-config.cmake
+
+  Add the installation prefix of "hip" to CMAKE_PREFIX_PATH or set "hip_DIR"
+  to a directory containing one of the above files.
+```
+
+**Diagnosis (not a source bug):** `find_package(hip CONFIG REQUIRED)` at
+`cmake/hip_backend.cmake:58` cannot see the ROCm prefix. `hip-config.cmake` *is* present at
+`/opt/rocm/core-10.1/lib/cmake/hip`; `/opt/rocm` is a parent directory holding `core`,
+`core-10`, `core-10.1`, so neither the HIP compiler's own discovery nor CMake's default
+search finds it. CMake's own error text names the fix (`CMAKE_PREFIX_PATH`), and
+`docs/AMD_HIP.md:191-192` documents the same class of adaptation for the HIP compiler path.
+This is a **configure flag**, not a source change — no file in the Strata tree was edited.
+
+**Attempt 2, with the prefix — exit 0:**
+```
+cwd: /home/kupipi/Documents/git/strata
+$ rm -rf build-hip          # fresh dir: cmake/hip_backend.cmake:48-56 warns a configure that
+                            # stopped early caches empty CMAKE_HIP_FLAGS_<CONFIG>
+$ cmake -S . -B build-hip -DCMAKE_BUILD_TYPE=Release -DSTRATA_ENABLE_HIP=ON \
+        -DSTRATA_ENABLE_CUDA=OFF -DCMAKE_HIP_ARCHITECTURES=gfx1150 \
+        -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.1                            exit=0
+```
+Configure summary lines worth quoting verbatim from `artifacts/configure.log`:
+```
+CMake Warning at cmake/hip_backend.cmake:29 (message):
+  Strata HIP: gfx1150 builds, but it is not validated on a real card yet;
+  please report results
+-- The HIP compiler identification is Clang 24.0.0
+-- Check for working HIP compiler: /opt/rocm/core-10.1/lib/llvm/bin/clang++ - skipped
+-- HIP: Using hipcc from relative path: /opt/rocm/core-10.1/bin/hipcc
+-- Strata: HIP enabled, arch gfx1150
+-- ggml version: 0.24.0
+-- ggml commit:  baf16363b
+-- strata: pack/full/experts.bin absent - the expert arena load test is NOT registered
+-- Warning: ccache not found - consider installing it for faster compilation ...
+-- Adding CPU backend variant ggml-cpu: -march=native
+-- strata tests: ON - cpu, hip
+-- Configuring done (3.5s)
+```
+The start line **does** say the target arch: `-- Strata: HIP enabled, arch gfx1150`, and the
+backend is HIP (`-DSTRATA_ENABLE_HIP=ON`, CUDA off). The `ccache not found` note is a
+*configure warning only*; nothing was installed to silence it (AC-3 does not depend on it).
+
+**Build:**
+```
+cwd: /home/kupipi/Documents/git/strata
+$ cmake --build build-hip --target strata -j$(nproc)      # nproc=24     exit=0
+[100%] Linking HIP executable strata
+[100%] Built target strata
+build exit=0
+```
+Start 2026-11-15T23:46:36Z → end 2026-11-15T23:49:38Z (≈3 min). Exit code taken as
+`${PIPESTATUS[0]}` of the build itself, not of `tee`.
+
+Artifact check:
+```
+$ ls -l build-hip/strata     -rwxrwxr-x 39736088 bytes
+$ file build-hip/strata      ELF 64-bit LSB pie executable, x86-64, dynamically linked, not stripped
+$ sha256sum build-hip/strata d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858
+```
+Raw: `artifacts/configure.log`, `artifacts/build.log`.
+
+## AC-4 — engine support surface · PASS
+
+**4a `--families`:**
+```
+cwd: /home/kupipi/Documents/git/strata
+$ ./build-hip/strata --families
+./build-hip/strata: error while loading shared libraries: libhipblas.so.3: cannot open
+  shared object file: No such file or directory                              exit=127
+
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --families     exit=0
+qwen4exp qwen35moe
+```
+**4b `--geometry`:**
+```
+cwd: /home/kupipi/Documents/git/strata
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --geometry     exit=0
+flash_next
+```
+The exit-127 line is a **runtime loader path** issue (`ldd` shows `libhipblas.so.3`,
+`librocblas.so.5`, `libhipblaslt.so.1`, `libamdhip64.so.7` as `not found` until the ROCm lib
+dir is on `LD_LIBRARY_PATH`). It is NOT a link failure in the build: AC-3 exited 0 and the
+binary is complete. `LD_LIBRARY_PATH` is an environment variable, not an install.
+
+**Family list, transcribed:** `qwen4exp`, `qwen35moe`. Unsupported families named: any family
+other than those two — in particular **Qwen3.8-Flash-Next is *not* in this build's list**, which
+is the family the gfx1150 bench note (`bench/results/2026-10-07-community-gfx1150`) measured.
+That is a material observation for the Architect, not a failure of AC-4.
+
+Raw: `artifacts/families.txt`, `artifacts/geometry.txt`. Also `artifacts/help.txt` (`--help`,
+exit 0) — used for AC-6(e), not executed beyond printing usage.
+
+## AC-5 — Control plan, no changes · OBSERVATION (refusal, as anticipated)
+
+```
+cwd: /home/kupipi/Documents/git/strata
+$ python3 strata.py launch --plan --no-tui                                 exit=2
+strata: No model fits this computer by Strata's rules, and none was chosen. Name one with
+--model (strata launch --help lists them); a bigger one will run slowly.
+
+$ python3 strata.py launch --plan --no-tui --output json                   exit=2
+{"schema_version": 1, "ok": false, "error": {"code": 2, "message": "No model fits this
+computer by Strata's rules, and none was chosen. Name one with --model (strata launch --help
+lists them); a bigger one will run slowly."}}
+```
+This is the Control CLI (`strata.py` → `strata_cli`), **not** the engine binary of AC-4; the two
+are kept distinct in the manifest. No model was installed, downloaded or served; no
+`strata launch` without `--plan` was ever run. Recorded as an observation per AC-5.
+
+Supplementary, read-only, for AC-6(d): `python3 strata.py launch --help` → exit=0,
+`artifacts/control-launch-help.txt`. It shows the Control flags (`--model`, `--family`,
+`--data-dir`, `--access`, `--api-key`, `--split-engine`, `--preset`, `--status`, `--stop`, …).
+
+Raw: `artifacts/launch-plan.txt`.
+
+## AC-6 — engine-boundary note · DELIVERED
+
+Written to `artifacts/engine-boundary.md`, ≤1 page, with the five required headings (a)–(e).
+Supporting reads (all against the pinned checkout):
+```
+cwd: /home/kupipi/Documents/git/strata
+$ cat docs/SPLIT_ENGINE.md ; head -60 docs/HOW_IT_WORKS.md ; grep -n 'engine|control|apps/|serve/' AGENTS.md
+$ sed -n '500,545p' cmake/strata_gpu_engine.cmake       # the `strata` target: src/program/generate.cpp
+$ ls serve/ ; ls apps/ ; ls src/ ; ls -d src include strata_cli strata_control serve apps bin tools third_party
+$ head -80 bin/strata ; head -60 strata.py
+$ grep -n 'Popen|subprocess' serve/server.py            # :1163 popen("the Strata engine",[exe,"--serve",*args])
+$ sed -n '30,66p' src/core/device.cu                    # arch gate vs STRATA_HIP_ARCHS, wave32
+$ ldd build-hip/strata
+$ ls build-hip/ | head -20
+$ strings -a build-hip/strata | grep -c 'strata_cli\|strata_control\|serve/server'   → 0
+```
+**Headless answer: YES** — three independent lines (nothing from `apps/`+`serve/` is compiled in;
+zero strings referencing the Python trees in the binary; and the binary actually ran
+`--families`/`--geometry`/`--help` with exit 0 from a build dir containing neither). Caveat
+recorded in the note: those are surface-reporting modes, so this proves the engine **starts and
+answers headless**, not that a generation run works — no pack exists here.
+Raw: `artifacts/engine-deps.txt`, `artifacts/boundary-layout.txt`, plus the note itself.
+
+## AC-7 — tuning table match / fallback · DELIVERED
+
+```
+cwd: /home/kupipi/Documents/git/strata
+$ sha256sum tools/hip/gfx1150-hipblaslt-100401.txt       exit=0
+aee2867c096887cccaef8bc04a9ef10adec43da58421edfdaaec04a61ec5549c
+$ wc -l tools/hip/gfx1150-hipblaslt-100401.txt           exit=0   146
+$ head -2 tools/hip/gfx1150-hipblaslt-100401.txt         exit=0
+# solution IDs are scoped to this hipBLASLt version and device architecture
+STRATA_HIPBLASLT_TUNING_V1 gfx1150 100401
+$ ls tools/hip/ | grep hipblaslt                         exit=0
+  (… gfx1150-hipblaslt-100401.txt and gfx1150-hipblaslt-100500.txt …)
+$ grep -n 'STRATA_HIPBLASLT_TUNING|…' src/prefill/hipblaslt_tuning.hpp
+$ grep -rn 'STRATA_HIPBLASLT_TUNING' src/ include/ serve/ strata_control/
+$ sed -n '255,395p' src/prefill/gemm.cu
+$ sed -n '619,640p' docs/AMD_HIP.md
+```
+Verdict: **MATCH** — header `gfx1150 100401` vs measured `hipblasLtGetVersion = 100401` on a
+`gfx1150` device. **Default is the fallback**: `src/prefill/gemm.cu:310-311`
+(`if (!table_forced && arch != "gfx1151") return nullptr;`) means gfx1150 does **not** take it
+automatically, matching `docs/AMD_HIP.md:637`. Opt-in is `STRATA_HIPBLASLT_TUNING=<abs path>`
+(checked at `gemm.cu:278`, before the gfx1151 gate, so it wins). The table SHA256 equals the
+Architect's pin record.
+**Cannot be observed without a model run:** whether the table is *actually taken* at engine start
+(the `prefill gemm: hipBLASLt tuning enabled (N rows, gfx1150, version 100401)` line and the
+`fallbacks=` count). The decision code runs only once the prefill path initialises with a pack;
+no pack exists here and a model run is out of scope (§2). Stated plainly in the note.
+Raw: `artifacts/tuning-table-raw.txt`, notes in `artifacts/tuning-table.md`.
+
+## AC-8 — evidence bundle complete · PASS
+
+```
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+$ ls -R workflow/evidence/HO-STRATA-001/
+```
+manifest.md · commands.log · test-output.txt · hashes.txt · artifacts/ (13 raw files + the
+Architect's `pinned-commit.txt`, kept unmodified, + `engine-boundary.md` + `tuning-table.md`).
+No secrets, no tokens, no model weights (none was fetched).
+
+## Post-run integrity checks
+
+```
+cwd: /home/kupipi/Documents/git/strata
+$ git status --porcelain          → (empty)          # Strata tree untouched
+$ git rev-parse HEAD              → baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+$ git check-ignore -v build-hip   → .gitignore:12:build*/   build-hip   # the only thing added
+```
+
+## Environment variables that matter
+
+| Var | Set to | Why |
+|---|---|---|
+| `LD_LIBRARY_PATH` | `/opt/rocm/core-10.1/lib` | AC-4/AC-5 engine runs; without it the binary exits 127 on `libhipblas.so.3` |
+| `CMAKE_PREFIX_PATH` | `/opt/rocm/core-10.1` | configure-time only (AC-3 attempt 2) |
+| `STRATA_HIPBLASLT_TUNING` | **not set** | deliberately unset, so the observed default is the untuned one |
+| `HSA_OVERRIDE_GFX_VERSION` | **not set** | the card reports `gfx1150` natively; no override used |

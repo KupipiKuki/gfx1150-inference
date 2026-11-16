@@ -22,7 +22,9 @@ work in this session.
 Before the first code handoff:
 - Apply workflow/MODEL_POLICY.md: the architect model is exclusive; the auditor
   model is exclusive and is the project's strongest reasoning model; the coder
-  and QAQC use different base models. Run
+  and QAQC use different base models. The proposed assignment is in
+  MODEL_POLICY.md §3 (DeepSeek architect, Kimi/Qwen coders, Gemini QAQC,
+  GPT-6 Luna auditor); confirm or swap, then apply. Run
   `python3 workflow/check_model_policy.py --strict`; if it reports PENDING,
   assign the five models first. Do not modify an agent that is in use.
 

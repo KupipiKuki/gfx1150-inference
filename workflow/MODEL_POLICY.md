@@ -28,18 +28,37 @@ even when the role prompts are correct.
 | **R8** | **Record the selection.** The exact `provider/model#variant` for each role, the date and the reason are recorded in this file. Changes are architect decisions. |
 | **R9** | **Fallback.** If the strong auditor model is unavailable, choose a different strong base model, record it as a deviation, and keep the exclusivity. |
 
-## 3. Role assignment
+## 3. Role assignment (proposed 2026-11-15)
 
-Fill this table when the agents are free. Until then, every role inherits the
-session model and the policy is **PENDING**.
+The exact IDs below are from the current `opencode-go` catalogue. If the
+architect runs on the separate DeepSeek API, replace its row with that
+provider’s model; the family rule is what matters.
 
-| Role | Model (`provider/model#variant`) | Exclusive? | Notes |
+| Role | Model (`provider/model#variant`) | Exclusive? | Why |
 |---|---|---|---|
-| Architect | _pending_ | **yes** | planning/orchestration |
-| Auditor | _pending_ | **yes** | strongest project-wide reasoning model |
-| coder-primary | _pending_ | no | code-tuned; may share with secondary |
-| coder-secondary | _pending_ | no | low-priority; may share with primary |
-| qaqc | _pending_ | no | **must differ from the coder base model** |
+| **Architect** | `opencode-go/deepseek-v4-pro#max` (or the DeepSeek API equivalent) | **yes** | firm choice: DeepSeek; planning/orchestration |
+| **Auditor** | `opencode-go/gpt-6-luna#max` | **yes** | strongest reasoning; different family from coder, QAQC and architect |
+| **coder-primary** | `opencode-go/kimi-k2.7-code` | no | code-tuned; implementation |
+| **coder-secondary** | `opencode-go/qwen3.8-flash#low` | no | cheap/fast; low-priority work |
+| **QAQC** | `opencode-go/gemini-4-argon#high` | no | strong reviewer; different base from both coders |
+
+**Status: PROPOSED.** The agent files are still unset (the active agent must not
+be modified while in use). `check_model_policy.py` reports `PENDING`.
+
+### Complementary coverage
+
+```text
+Coder (Kimi/Qwen)  ->  QAQC (Gemini)  ->  Auditor (GPT-6 Luna)  ->  Architect (DeepSeek)  ->  Owner
+```
+
+- The **coder** is code-tuned (Kimi) with a cheap secondary (Qwen); the **QAQC**
+  is a different family (Gemini) so it does not share the coder’s blind spots.
+- The **auditor** is a stronger reasoning family (GPT-6 Luna) so it can catch
+  QAQC’s misses.
+- The **architect** is DeepSeek (firm) so it can catch the auditor’s misses and
+  own the final approval.
+- The owner remains the last check on the architect.
+- No two roles share a base model; variants do not count as different (R7).
 
 ## 4. Applying the policy
 
@@ -75,7 +94,11 @@ with unassigned roles.
 
 ## 6. Current state
 
+- The proposed assignment is in §3; it is not applied yet.
 - All five agent files have **no** `model` field; they inherit the session
   model.
 - `check_model_policy.py` reports `PENDING` and exits 0; `--strict` exits 2.
 - The active agent must not be modified while it is in use.
+- When it is free: fill the agent `model:` fields from §3, run
+  `check_model_policy.py --strict` (must exit 0), and record the change in
+  `DECISIONS.md`.

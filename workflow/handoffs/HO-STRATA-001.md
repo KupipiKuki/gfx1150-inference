@@ -4,8 +4,8 @@
 |---|---|
 | **ID** | HO-STRATA-001 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** |
-| **Created / updated (UTC)** | 2026-11-15 / 2026-11-15 |
+| **State** | **CODER_DONE** (was READY → IN_PROGRESS → CODER_DONE) |
+| **Created / updated (UTC)** | 2026-11-15 / 2026-11-16 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-001-gfx1150-build` — build/support/engine-boundary spike |
 | **Priority / timebox** | P0 · 1 working day (build + first run of the CLI surface) |
@@ -166,24 +166,31 @@ not the build itself (e.g. a source change that looks required).
 
 ## 9. Definition of Done
 
-- [ ] AC-1…AC-8 run; raw output in the evidence bundle; failures verbatim
-- [ ] Pinned SHA and toolchain recorded
-- [ ] Build attempted; exit 0 **or** a documented blocker with the log
-- [ ] `--families` / `--geometry` / `launch --plan` output recorded
-- [ ] Engine-boundary note written with the five headings
-- [ ] Tuning-table match/fallback recorded (and the opt-in default stated)
-- [ ] Strata checkout still clean (`git status --porcelain` empty)
-- [ ] Nothing written outside `workflow/evidence/HO-STRATA-001/**` + this file
-- [ ] No secrets, no model weights, no perf/support claims
-- [ ] Evidence manifest complete; handoff `CODER_DONE`; `CODER_TO_QAQC` created
-- [ ] Work committed on `wp/strata-001-gfx1150-build` (no merge, no push to `main`)
+- [x] AC-1…AC-8 run; raw output in the evidence bundle; failures verbatim
+- [x] Pinned SHA and toolchain recorded
+- [x] Build attempted; exit 0 **or** a documented blocker with the log
+- [x] `--families` / `--geometry` / `launch --plan` output recorded
+- [x] Engine-boundary note written with the five headings
+- [x] Tuning-table match/fallback recorded (and the opt-in default stated)
+- [x] Strata checkout still clean (`git status --porcelain` empty)
+- [x] Nothing written outside `workflow/evidence/HO-STRATA-001/**` + this file
+- [x] No secrets, no model weights, no perf/support claims
+- [x] Evidence manifest complete; handoff `CODER_DONE`; `CODER_TO_QAQC` created
+- [x] Work committed on `wp/strata-001-gfx1150-build` (no merge, no push to `main`)
+
+Coder notes on the unticked-and-failed question: **nothing in §9 was left failed.** Two
+*acceptance* commands exited non-zero on their first, literal invocation and are kept verbatim
+with their diagnosis in `manifest.md` §4 — AC-3 configure (exit 1, `hip` package not found; fixed
+with the `CMAKE_PREFIX_PATH` flag CMake itself names) and AC-4 `--families` (exit 127, missing
+`LD_LIBRARY_PATH`; fixed at run time). AC-5 exits 2 by design (refusal without a model) and is
+recorded as an observation, which AC-5 permits.
 
 ## 10. Signatures
 
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | architect | 2026-11-15 | READY — DoR complete |
-| Receiver (Primary Coder) | `coder-primary` | | |
+| Receiver (Primary Coder) | `coder-primary` | 2026-11-16 | CODER_DONE — AC-1…AC-8 run; build exit 0; evidence in `workflow/evidence/HO-STRATA-001/` |
 
 ## 11. Log
 
@@ -203,3 +210,46 @@ not the build itself (e.g. a source change that looks required).
   `workflow/evidence/HO-STRATA-001/artifacts/pinned-commit.txt`.
 - 2026-11-15 Architect: branch `wp/strata-001-gfx1150-build` created at
   `a6166f7ebd48eabaffc4809c76c9460b92441cde`; **PROPOSED → READY** (DoR complete).
+- 2026-11-16 `coder-primary`: **accepted** (READY → IN_PROGRESS). DoR validated item by item;
+  no `NEEDS_INFO`. Switched the workflow repo to `wp/strata-001-gfx1150-build` before writing.
+- 2026-11-16 `coder-primary`: **CODER_DONE**. What was run, in order, and the result:
+  - AC-1 pin verified — `HEAD baf16363b4403ef0ed4f538f5d5ed11c43fb9535`, porcelain empty,
+    origin `https://github.com/Niko1221/Strata`. No re-clone needed.
+  - AC-2 toolchain measured — `gfx1150` / `AMD Radeon 890M Graphics` / Ryzen AI 9 HX 370;
+    kernel 7.0.0-42; Linux Mint 22.3; HIP 7.16.26385-0000000 (clang 24); ROCm
+    `/opt/rocm/core-10.1`; CMake 3.28.3; g++ 13.3.0; Python 3.14.10; ttm 12050777.
+    **hipBLASLt `100401` measured** with `hipblasLtGetVersion` (harness in `/tmp`, not in
+    either repo) — not inferred from the header.
+  - AC-3 **build exit 0**, `build-hip/strata` present (39,736,088 B, sha256 `d58ee239…f5858`).
+    The literal AC-3 configure command **failed exit 1** (`find_package(hip)` could not see the
+    ROCm prefix; `hip-config.cmake` is at `/opt/rocm/core-10.1/lib/cmake/hip` and `/opt/rocm` is
+    a parent of `core*`). Reconfigured with `-DCMAKE_PREFIX_PATH=/opt/rocm/core-10.1` after
+    `rm -rf build-hip` (the upstream comment warns about cached-empty HIP flags) → exit 0,
+    `-- Strata: HIP enabled, arch gfx1150`. **No Strata source was modified.**
+  - AC-4 `--families` → `qwen4exp qwen35moe`, `--geometry` → `flash_next`, both exit 0 under
+    `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib`. The bare first run exited 127
+    (`libhipblas.so.3` not found) — a runtime loader path, not a build defect.
+  - AC-5 `python3 strata.py launch --plan --no-tui` → **exit 2**, refused verbatim: "No model
+    fits this computer by Strata's rules, and none was chosen…". No model installed, downloaded
+    or served; `strata launch` was never run without `--plan`.
+  - AC-6 `artifacts/engine-boundary.md` written with headings (a)–(e). **Headless answer: yes** —
+    nothing from `apps/`/`serve/` is compiled into the `strata` target
+    (`cmake/strata_gpu_engine.cmake:510-513`), `strings` finds 0 references to the Python trees,
+    and the binary ran its surface modes with exit 0 from a build dir containing neither.
+  - AC-7 table SHA256 `aee2867c…ec5549c` equals the pin record; header `gfx1150 100401` vs
+    measured runtime `100401` → **MATCH**; **default is the fallback** on gfx1150
+    (`src/prefill/gemm.cu:310-311` returns `nullptr` unless `arch == "gfx1151"` or
+    `STRATA_HIPBLASLT_TABLE=on`), opt-in via `STRATA_HIPBLASLT_TUNING` (`gemm.cu:278`, checked
+    before the gate). Taken-vs-fallback **not observable without a model run** — stated plainly.
+  - AC-8 bundle complete: `manifest.md`, `commands.log`, `test-output.txt`, `hashes.txt`,
+    `artifacts/` (16 files). Secrets scan clean; no model weights.
+  - Integrity: Strata `git status --porcelain` still empty; `build-hip` ignored by
+    `.gitignore:12 build*/`; nothing written in `gfx1150-inference` outside
+    `workflow/evidence/HO-STRATA-001/**` and this handoff.
+  - **Observations for the Architect (not criteria, no action taken):** (i) `--families` does
+    **not** list Qwen3.8-Flash-Next, the family the cited gfx1150 community bench measured —
+    relevant to HO-002+; (ii) the documented configure recipe lacks the `CMAKE_PREFIX_PATH` step
+    that this host needs — an upstream-docs candidate, filed as a report suggestion only;
+    (iii) no `ctest` was run (`--target strata` only, per AC-3).
+  - `CODER_TO_QAQC` created: `workflow/handoffs/HO-STRATA-001-QAQC.md`.
+
