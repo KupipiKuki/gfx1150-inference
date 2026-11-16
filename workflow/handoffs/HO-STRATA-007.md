@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-007 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **CODER_DONE** |
+| **State** | **AUDIT_REVIEW** — READY → IN_PROGRESS → CODER_DONE → QAQC_REVIEW (PASS) → **AUDIT_REVIEW** |
 | **Created / updated (UTC)** | 2026-11-16 / 2026-11-16 |
 | **From → To** | Architect → Primary Coder (`coder-primary`, Kimi K2.7 Code) |
 | **Work package** | `strata-007-qwen35moe-lowtier` |
@@ -129,8 +129,9 @@ and any refusal.
 
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
-| Sender (Architect) | | | |
+| Sender (Architect) | architect | 2026-11-16 | READY |
 | Receiver (Coder) | `coder-primary` | 2026-11-16 | accepted |
+| QAQC | `qaqc` (`gemini-4-argon`) | 2026-11-16 | **PASS** → `AUDIT_REVIEW` |
 
 ## 12. Log
 
@@ -138,3 +139,7 @@ and any refusal.
   authorized the supported `qwen35moe` low-tier test.
 - 2026-11-16 Coder: IN_PROGRESS; base SHA `afcc2096367cc8b17f72acd9708c886c9acc94bc`.
 - 2026-11-16 Coder: CODER_DONE; `qwen35moe` (`qwen36` family / `UD-Q4_K_XL`) loaded on the signed `baf16363` build and generated 32 tokens; evidence in `workflow/evidence/HO-STRATA-007/`; commit `f03348d`.
+- 2026-11-16 QAQC: **PASS** → `AUDIT_REVIEW`; independent re-run on `gemini-4-argon`
+  reproduced bit-identical token IDs and the resource envelope; 4 Minor
+  non-blocking observations (M1–M4) recorded for the auditor in
+  `workflow/reports/qaqc/HO-STRATA-007-qaqc.md`.
