@@ -180,3 +180,17 @@ architect accepted the FAIL of F1 and F2.
   architect's instruction and by QAQC's re-run of the measurement set, so no build, no
   `--families`/`--geometry`/`launch`, no hipBLASLt re-measurement. The measurement conclusions are
   unchanged. State returns to `qaqc` for the F1–F7 re-check.
+- 2026-11-16 `coder-primary`: **QAQC re-check verdict PASS**, three leftovers closed (N1–N3).
+  **N1** — the withdrawn "`--families` omits Qwen3.8-Flash-Next" claim survived in a fifth place,
+  `workflow/handoffs/HO-STRATA-001-QAQC.md`; corrected there the same way as the other four
+  (`qwen4exp` **is** Qwen3.8-Flash-Next; unimplemented = Mixtral 8x7B / Qwen3-30B-A3B / DeepSeek).
+  **N2** — the `artifacts/tuning-table-raw.txt` `255-325` excerpt now carries **absolute file line
+  numbers**, so `322:` is visibly the gfx1151 gate and `310:`/`311:` visibly the device-query
+  branch: the root cause of F2/F3 is now checkable inside the artifact instead of being taken on
+  trust. Numbering is a re-read, not a new measurement.
+  **N3 — provenance, and a stale commit message.** The commit message of `a7f303c` says the stale
+  gate citation in `HO-STRATA-001-QAQC.md` was "reported, not edited". **That sentence is stale:**
+  the commit does edit the file, because the architect authorized the one-line `:170` fix *after*
+  the message was written. The edit is architect-authorized and in scope; only the message is out
+  of date. It was **not** amended — the branch tip had moved on with a concurrent commit
+  (`6090b5e`) — so the correction is recorded here instead.

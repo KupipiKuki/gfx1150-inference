@@ -73,77 +73,77 @@ strata_control/hipblaslt_tuning.py:176:    """A STRATA_HIPBLASLT_TUNING the pers
 
 === the file-discovery function ===
 === src/prefill/gemm.cu lines 255-325 (engine's own discovery; absolute file line numbers) ===
-};
-
-// The engine package's own tuning folder (<engine folder>/tuning), for a start that did not come through the launcher (a hand-made
-// config, a CLI run): without a table the prompt GEMMs fall back to plain hipBLAS and a Strix Halo reads prompts at half speed
-// (340 against 690 tok/s, IQ3_S 4K).  The launcher sets STRATA_HIPBLASLT_TUNING itself; this is the same table found by the engine.
-std::string own_tuning_dir() {
-#if defined(_WIN32)
-    char p[4096] = {};
-    const DWORD n = GetModuleFileNameA(nullptr, p, (DWORD) sizeof(p));
-    std::string s(p, n);
-    const size_t k = s.find_last_of("\\/");
-    return k == std::string::npos ? std::string() : s.substr(0, k + 1) + "tuning/";
-#else
-    char p[4096] = {};
-    const ssize_t n = readlink("/proc/self/exe", p, sizeof(p) - 1);
-    std::string s(p, n > 0 ? (size_t) n : 0);
-    const size_t k = s.find_last_of('/');
-    return k == std::string::npos ? std::string() : s.substr(0, k + 1) + "tuning/";
-#endif
-}
-
-std::unique_ptr<HipLtState> create_hipblaslt_state(void* workspace, size_t workspace_bytes) {
-    std::string path_own;
-    const char* path = std::getenv("STRATA_HIPBLASLT_TUNING");
-    bool from_package = false, table_forced = false;
-    if (!path || !*path) {
-        const char* sw = std::getenv("STRATA_HIPBLASLT_TABLE");     // the launcher's switch (strata_control/hipblaslt_tuning.py): off / on / auto
-        std::string low = sw != nullptr ? sw : "";                   // trimmed and lower case, as the launcher reads it
-        while (!low.empty() && std::isspace((unsigned char) low.back())) low.pop_back();
-        while (!low.empty() && std::isspace((unsigned char) low.front())) low.erase(low.begin());
-        for (char& ch : low) ch = (char) std::tolower((unsigned char) ch);
-        const auto word = [&](std::initializer_list<const char*> ws) {
-            for (const char* w : ws) if (low == w) return true;
-            return false;
-        };
-        if (word({"off", "0", "no", "false", "none", "disable", "disabled"})) return nullptr;   // never the packaged table
-        table_forced = word({"on", "1", "yes", "true", "force", "enable", "enabled"});          // any card that has a table beside the engine
-        from_package = true;                                          // the file is found below, once the card and the version are known
-    }
-
-    auto state = std::make_unique<HipLtState>();
-    state->workspace = workspace;
-    state->workspace_bytes = workspace_bytes;
-    if (hipblasLtCreate(&state->handle) != HIPBLAS_STATUS_SUCCESS) {
-        std::fprintf(stderr, "prefill gemm: hipBLASLt handle creation failed; using hipBLASEx\n");
-        return nullptr;
-    }
-
-    int version = 0;
-    if (hipblasLtGetVersion(state->handle, &version) != HIPBLAS_STATUS_SUCCESS) {
-        std::fprintf(stderr, "prefill gemm: hipBLASLt version query failed; using hipBLASEx\n");
-        return nullptr;
-    }
-    int device = 0;
-    hipDeviceProp_t properties{};
-    if (hipGetDevice(&device) != hipSuccess || hipGetDeviceProperties(&properties, device) != hipSuccess) {
-        std::fprintf(stderr, "prefill gemm: HIP device query failed; using hipBLASEx\n");
-        return nullptr;
-    }
-    std::string arch(properties.gcnArchName);
-    const auto suffix = arch.find(':');
-    if (suffix != std::string::npos) arch.resize(suffix);
-
-    if (from_package) {
-        // Unset or "auto": only Strix Halo (gfx1151) takes the packaged table by itself, the owner's decision of 2026-10-19 (the same
-        // rule as AUTO_ARCHS in strata_control/hipblaslt_tuning.py): on other cards the table changes the answers' last digits for ~1%
-        // (gfx1201), so they take it with STRATA_HIPBLASLT_TABLE=on only.
-        if (!table_forced && arch != "gfx1151") return nullptr;
-        const std::string dir = own_tuning_dir();
-        if (dir.empty()) return nullptr;
-        path_own = dir + arch + "-hipblaslt-" + std::to_string(version) + ".txt";
+255: };
+256: 
+257: // The engine package's own tuning folder (<engine folder>/tuning), for a start that did not come through the launcher (a hand-made
+258: // config, a CLI run): without a table the prompt GEMMs fall back to plain hipBLAS and a Strix Halo reads prompts at half speed
+259: // (340 against 690 tok/s, IQ3_S 4K).  The launcher sets STRATA_HIPBLASLT_TUNING itself; this is the same table found by the engine.
+260: std::string own_tuning_dir() {
+261: #if defined(_WIN32)
+262:     char p[4096] = {};
+263:     const DWORD n = GetModuleFileNameA(nullptr, p, (DWORD) sizeof(p));
+264:     std::string s(p, n);
+265:     const size_t k = s.find_last_of("\\/");
+266:     return k == std::string::npos ? std::string() : s.substr(0, k + 1) + "tuning/";
+267: #else
+268:     char p[4096] = {};
+269:     const ssize_t n = readlink("/proc/self/exe", p, sizeof(p) - 1);
+270:     std::string s(p, n > 0 ? (size_t) n : 0);
+271:     const size_t k = s.find_last_of('/');
+272:     return k == std::string::npos ? std::string() : s.substr(0, k + 1) + "tuning/";
+273: #endif
+274: }
+275: 
+276: std::unique_ptr<HipLtState> create_hipblaslt_state(void* workspace, size_t workspace_bytes) {
+277:     std::string path_own;
+278:     const char* path = std::getenv("STRATA_HIPBLASLT_TUNING");
+279:     bool from_package = false, table_forced = false;
+280:     if (!path || !*path) {
+281:         const char* sw = std::getenv("STRATA_HIPBLASLT_TABLE");     // the launcher's switch (strata_control/hipblaslt_tuning.py): off / on / auto
+282:         std::string low = sw != nullptr ? sw : "";                   // trimmed and lower case, as the launcher reads it
+283:         while (!low.empty() && std::isspace((unsigned char) low.back())) low.pop_back();
+284:         while (!low.empty() && std::isspace((unsigned char) low.front())) low.erase(low.begin());
+285:         for (char& ch : low) ch = (char) std::tolower((unsigned char) ch);
+286:         const auto word = [&](std::initializer_list<const char*> ws) {
+287:             for (const char* w : ws) if (low == w) return true;
+288:             return false;
+289:         };
+290:         if (word({"off", "0", "no", "false", "none", "disable", "disabled"})) return nullptr;   // never the packaged table
+291:         table_forced = word({"on", "1", "yes", "true", "force", "enable", "enabled"});          // any card that has a table beside the engine
+292:         from_package = true;                                          // the file is found below, once the card and the version are known
+293:     }
+294: 
+295:     auto state = std::make_unique<HipLtState>();
+296:     state->workspace = workspace;
+297:     state->workspace_bytes = workspace_bytes;
+298:     if (hipblasLtCreate(&state->handle) != HIPBLAS_STATUS_SUCCESS) {
+299:         std::fprintf(stderr, "prefill gemm: hipBLASLt handle creation failed; using hipBLASEx\n");
+300:         return nullptr;
+301:     }
+302: 
+303:     int version = 0;
+304:     if (hipblasLtGetVersion(state->handle, &version) != HIPBLAS_STATUS_SUCCESS) {
+305:         std::fprintf(stderr, "prefill gemm: hipBLASLt version query failed; using hipBLASEx\n");
+306:         return nullptr;
+307:     }
+308:     int device = 0;
+309:     hipDeviceProp_t properties{};
+310:     if (hipGetDevice(&device) != hipSuccess || hipGetDeviceProperties(&properties, device) != hipSuccess) {
+311:         std::fprintf(stderr, "prefill gemm: HIP device query failed; using hipBLASEx\n");
+312:         return nullptr;
+313:     }
+314:     std::string arch(properties.gcnArchName);
+315:     const auto suffix = arch.find(':');
+316:     if (suffix != std::string::npos) arch.resize(suffix);
+317: 
+318:     if (from_package) {
+319:         // Unset or "auto": only Strix Halo (gfx1151) takes the packaged table by itself, the owner's decision of 2026-10-19 (the same
+320:         // rule as AUTO_ARCHS in strata_control/hipblaslt_tuning.py): on other cards the table changes the answers' last digits for ~1%
+321:         // (gfx1201), so they take it with STRATA_HIPBLASLT_TABLE=on only.
+322:         if (!table_forced && arch != "gfx1151") return nullptr;
+323:         const std::string dir = own_tuning_dir();
+324:         if (dir.empty()) return nullptr;
+325:         path_own = dir + arch + "-hipblaslt-" + std::to_string(version) + ".txt";
 
 === src/prefill/gemm.cu 325-395 (the env path, the version gate, the start-log line) ===
         path_own = dir + arch + "-hipblaslt-" + std::to_string(version) + ".txt";

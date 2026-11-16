@@ -1,8 +1,7 @@
 # hashes.txt — HO-STRATA-001
-# generated (UTC): 2026-11-16T00:50:29Z  by: coder-primary
-# Regenerated for RW-HO-STRATA-001-1 (F1-F7, documentation-only). No measurement changed:
-# the tuning-table SHA256 and the build-hip/strata SHA256 below are unchanged from the
-# reviewed bundle.
+# generated (UTC): 2026-11-16T01:00:23Z  by: coder-primary
+# Regenerated for the RW-1 follow-up (QAQC re-check leftovers N1-N3). No measurement
+# changed: the tuning-table SHA256 and the build-hip/strata SHA256 below are unchanged.
 # Covers: manifest.md, commands.log, test-output.txt and every file under artifacts/.
 # hashes.txt EXCLUDES ITSELF from the listing below (a file cannot contain its own
 # sha256sum). To verify: sha256sum <file> must equal the line below.
@@ -23,7 +22,7 @@ N/A — no model, dataset or prompt was used in this handoff (no model run, per 
 ## Evidence bundle files (top level)
 d80b88e2844ace9969974b8d84920b31495fd46a1acc99f22688ad3ee9ab7578  manifest.md
 43c4b542e8d3c38e36019ea14cca2b641851d0d73bde2f8b57357828d391e536  commands.log
-3dc6bde68c4c84e016487745cdf1a2564c113b69473f1f91b0dd5500652f6dfe  test-output.txt
+76cb66db35750504d296e7eb592222e36ef5ec561aa3a2b2b4a91e249f67ca74  test-output.txt
 
 ## artifacts/ (16 files)
 ed1948c3fbb773e38f16e98140fa9f4046e3edb4343dd07a2c482089b42df3af  boundary-layout.txt
@@ -40,5 +39,5 @@ e6c489259b87b05a6522d7ec49fff0421df7f0c9f2c92b81f3d70b2fcc3c0da6  launch-plan.tx
 d4ae0e3a785b9bddb5e42da75b8efdb38f1eaae381e7e1deb9fa60e3a22f1f12  pinned-commit.txt
 0bff7fd5689c8e394adfa5705e310d7e37428bfe10b04018969b29f082e96eef  toolchain.txt
 445057488cb617e3bd8a5c70e300b69b5a8d935fff9e592c36728a05d24125a9  tuning-table.md
-30f06486c4fe5e131d32174fee948787f9d7c8176aaafeb4abcc3b77fd56078f  tuning-table-raw.txt
+5cae9040769e90cc8770da73aba2a01ccf4c21a7fe6761b64018d3b4d864ceba  tuning-table-raw.txt
 9edcfbe01eb498a180d763b4d97f2fe7e8eca6e1046d8615e35dd324127a3d38  verify-pin.txt

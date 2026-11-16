@@ -170,8 +170,12 @@ whether the handoff's criteria were met — but none of them is a hidden failure
    reading of `gemm.cu:322` is offered as a source fact, labelled as such.
 5. **No `ctest`.** AC-3 specifies `--target strata` only. The configure summary's
    `-- strata tests: ON - cpu, hip` means the suite was registered, not built or run.
-6. **`--families` omits Qwen3.8-Flash-Next** — flagged to the Architect as an observation for
-   HO-002+, not an AC-4 failure.
+6. **`--families` reports GGUF architectures, not marketing names — corrected in RW-1.**
+   `qwen4exp` **is** Qwen3.8-Flash-Next and `qwen35moe` **is** Qwen3.6-35B-A3B
+   (`serve/server.py:9695`), so the gfx1150 bench family **is** supported; the families **not**
+   implemented at `baf16363` are **Mixtral 8x7B**, **Qwen3-30B-A3B** and **DeepSeek**. An earlier
+   version of this item wrongly said `--families` *omits* Qwen3.8-Flash-Next; that is withdrawn
+   (see `RW-HO-STRATA-001-1` F1 and `manifest.md` §4.6).
 7. **The hipBLASLt probe harness is in `/tmp`, not in the repo.** Intentional: the guard rails
    confine writes to the evidence directory, and the harness source is quoted verbatim inside the
    artifact so the measurement is reproducible.
