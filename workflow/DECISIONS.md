@@ -64,7 +64,30 @@ this file did not happen.
   the owner-task intake; the architect is the final approver.
 - **Affected:** `workflow/`, `.opencode/agents`, `.opencode/skills`.
 
-## DEC-006 — Pin Strata to a commit (`baf16363`)
+## DEC-006 — Role-model exclusivity
+
+- **Date:** 2026-11-15
+- **Context:** a model that serves two roles can approve or review its own work.
+  The role prompts separate duties, but the model configuration must too.
+- **Options:** allow shared models; require distinct models only for coder/QAQC;
+  full role-model exclusivity.
+- **Decision:** full role-model exclusivity.
+  - The **architect model** is exclusive to the architect; it cannot take any
+    other role.
+  - The **auditor model** is exclusive to the auditor and is the project's
+    strongest reasoning model.
+  - The **architect and auditor are barred from all other roles**.
+  - The **coder and QAQC must use different base models**; variants
+    (`#high`/`#max`) of the same base do not count as different.
+  - Each role gets an explicit `model` once the active agent is free; until
+    then the policy is **PENDING**.
+- **Enforcement:** `workflow/check_model_policy.py --strict`.
+- **Status:** adopted; application pending (the active agent must not be
+  modified while in use).
+- **Affected:** `.opencode/agents/*`, `workflow/MODEL_POLICY.md`,
+  `workflow/check_model_policy.py`, `workflow/README.md`.
+
+## DEC-007 — Pin Strata to a commit (`baf16363`)
 
 - **Date:** 2026-11-15
 - **Context:** HO-STRATA-001 needs a base commit before READY; OT-STRATA-001
@@ -91,7 +114,7 @@ this file did not happen.
     HO-STRATA-005 and a deviation).
 - **Affected:** HO-STRATA-001 … HO-STRATA-005.
 
-## DEC-007 — Two checkouts: evidence in the workflow repo, Strata read-only
+## DEC-008 — Two checkouts: evidence in the workflow repo, Strata read-only
 
 - **Date:** 2026-11-15
 - **Context:** the HO-STRATA-001 draft named one work-package branch but two
@@ -106,28 +129,7 @@ this file did not happen.
   no commit, `git status --porcelain` empty at CODER_DONE.
 - **Consequences:** one branch per handoff still holds; the pinned SHA stays
   meaningful; a needed Strata source change becomes a blocker/deviation, not an
-  edit; QAQC can re-run the build from a clean tree.
+  edit; QAQC can re-run the build from a clean tree. Evidence logs are tracked by
+  an explicit negation in `.gitignore` (`!workflow/evidence/**/*.log`) instead of
+  `git add -f`, so the contract's `commands.log` is versioned by rule.
 - **Affected:** HO-STRATA-001 … HO-STRATA-005.
-
-## DEC-006 — Role-model exclusivity
-
-- **Date:** 2026-11-15
-- **Context:** a model that serves two roles can approve or review its own work.
-  The role prompts separate duties, but the model configuration must too.
-- **Options:** allow shared models; require distinct models only for coder/QAQC;
-  full role-model exclusivity.
-- **Decision:** full role-model exclusivity.
-  - The **architect model** is exclusive to the architect; it cannot take any
-    other role.
-  - The **auditor model** is exclusive to the auditor and is the project's
-    strongest reasoning model.
-  - The **architect and auditor are barred from all other roles**.
-  - The **coder and QAQC must use different base models**; variants
-    (`#high`/`#max`) of the same base do not count as different.
-  - Each role gets an explicit `model` once the active agent is free; until
-    then the policy is **PENDING**.
-- **Enforcement:** `workflow/check_model_policy.py --strict`.
-- **Status:** adopted; application pending (the active agent must not be
-  modified while in use).
-- **Affected:** `.opencode/agents/*`, `workflow/MODEL_POLICY.md`,
-  `workflow/check_model_policy.py`, `workflow/README.md`.

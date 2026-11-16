@@ -12,9 +12,9 @@ row is invisible.
 | HO-STRATA-004 | DeepSeek baseline | PROPOSED | Architect | — | after 003; needs OT decision 4 | 003, owner pack choice | — |
 | HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after 001–004 | 001–004 | — |
 
-Pinned inputs: Strata `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (DEC-006) at
+Pinned inputs: Strata `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (DEC-007) at
 `/home/kupipi/Documents/git/strata`; profile **gfx1150 / Radeon 890M / Ryzen AI 9
-HX 370**, no model loaded in 001. Decisions DEC-006, DEC-007 govern this work.
+HX 370**, no model loaded in 001. Decisions DEC-007, DEC-008 govern this work.
 
 ## States
 
