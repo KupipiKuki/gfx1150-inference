@@ -68,6 +68,7 @@
 
 | Checkpoint | Owner | Status |
 |---|---|---|
+| Model policy applied (`check_model_policy --strict`) | Architect | pending |
 | Build spike (001) | Architect/Coder | pending |
 | Mixtral baseline (002) | Coder/QAQC | pending |
 | Qwen baseline (003) | Coder/QAQC | pending |

@@ -1,0 +1,21 @@
+=== AC-1: pinned commit verification ===
+cwd: /home/kupipi/Documents/git/strata
+date-utc: 2026-11-15T23:45:10Z
+
+$ git rev-parse HEAD
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+exit=0
+
+$ git status --porcelain
+exit=0
+(end porcelain — empty above means clean)
+
+$ git remote get-url origin
+https://github.com/Niko1221/Strata
+exit=0
+
+$ git log -1 --format='%H%n%ci%n%s'
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+2026-11-15 20:46:59 +0100
+release manifest: the Control 0.1.60.1 packages of the 0.2.14.1 update
+exit=0

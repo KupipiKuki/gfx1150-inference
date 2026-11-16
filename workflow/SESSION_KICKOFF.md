@@ -19,6 +19,13 @@ Owner priority (fixed): gfx1150 only. The 780M is a separate gfx-inference
 dense project; the MI25 is deferred; gfx1100 is future. No 780M/MI25/gfx1100
 work in this session.
 
+Before the first code handoff:
+- Apply workflow/MODEL_POLICY.md: the architect model is exclusive; the auditor
+  model is exclusive and is the project's strongest reasoning model; the coder
+  and QAQC use different base models. Run
+  `python3 workflow/check_model_policy.py --strict`; if it reports PENDING,
+  assign the five models first. Do not modify an agent that is in use.
+
 Start:
 1. Validate OT-STRATA-001 and the drafts. If a field is missing, say so.
 2. Pin the Strata commit and record it. Clone Strata to a separate checkout

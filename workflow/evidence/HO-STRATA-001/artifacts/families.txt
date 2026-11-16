@@ -1,0 +1,13 @@
+=== AC-4: engine support surface (built engine binary) ===
+cwd: /home/kupipi/Documents/git/strata
+date-utc: 2026-11-15T23:50:41Z
+$ ./build-hip/strata --families
+
+./build-hip/strata: error while loading shared libraries: libhipblas.so.3: cannot open shared object file: No such file or directory
+exit=127
+
+---- RETRY with LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib (runtime loader path; no install) ----
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --families
+
+qwen4exp qwen35moe
+exit=0

@@ -34,6 +34,14 @@ accountable for the integrity of the evidence and the review. Neither can do
 the other's job. The owner decides *what* and *why*; the architect decides
 *how*; the auditor decides whether the *evidence* supports the claim.
 
+**Model separation (DEC-006).** The architect's model is exclusive to the
+architect; the auditor's model is exclusive to the auditor and is the project's
+strongest reasoning model; the coder and QAQC MUST use different base models
+(variants of the same base do not count). The architect and auditor are barred
+from every other role. See `MODEL_POLICY.md`; enforce with
+`python3 workflow/check_model_policy.py --strict` once the models are assigned.
+The policy is **PENDING** until the active agent is free.
+
 ## 3. RACI
 
 | Activity | Architect | Primary Coder | Secondary Coder | QAQC | Auditor | Owner |

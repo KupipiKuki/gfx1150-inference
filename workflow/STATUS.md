@@ -5,12 +5,16 @@ row is invisible.
 
 | ID | Title | State | Owner | Branch | Next action | Blocker | Evidence |
 |---|---|---|---|---|---|---|---|
-| OT-STRATA-001 | Owner: start Strata on gfx1150 | INTAKE | Auditor | — | validate the OT; assign HO-001 | owner decisions (packs/commit) | — |
-| HO-STRATA-001 | gfx1150 build, support, engine boundary | PROPOSED | Architect | `wp/strata-001-gfx1150-build` | pin the Strata commit; DoR; set READY | pinned commit | — |
-| HO-STRATA-002 | Mixtral 8x7B baseline | PROPOSED | Architect | — | after 001 SIGNED | 001 | — |
-| HO-STRATA-003 | Qwen3-30B-A3B baseline | PROPOSED | Architect | — | after 002 | 002 | — |
-| HO-STRATA-004 | DeepSeek baseline | PROPOSED | Architect | — | after 003 | 003 | — |
+| OT-STRATA-001 | Owner: start Strata on gfx1150 | INTAKE | Auditor | — | auditor: record owner decisions 2–5 (packs, timebox) before HO-002; checkpoint 1 open | owner decisions 2–5 unanswered | `workflow/evidence/HO-STRATA-001/` |
+| HO-STRATA-001 | gfx1150 build, support, engine boundary | **READY** | Coder (`coder-primary`) | `wp/strata-001-gfx1150-build` @ `a6166f7e` | coder accepts → IN_PROGRESS; AC-1…AC-8; Strata read-only @ `baf16363` | — (build failure = documented blocker, not a stop) | `workflow/evidence/HO-STRATA-001/` |
+| HO-STRATA-002 | Mixtral 8x7B baseline | PROPOSED | Architect | — | after 001 SIGNED; needs OT decision 2 | 001, owner pack choice | — |
+| HO-STRATA-003 | Qwen3-30B-A3B baseline | PROPOSED | Architect | — | after 002; needs OT decision 3 | 002, owner pack choice | — |
+| HO-STRATA-004 | DeepSeek baseline | PROPOSED | Architect | — | after 003; needs OT decision 4 | 003, owner pack choice | — |
 | HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after 001–004 | 001–004 | — |
+
+Pinned inputs: Strata `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (DEC-006) at
+`/home/kupipi/Documents/git/strata`; profile **gfx1150 / Radeon 890M / Ryzen AI 9
+HX 370**, no model loaded in 001. Decisions DEC-006, DEC-007 govern this work.
 
 ## States
 

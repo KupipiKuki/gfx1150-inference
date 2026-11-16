@@ -1,0 +1,40 @@
+# Strata commit pin — HO-STRATA-001
+
+Authored by: **Architect** (provenance only; the coder verifies and re-records under AC-1).
+Recorded (UTC): 2026-11-15T23:42:12Z
+Decision: **DEC-006** in `workflow/DECISIONS.md` (pin Strata to a commit, not a moving branch).
+
+Checkout: `/home/kupipi/Documents/git/strata` (separate from the
+`gfx1150-inference` workflow repository, as required by HO-STRATA-001 §6).
+
+## Raw record
+
+```text
+$ git remote get-url origin
+https://github.com/Niko1221/Strata
+
+$ git rev-parse HEAD
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+
+$ git log -1 --format='%H%n%ci%n%s'
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+2026-11-15 20:46:59 +0100
+release manifest: the Control 0.1.60.1 packages of the 0.2.14.1 update
+
+$ git status --porcelain   # empty = clean checkout
+(end)
+```
+
+## Pinned inputs observed at the pin
+
+| Input | Value |
+|---|---|
+| Pinned commit | `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (origin/main HEAD at pin time) |
+| Tuning table present | `tools/hip/gfx1150-hipblaslt-100401.txt` |
+| Table header (line 2) | `STRATA_HIPBLASLT_TUNING_V1 gfx1150 100401` |
+| Table SHA256 | `aee2867c096887cccaef8bc04a9ef10adec43da58421edfdaaec04a61ec5549c` |
+| ggml source | vendored `third_party/strata-ggml` (no download at configure time; see `cmake/strata_ggml.cmake`) |
+| Refs | `main` = `baf16363b4…`, `ci/checks-green`, `rc/0.1.30`, plus PR refs |
+
+The coder MUST confirm `git rev-parse HEAD` equals the pin before building and MUST
+record the same value in `workflow/evidence/HO-STRATA-001/hashes.txt`.

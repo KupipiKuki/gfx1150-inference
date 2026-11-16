@@ -63,3 +63,71 @@ this file did not happen.
 - **Consequences:** no handoff, no work; no evidence, no done; the auditor is
   the owner-task intake; the architect is the final approver.
 - **Affected:** `workflow/`, `.opencode/agents`, `.opencode/skills`.
+
+## DEC-006 — Pin Strata to a commit (`baf16363`)
+
+- **Date:** 2026-11-15
+- **Context:** HO-STRATA-001 needs a base commit before READY; OT-STRATA-001
+  decision 1 asks for "latest `main`" vs a pinned release/tag, and the owner's
+  session directive is "pin the Strata commit and record it". Strata `main` moves
+  often (7350 tracked files, frequent release manifests), so an unpinned base
+  makes every later baseline unreproducible.
+- **Options:** (a) follow `origin/main` tip; (b) pin the tip at kickoff; (c) pin a
+  release tag (`rc/0.1.30`); (d) pin the community-validated engine `e8ca9af`.
+- **Decision:** (b) pin `origin/main` at kickoff:
+  `baf16363b4403ef0ed4f538f5d5ed11c43fb9535`
+  (`2026-11-15 20:46:59 +0100`, "release manifest: the Control 0.1.60.1 packages
+  of the 0.2.14.1 update"). Clone at `/home/kupipi/Documents/git/strata`,
+  provenance in `workflow/evidence/HO-STRATA-001/artifacts/pinned-commit.txt`.
+  No release tag is newer, and `e8ca9af` is a 0.1.40.2-era engine from the
+  community report — kept as prior art, not as the base.
+- **Consequences:**
+  - Every handoff 001–005 names this SHA; a later bump is a new decision.
+  - Baselines in 002–004 are reproducible against it, including the
+    `tools/hip/gfx1150-hipblaslt-100401.txt` table
+    (SHA256 `aee2867c096887cccaef8bc04a9ef10adec43da58421edfdaaec04a61ec5549c`).
+  - The Strata tree is read-only for HO-STRATA-001: no source edits, so the
+    build is judged against upstream as-is (Route 2 patches come later, under
+    HO-STRATA-005 and a deviation).
+- **Affected:** HO-STRATA-001 … HO-STRATA-005.
+
+## DEC-007 — Two checkouts: evidence in the workflow repo, Strata read-only
+
+- **Date:** 2026-11-15
+- **Context:** the HO-STRATA-001 draft named one work-package branch but two
+  repositories, and its guard rail ("do not touch the `gfx1150-inference` repo")
+  contradicted its own evidence path (`workflow/evidence/HO-STRATA-001/`).
+- **Options:** (a) evidence inside the Strata checkout; (b) evidence in the
+  workflow repo with the Strata checkout read-only; (c) evidence in both.
+- **Decision:** (b). The work-package branch
+  `wp/<project>-<HO-ID>-<slug>` lives in `gfx1150-inference` and carries only
+  `workflow/evidence/<ID>/**` plus the handoff file. The Strata checkout
+  (`/home/kupipi/Documents/git/strata`) is a pinned, read-only input: no branch,
+  no commit, `git status --porcelain` empty at CODER_DONE.
+- **Consequences:** one branch per handoff still holds; the pinned SHA stays
+  meaningful; a needed Strata source change becomes a blocker/deviation, not an
+  edit; QAQC can re-run the build from a clean tree.
+- **Affected:** HO-STRATA-001 … HO-STRATA-005.
+
+## DEC-006 — Role-model exclusivity
+
+- **Date:** 2026-11-15
+- **Context:** a model that serves two roles can approve or review its own work.
+  The role prompts separate duties, but the model configuration must too.
+- **Options:** allow shared models; require distinct models only for coder/QAQC;
+  full role-model exclusivity.
+- **Decision:** full role-model exclusivity.
+  - The **architect model** is exclusive to the architect; it cannot take any
+    other role.
+  - The **auditor model** is exclusive to the auditor and is the project's
+    strongest reasoning model.
+  - The **architect and auditor are barred from all other roles**.
+  - The **coder and QAQC must use different base models**; variants
+    (`#high`/`#max`) of the same base do not count as different.
+  - Each role gets an explicit `model` once the active agent is free; until
+    then the policy is **PENDING**.
+- **Enforcement:** `workflow/check_model_policy.py --strict`.
+- **Status:** adopted; application pending (the active agent must not be
+  modified while in use).
+- **Affected:** `.opencode/agents/*`, `workflow/MODEL_POLICY.md`,
+  `workflow/check_model_policy.py`, `workflow/README.md`.

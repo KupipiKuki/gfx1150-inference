@@ -11,7 +11,9 @@ role-exclusive state machine.
 2. [`HANDOFF_CONTRACT.md`](HANDOFF_CONTRACT.md) — the normative contract.
 3. [`STATUS.md`](STATUS.md) — the live board.
 4. [`DECISIONS.md`](DECISIONS.md) — deviation/scope decisions.
-5. [`templates/`](templates/) — copy these; do not invent formats.
+5. [`MODEL_POLICY.md`](MODEL_POLICY.md) — role-model exclusivity (pending
+   application).
+6. [`templates/`](templates/) — copy these; do not invent formats.
 
 ## The loop
 
@@ -40,6 +42,11 @@ Architect signs  <-  Auditor review  <-  QAQC PASS + report
 | Secondary coder | `coder-secondary` | low-priority code, evidence | P0/P1 work, merge |
 | QAQC | `qaqc` | QAQC reports, rework requests | modify code/tests/docs |
 | Auditor | `auditor` | audit reports, rework, owner tasks | modify code/tests/docs, final-approve |
+
+**Model policy.** The architect model is exclusive; the auditor model is
+exclusive and is the project's strongest reasoning model; the coder and QAQC
+must use different base models. See `MODEL_POLICY.md`; enforce with
+`python3 workflow/check_model_policy.py --strict` once the models are assigned.
 
 ## OpenCode
 

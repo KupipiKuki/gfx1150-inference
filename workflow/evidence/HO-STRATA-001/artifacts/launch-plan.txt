@@ -1,0 +1,14 @@
+=== AC-5: Control CLI plan (no model installed; --plan only) ===
+cwd: /home/kupipi/Documents/git/strata
+date-utc: 2026-11-15T23:51:13Z
+NOTE: this is the Control CLI (strata.py), NOT the engine binary.
+$ python3 strata.py launch --plan --no-tui
+
+strata: No model fits this computer by Strata's rules, and none was chosen. Name one with --model (strata launch --help lists them); a bigger one will run slowly.
+exit=2
+
+---- supplementary (AC-5 permits --output json) ----
+$ python3 strata.py launch --plan --no-tui --output json
+
+{"schema_version": 1, "ok": false, "error": {"code": 2, "message": "No model fits this computer by Strata's rules, and none was chosen. Name one with --model (strata launch --help lists them); a bigger one will run slowly."}}
+exit=2

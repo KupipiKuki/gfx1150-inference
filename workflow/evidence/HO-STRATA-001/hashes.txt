@@ -1,0 +1,40 @@
+# hashes.txt — HO-STRATA-001
+# generated (UTC): 2026-11-16T00:12:04Z  by: coder-primary
+# sha256sum of every file in this evidence bundle, plus the pinned inputs.
+# hashes.txt itself is excluded from its own listing (self-reference).
+
+## Pinned inputs
+strata HEAD              baf16363b4403ef0ed4f538f5d5ed11c43fb9535   (git rev-parse HEAD)
+workflow base commit     a6166f7ebd48eabaffc4809c76c9460b92441cde   (wp/strata-001-gfx1150-build)
+
+## Tuning table (pinned input, in the Strata checkout)
+aee2867c096887cccaef8bc04a9ef10adec43da58421edfdaaec04a61ec5549c  /home/kupipi/Documents/git/strata/tools/hip/gfx1150-hipblaslt-100401.txt
+
+## Built artifact (not committed; path and hash recorded for reproducibility)
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  /home/kupipi/Documents/git/strata/build-hip/strata
+
+## Model / dataset
+N/A — no model, dataset or prompt was used in this handoff (no model run, per §2 of the handoff).
+
+## Evidence bundle files
+306ab368552e027accda8e0a8f5f187879776314146b4c01ce00188f335ca845  manifest.md
+f1d45d454887da6a400fb414fffd4cef70e0267a6a8f857a3cf5cee7d46d7ed2  commands.log
+57d6334f68d5f64ddbc7522b8b932d35a4796dab4ba5efbda246623b4060bbf5  test-output.txt
+
+## artifacts/
+ed1948c3fbb773e38f16e98140fa9f4046e3edb4343dd07a2c482089b42df3af  boundary-layout.txt
+9e26c0504dd45cfe2988678606fc4951c196ed4485d90e9bd2db660c9e62ac95  build.log
+910025d91a83da266597a4fca42d5c4885f5d91313351c860d99f208b2a7f8ba  configure.log
+09321504651764b69fd1aff3c7b53e63fcec23dde338716cc6fde46e6dc0182c  control-launch-help.txt
+f30565be801fe98e54cc5ab927564e8a2e249ac024b9054476f04853a113a2dc  engine-boundary.md
+b85b610dbc92989b8f9f9488f215b23a495c04772526e4ea82c859f818808661  engine-deps.txt
+e6f1282902a1a7b8b2dd828196b3941d2b3f70a3bc4b8f37d7cdebf4b90c26a9  families.txt
+f07bd674f896bafcec937e6a309bf2821cccc1199e61bb013b145b641ee767a2  geometry.txt
+7228d63920ec2c04d28ced6041072350d2c1e154cf5dea00ffd7fd4f1ae14142  help.txt
+8cdb60d9b6988e6ed9c90ec3c0b61040612dbd815072102bbaaaf5ea2a53b42d  hipblaslt-version-probe.txt
+e6c489259b87b05a6522d7ec49fff0421df7f0c9f2c92b81f3d70b2fcc3c0da6  launch-plan.txt
+0c128869b2c3de960fde9eaac43be785a95110bd287de9e2edf87400a93d7f8d  pinned-commit.txt
+0bff7fd5689c8e394adfa5705e310d7e37428bfe10b04018969b29f082e96eef  toolchain.txt
+c9a6fad70d365fa0e69668963250769a16e45720b960d7ce4657d55cc4ad3350  tuning-table.md
+9fdf489545c15fe602f9385df21a415193a0b60fc52de7a9d424cd76d63bdf01  tuning-table-raw.txt
+9edcfbe01eb498a180d763b4d97f2fe7e8eca6e1046d8615e35dd324127a3d38  verify-pin.txt
