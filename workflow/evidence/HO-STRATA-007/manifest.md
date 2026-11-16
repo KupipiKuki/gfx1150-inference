@@ -63,7 +63,7 @@
 - `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib` is required; without it the binary exits 127 with missing shared libraries.
 - `HSA_OVERRIDE_GFX_VERSION` was not set.
 - Model weights are not committed; only hashes are in git.
-- The model file is at `/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` (22.8 GiB) and will persist only on this host.
+- The model file is at `/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` (22,853,663,008 B; 21.28 GiB / 22.85 GB) and will persist only on this host.
 
 ## 6. Statement
 

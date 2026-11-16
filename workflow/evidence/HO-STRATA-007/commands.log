@@ -743,3 +743,26 @@ command: sha256sum -c hashes.txt
 /home/kupipi/Documents/git/strata/build-hip/strata: OK
 exit=0
 Note: hashes.txt covers all files in this evidence directory except hashes.txt itself, plus the external model file and signed binary.
+
+--- residual C3 (unit labeling): corrected manifest.md model size and refreshed hashes ---
+date: 2026-11-16T04:02:46Z
+cwd: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-007
+command: sha256sum -c hashes.txt
+./artifacts/amd-smi-gtt.txt: OK
+./artifacts/control-launch-help.txt: OK
+./artifacts/control-plan-qwen36.json: OK
+./artifacts/decode-command.txt: OK
+./artifacts/engine-families.txt: OK
+./artifacts/engine-generate-help.txt: OK
+./artifacts/engine-geometry.txt: OK
+./artifacts/generated-text.txt: OK
+./artifacts/generated-token-ids.txt: OK
+./artifacts/prompt-token-ids.txt: OK
+./artifacts/prompt.txt: OK
+./commands.log: OK
+./manifest.md: OK
+./test-output.txt: OK
+/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: OK
+/home/kupipi/Documents/git/strata/build-hip/strata: OK
+exit=0
+note: manifest.md §5 model size corrected from (22.8 GiB) to (22,853,663,008 B; 21.28 GiB / 22.85 GB); manifest.md hash refreshed in hashes.txt.
