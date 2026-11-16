@@ -13,7 +13,7 @@ row is invisible.
 | HO-STRATA-004 | DeepSeek baseline | **BLOCKED** | Architect | — | nothing until the family exists; needs an attention path | unimplemented; Control refuses it | — |
 | HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after HO-007 (qwen35moe) baseline | no baseline yet | — |
 | HO-STRATA-006 | model-support investigation (read-only) | **DEFERRED** (owner hold) | Architect | `wp/strata-006-model-support` @ `750dd2f` | restart only on the owner's go-ahead (DEC-016) | owner hold; OT decisions 2–5 | `workflow/evidence/HO-STRATA-006/` |
-| HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **READY** | Architect → Coder | `wp/strata-007-qwen35moe-lowtier` | launch coder-primary; install/verify the qwen35moe pack | model pack install | `workflow/evidence/HO-STRATA-007/` |
+| HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **CODER_DONE** | Coder → QAQC | `wp/strata-007-qwen35moe-lowtier` @ `afcc2096367cc8b17f72acd9708c886c9acc94bc` | QAQC review per `workflow/handoffs/HO-STRATA-007-QAQC.md` | — | `workflow/evidence/HO-STRATA-007/` |
 
 **Project state (2026-11-16):** HO-STRATA-001 is DONE and accepted as the
 build/support package; HO-STRATA-007 (qwen35moe low-tier) is READY and is the

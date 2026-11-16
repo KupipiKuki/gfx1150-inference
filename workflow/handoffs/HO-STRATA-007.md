@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-007 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** |
+| **State** | **CODER_DONE** |
 | **Created / updated (UTC)** | 2026-11-16 / 2026-11-16 |
 | **From → To** | Architect → Primary Coder (`coder-primary`, Kimi K2.7 Code) |
 | **Work package** | `strata-007-qwen35moe-lowtier` |
@@ -95,52 +95,46 @@
 - [x] Dependencies named
 - [x] Priority/timebox set
 - [x] Owner authorization (DEC-017)
-- [ ] Pack name/quant confirmed at execution (catalog)
+- [x] Pack name/quant confirmed at execution: `qwen36` family / `UD-Q4_K_XL` quant, file `Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf`
 
 ## 9. Definition of Done
 
-- [ ] Pack identified and hashed
-- [ ] Model loads on the signed binary
-- [ ] ≥16 tokens generated; raw output saved
-- [ ] Resource envelope and `dmesg` recorded
-- [ ] Environment and binary hash recorded
-- [ ] No source changes, no other family, no claims
-- [ ] Evidence manifest complete; `CODER_DONE` and the QAQC handoff created
+- [x] Pack identified and hashed
+- [x] Model loads on the signed binary
+- [x] ≥16 tokens generated; raw output saved
+- [x] Resource envelope and `dmesg` recorded
+- [x] Environment and binary hash recorded
+- [x] No source changes, no other family, no claims
+- [x] Evidence manifest complete; `CODER_DONE` and the QAQC handoff created
 
 ## 10. Test shape (record the exact command)
 
-Preferred: the Control’s local path, which handles the tokenizer and server:
+Executed path: the engine’s one-shot path, with a tokenized prompt. The Control’s
+local server path could not be used because the signed update feed has no pre-built
+HIP engine package for `gfx1150`; the locally-built signed binary was used directly.
 
 ```bash
 cd /home/kupipi/Documents/git/strata
-LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib python3 strata.py launch --help   # list packs
-LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib python3 strata.py launch --plan --family qwen
-# install/serve the chosen qwen35moe pack (record the pack name/quant):
-#   python3 strata.py launch --family qwen --model <pack> --yes --no-tui
-# then one OpenAI-compatible request: prompt "The capital of France is",
-# max_tokens 32, temperature 0; save the raw response.
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata \
+  --native /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf \
+  --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
 ```
 
-Alternative: the engine’s one-shot path, with a tokenized prompt:
-
-```bash
-cd /home/kupipi/Documents/git/strata
-LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata generate \
-  --pack <PACK_DIR> --tokens "<id,id,...>" --max-new 32 --max-context 1024 \
-  --ple-gguf <shard>
-```
-
-`--tokens` is the only required flag; `--max-new` defaults to 16 and
-`--max-context` to 4096. Record the exact command and any refusal.
+The `qwen35moe` file was detected from the GGUF header and routed to `strata-q36`.
+The prompt was tokenized with `tools/strata_tokenizer.py`; the generated token IDs
+and decoded text are in the evidence bundle. Record the exact command, raw output,
+and any refusal.
 
 ## 11. Signatures
 
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | | | |
-| Receiver (Coder) | `coder-primary` | | |
+| Receiver (Coder) | `coder-primary` | 2026-11-16 | accepted |
 
 ## 12. Log
 
 - 2026-11-16 Architect: READY after DEC-017; owner accepted HO-001 and
   authorized the supported `qwen35moe` low-tier test.
+- 2026-11-16 Coder: IN_PROGRESS; base SHA `afcc2096367cc8b17f72acd9708c886c9acc94bc`.
+- 2026-11-16 Coder: CODER_DONE; `qwen35moe` (`qwen36` family / `UD-Q4_K_XL`) loaded on the signed `baf16363` build and generated 32 tokens; evidence in `workflow/evidence/HO-STRATA-007/`; commit `679a3ea`.
