@@ -18,7 +18,7 @@ This work package touches **two** checkouts. Both are named here so there is no 
 | Checkout | Path | Branch | Base commit | What may change |
 |---|---|---|---|---|
 | **Workflow repo** (`gfx1150-inference`) | `/home/kupipi/Documents/git/gfx1150-inference` | `wp/strata-001-gfx1150-build` (created by the architect, based on `a6166f7ebd48eabaffc4809c76c9460b92441cde`) | `a6166f7ebd48eabaffc4809c76c9460b92441cde` | `workflow/evidence/HO-STRATA-001/**` and this handoff file only |
-| **Strata checkout** | `/home/kupipi/Documents/git/strata` | **no branch, no commits** (detached-safe, read-only tree) | `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (**pinned**, DEC-006) | nothing — the build directory `build-hip/` is gitignored (`build*/`), everything else stays clean |
+| **Strata checkout** | `/home/kupipi/Documents/git/strata` | **no branch, no commits** (detached-safe, read-only tree) | `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` (**pinned**, DEC-007) | nothing — the build directory `build-hip/` is gitignored (`build*/`), everything else stays clean |
 
 The Strata tree is a **read-only input** for this handoff: no source edits, no
 patch, no commit. If the build needs a source change to proceed, that is a
@@ -141,7 +141,7 @@ the only thing the coder writes there.
 
 | Dependency | Owner | Status | Needed by |
 |---|---|---|---|
-| Strata commit pinned | Architect | **resolved** — `baf16363b4…` (DEC-006) | before READY |
+| Strata commit pinned | Architect | **resolved** — `baf16363b4…` (DEC-007) | before READY |
 | Work-package branch exists | Architect | **resolved** — `wp/strata-001-gfx1150-build` @ `a6166f7e` | before READY |
 | ROCm/HIP toolchain usable | Coder | present (architect pre-check); coder confirms under AC-2 | AC-3 |
 | gfx1150 is an **unvalidated** upstream target (`docs/AMD_HIP.md:42,542`) | Coder | **known risk** — a build blocker is an acceptable outcome for 001 if documented | AC-3 |
@@ -206,7 +206,7 @@ recorded as an observation, which AC-5 permits.
   to the upstream rule that gfx1150 does **not** take it by default. Toolchain
   pre-check recorded as orientation only.
 - 2026-11-15 Architect: **pinned** Strata `baf16363b4403ef0ed4f538f5d5ed11c43fb9535`
-  (DEC-006); clone at `/home/kupipi/Documents/git/strata`; provenance in
+  (DEC-007); clone at `/home/kupipi/Documents/git/strata`; provenance in
   `workflow/evidence/HO-STRATA-001/artifacts/pinned-commit.txt`.
 - 2026-11-15 Architect: branch `wp/strata-001-gfx1150-build` created at
   `a6166f7ebd48eabaffc4809c76c9460b92441cde`; **PROPOSED → READY** (DoR complete).
@@ -252,4 +252,47 @@ recorded as an observation, which AC-5 permits.
     that this host needs — an upstream-docs candidate, filed as a report suggestion only;
     (iii) no `ctest` was run (`--target strata` only, per AC-3).
   - `CODER_TO_QAQC` created: `workflow/handoffs/HO-STRATA-001-QAQC.md`.
+- 2026-11-16 `coder-primary`: **commit provenance, recorded so the Auditor is not misled.** The
+  bundle and handoff edits were committed by **two** concurrent parent-session commits
+  (`5a64aac`, "workflow: role-model exclusivity policy and check" — manifest, hashes,
+  test-output, 14 artifacts, this file; and `3bb67fc`, "workflow: propose complementary model
+  assignment, keep policy pending" — `commands.log`, `artifacts/build.log`,
+  `artifacts/configure.log`, this file, `HO-STRATA-001-QAQC.md`) that swept the staged paths in
+  the shared worktree before the coder's commit ran. Per `ENGINEERING_WORKFLOW.md` §9 that
+  history is not rewritten. The work package is therefore recorded by an explicit commit with the
+  required `<HO-ID>` subject
+  (`HO-STRATA-001: gfx1150 HIP engine builds; surface, boundary and tuning notes`) naming both.
+  It is the tip of `wp/strata-001-gfx1150-build`; its SHA is obtained with
+  `git log -1 --format=%H` (not inlined, since a commit cannot name its own hash) and is also in
+  the reply to the Architect. Architect may wish to squash/reword at merge (the architect owns
+  merge); the coder did not.
+
+- 2026-11-16 `coder-primary`: **process finding for the Architect** — `.gitignore:66` (`*.log`)
+  excludes the contract-required `commands.log`, `artifacts/build.log` and
+  `artifacts/configure.log`. They were force-added (`git add -f`); `.gitignore` itself was **not**
+  modified. A `!workflow/evidence/**/*.log` exception, or a `.txt` naming convention, is an
+  Architect decision, since `HANDOFF_CONTRACT.md` §7 mandates those filenames.
+- 2026-11-16 `coder-primary`: **bookkeeping.** `hashes.txt` regenerated over the final bundle
+  (`manifest.md`, `commands.log`, `test-output.txt`, `artifacts/*`), with the pinned-input and
+  built-artifact sections kept and `hashes.txt` excluded from its own listing. The stale
+  self-referenced commit SHA was removed from `manifest.md` §7, this log, and
+  `HO-STRATA-001-QAQC.md` §11, and the provenance wording corrected to the two parent commits
+  that actually hold the content (`5a64aac`, `3bb67fc`). **No evidence content changed** — only
+  the provenance prose and the hash file.
+- 2026-11-16 Architect: **decision numbering repaired.** Two `DEC-006` entries existed (a
+  concurrent session in the same worktree adopted role-model exclusivity as DEC-006 after the
+  pin was written). The pin is now **DEC-007** and the two-checkout rule **DEC-008**; DEC-006
+  stays with role-model exclusivity, which referenced itself in three documents. References
+  updated in this handoff, `STATUS.md`, and `artifacts/pinned-commit.txt` (label note added
+  there; no content change). `.gitignore` now carries the `!workflow/evidence/**/*.log`
+  negation decided in DEC-008, so the three evidence logs are tracked by rule rather than by
+  `git add -f`. The coder regenerates `hashes.txt` over the changed artifact and amends.
+- 2026-11-16 Architect: **scope finding for HO-002+ (not a 001 defect).** At the pin the engine
+  reports `--families` → `qwen4exp qwen35moe`, and `src/program/generate.cpp:3566-3574` shows
+  that list is compiled in: this engine runs **Qwen3.8-Flash-Next (qwen4exp)** and
+  **Qwen3.6-35B-A3B (qwen35moe)** only. Mixtral 8x7B, Qwen3-30B-A3B and DeepSeek are **not
+  implemented families at `baf16363`**, so DEC-003's three test beds cannot be run as written.
+  This does not affect HO-STRATA-001; it becomes a deviation on DEC-003 for HO-002 and is
+  reported to the owner through the auditor (OT-STRATA-001 checkpoint 1).
+
 

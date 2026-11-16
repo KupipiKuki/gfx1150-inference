@@ -84,7 +84,7 @@ flash_next
 | tuning note + raw | `artifacts/tuning-table.md`, `tuning-table-raw.txt` | in `hashes.txt` |
 | hipBLASLt probe | `artifacts/hipblaslt-version-probe.txt` | in `hashes.txt` |
 | pin verification | `artifacts/verify-pin.txt` | in `hashes.txt` |
-| Architect pin record | `artifacts/pinned-commit.txt` | `0c128869b2c3de960fde9eaac43be785a95110bd287de9e2edf87400a93d7f8d` (kept unmodified) |
+| Architect pin record | `artifacts/pinned-commit.txt` | `d4ae0e3a785b9bddb5e42da75b8efdb38f1eaae381e7e1deb9fa60e3a22f1f12` (Architect's record; its decision **label** was renumbered to DEC-007 and a label note added by the Architect — raw pinned values unchanged) |
 
 `hashes.txt` carries the full `sha256sum` listing of every file in the bundle.
 
@@ -160,6 +160,27 @@ Kept verbatim. None of these was hidden or paraphrased.
 ## 7. Git
 
 Committed on `wp/strata-001-gfx1150-build` only. Base
-`a6166f7ebd48eabaffc4809c76c9460b92441cde`. No merge, no push to `main`, no rewrite of a shared
-branch. The commit's subject is `HO-STRATA-001: …`; `git log -1 --format=%H` on this branch gives
-the SHA (also recorded in the CODER_TO_QAQC handoff and in the reply to the Architect).
+`a6166f7ebd48eabaffc4809c76c9460b92441cde`.
+
+Provenance, stated plainly because it is unusual: the bundle files and handoff edits were
+written by `coder-primary` but were **committed by two concurrent parent-session commits** in the
+same worktree, which swept the staged paths before the coder's own commit ran:
+
+- `5a64aac` ("workflow: role-model exclusivity policy and check") — `manifest.md`, `hashes.txt`,
+  `test-output.txt`, `HO-STRATA-001.md`, and 14 of the `artifacts/` files (including the
+  Architect's `pinned-commit.txt`).
+- `3bb67fc` ("workflow: propose complementary model assignment, keep policy pending") —
+  `commands.log`, `artifacts/build.log`, `artifacts/configure.log`, `HO-STRATA-001.md`, and
+  `HO-STRATA-001-QAQC.md`.
+
+Rewriting that shared history is forbidden (`ENGINEERING_WORKFLOW.md` §9), so the work package is
+recorded by an explicit **empty-by-content commit carrying the required subject**
+`HO-STRATA-001: gfx1150 HIP engine builds; surface, boundary and tuning notes`, which names both
+commits above. That commit is **the tip of `wp/strata-001-gfx1150-build`** at `CODER_DONE`; get
+its SHA with `git log -1 --format=%H wp/strata-001-gfx1150-build` (a commit cannot name its own
+hash, so the SHA is deliberately not inlined here — it is recorded in the reply to the Architect
+and in `workflow/STATUS.md`).
+
+No merge, no push to `main`, no rewrite of a shared branch. `git status --porcelain` on
+`wp/strata-001-gfx1150-build` is empty at `CODER_DONE`.
+

@@ -2,7 +2,12 @@
 
 Authored by: **Architect** (provenance only; the coder verifies and re-records under AC-1).
 Recorded (UTC): 2026-11-15T23:42:12Z
-Decision: **DEC-006** in `workflow/DECISIONS.md` (pin Strata to a commit, not a moving branch).
+Decision: **DEC-007** in `workflow/DECISIONS.md` (pin Strata to a commit, not a moving branch).
+
+> Label note: this record first named `DEC-006`; that number was taken minutes
+> later by the role-model exclusivity decision (DEC-006) written from a concurrent
+> session in the same worktree. The architect renumbered the pin to **DEC-007**
+> and the two-checkout rule to **DEC-008**; no content changed.
 
 Checkout: `/home/kupipi/Documents/git/strata` (separate from the
 `gfx1150-inference` workflow repository, as required by HO-STRATA-001 §6).

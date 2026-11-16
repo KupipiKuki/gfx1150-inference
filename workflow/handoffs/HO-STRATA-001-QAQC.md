@@ -207,5 +207,15 @@ whether the handoff's criteria were met — but none of them is a hidden failure
 ## 11. Log
 
 - 2026-11-16 `coder-primary`: created; HO-STRATA-001 moved READY → IN_PROGRESS → **CODER_DONE**.
-  Evidence at `workflow/evidence/HO-STRATA-001/`, commit on `wp/strata-001-gfx1150-build`
-  (SHA in the handoff log and in `git log`). State set to `QAQC_REVIEW` for acceptance.
+  Evidence at `workflow/evidence/HO-STRATA-001/`. State set to `QAQC_REVIEW` for acceptance.
+- 2026-11-16 `coder-primary`: **commit provenance.** Content committed by two parent-session
+  commits: `5a64aac` (manifest, hashes, test-output, 14 artifacts, `HO-STRATA-001.md`) and
+  `3bb67fc` (`commands.log`, `artifacts/build.log`, `artifacts/configure.log`,
+  `HO-STRATA-001.md`, this file). Work package recorded by an explicit commit with the subject
+  `HO-STRATA-001: gfx1150 HIP engine builds; surface, boundary and tuning notes`, naming both
+  commits. Reason: concurrent commits swept the staged paths before the coder's own commit ran,
+  and shared history is not rewritten (§9). The SHA is deliberately not inlined — a commit cannot
+  name its own hash; read it with `git log -1 --format=%H wp/strata-001-gfx1150-build`.
+  See `manifest.md` §7. Branch `wp/strata-001-gfx1150-build`, base `a6166f7e`, not merged, not
+  pushed to `main`.
+
