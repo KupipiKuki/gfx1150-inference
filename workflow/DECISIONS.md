@@ -170,3 +170,23 @@ this file did not happen.
   (HO-005) uses the low-tier results.
 - **Affected:** DEC-003, `STATUS.md` 002–005, HO-006,
   `planning/strata-engine/11-model-support-investigation.md`.
+
+## DEC-011 — Large-model feasibility track (DeepSeek V4 Flash, MiniMax M3.1 Flash)
+
+- **Date:** 2026-11-15
+- **Context:** the owner wants to investigate support for two large MoEs:
+  DeepSeek V4 Flash and MiniMax M3.1 Flash. Both are far beyond the small
+  family representatives in HO-006.
+- **Decision:** add **HO-STRATA-007** as a separate **north-star feasibility
+  track** after HO-006. No implementation commitment: capacity, architecture
+  gap, and effort/risk first. It does not block the small-model low-tier tests.
+- **Preliminary facts (external; verify):** V4 Flash 284B/13B, 1M context, MIT,
+  Q4 ~167 GB; V4.1 Flash 552B backbone/8–16B active; MiniMax M3.1 Flash
+  428B/23B, 1M, 2-bit ~143.9 GB. Both exceed the gfx1150's 92 GB at usable
+  quants; a gfx1100 host with 128–256 GB RAM + SSD and new
+  attention/quantization paths is required. The 780M/MI25 are out.
+- **Consequences:** HO-006 remains the near-term path; HO-007 may change the
+  Route 2 vs Route 3 decision; no support/performance claim until a measured
+  low-tier run on the target host.
+- **Affected:** DEC-003, DEC-010, `STATUS.md` HO-005/HO-007,
+  `planning/strata-engine/12-large-model-support-investigation.md`.
