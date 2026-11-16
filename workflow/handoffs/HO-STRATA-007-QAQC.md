@@ -8,7 +8,7 @@
 | **Created / updated (UTC)** | 2026-11-16 / 2026-11-16 |
 | **From → To** | Primary Coder (`coder-primary`) → QAQC (`qaqc`) |
 | **Work package** | `strata-007-qwen35moe-lowtier` |
-| **Branch / base commit** | `wp/strata-007-qwen35moe-lowtier` / `679a3ea` on top of `afcc2096367cc8b17f72acd9708c886c9acc94bc` |
+| **Branch / base commit** | `wp/strata-007-qwen35moe-lowtier` / `f03348d` on top of `afcc2096367cc8b17f72acd9708c886c9acc94bc` |
 | **Priority / timebox** | P0 · 1 working day |
 | **Original handoff** | `workflow/handoffs/HO-STRATA-007.md` |
 
@@ -99,4 +99,4 @@
 
 ## 11. Log
 
-- 2026-11-16 Coder: created CODER_TO_QAQC handoff; evidence path `workflow/evidence/HO-STRATA-007/`; commit `679a3ea`.
+- 2026-11-16 Coder: created CODER_TO_QAQC handoff; evidence path `workflow/evidence/HO-STRATA-007/`; commit `f03348d`.

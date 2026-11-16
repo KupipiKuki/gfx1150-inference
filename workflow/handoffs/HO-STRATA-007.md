@@ -137,4 +137,4 @@ and any refusal.
 - 2026-11-16 Architect: READY after DEC-017; owner accepted HO-001 and
   authorized the supported `qwen35moe` low-tier test.
 - 2026-11-16 Coder: IN_PROGRESS; base SHA `afcc2096367cc8b17f72acd9708c886c9acc94bc`.
-- 2026-11-16 Coder: CODER_DONE; `qwen35moe` (`qwen36` family / `UD-Q4_K_XL`) loaded on the signed `baf16363` build and generated 32 tokens; evidence in `workflow/evidence/HO-STRATA-007/`; commit `679a3ea`.
+- 2026-11-16 Coder: CODER_DONE; `qwen35moe` (`qwen36` family / `UD-Q4_K_XL`) loaded on the signed `baf16363` build and generated 32 tokens; evidence in `workflow/evidence/HO-STRATA-007/`; commit `f03348d`.
