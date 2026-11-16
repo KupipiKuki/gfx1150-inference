@@ -6,7 +6,8 @@ row is invisible.
 | ID | Title | State | Owner | Branch | Next action | Blocker | Evidence |
 |---|---|---|---|---|---|---|---|
 | OT-STRATA-001 | Owner: start Strata on gfx1150 | INTAKE | Auditor | — | auditor: owner decisions 2–5 (packs, timebox) + **DEC-003 family deviation** before HO-002 | owner decisions 2–5; Mixtral/DeepSeek unsupported at pin | `workflow/evidence/HO-STRATA-001/` |
-| HO-STRATA-001 | gfx1150 build, support, engine boundary | **CODER_DONE** | QAQC (`qaqc`) | `wp/strata-001-gfx1150-build` @ `a34c818` | QAQC review (`HO-STRATA-001-QAQC.md`); build exit 0, no blocker | — (configure needs `CMAKE_PREFIX_PATH`, binary needs `LD_LIBRARY_PATH` — documented) | `workflow/evidence/HO-STRATA-001/` |
+| HO-STRATA-001 | gfx1150 build, support, engine boundary | **REWORK** → re-check | QAQC (`qaqc`) | `wp/strata-001-gfx1150-build` @ `a7f303c` | QAQC re-check of F1–F7 (`RW-HO-STRATA-001-1`); then auditor | QAQC FAIL on AC-4 (family mapping); fixed doc-only | `workflow/evidence/HO-STRATA-001/`, `workflow/reports/qaqc/` |
+| RW-HO-STRATA-001-1 | rework: family mapping + tuning-gate citations | REWORK → fixed | Coder | `wp/strata-001-gfx1150-build` @ `a7f303c` | QAQC re-check (F1–F7 only) | — | bundle at `a7f303c` |
 | HO-STRATA-002 | Mixtral 8x7B baseline | PROPOSED | Architect | — | after 001 SIGNED; needs OT decision 2 | 001, owner pack choice | — |
 | HO-STRATA-003 | Qwen3-30B-A3B baseline | PROPOSED | Architect | — | after 002; needs OT decision 3 | 002, owner pack choice | — |
 | HO-STRATA-004 | DeepSeek baseline | PROPOSED | Architect | — | after 003; needs OT decision 4 | 003, owner pack choice | — |
