@@ -27,6 +27,9 @@ Before the first code handoff:
   GPT-6 Luna auditor); confirm or swap, then apply. Run
   `python3 workflow/check_model_policy.py --strict`; if it reports PENDING,
   assign the five models first. Do not modify an agent that is in use.
+- The auditor is temporarily on DeepSeek V4.1 Flash under **WAIVER-001** (same
+  family as the architect); the check reports `WAIVED`, not `PASS`. Close the
+  waiver when the other APIs are incorporated.
 
 Start:
 1. Validate OT-STRATA-001 and the drafts. If a field is missing, say so.

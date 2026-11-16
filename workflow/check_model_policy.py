@@ -2,17 +2,22 @@
 """Check the role-model exclusivity policy for the five workflow agents.
 
 Reads `.opencode/agents/<role>.md` frontmatter and verifies:
-  R1  architect model is exclusive
-  R2  auditor model is exclusive
-  R4/R5 qaqc base model differs from the coder base model(s)
+  R1  architect family is exclusive
+  R2  auditor family is exclusive
+  R4/R5 qaqc family differs from the coder family/families
   R6  every role has an explicit model (strict mode)
-Variants (`#high`) are collapsed to the base model for R1/R2/R4 (R7).
+Variants (`#high`) are collapsed, and the model ID's first `-` token is the
+family (e.g. `deepseek-v4-pro` -> `deepseek`); R7/§5 of MODEL_POLICY.md.
 
-Exit codes: 0 valid or pending (non-strict), 1 violation, 2 strict + unassigned.
+Approved exceptions live in `workflow/model_policy.json` and are reported as
+WAIVED, never as PASS.
+
+Exit codes: 0 valid/pending/waived, 1 violation, 2 strict + unassigned.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import pathlib
 import sys
 
@@ -36,10 +41,31 @@ def agent_model(path: pathlib.Path) -> str | None:
     return None
 
 
-def base(model: str | None) -> str | None:
+def family_of(model: str | None) -> str | None:
     if not model:
         return None
-    return model.split("#", 1)[0].strip()
+    model_id = model.split("/")[-1].split("#", 1)[0].strip()
+    return model_id.split("-", 1)[0] or model_id
+
+
+def load_waivers(root: pathlib.Path) -> list[dict]:
+    path = root / "workflow" / "model_policy.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    return data.get("waivers", [])
+
+
+def waiver_for(waivers: list[dict], a: str, b: str, family: str) -> dict | None:
+    for waiver in waivers:
+        if waiver.get("family") != family:
+            continue
+        if {waiver.get("role"), waiver.get("conflicts_with")} == {a, b}:
+            return waiver
+    return None
 
 
 def main() -> int:
@@ -52,34 +78,49 @@ def main() -> int:
     agents_dir = pathlib.Path(args.agents_dir) if args.agents_dir else root / ".opencode" / "agents"
 
     models = {role: agent_model(agents_dir / f"{role}.md") for role in ROLES}
-    bases = {role: base(model) for role, model in models.items()}
+    families = {role: family_of(model) for role, model in models.items()}
+    waivers = load_waivers(root)
 
-    print("role                 model")
-    print("-------------------- ------------------------------------------------")
+    print("role                 model                                      family")
+    print("-------------------- ------------------------------------------ --------")
     for role in ROLES:
-        print(f"{role:20} {models[role] or '<unset>'}")
+        print(f"{role:20} {models[role] or '<unset>':42} {families[role] or '-'}")
 
     pending = [role for role in ROLES if not models[role]]
     violations: list[str] = []
+    waived: dict[tuple[str, str, tuple[str, str]], tuple[str, str, str, dict]] = {}
+
+    def check_pair(a: str, b: str, family: str, rule: str) -> None:
+        waiver = waiver_for(waivers, a, b, family)
+        if waiver:
+            key = (waiver.get("id", "waiver"), family, tuple(sorted((a, b))))
+            waived[key] = (a, b, family, waiver)
+            return
+        violations.append(
+            f"{a} and {b} both use family '{family}' ({rule})"
+        )
 
     for exclusive in EXCLUSIVE:
-        if bases[exclusive] is None:
+        if families[exclusive] is None:
             continue
         for role in ROLES:
-            if role == exclusive or bases[role] is None:
+            if role == exclusive or families[role] is None:
                 continue
-            if bases[role] == bases[exclusive]:
-                violations.append(
-                    f"{exclusive} model '{bases[exclusive]}' is also used by {role} "
-                    f"(R1/R2: exclusive role)"
-                )
+            if families[role] == families[exclusive]:
+                check_pair(exclusive, role, families[exclusive], "R1/R2: exclusive role")
 
     for coder in ("coder-primary", "coder-secondary"):
-        if bases["qaqc"] is not None and bases[coder] is not None and bases["qaqc"] == bases[coder]:
-            violations.append(
-                f"qaqc model '{bases['qaqc']}' is the same base as {coder} "
-                f"(R4/R5: the coder cannot check its own work)"
+        if families["qaqc"] is not None and families[coder] is not None and families["qaqc"] == families[coder]:
+            check_pair("qaqc", coder, families["qaqc"], "R4/R5: coder cannot check its own work")
+
+    if waived:
+        print("\nWAIVED (approved exception — not PASS)")
+        for a, b, family, waiver in waived.values():
+            print(
+                f"  - {waiver.get('id', 'waiver')}: {a}/{b} share family '{family}' — "
+                f"{waiver.get('reason', 'no reason recorded')}"
             )
+            print(f"    expires: {waiver.get('expires', 'not recorded')}")
 
     if violations:
         print("\nVIOLATIONS")
@@ -91,6 +132,11 @@ def main() -> int:
         print(f"\nPENDING: {len(pending)} role(s) have no explicit model: {', '.join(pending)}")
         print("Apply MODEL_POLICY.md when the active agent is free.")
         return 2 if args.strict else 0
+
+    if waived:
+        print("\nRESULT: WAIVED — policy exception in force (not PASS).")
+        print("Remove the waiver and rerun `--strict` when the APIs are available.")
+        return 0
 
     print("\nPASS: role-model exclusivity holds (R1, R2, R4, R6).")
     print("Reminder: the auditor must be the project's strongest reasoning model (R3).")

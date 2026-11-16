@@ -2,6 +2,7 @@
 description: Auditor — reviews coder and QAQC work, assigns rework, owns owner-task intake
 mode: subagent
 steps: 60
+model: opencode-go/deepseek-v4.1-flash
 permissions:
   - action: edit
     resource: "*"

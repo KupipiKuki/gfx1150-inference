@@ -133,3 +133,21 @@ this file did not happen.
   an explicit negation in `.gitignore` (`!workflow/evidence/**/*.log`) instead of
   `git add -f`, so the contract's `commands.log` is versioned by rule.
 - **Affected:** HO-STRATA-001 … HO-STRATA-005.
+
+## DEC-007 — Temporary auditor model waiver (WAIVER-001)
+
+- **Date:** 2026-11-15
+- **Context:** the owner's other APIs are not incorporated yet; the auditor is
+  temporarily set to `opencode-go/deepseek-v4.1-flash`.
+- **Decision:** accept the R2/R5 violation under **WAIVER-001**. The auditor
+  shares the DeepSeek family with the architect until the auditor moves to a
+  different family (target: `opencode-go/gpt-6-luna#max`).
+- **Risk:** correlated blind spots between the architect and auditor. The
+  architect's final review and the owner are the compensating checks; QAQC and
+  the evidence bundle are unchanged.
+- **Expiry:** when the other APIs are incorporated and the auditor moves to a
+  different family. Then remove the waiver from
+  `workflow/model_policy.json`, rerun `check_model_policy.py --strict` (must
+  return PASS), and record the change.
+- **Affected:** `.opencode/agents/auditor.md`, `workflow/MODEL_POLICY.md`,
+  `workflow/model_policy.json`, `workflow/check_model_policy.py`.
