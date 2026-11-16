@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | **Handoff** | HO-STRATA-007 |
-| **Commit / branch** | `afcc2096367cc8b17f72acd9708c886c9acc94bc` / `wp/strata-007-qwen35moe-lowtier` |
+| **Commit / branch** | base `afcc2096367cc8b17f72acd9708c886c9acc94bc`, evidence `f03348dd51f6e74e73baad1f8d83d98fb350f06d`, review head `a3da3d64ef30c03763b0245320c7d7fe5cbd7a74` / `wp/strata-007-qwen35moe-lowtier` |
 | **Author / date (UTC)** | Primary Coder (`coder-primary`) / 2026-11-16 |
-| **Environment** | Linux Mint 22.3 (Zena) / kernel 7.0.0-42-generic; ROCm 10.1.0 (`/opt/rocm/core-10.1`); HIP 7.16.26385; hipBLASLt 1.4 (`libhipblaslt.so.1.4`); amd-smi 27.1.0+7da43026; Python 3.12 |
+| **Environment** | Linux Mint 22.3 (Zena) / kernel 7.0.0-42-generic; ROCm 10.1.0 (`/opt/rocm/core-10.1`); HIP 7.16.26385; hipBLASLt 1.4 (`libhipblaslt.so.1.4`); amd-smi 27.1.0+7da43026; default `python3` = 3.14.10 (`/usr/bin/python3.12` exists but was not used; tokenizer artifacts produced by `python3` 3.14.10) |
 | **Working directory** | `/home/kupipi/Documents/git/strata` |
 
 ## 1. Commands
@@ -19,6 +19,10 @@
 | 5 | `python3 -c "import sys; sys.path.insert(0,'/home/kupipi/Documents/git/strata/tools'); from strata_tokenizer import Tokenizer; tok=Tokenizer.from_gguf('/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf'); print(tok.encode('The capital of France is', parse_special=False))"` | `/home/kupipi/Documents/git/strata` | 0 | `artifacts/prompt-token-ids.txt` |
 | 6 | `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024` | `/home/kupipi/Documents/git/strata` | 0 | `test-output.txt` |
 | 7 | post-run `cat /proc/meminfo`; `dmesg` tail | — | — | `test-output.txt` |
+| 8 | `which rocm-smi` | `/home/kupipi/Documents/git/strata` | 1 | `commands.log` |
+| 9 | `amd-smi metric -g 0 -m` sampled before, during and after the generation command | `/home/kupipi/Documents/git/strata` | 0 | `artifacts/amd-smi-gtt.txt` |
+| 10 | Repeat of the accepted generation command | `/home/kupipi/Documents/git/strata` | 0 | `commands.log` / token IDs match `artifacts/generated-token-ids.txt` |
+| 11 | `sha256sum -c hashes.txt` | `workflow/evidence/HO-STRATA-007` | 0 | `commands.log` |
 
 ## 2. Acceptance criteria ↔ evidence
 
@@ -28,7 +32,7 @@
 | 2 | Pack hashes | `sha256sum` of the GGUF | `55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1` matches the pin in `setup.py` | PASS |
 | 3 | Model loads on signed binary | engine command with `--native GGUF` | Loads 753 tensors, places routed experts, reports `every routed expert in VRAM (18.75 GiB)`, warms up | PASS |
 | 4 | Generation ≥16 tokens | engine command `--n 32` | 32 tokens generated; raw token IDs saved; decoded text saved | PASS |
-| 5 | Resources / stability | `/proc/meminfo` pre/post, `dmesg` | Pre MemFree 42.1 GiB, post MemFree 14.4 GiB, GPUActive ~27.2 GiB; no GPU reset/new error in `dmesg` | PASS |
+| 5 | Resources / stability | `/proc/meminfo` pre/post, `dmesg`; `amd-smi metric -g 0 -m` | Pre MemFree 42,092,528 kB (40.14 GiB / 42.09 GB), post MemFree 14,446,844 kB (13.78 GiB / 14.45 GB), GPUActive 27,238,816 kB (25.98 GiB / 27.24 GB); GTT peak 26,798 MB (26.16 GiB / 26.80 GB); no GPU reset/new error in `dmesg` | PASS |
 | 6 | Environment | `rocminfo`, `hipcc --version`, binary SHA256 | gfx1150, HIP 7.16.26385, binary `d58ee23…` (signed build `baf16363`) | PASS |
 | 7 | No claims | report | One profile only (`gfx1150` / `qwen35moe` / `UD-Q4_K_XL`); no performance/support/quality claim made | PASS |
 
@@ -36,14 +40,15 @@
 
 | Artifact | Path | SHA256 |
 |---|---|---|
-| model pack (not in git) | `/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` | `55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1` |
+| model pack (not in git) | `/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` | `55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1` (license: `Apache 2.0: https://huggingface.co/Qwen/Qwen3.6-35B-A3B`, `setup.py:758`) |
 | signed engine binary | `/home/kupipi/Documents/git/strata/build-hip/strata` | `d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858` |
 | prompt text | `artifacts/prompt.txt` | `0b8b55f996e7040d630079da36b3f1e0f08dffa8d014c9e5dada28b80396cbc4` |
 | prompt token IDs | `artifacts/prompt-token-ids.txt` | `e70bdc1bb2837068ae9ebde778d1c8a08f3bae2ee28f927df2bdcb24539037b7` |
 | generated token IDs | `artifacts/generated-token-ids.txt` | `d66cf4606974589d85738a7e9aa1b32741d7c5809e4eb1ba5d8a9e6f7b46d49e` |
 | generated text | `artifacts/generated-text.txt` | `1d0bf1eaa15565e363b2a9a61936716b624647961c3688605d5866164902f1c5` |
 | full run log | `test-output.txt` | `7986a489b77ad26f7174b200b651964e43fd60c2fe2e1f836d0d0485540a8aa9` |
-| commands log | `commands.log` | `893e7d24f3deee9e5ad34312345ed62f5c0e89ba8d2e2e23836aa6a7c533ca20` |
+| commands log | `commands.log` | `5c1e521c4b507d8143898ef58953aee9d69d9ba8575e1d7834bb465d6c491e68` |
+| GTT sampling log | `artifacts/amd-smi-gtt.txt` | `a6b775b747251770f93a849c88671baa37ca177fd75c1532aecf7cee3e0051e6` |
 
 ## 4. Failures, skips, limits
 

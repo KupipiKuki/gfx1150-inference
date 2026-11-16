@@ -150,3 +150,14 @@ and any refusal.
   A-2 (no GTT/amd-smi in the coder bundle), A-3 (manifest commit field),
   A-4 (teardown CPU advisory, no action). Conditions C1–C5 are bookkeeping only.
   Report: `workflow/reports/audit/HO-STRATA-007-audit.md`.
+- 2026-11-16 Coder: closed audit bookkeeping conditions C1a–C4 on the same
+  work-package branch. Rewrote `hashes.txt` in pure `sha256sum` format covering
+  every evidence file plus the external model and signed binary, verified with
+  `sha256sum -c` (exit 0, no warnings). Added `artifacts/amd-smi-gtt.txt` from a
+  repeat of the accepted generation command, with `amd-smi metric -g 0 -m`
+  sampled before/during/after; token IDs matched `generated-token-ids.txt`;
+  peak `USED_GTT` = 26,798 MB. Updated `manifest.md` commit field (base/evidence/
+  review head), corrected Python version and tokenizer interpreter, restated
+  memory in exact kB with decimal/binary units, and inlined the Apache-2.0
+  license string from `setup.py:758`. State remains `ARCHITECT_APPROVAL`; C5
+  (status/merge) is still for the architect.

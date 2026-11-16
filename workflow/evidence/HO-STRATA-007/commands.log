@@ -677,3 +677,69 @@ auditor              opencode-go/deepseek-v4.1-flash            deepseek
 
 PENDING: 1 role(s) have no explicit model: architect
 Apply MODEL_POLICY.md when the active agent is free.
+--- closure C1b: which rocm-smi ---
+date: 2026-11-15T22:54:03-05:00
+cwd: /home/kupipi/Documents/git/strata
+exit=1
+
+--- closure C1b: generation repeat ---
+date: 2026-11-15T22:54:03-05:00
+cwd: /home/kupipi/Documents/git/strata
+command: LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
+exit=0
+strata-q36: /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: 753 tensors (layout checked), 4.40 GiB on the GPU in 1.0 s (the routed experts are placed after the engine's buffers)
+strata-q36: prompt experts: 0 of 41 layers on the fused int8 kernels, 41 on our int8 kernels, 0 on MMQ (int8)
+strata-q36: context 1024 cells, prompt chunk 4096, MTP block loaded, 38.72 GiB of VRAM free
+strata-q36: every routed expert in VRAM (18.75 GiB) in 3.1 s
+strata-q36: warmed up in 3.8 s (one prompt chunk, a decode step)
+gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+strata-q36: prompt 5 tokens in 91.5 ms (54.7 tok/s), 32 generated in 1660.0 ms (19.3 tok/s)
+
+--- closure C1b: token ID comparison ---
+generated: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+expected:  11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+match: OK
+
+--- closure C1a: sha256sum -c hashes.txt ---
+date: 2026-11-15T22:56:18-05:00
+cwd: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-007
+command: sha256sum -c hashes.txt
+./artifacts/amd-smi-gtt.txt: OK
+./artifacts/control-launch-help.txt: OK
+./artifacts/control-plan-qwen36.json: OK
+./artifacts/decode-command.txt: OK
+./artifacts/engine-families.txt: OK
+./artifacts/engine-generate-help.txt: OK
+./artifacts/engine-geometry.txt: OK
+./artifacts/generated-text.txt: OK
+./artifacts/generated-token-ids.txt: OK
+./artifacts/prompt-token-ids.txt: OK
+./artifacts/prompt.txt: OK
+./commands.log: FAILED
+./manifest.md: FAILED
+./test-output.txt: OK
+/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: OK
+/home/kupipi/Documents/git/strata/build-hip/strata: OK
+
+--- closure C1a: sha256sum -c hashes.txt (after refreshing manifest.md hashes) ---
+date: 2026-11-15T22:59:06-05:00
+cwd: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-007
+command: sha256sum -c hashes.txt
+./artifacts/amd-smi-gtt.txt: OK
+./artifacts/control-launch-help.txt: OK
+./artifacts/control-plan-qwen36.json: OK
+./artifacts/decode-command.txt: OK
+./artifacts/engine-families.txt: OK
+./artifacts/engine-generate-help.txt: OK
+./artifacts/engine-geometry.txt: OK
+./artifacts/generated-text.txt: OK
+./artifacts/generated-token-ids.txt: OK
+./artifacts/prompt-token-ids.txt: OK
+./artifacts/prompt.txt: OK
+./commands.log: OK
+./manifest.md: OK
+./test-output.txt: OK
+/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: OK
+/home/kupipi/Documents/git/strata/build-hip/strata: OK
+exit=0
+Note: hashes.txt covers all files in this evidence directory except hashes.txt itself, plus the external model file and signed binary.
