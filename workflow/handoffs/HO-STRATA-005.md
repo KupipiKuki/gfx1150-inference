@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-005 |
 | **Type** | ARCHITECT_TO_CODER (evidence pack) → architect decision |
-| **State** | **READY** — DoR met (§8) |
+| **State** | **CODER_DONE** — `READY` → `IN_PROGRESS` → `CODER_DONE` (§9 DoD 1–5, 7 met; DEC-021 pending architect) |
 | **Created / updated (UTC)** | 2026-11-17 |
 | **From → To** | Architect → Primary Coder (`coder-primary`), decision by Architect |
 | **Work package** | `strata-005-route-decision` |
@@ -121,13 +121,13 @@ already is.
 
 ## 9. Definition of Done
 
-- [ ] Route 2’s current cost enumerated and cited
-- [ ] Five measurable triggers + checks + owners
-- [ ] Reversal cost stated
-- [ ] Citation map complete; every row resolves
-- [ ] No new measurement; diff is documentation only
-- [ ] Decision recorded in `DECISIONS.md`
-- [ ] Handoff `DONE` after architect sign-off
+- [x] Route 2's current cost enumerated and cited
+- [x] Five measurable triggers + checks + owners
+- [x] Reversal cost stated
+- [x] Citation map complete; every row resolves
+- [x] No new measurement; diff is documentation only
+- [ ] Decision recorded in `DECISIONS.md` as DEC-021 — **architect action at approval gate** (guard rail: coder does not edit `DECISIONS.md`)
+- [x] Handoff criterion 7 met: no performance/support/quality claim; one profile per cited number. `DONE` transition remains pending architect sign-off.
 
 ## 10. Roles
 
@@ -144,7 +144,7 @@ already is.
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | architect | 2026-11-17 | READY (narrowed per owner decision) |
-| Receiver (Coder) | `coder-primary` | | |
+| Receiver (Coder) | `coder-primary` | 2026-11-17 | `CODER_DONE` |
 
 ## 12. Log
 
@@ -153,3 +153,7 @@ already is.
 - 2026-11-17 Architect: HO-007 signed and merged; HO-006 held (DEC-016). Owner
   narrowed the handoff to “confirm Route 2 + triggers” (DEC-020 scope note);
   state `READY`; branch created; HO-006 dependency removed.
+- 2026-11-17 Coder (`coder-primary`): evidence pack assembled; route-decision.md,
+  citation-map.md (31 claims), commands.log, and hashes.txt committed on the
+  work-package branch. All 31 citations verified by `grep`; `sha256sum -c`
+  19/19 OK. No measurement, build, model run, or download performed.
