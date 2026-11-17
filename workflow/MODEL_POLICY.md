@@ -1,10 +1,13 @@
 # Model selection policy
 
-**Status:** adopted 2026-11-15 · **auditor applied under WAIVER-001; QAQC
-(Gemini), coder-primary (Kimi), coder-secondary (Qwen) applied; architect
-pending (session model).** The HO-001 QAQC setup exception was closed by the
-Gemini/Argon re-run; the audit accepted it. The active agent must not be
-modified while in use.
+**Status:** adopted 2026-11-15 · **all five roles assigned (2026-11-17)**:
+architect `deepseek-v4-pro#max`, auditor `deepseek-v4.1-flash` (**WAIVER-001**),
+QAQC Gemini, coder-primary Kimi, coder-secondary Qwen. The HO-001 QAQC setup
+exception was closed by the Gemini/Argon re-run; the audit accepted it.
+**`check_model_policy.py --strict` exits 0 with `WAIVED`, not `PASS`** — the
+architect and auditor share the `deepseek` family under WAIVER-001. The active
+agent must not be modified while in use; a model change takes effect in the
+next session.
 **Enforcement:** `workflow/check_model_policy.py` (`--strict` once all five are
 assigned).
 **Decisions:** `DECISIONS.md` DEC-006 (rules), DEC-009 (temporary auditor
@@ -47,10 +50,13 @@ provider’s model; the family rule is what matters.
 | **coder-secondary** | `opencode-go/qwen3.8-flash#low` | no | cheap/fast; low-priority work |
 | **QAQC** | `opencode-go/gemini-4-argon#high` | no | strong reviewer; different family from both coders |
 
-**Status: PARTIALLY APPLIED.** The auditor is set in
-`.opencode/agents/auditor.md` under WAIVER-001. The architect, coders and QAQC
-are proposed but unset. `check_model_policy.py` reports `PENDING` for the unset
-roles and `WAIVED` for the auditor/architect family once both are set.
+**Status: APPLIED (2026-11-17).** Every role has an explicit `model` in its
+agent file: architect `opencode-go/deepseek-v4-pro#max` (DEC-022), auditor
+`opencode-go/deepseek-v4.1-flash` (WAIVER-001), coder-primary
+`opencode-go/kimi-k2.7-code`, coder-secondary `opencode-go/qwen3.8-flash#low`,
+QAQC `opencode-go/gemini-4-argon#high`. `check_model_policy.py` reports no
+`PENDING` roles and `WAIVED` for the auditor/architect family; `--strict` exits
+0 with `RESULT: WAIVED`.
 
 ### Complementary coverage
 

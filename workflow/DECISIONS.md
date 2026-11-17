@@ -385,3 +385,27 @@ this file did not happen.
   acceptance decision, not a change to the audit requirement in the contract.
 - **Affected:** `OT-STRATA-001`, `STATUS.md`, `OWNER_AUDIT_CHECKLIST.md`,
   `MERGE_PLAN.md`.
+
+## DEC-022 — Architect model assigned (DeepSeek V4 Pro, max reasoning)
+
+- **Date:** 2026-11-17
+- **Context:** MODEL_POLICY R6 requires an explicit model for all five roles; the
+  architect was the only role still unset, so `check_model_policy.py --strict`
+  reported `PENDING` and exited 2. DEC-006 fixes the architect's family as
+  DeepSeek; `opencode-go/deepseek-v4-pro` is available with `high`/`max`
+  variants.
+- **Decision:** architect = `opencode-go/deepseek-v4-pro#max`, recorded in
+  `.opencode/agents/architect.md`. Family `deepseek`, exclusive to the architect
+  (R1); no other role may use it (R7: variants do not count as different).
+- **Consequences:**
+  - `check_model_policy.py --strict` now exits **0** with `RESULT: WAIVED` — the
+    remaining exception is WAIVER-001 (auditor also on `deepseek`), which is a
+    disclosed exception, **not** a PASS.
+  - The change takes effect in the **next** architect session: a subagent's or
+    agent's model is fixed when the session starts (DEC-013), and the policy
+    forbids editing an active agent mid-use. This session continues on the
+    session model.
+  - Family coverage is now: architect `deepseek`, coder-primary `kimi`,
+    coder-secondary `qwen3.8`, QAQC `gemini`, auditor `deepseek` (waived).
+- **Affected:** `.opencode/agents/architect.md`, `workflow/MODEL_POLICY.md`,
+  WAIVER-001, DEC-006, DEC-013.

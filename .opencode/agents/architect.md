@@ -2,6 +2,7 @@
 description: Architect — owns the plan, handoffs, final approvals, deviations and scope
 mode: primary
 steps: 60
+model: opencode-go/deepseek-v4-pro#max
 permissions:
   - action: edit
     resource: "*"
