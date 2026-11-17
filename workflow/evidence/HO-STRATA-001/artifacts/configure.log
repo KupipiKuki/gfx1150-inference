@@ -1,0 +1,109 @@
+=== AC-3 configure ===
+cwd: /home/kupipi/Documents/git/strata
+date-utc: 2026-11-15T23:45:55Z
+$ cmake -S . -B build-hip -DCMAKE_BUILD_TYPE=Release -DSTRATA_ENABLE_HIP=ON -DSTRATA_ENABLE_CUDA=OFF -DCMAKE_HIP_ARCHITECTURES=gfx1150
+
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- strata: compiled geometry flash_next (default)
+-- Strata: verify / batch windows hold up to 16 rows
+CMake Warning at cmake/hip_backend.cmake:29 (message):
+  Strata HIP: gfx1150 builds, but it is not validated on a real card yet;
+  please report results
+Call Stack (most recent call first):
+  CMakeLists.txt:179 (include)
+
+
+-- The HIP compiler identification is Clang 24.0.0
+-- Detecting HIP compiler ABI info
+-- Detecting HIP compiler ABI info - done
+-- Check for working HIP compiler: /opt/rocm/core-10.1/lib/llvm/bin/clang++ - skipped
+-- Detecting HIP compile features
+-- Detecting HIP compile features - done
+CMake Error at cmake/hip_backend.cmake:58 (find_package):
+  Could not find a package configuration file provided by "hip" with any of
+  the following names:
+
+    hipConfig.cmake
+    hip-config.cmake
+
+  Add the installation prefix of "hip" to CMAKE_PREFIX_PATH or set "hip_DIR"
+  to a directory containing one of the above files.  If "hip" provides a
+  separate development package or SDK, be sure it has been installed.
+Call Stack (most recent call first):
+  CMakeLists.txt:179 (include)
+
+
+-- Configuring incomplete, errors occurred!
+
+configure exit=1
+
+==============================================================
+AC-3 RETRY 1: literal command failed above (hip package not found).
+Diagnosis: find_package(hip CONFIG REQUIRED) at cmake/hip_backend.cmake:58;
+hip-config.cmake exists at /opt/rocm/core-10.1/lib/cmake/hip but the ROCm
+prefix is not on CMAKE_PREFIX_PATH (CMake's own error text says to set it).
+Fresh build dir (rm -rf build-hip) to avoid the cached-empty HIP flags the
+upstream comment at cmake/hip_backend.cmake:48-56 warns about.
+date-utc: 2026-11-15T23:46:20Z
+$ cmake -S . -B build-hip -DCMAKE_BUILD_TYPE=Release -DSTRATA_ENABLE_HIP=ON -DSTRATA_ENABLE_CUDA=OFF -DCMAKE_HIP_ARCHITECTURES=gfx1150 -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.1
+
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- strata: compiled geometry flash_next (default)
+-- Strata: verify / batch windows hold up to 16 rows
+CMake Warning at cmake/hip_backend.cmake:29 (message):
+  Strata HIP: gfx1150 builds, but it is not validated on a real card yet;
+  please report results
+Call Stack (most recent call first):
+  CMakeLists.txt:179 (include)
+
+
+-- The HIP compiler identification is Clang 24.0.0
+-- Detecting HIP compiler ABI info
+-- Detecting HIP compiler ABI info - done
+-- Check for working HIP compiler: /opt/rocm/core-10.1/lib/llvm/bin/clang++ - skipped
+-- Detecting HIP compile features
+-- Detecting HIP compile features - done
+-- HIP: Using hipcc from relative path: /opt/rocm/core-10.1/bin/hipcc
+-- HIP_PLATFORM using hip_HIPCONFIG_EXECUTABLE: amd
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- HIP: Using hipcc from relative path: /opt/rocm/core-10.1/bin/hipcc
+-- HIP: Using hipcc from relative path: /opt/rocm/core-10.1/bin/hipcc
+-- Strata: HIP enabled, arch gfx1150
+-- strata: pack/full/experts.bin absent - the expert arena load test is NOT registered
+-- Performing Test STRATA_HAVE_AVXVNNI_INTRINSICS
+-- Performing Test STRATA_HAVE_AVXVNNI_INTRINSICS - Success
+-- The C compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/bin/cc
+-- Warning: ccache not found - consider installing it for faster compilation or disable this warning with GGML_CCACHE=OFF
+-- CMAKE_SYSTEM_PROCESSOR: x86_64
+-- GGML_SYSTEM_ARCH: x86
+-- x86 detected
+-- Adding CPU backend variant ggml-cpu: -march=native 
+-- ggml version: 0.24.0
+-- ggml commit:  baf16363b
+-- trellis MMQ (Gyro prompts): vendored /home/kupipi/Documents/git/strata/third_party/strata-ggml/ggml/src/ggml-cuda-tq
+-- Strata: no llama.cpp MMQ prompt kernels (HIP): Strata's own prompt kernels and the FP16 path
+-- strata tests: ON - cpu, hip
+-- Configuring done (3.5s)
+-- Generating done (0.2s)
+-- Build files have been written to: /home/kupipi/Documents/git/strata/build-hip
+
+configure (retry 1) exit=0

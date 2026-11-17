@@ -1,0 +1,219 @@
+=== AC-7 raw commands ===
+cwd: /home/kupipi/Documents/git/strata
+date-utc: 2026-11-15T23:55:58Z
+$ sha256sum tools/hip/gfx1150-hipblaslt-100401.txt
+aee2867c096887cccaef8bc04a9ef10adec43da58421edfdaaec04a61ec5549c  tools/hip/gfx1150-hipblaslt-100401.txt
+exit=0
+$ wc -l tools/hip/gfx1150-hipblaslt-100401.txt
+146 tools/hip/gfx1150-hipblaslt-100401.txt
+exit=0
+$ head -2 tools/hip/gfx1150-hipblaslt-100401.txt
+# solution IDs are scoped to this hipBLASLt version and device architecture
+STRATA_HIPBLASLT_TUNING_V1 gfx1150 100401
+exit=0
+
+$ ls tools/hip/ | grep hipblaslt
+gfx1100-hipblaslt-100100.txt
+gfx1100-hipblaslt-100200.txt
+gfx1100-hipblaslt-100202.txt
+gfx1100-hipblaslt-100401.txt
+gfx1100-hipblaslt-100500.txt
+gfx1103-hipblaslt-100401.txt
+gfx1150-hipblaslt-100401.txt
+gfx1150-hipblaslt-100500.txt
+gfx1151-hipblaslt-100400.txt
+gfx1151-hipblaslt-100401.txt
+gfx1151-hipblaslt-100500.txt
+gfx1200-hipblaslt-100202.txt
+gfx1201-hipblaslt-100202.txt
+gfx1201-hipblaslt-100500.txt
+tune_hipblaslt.cpp
+exit=0
+
+=== selection rule: src/prefill/hipblaslt_tuning.hpp ===
+$ grep -n 'STRATA_HIPBLASLT_TUNING|STRATA_HIPBLASLT_VERBOSE|gfx1150|version' src/prefill/hipblaslt_tuning.hpp
+26:    bool load(const std::string& path, const std::string& expected_arch, int expected_version, std::string& err) {
+45:                int version = 0;
+47:                if (!(row >> magic >> arch >> version) || (row >> extra) || magic != "STRATA_HIPBLASLT_TUNING_V1") {
+51:                // A table's solution IDs are scoped to its hipBLASLt version and its architecture FAMILY:
+67:                if (version != expected_version) {
+68:                    err = "hipBLASLt version mismatch: file=" + std::to_string(version) +
+69:                          " runtime=" + std::to_string(expected_version);
+73:                version_ = version;
+127:    int version() const { return version_; }
+131:    int version_ = 0;
+
+=== is the table auto-taken on gfx1150? grep for arch gates in that header ===
+26:    bool load(const std::string& path, const std::string& expected_arch, int expected_version, std::string& err) {
+44:                std::string arch;
+47:                if (!(row >> magic >> arch >> version) || (row >> extra) || magic != "STRATA_HIPBLASLT_TUNING_V1") {
+51:                // A table's solution IDs are scoped to its hipBLASLt version and its architecture FAMILY:
+52:                // gfx1200/gfx1201 (RDNA4) share them, as gfx1100/gfx1101/gfx1102 (RDNA3) do.  A card can report
+53:                // its sibling - an R9700 (gfx1201) under HSA_OVERRIDE_GFX_VERSION=12.0.0 reports gfx1200 - and
+57:                const auto is_rdna4 = [](const std::string& a) { return a == "gfx1200" || a == "gfx1201"; };
+59:                    return a == "gfx1100" || a == "gfx1101" || a == "gfx1102";
+61:                if (arch != expected_arch &&
+62:                    !(is_rdna4(arch) && is_rdna4(expected_arch)) &&
+63:                    !(is_rdna3(arch) && is_rdna3(expected_arch))) {
+64:                    err = "tuning architecture mismatch: file=" + arch + " runtime=" + expected_arch;
+72:                arch_ = std::move(arch);
+126:    const std::string& arch() const { return arch_; }
+130:    std::string arch_;
+
+=== where STRATA_HIPBLASLT_TUNING is read (default-on rule) ===
+src/prefill/gemm.cu:259:// (340 against 690 tok/s, IQ3_S 4K).  The launcher sets STRATA_HIPBLASLT_TUNING itself; this is the same table found by the engine.
+src/prefill/gemm.cu:278:    const char* path = std::getenv("STRATA_HIPBLASLT_TUNING");
+src/prefill/hipblaslt_tuning.hpp:47:                if (!(row >> magic >> arch >> version) || (row >> extra) || magic != "STRATA_HIPBLASLT_TUNING_V1") {
+strata_control/setup_config.py:442:                cfg["env"] = {"STRATA_HIPBLASLT_TUNING": str(table)}
+strata_control/hipblaslt_tuning.py:13:and returns the table to use or the reason there is none. Nobody sets STRATA_HIPBLASLT_TUNING by hand:
+strata_control/hipblaslt_tuning.py:17:* a ``STRATA_HIPBLASLT_TUNING`` the person set themselves (environment or run config) always wins and is not touched;
+strata_control/hipblaslt_tuning.py:37:ENGINE_VAR = "STRATA_HIPBLASLT_TUNING"       # what the engine reads: the path of one table
+strata_control/hipblaslt_tuning.py:39:HEADER = "STRATA_HIPBLASLT_TUNING_V1"
+strata_control/hipblaslt_tuning.py:176:    """A STRATA_HIPBLASLT_TUNING the person set (environment first, then the run config's env): theirs to keep, even if the file is gone."""
+
+=== the file-discovery function ===
+=== src/prefill/gemm.cu lines 255-325 (engine's own discovery; absolute file line numbers) ===
+255: };
+256: 
+257: // The engine package's own tuning folder (<engine folder>/tuning), for a start that did not come through the launcher (a hand-made
+258: // config, a CLI run): without a table the prompt GEMMs fall back to plain hipBLAS and a Strix Halo reads prompts at half speed
+259: // (340 against 690 tok/s, IQ3_S 4K).  The launcher sets STRATA_HIPBLASLT_TUNING itself; this is the same table found by the engine.
+260: std::string own_tuning_dir() {
+261: #if defined(_WIN32)
+262:     char p[4096] = {};
+263:     const DWORD n = GetModuleFileNameA(nullptr, p, (DWORD) sizeof(p));
+264:     std::string s(p, n);
+265:     const size_t k = s.find_last_of("\\/");
+266:     return k == std::string::npos ? std::string() : s.substr(0, k + 1) + "tuning/";
+267: #else
+268:     char p[4096] = {};
+269:     const ssize_t n = readlink("/proc/self/exe", p, sizeof(p) - 1);
+270:     std::string s(p, n > 0 ? (size_t) n : 0);
+271:     const size_t k = s.find_last_of('/');
+272:     return k == std::string::npos ? std::string() : s.substr(0, k + 1) + "tuning/";
+273: #endif
+274: }
+275: 
+276: std::unique_ptr<HipLtState> create_hipblaslt_state(void* workspace, size_t workspace_bytes) {
+277:     std::string path_own;
+278:     const char* path = std::getenv("STRATA_HIPBLASLT_TUNING");
+279:     bool from_package = false, table_forced = false;
+280:     if (!path || !*path) {
+281:         const char* sw = std::getenv("STRATA_HIPBLASLT_TABLE");     // the launcher's switch (strata_control/hipblaslt_tuning.py): off / on / auto
+282:         std::string low = sw != nullptr ? sw : "";                   // trimmed and lower case, as the launcher reads it
+283:         while (!low.empty() && std::isspace((unsigned char) low.back())) low.pop_back();
+284:         while (!low.empty() && std::isspace((unsigned char) low.front())) low.erase(low.begin());
+285:         for (char& ch : low) ch = (char) std::tolower((unsigned char) ch);
+286:         const auto word = [&](std::initializer_list<const char*> ws) {
+287:             for (const char* w : ws) if (low == w) return true;
+288:             return false;
+289:         };
+290:         if (word({"off", "0", "no", "false", "none", "disable", "disabled"})) return nullptr;   // never the packaged table
+291:         table_forced = word({"on", "1", "yes", "true", "force", "enable", "enabled"});          // any card that has a table beside the engine
+292:         from_package = true;                                          // the file is found below, once the card and the version are known
+293:     }
+294: 
+295:     auto state = std::make_unique<HipLtState>();
+296:     state->workspace = workspace;
+297:     state->workspace_bytes = workspace_bytes;
+298:     if (hipblasLtCreate(&state->handle) != HIPBLAS_STATUS_SUCCESS) {
+299:         std::fprintf(stderr, "prefill gemm: hipBLASLt handle creation failed; using hipBLASEx\n");
+300:         return nullptr;
+301:     }
+302: 
+303:     int version = 0;
+304:     if (hipblasLtGetVersion(state->handle, &version) != HIPBLAS_STATUS_SUCCESS) {
+305:         std::fprintf(stderr, "prefill gemm: hipBLASLt version query failed; using hipBLASEx\n");
+306:         return nullptr;
+307:     }
+308:     int device = 0;
+309:     hipDeviceProp_t properties{};
+310:     if (hipGetDevice(&device) != hipSuccess || hipGetDeviceProperties(&properties, device) != hipSuccess) {
+311:         std::fprintf(stderr, "prefill gemm: HIP device query failed; using hipBLASEx\n");
+312:         return nullptr;
+313:     }
+314:     std::string arch(properties.gcnArchName);
+315:     const auto suffix = arch.find(':');
+316:     if (suffix != std::string::npos) arch.resize(suffix);
+317: 
+318:     if (from_package) {
+319:         // Unset or "auto": only Strix Halo (gfx1151) takes the packaged table by itself, the owner's decision of 2026-10-19 (the same
+320:         // rule as AUTO_ARCHS in strata_control/hipblaslt_tuning.py): on other cards the table changes the answers' last digits for ~1%
+321:         // (gfx1201), so they take it with STRATA_HIPBLASLT_TABLE=on only.
+322:         if (!table_forced && arch != "gfx1151") return nullptr;
+323:         const std::string dir = own_tuning_dir();
+324:         if (dir.empty()) return nullptr;
+325:         path_own = dir + arch + "-hipblaslt-" + std::to_string(version) + ".txt";
+
+=== src/prefill/gemm.cu 325-395 (the env path, the version gate, the start-log line) ===
+        path_own = dir + arch + "-hipblaslt-" + std::to_string(version) + ".txt";
+        std::FILE* f = std::fopen(path_own.c_str(), "rb");
+        if (f == nullptr) return nullptr;       // no table for this card and hipBLASLt version beside the engine: plain hipBLAS as before
+        std::fclose(f);
+        path = path_own.c_str();
+    }
+    std::string error;
+    if (!state->table.load(path, arch, version, error)) {
+        std::fprintf(stderr, "prefill gemm: %s; using hipBLASEx\n", error.c_str());
+        return nullptr;
+    }
+    std::fprintf(stderr, "prefill gemm: hipBLASLt tuning enabled (%zu rows, %s, version %d)\n",
+                 state->table.rows().size(), arch.c_str(), version);
+    return state;
+}
+
+HipLtCachedAlgo resolve_hipblaslt_algo(HipLtState& state, strata::prefill::hipblaslt::InputType type, int t,
+                                       int n, int k, int ldy, float beta) {
+    uint32_t beta_bits = 0;
+    static_assert(sizeof(beta_bits) == sizeof(beta));
+    std::memcpy(&beta_bits, &beta, sizeof(beta));
+    const HipLtCallKey key{type, t, n, k, ldy, beta_bits};
+    const auto cached = state.cache.find(key);
+    if (cached != state.cache.end()) return cached->second;
+
+    HipLtCachedAlgo resolved;
+    const bool verbose = std::getenv("STRATA_HIPBLASLT_VERBOSE") != nullptr;
+    const auto* row = state.table.closest(type, n, k, ldy, t);
+    if (!row) {
+        if (verbose) {
+            std::fprintf(stderr, "prefill gemm: Lt fallback; no calibration for dtype=%s T=%d N=%d K=%d ldy=%d\n",
+                         type == strata::prefill::hipblaslt::InputType::bf16 ? "bf16" : "f16", t, n, k, ldy);
+        }
+        return state.cache.emplace(key, resolved).first->second;
+    }
+
+    HipLtDescriptors desc;
+    const hipDataType input_type = type == strata::prefill::hipblaslt::InputType::bf16 ? HIP_R_16BF : HIP_R_16F;
+    if (!desc.init(input_type, t, n, k, ldy)) {
+        return state.cache.emplace(key, resolved).first->second;
+    }
+
+    std::vector<int> solution_ids{row->solution_id};
+    std::vector<hipblasLtMatmulHeuristicResult_t> candidates;
+    if (hipblaslt_ext::getAlgosFromIndex(state.handle, solution_ids, candidates) != HIPBLAS_STATUS_SUCCESS ||
+        candidates.empty() || candidates.front().state != HIPBLAS_STATUS_SUCCESS ||
+        hipblaslt_ext::getIndexFromAlgo(candidates.front().algo) != row->solution_id) {
+        if (verbose) {
+            std::fprintf(stderr, "prefill gemm: Lt fallback; solution %d unavailable for T=%d N=%d K=%d ldy=%d\n",
+                         row->solution_id, t, n, k, ldy);
+        }
+        return state.cache.emplace(key, resolved).first->second;
+    }
+
+    const float alpha = 1.0f;
+    size_t required_workspace = 0;
+    auto algo = candidates.front().algo;
+    if (hipblaslt_ext::matmulIsAlgoSupported(state.handle, desc.op, &alpha, desc.a, desc.b, &beta, desc.c, desc.c,
+                                             algo, required_workspace) != HIPBLAS_STATUS_SUCCESS) {
+        if (verbose) {
+            std::fprintf(stderr, "prefill gemm: Lt fallback; solution %d rejects actual T=%d N=%d K=%d ldy=%d beta=%.9g\n",
+                         row->solution_id, t, n, k, ldy, beta);
+        }
+        return state.cache.emplace(key, resolved).first->second;
+    }
+
+    resolved.supported = true;
+    resolved.algo = algo;
+    resolved.workspace_bytes = required_workspace;
+    if (verbose) {
+        std::fprintf(stderr,

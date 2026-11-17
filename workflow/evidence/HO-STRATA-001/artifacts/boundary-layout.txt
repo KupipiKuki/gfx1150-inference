@@ -1,0 +1,68 @@
+
+=== layout / boundary support (AC-6) ===
+$ ls -d src include strata_cli strata_control serve apps bin tools third_party
+apps
+bin
+include
+serve
+src
+strata_cli
+strata_control
+third_party
+tools
+exit=0
+
+$ for d in src include strata_cli strata_control serve apps; do printf '%-16s %s files\n' $d $(find $d -type f | wc -l); done
+src              500 files
+include          281 files
+strata_cli       56 files
+strata_control   126 files
+serve            201 files
+apps             1018 files
+
+$ ls strata_cli strata_control | head -40
+strata_cli:
+bench_facts.py
+bench.py
+bench_standard.py
+client.py
+cli.py
+connections.py
+consoleinfo.py
+dashboard.py
+detail_dashboard.py
+drafting_cmd.py
+handover.py
+__init__.py
+launch
+logs.py
+monitor_commands.py
+monitor.py
+nav.py
+overview.py
+__pycache__
+render.py
+split_cmd.py
+tune_commands.py
+update_cmd.py
+
+strata_control:
+acquisition.py
+amd_four_card.py
+app_policy.py
+arg_layers.py
+atomic.py
+autotune.py
+benchmarking.py
+calibration_jobs.py
+calibration.py
+cfg_paths.py
+cgroup_memory.py
+childenv.py
+components.py
+control_paths.py
+
+=== serve/server.py spawns the engine as a subprocess (Popen of the binary) ===
+1163:            self.proc = popen("the Strata engine", [exe, "--serve", *args], cwd=cwd, stdin=subprocess.PIPE,
+4182:        r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=30, env=env)
+5384:                r = subprocess.run(cmd, shell=isinstance(cmd, str), timeout=self.before_load_timeout_s,

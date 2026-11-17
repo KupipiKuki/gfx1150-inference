@@ -1,0 +1,209 @@
+=== HO-STRATA-007 generation run ===
+date: 2026-11-16T02:50:05Z
+command:
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
+
+--- pre-run meminfo ---
+MemTotal:       96406220 kB
+MemFree:        42092528 kB
+MemAvailable:   88826760 kB
+Buffers:          554596 kB
+Cached:         45749172 kB
+SwapCached:            0 kB
+Active:          8334780 kB
+Inactive:       43441508 kB
+Active(anon):    5570876 kB
+Inactive(anon):        0 kB
+Active(file):    2763904 kB
+Inactive(file): 43441508 kB
+Unevictable:         128 kB
+Mlocked:             128 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Zswap:                 0 kB
+Zswapped:              0 kB
+Dirty:              1468 kB
+Writeback:             0 kB
+AnonPages:       5473732 kB
+Mapped:          1527636 kB
+Shmem:             98340 kB
+KReclaimable:    1474044 kB
+Slab:            1921928 kB
+SReclaimable:    1474044 kB
+SUnreclaim:       447884 kB
+KernelStack:       41440 kB
+PageTables:       107580 kB
+SecPageTables:      4568 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    48203108 kB
+Committed_AS:   43003500 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:       98036 kB
+VmallocChunk:          0 kB
+Percpu:            28608 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:    208896 kB
+FilePmdMapped:         0 kB
+CmaTotal:              0 kB
+CmaFree:         7086640 kB
+Unaccepted:            0 kB
+Balloon:               0 kB
+GPUActive:        120736 kB
+GPUReclaim:        39996 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:      400624 kB
+DirectMap2M:    19122176 kB
+DirectMap1G:    78643200 kB
+--- pre-run dmesg tail ---
+[109816.980313] usb 3-2: new high-speed USB device number 4 using xhci_hcd
+[109817.106893] usb 3-2: New USB device found, idVendor=0781, idProduct=5575, bcdDevice= 1.00
+[109817.106912] usb 3-2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[109817.106916] usb 3-2: Product: Cruzer Glide
+[109817.106919] usb 3-2: Manufacturer: SanDisk
+[109817.106921] usb 3-2: SerialNumber: 04018122111120100504
+[109817.136814] usb-storage 3-2:1.0: USB Mass Storage device detected
+[109817.136982] scsi host0: usb-storage 3-2:1.0
+[109817.137083] usbcore: registered new interface driver usb-storage
+[109817.139063] usbcore: registered new interface driver uas
+[109818.149478] scsi 0:0:0:0: Direct-Access     SanDisk  Cruzer Glide     1.00 PQ: 0 ANSI: 6
+[109818.150203] sd 0:0:0:0: Attached scsi generic sg0 type 0
+[109818.161500] sd 0:0:0:0: [sda] 60088320 512-byte logical blocks: (30.8 GB/28.7 GiB)
+[109818.162643] sd 0:0:0:0: [sda] Write Protect is off
+[109818.162645] sd 0:0:0:0: [sda] Mode Sense: 43 00 00 00
+[109818.163027] sd 0:0:0:0: [sda] Write cache: disabled, read cache: enabled, doesn't support DPO or FUA
+[109818.195026]  sda: sda1
+[109818.195663] sd 0:0:0:0: [sda] Attached SCSI removable disk
+[110507.457558] perf: interrupt took too long (4597 > 4365), lowering kernel.perf_event_max_sample_rate to 43000
+[115864.010294] audit: type=1400 audit(1794791667.819:147): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=290589 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+--- engine output ---
+strata-q36: /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: 753 tensors (layout checked), 4.40 GiB on the GPU in 1.0 s (the routed experts are placed after the engine's buffers)
+strata-q36: prompt experts: 0 of 41 layers on the fused int8 kernels, 41 on our int8 kernels, 0 on MMQ (int8)
+strata-q36: context 1024 cells, prompt chunk 4096, MTP block loaded, 38.72 GiB of VRAM free
+strata-q36: every routed expert in VRAM (18.75 GiB) in 3.3 s
+strata-q36: warmed up in 3.6 s (one prompt chunk, a decode step)
+gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+strata-q36: prompt 5 tokens in 88.8 ms (56.3 tok/s), 32 generated in 1601.5 ms (20.0 tok/s)
+
+exit:0
+--- post-run meminfo ---
+MemTotal:       96406220 kB
+MemFree:        14446844 kB
+MemAvailable:   61181192 kB
+Buffers:          554616 kB
+Cached:         45747336 kB
+SwapCached:            0 kB
+Active:          8335344 kB
+Inactive:       43441592 kB
+Active(anon):    5571440 kB
+Inactive(anon):        0 kB
+Active(file):    2763904 kB
+Inactive(file): 43441592 kB
+Unevictable:         396 kB
+Mlocked:             128 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Zswap:                 0 kB
+Zswapped:              0 kB
+Dirty:               988 kB
+Writeback:             0 kB
+AnonPages:       5476400 kB
+Mapped:          1527640 kB
+Shmem:             96456 kB
+KReclaimable:    1474076 kB
+Slab:            2052924 kB
+SReclaimable:    1474076 kB
+SUnreclaim:       578848 kB
+KernelStack:       41632 kB
+PageTables:       108980 kB
+SecPageTables:      4568 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    48203108 kB
+Committed_AS:   43009528 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:       98100 kB
+VmallocChunk:          0 kB
+Percpu:            28608 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:    208896 kB
+FilePmdMapped:         0 kB
+CmaTotal:              0 kB
+CmaFree:         7076848 kB
+Unaccepted:            0 kB
+Balloon:               0 kB
+GPUActive:      27238816 kB
+GPUReclaim:        37928 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:      400624 kB
+DirectMap2M:    19122176 kB
+DirectMap1G:    78643200 kB
+--- post-run dmesg tail ---
+[ 9956.281299] audit: type=1400 audit(1794685762.447:131): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=3906 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[10372.844529] pcieport 0000:00:08.1: PME: Spurious native interrupt!
+[13612.687230] audit: type=1400 audit(1794689418.835:132): apparmor="STATUS" operation="profile_load" profile="unconfined" name="/usr/sbin/chronyd" pid=13279 comm="apparmor_parser"
+[17156.519059] audit: type=1400 audit(1794692962.480:133): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=17282 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[17355.254897] hrtimer: interrupt took 26089 ns
+[24356.699201] audit: type=1400 audit(1794700162.511:134): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=77190 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[25898.926601] perf: interrupt took too long (2528 > 2500), lowering kernel.perf_event_max_sample_rate to 79000
+[31556.891606] audit: type=1400 audit(1794707362.543:135): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=97026 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[38165.992073] perf: interrupt took too long (3492 > 3160), lowering kernel.perf_event_max_sample_rate to 57000
+[39438.377101] audit: type=1400 audit(1794715243.858:136): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=119609 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[42997.217381] audit: type=1400 audit(1794718802.620:137): apparmor="DENIED" operation="capable" class="cap" profile="/usr/sbin/cupsd" pid=137948 comm="cupsd" capability=12  capname="net_admin"
+[53774.105465] wlp194s0: deauthenticated from 10:74:c5:6e:7e:a3 (Reason: 6=CLASS2_FRAME_FROM_NONAUTH_STA)
+[53774.790260] wlp194s0: authenticate with 10:74:c5:6e:7e:a3 (local address=ec:b5:0a:a1:2f:60)
+[53774.800988] wlp194s0: send auth to 10:74:c5:6e:7e:a3 (try 1/3)
+[53774.806471] wlp194s0: authenticated
+[53774.809998] wlp194s0: associate with 10:74:c5:6e:7e:a3 (try 1/3)
+[53774.836743] wlp194s0: RX AssocResp from 10:74:c5:6e:7e:a3 (capab=0x1511 status=0 aid=1)
+[53774.882537] wlp194s0: associated
+[53774.885770] wlp194s0: Limiting TX power to 30 (30 - 0) dBm as advertised by 10:74:c5:6e:7e:a3
+[69622.722985] audit: type=1400 audit(1794745427.539:138): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=167002 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[70751.563395] pcieport 0000:00:08.1: PME: Spurious native interrupt!
+[75404.279272] pcieport 0000:00:08.1: PME: Spurious native interrupt!
+[76823.152612] audit: type=1400 audit(1794752627.809:139): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=177550 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[77740.108057] audit: type=1400 audit(1794753544.744:140): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="ai.opencode" name="/opt/brave.com/brave/brave" pid=182100 comm="brave-browser-s" requested_mask="x" fsuid=1000 ouid=0
+[77740.132274] audit: type=1400 audit(1794753544.768:141): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="ai.opencode" name="/opt/brave.com/brave/brave" pid=182110 comm="brave" requested_mask="x" fsuid=1000 ouid=0
+[77740.133448] audit: type=1400 audit(1794753544.769:142): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="ai.opencode" name="/opt/brave.com/brave/brave" pid=182111 comm="brave" requested_mask="x" fsuid=1000 ouid=0
+[87063.196967] audit: type=1400 audit(1794762867.629:143): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=209604 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[94263.443939] audit: type=1400 audit(1794770067.716:144): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=227387 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[101463.632859] audit: type=1400 audit(1794777267.752:145): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=247958 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[108663.816705] audit: type=1400 audit(1794784467.781:146): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=261344 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[109816.980313] usb 3-2: new high-speed USB device number 4 using xhci_hcd
+[109817.106893] usb 3-2: New USB device found, idVendor=0781, idProduct=5575, bcdDevice= 1.00
+[109817.106912] usb 3-2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[109817.106916] usb 3-2: Product: Cruzer Glide
+[109817.106919] usb 3-2: Manufacturer: SanDisk
+[109817.106921] usb 3-2: SerialNumber: 04018122111120100504
+[109817.136814] usb-storage 3-2:1.0: USB Mass Storage device detected
+[109817.136982] scsi host0: usb-storage 3-2:1.0
+[109817.137083] usbcore: registered new interface driver usb-storage
+[109817.139063] usbcore: registered new interface driver uas
+[109818.149478] scsi 0:0:0:0: Direct-Access     SanDisk  Cruzer Glide     1.00 PQ: 0 ANSI: 6
+[109818.150203] sd 0:0:0:0: Attached scsi generic sg0 type 0
+[109818.161500] sd 0:0:0:0: [sda] 60088320 512-byte logical blocks: (30.8 GB/28.7 GiB)
+[109818.162643] sd 0:0:0:0: [sda] Write Protect is off
+[109818.162645] sd 0:0:0:0: [sda] Mode Sense: 43 00 00 00
+[109818.163027] sd 0:0:0:0: [sda] Write cache: disabled, read cache: enabled, doesn't support DPO or FUA
+[109818.195026]  sda: sda1
+[109818.195663] sd 0:0:0:0: [sda] Attached SCSI removable disk
+[110507.457558] perf: interrupt took too long (4597 > 4365), lowering kernel.perf_event_max_sample_rate to 43000
+[115864.010294] audit: type=1400 audit(1794791667.819:147): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=290589 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0

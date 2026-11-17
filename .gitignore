@@ -64,6 +64,9 @@ Thumbs.db
 
 # Logs
 *.log
+# …except the evidence bundle's raw command output, which the handoff contract
+# requires as a tracked artifact (HANDOFF_CONTRACT.md §7; DEC-008).
+!workflow/evidence/**/*.log
 
 # Local PTDS test build
 build-ptds/

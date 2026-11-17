@@ -1,0 +1,113 @@
+[INST]
+You are a senior systems engineer advising a solo owner who has just finished
+a verified dense-APU inference engine and is deciding the next project. Produce
+a decision memo. Do not write code.
+
+## Decision
+
+The next project is a Strata-class engine: run an MoE model far larger than a
+consumer GPU's VRAM by sharing work across GPU, CPU, RAM and SSD, on a
+discrete gfx1100 host (RX 7700/7800/7900, 8-16 GB VRAM + system RAM). The
+candidate approaches are:
+
+A. Build a new engine on the current project's substrate (GGUF parser,
+   tokenizer, model-spec validator, golden rig, claims ledger, CI shape).
+B. Fork and integrate Strata (MIT), adapting it to the owner's hardware and
+   research goals.
+C. Build a thin scheduler/engine on top of llama.cpp v1.0.0's stable C API
+   and ggml backends, adding the expert-cache and CPU/GPU placement logic.
+D. A hybrid: reuse the current project's evidence/claims substrate, adopt an
+   existing engine's compute/backends, and write only the differentiating
+   scheduler/residency layer.
+
+## Facts you may rely on
+
+### The current project (gfx1150-inference)
+
+- Dense llama-family GGUF inference on an AMD Ryzen AI 9 HX 370 APU
+  (Radeon 890M, gfx1150), 91.94 GiB total RAM, 45.92 GiB device-visible GTT.
+- Measured: TinyLlama-1.1B Q4_K_M 16.35 tok/s decode; Mistral-7B-Instruct-v0.2
+  Q4_K_M 2.63 tok/s pinned / 0.42 tok/s streamed; 9,121-token prefill
+  12.5-14.0 tok/s; 32K context via `--offload-kv-cpu` at 0.86 tok/s decode.
+- No MoE, no routing, no grouped GEMM. Weight residency is all-or-nothing
+  (pin/stream). The optimized path has a Python-visible per-layer boundary
+  with one synchronization per layer. Explicit copy/compute streams exist but
+  measure 0.000 ms of overlap in streamed mode.
+- Its strongest transferable assets are the fail-closed GGUF parser, the
+  reference-faithful tokenizer + goldens, the model-spec validator, the
+  benchmark regression gate, the claims ledger/checker/canaries, and the
+  gate/evidence discipline. The compute path is dense-only.
+
+### llama.cpp v1.0.0 (released 2026-11-13)
+
+- `libllama` and `libggml` v1.0.0. Semantic versioning: MAJOR = breaking public
+  C API in `include/`, MINOR = backward-compatible feature/model/backend
+  addition, PATCH = bug fix.
+- Dynamic ggml backends, optionally loaded at runtime; CI runners across
+  NVIDIA, AMD, Qualcomm, Arm, IBM and Intel; pre-release artifacts, Docker,
+  Debian, Homebrew, conda-forge, MacPorts, Winget, XCFramework.
+- Supports 150+ architecture variants and all mainstream speculative decoding
+  methods. The release is explicitly about API/ABI stability for downstream
+  integrators, not a new inference design.
+- It provides GGUF, quantization, backends, model coverage, CPU+GPU layer
+  offload (partial offload by layer), mmap and speculation. It does not
+  advertise a per-expert adaptive hot-set cache with CPU/GPU concurrent expert
+  compute as a first-class scheduler.
+
+### Strata (github.com/Niko1221/Strata)
+
+- MIT license. ~44.5k stars, ~4.9k forks, ~7,054 commits, active issues/PRs.
+- "Qwen3.8-Flash-Next on any consumer hardware": a shipping inference engine
+  with a desktop app, terminal app, OpenAI/Anthropic-compatible API on
+  localhost, optional image input, and a model catalog (Qwen3.8-Flash-Next,
+  Qwen3.6-35B-A3B).
+- Supported hardware includes NVIDIA RTX 20-50, AMD RX 7700/7800/7900,
+  RX 9060/9070, AI PRO R9700, RX 6800/6900 (experimental), Intel Arc Linux,
+  Apple Silicon, AMD Ryzen AI Max / Strix Halo, and NVIDIA DGX Spark.
+- The repository contains `research/`, `bench/`, `docs/HOW_IT_WORKS.md`,
+  `AGENTS.md`, `include/strata`, `src`, `tests`, `third_party`, Python
+  packaging and C/C++ sources. Treat it as an existing product with an
+  engine, not as a design note.
+
+### Target constraints
+
+- Discrete gfx1100 host: 8-16 GB VRAM + system RAM + SSD. The three tiers are
+  physically distinct, unlike the current unified-memory APU.
+- The owner values honest evidence: no performance claim without an artifact;
+  golden/claims discipline is non-negotiable.
+- The owner is one person, not a team. Maintenance cost matters.
+- The first milestone (M0) is an ADR: target hardware and a specific MoE GGUF
+  with a known-good reference implementation. No code before that.
+
+## Task
+
+Write a decision memo in Markdown with these sections, in this exact order:
+
+1. **Recommendation** - one of A, B, C, D, or a clearly named variant, in two
+   or three sentences.
+2. **Decisive reasons** - three bullets. Each names a fact above.
+3. **Risks and unknowns** - four bullets. Each says what must be verified and
+   the artifact or experiment that verifies it.
+4. **First three experiments** - numbered, ordered cheapest first; each with a
+   concrete success criterion. They must inform the M0 ADR.
+5. **Reuse/rewrite** - three bullets: reuse from the current project, take from
+   llama.cpp/Strata, write new.
+6. **What would change the recommendation** - two bullets.
+7. **Criteria comparison** - a bullet list, one bullet per criterion
+   (capability fit, abstraction fit, hardware/backend fit, license/maintenance,
+   testability/evidence, time-to-first-result). Short phrases only.
+
+## Format rules (important)
+
+- Use bullet lists. **Do not use Markdown tables.** A wide table with long
+  cells degenerates at greedy decoding.
+- Do not pad with spaces, do not repeat a token or a line, and keep every line
+  under 120 characters.
+- Stop after section 7. No appendix, no repeated summary.
+- Keep the whole memo under 1,200 words.
+- Use only the facts above. Mark anything you are unsure about as UNKNOWN
+  rather than inventing it. Do not invent benchmark numbers, stars, licenses,
+  or hardware support.
+- Do not recommend "build everything from scratch" without naming the hard
+  parts and their cost.
+[/INST]

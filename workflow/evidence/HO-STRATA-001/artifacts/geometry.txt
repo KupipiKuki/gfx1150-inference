@@ -1,0 +1,7 @@
+=== AC-4b: engine geometry ===
+cwd: /home/kupipi/Documents/git/strata
+date-utc: 2026-11-15T23:50:56Z
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --geometry
+
+flash_next
+exit=0

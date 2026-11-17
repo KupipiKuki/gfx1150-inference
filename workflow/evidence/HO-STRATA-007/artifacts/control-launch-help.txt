@@ -1,0 +1,161 @@
+usage: strata launch [-h] [--preset NAME] [--model NAME] [--family NAME]
+                     [--model-path PATH] [--data-dir DIR] [--move-data]
+                     [--context SIZE] [--kv FORMAT] [--vision off|on|gpu|cpu]
+                     [--parallel N] [--mtp on|off]
+                     [--drafting auto|mtp|dflash2|off]
+                     [--split-engine auto|on|off] [--gpu LIST]
+                     [--backend nvidia|amd|intel|auto] [--gpu-roles LIST]
+                     [--tune quick|thorough|skip] [--tune-allow-small]
+                     [--set KEY=VALUE] [--pool-cores LIST]
+                     [--access local|lan|cloudflare|tailscale] [--port N]
+                     [--api-key KEY] [--api-key-env NAME] [--new-key]
+                     [--no-api-key] [--save-preset NAME] [--retune]
+                     [--restart] [--no-tui] [--open] [--yes] [--plan]
+                     [--feed URL|DIR] [--output {human,json}] [--list-presets]
+                     [--delete-preset NAME] [--status] [--stop] [--show-key]
+
+Set up a model, tune it, start serving and watch it, in one place. With no flags it opens the guided screens: start from a saved preset or set up from the beginning, one decision per screen. With flags it does the same without asking, and opens the monitor (or, with --no-tui, prints the address and returns). Presets are shared with the Strata app's profiles and tuning presets.
+
+options:
+  -h, --help            show this help message and exit
+
+what to run:
+  --preset NAME         start a saved preset (other flags change it for this
+                        start)
+  --model NAME          the model size, e.g. iq3_xxs, q2_0, ud-q4_k_xl (any
+                        case)
+  --family NAME         the model family when a size is offered by several
+                        (qwen, swift, coder, ...)
+  --model-path PATH     use model files you already have: a folder of shards
+                        or one .gguf file
+  --data-dir DIR        where downloaded model files are stored (default:
+                        Strata's data folder)
+  --move-data           with --data-dir: move the models you already have into
+                        the new folder. Without it nothing is moved: your
+                        models stay where they are and stay usable, and the
+                        new folder gets the new downloads
+  --context SIZE        how much text it remembers at once: 32k, 64k, 128k,
+                        256k or a number of tokens
+  --kv FORMAT           conversation memory format: int8 (default), q4_0 (half
+                        the memory), k8v4, fp16
+  --vision off|on|gpu|cpu
+                        let the model read pictures. Default: on when the
+                        model can read pictures and the engine has the picture
+                        reader. 'on' picks the reader by your graphics memory:
+                        the CPU reader under 24 GB, the GPU reader from 24 GB
+                        (any make); gpu / cpu choose one; off turns pictures
+                        off
+  --parallel N          requests answered at the same time, 1 to 8 (default:
+                        fit to your graphics card)
+  --mtp on|off          the draft layer that makes answers faster. off starts
+                        without it: about 1 GB less graphics memory and less
+                        RAM, slower answers; use it when the engine stops at
+                        start on a small card or a PC with little RAM.
+                        Default: on
+  --drafting auto|mtp|dflash2|off
+                        which drafter guesses words ahead to make answers
+                        faster, one at a time: auto (recommended: DFlash2 for
+                        Qwen3.8-Flash-Next where the engine has it, else the
+                        MTP), mtp, dflash2 (downloads its drafter once, 0.3 to
+                        1.2 GB depending on the model; the size is shown
+                        before the download) or off. Auto uses the MTP when
+                        several requests run at once; --drafting dflash2 runs
+                        with the --parallel count you set. If DFlash2 cannot
+                        run (on a model it is not for, for example) the MTP is
+                        used alone and the start says why
+  --split-engine auto|on|off
+                        NVIDIA, two or more cards: the engine that splits
+                        every layer across the cards (faster answers). auto
+                        (the default) uses it by itself where it is supported
+                        and starts the normal layer split everywhere else; on
+                        asks for it and says in one line why it cannot run;
+                        off never uses it. Your choice is saved with the
+                        preset
+  --gpu LIST            graphics card numbers to use, e.g. 0 or 0,1 (default:
+                        the engine's choice). With more than one card the
+                        engine decides which is the Main card; --gpu-roles
+                        (instead of --gpu) sets the roles yourself.
+  --backend nvidia|amd|intel|auto
+                        which make of graphics card the engine uses on a PC
+                        that has cards of more than one make (default: auto =
+                        NVIDIA first, then AMD, then Intel). Your choice is
+                        remembered for the next launch, update and app; 'auto'
+                        forgets it
+  --gpu-roles LIST      a role for each graphics card: main, helper or off,
+                        e.g. 1=main,0=helper (cards you do not name are off).
+                        Main does the last steps of every answer; a helper
+                        holds part of the model
+  --tune quick|thorough|skip
+                        find the fastest settings first (default: skip here;
+                        the guided screens suggest quick the first time)
+  --tune-allow-small    let the tuner also try settings that can change
+                        answers very slightly
+  --set KEY=VALUE       an advanced engine setting or STRATA_* variable, e.g.
+                        prefill=65536 (repeat); unknown names get a warning,
+                        not a refusal
+  --pool-cores LIST     experimental: pin the CPU workers to exactly these
+                        logical processors, e.g. 2,4,6,8 or 2-14:2 (the
+                        numbers Task Manager or lscpu show). The default is
+                        one worker per physical core, which the engine's start
+                        line names; two entries on one core are kept with a
+                        warning
+
+who can use it:
+  --access local|lan|cloudflare|tailscale
+                        local: this computer only; lan: your network;
+                        cloudflare: a quick tunnel; tailscale: your tailnet
+  --port N              port (default 8080)
+  --api-key KEY         the key clients must send (made for you when you share
+                        beyond this computer)
+  --api-key-env NAME    read the key from this environment variable
+  --new-key             make a new API key
+  --no-api-key          share beyond this computer without an API key (a
+                        warning is shown, nothing is refused)
+
+running:
+  --save-preset NAME    save these choices under this name
+  --retune              with --tune (quick is used when --tune is not given):
+                        measure again even when this model was already tuned
+                        on this computer (by default a stored tuning result is
+                        reused and no measuring is done)
+  --restart             when a model is already serving other choices (or
+                        holds the port), stop it and start these. Without it
+                        the screens ask once and --no-tui refuses; --yes alone
+                        never restarts. The same choices are never restarted:
+                        the running address is printed
+  --no-tui              no screens: serve, print the address and return
+  --open                open the server's web page in your browser once it is
+                        serving (nothing opens a browser without this)
+  --yes                 do not ask questions (for one: whether to download the
+                        model on a computer with no engine yet)
+  --plan                show what would happen and exit; nothing is changed
+  --feed URL|DIR        where the signed update feed (engine downloads) is;
+                        default: STRATA_UPDATE_FEED or the project's
+  --output {human,json}
+
+manage:
+  --list-presets        list saved presets
+  --delete-preset NAME  delete a saved preset
+  --status              show what this command is serving now
+  --stop                stop what this command started (with --preset NAME:
+                        that one)
+  --show-key            print the API key of --preset NAME (or of the running
+                        launch); with none of those, the key of a model
+                        setup.py set up (--model NAME picks one when several
+                        have a key)
+
+examples:
+  strata launch                                    open the guided screens (saved presets, then set up from the beginning)
+  strata launch --preset "IQ3_XXS 128K"            start a saved preset (opens the monitor)
+  strata launch --model iq3_xxs --context 128k --parallel 4 --vision off --tune quick \
+                --access lan --port 8080 --save-preset "Office" --no-tui
+                                                   set everything on the command line, serve, print the address
+  strata launch --model-path /data/models/IQ3_XXS --no-tui
+                                                   use model files you already have (a folder or one .gguf)
+  strata launch --preset Office --set prefill=65536 --set STRATA_PIN_BY_NEED=1 --no-tui
+                                                   change one advanced setting for this start
+  strata launch --plan --model q2_0                show what would happen, change nothing
+  strata launch --list-presets | --delete-preset NAME | --status | --stop [--preset NAME]
+  strata connect                                   list the apps Strata can be connected to
+  strata connect opencode --write                  write OpenCode's config for the running server (keeps a backup)
+exit:0

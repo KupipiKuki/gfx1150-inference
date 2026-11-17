@@ -1,0 +1,768 @@
+# HO-STRATA-007 evidence commands log
+date: 2026-11-16T02:29:31Z
+cwd: /home/kupipi/Documents/git/strata
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib
+--- environment ---
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+--- rocminfo ---
+[37mROCk module is loaded[0m
+=====================    
+HSA System Attributes    
+=====================    
+Runtime Version:         1.21
+Runtime Ext Version:     1.32
+System Timestamp Freq.:  1000.000000MHz
+Sig. Max Wait Duration:  18446744073709551615 (0xFFFFFFFFFFFFFFFF) (timestamp count)
+Machine Model:           LARGE                              
+System Endianness:       LITTLE                             
+Mwaitx:                  ENABLED
+XNACK enabled:           NO
+DMAbuf Support:          YES
+VMM Support:             YES
+Fabric Support:          NO
+
+==========               
+HSA Agents               
+==========               
+*******                  
+Agent 1                  
+*******                  
+  Name:                    AMD Ryzen AI 9 HX 370 w/ Radeon 890M
+  Uuid:                    CPU-XX                             
+  Marketing Name:          AMD Ryzen AI 9 HX 370 w/ Radeon 890M
+  Vendor Name:             CPU                                
+  Feature:                 None specified                     
+  Profile:                 FULL_PROFILE                       
+  Float Round Mode:        NEAR                               
+  Max Queue Number:        0(0x0)                             
+  Queue Min Size:          0(0x0)                             
+  Queue Max Size:          0(0x0)                             
+  Queue Type:              MULTI                              
+  Node:                    0                                  
+  Device Type:             CPU                                
+  Cache Info:              
+    L1:                      49152(0xc000) KB                   
+  Chip ID:                 0(0x0)                             
+  ASIC Revision:           0(0x0)                             
+  Cacheline Size:          64(0x40)                           
+  Max Clock Freq. (MHz):   5157                               
+  BDFID:                   0                                  
+  Internal Node ID:        0                                  
+  Compute Unit:            24                                 
+  SIMDs per CU:            0                                  
+  Shader Engines:          0                                  
+  Shader Arrs. per Eng.:   0                                  
+  WatchPts on Addr. Ranges:1                                  
+  Memory Properties:       
+  Features:                None
+  Pool Info:               
+    Pool 1                   
+      Segment:                 GLOBAL; FLAGS: FINE GRAINED        
+      Size:                    96406220 (0x5bf0acc) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 2                   
+      Segment:                 GLOBAL; FLAGS: EXTENDED FINE GRAINED
+      Size:                    96406220 (0x5bf0acc) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 3                   
+      Segment:                 GLOBAL; FLAGS: KERNARG, FINE GRAINED
+      Size:                    96406220 (0x5bf0acc) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 4                   
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED      
+      Size:                    96406220 (0x5bf0acc) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+  ISA Info:                
+*******                  
+Agent 2                  
+*******                  
+  Name:                    gfx1150                            
+  Uuid:                    GPU-XX                             
+  Marketing Name:          AMD Radeon 890M Graphics           
+  Vendor Name:             AMD                                
+  Feature:                 KERNEL_DISPATCH                    
+  Profile:                 BASE_PROFILE                       
+  Float Round Mode:        NEAR                               
+  Max Queue Number:        128(0x80)                          
+  Queue Min Size:          64(0x40)                           
+  Queue Max Size:          131072(0x20000)                    
+  Queue Type:              MULTI                              
+  Node:                    1                                  
+  Device Type:             GPU                                
+  Cache Info:              
+    L1:                      32(0x20) KB                        
+    L2:                      2048(0x800) KB                     
+  Chip ID:                 5390(0x150e)                       
+  ASIC Revision:           4(0x4)                             
+  Cacheline Size:          128(0x80)                          
+  Max Clock Freq. (MHz):   2900                               
+  BDFID:                   50432                              
+  Internal Node ID:        1                                  
+  Compute Unit:            16                                 
+  SIMDs per CU:            2                                  
+  Shader Engines:          1                                  
+  Shader Arrs. per Eng.:   2                                  
+  WatchPts on Addr. Ranges:4                                  
+  Coherent Host Access:    FALSE                              
+  Memory Properties:       APU
+  Features:                KERNEL_DISPATCH 
+  Fast F16 Operation:      TRUE                               
+  Wavefront Size:          32(0x20)                           
+  Workgroup Max Size:      1024(0x400)                        
+  Workgroup Max Size per Dimension:
+    x                        1024(0x400)                        
+    y                        1024(0x400)                        
+    z                        1024(0x400)                        
+  Max Waves Per CU:        32(0x20)                           
+  Max Work-item Per CU:    1024(0x400)                        
+  Grid Max Size:           2147483647(0x7fffffff)             
+  Grid Max Size per Dimension:
+    x                        2147483647(0x7fffffff)             
+    y                        65535(0xffff)                      
+    z                        65535(0xffff)                      
+  Max fbarriers/Workgrp:   32                                 
+  Packet Processor uCode:: 31                                 
+  SDMA engine uCode::      14                                 
+  IOMMU Support::          None                               
+  Pool Info:               
+    Pool 1                   
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED      
+      Size:                    48203108 (0x2df8564) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:2048KB                             
+      Alloc Alignment:         4KB                                
+      Accessible by all:       FALSE                              
+    Pool 2                   
+      Segment:                 GLOBAL; FLAGS: EXTENDED FINE GRAINED
+      Size:                    48203108 (0x2df8564) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:2048KB                             
+      Alloc Alignment:         4KB                                
+      Accessible by all:       FALSE                              
+    Pool 3                   
+      Segment:                 GROUP                              
+      Size:                    64 (0x40) KB                       
+      Allocatable:             FALSE                              
+      Alloc Granule:           0KB                                
+      Alloc Recommended Granule:0KB                                
+      Alloc Alignment:         0KB                                
+      Accessible by all:       FALSE                              
+  ISA Info:                
+    ISA 1                    
+      Name:                    amdgcn-amd-amdhsa--gfx1150         
+      Machine Models:          HSA_MACHINE_MODEL_LARGE            
+      Profiles:                HSA_PROFILE_BASE                   
+      Default Rounding Mode:   NEAR                               
+      Default Rounding Mode:   NEAR                               
+      Fast f16:                TRUE                               
+      Workgroup Max Size:      1024(0x400)                        
+      Workgroup Max Size per Dimension:
+        x                        1024(0x400)                        
+        y                        1024(0x400)                        
+        z                        1024(0x400)                        
+      Grid Max Size:           18446744073709551615 (0xffffffffffffffff) 
+      Grid Max Size per Dimension:
+        x                        2147483647(0x7fffffff)             
+        y                        65535(0xffff)                      
+        z                        65535(0xffff)                      
+      FBarrier Max Size:       32                                 
+    ISA 2                    
+      Name:                    amdgcn-amd-amdhsa--gfx11-generic   
+      Machine Models:          HSA_MACHINE_MODEL_LARGE            
+      Profiles:                HSA_PROFILE_BASE                   
+      Default Rounding Mode:   NEAR                               
+      Default Rounding Mode:   NEAR                               
+      Fast f16:                TRUE                               
+      Workgroup Max Size:      1024(0x400)                        
+      Workgroup Max Size per Dimension:
+        x                        1024(0x400)                        
+        y                        1024(0x400)                        
+        z                        1024(0x400)                        
+      Grid Max Size:           18446744073709551615 (0xffffffffffffffff) 
+      Grid Max Size per Dimension:
+        x                        2147483647(0x7fffffff)             
+        y                        65535(0xffff)                      
+        z                        65535(0xffff)                      
+      FBarrier Max Size:       32                                 
+*******                  
+Agent 3                  
+*******                  
+  Name:                    aie2p                              
+  Uuid:                    AIE-XX                             
+  Marketing Name:          RyzenAI-npu4                       
+  Vendor Name:             AMD                                
+  Feature:                 AGENT_DISPATCH                     
+  Profile:                 BASE_PROFILE                       
+  Float Round Mode:        NEAR                               
+  Max Queue Number:        1(0x1)                             
+  Queue Min Size:          64(0x40)                           
+  Queue Max Size:          64(0x40)                           
+  Queue Type:              SINGLE                             
+  Node:                    0                                  
+  Device Type:             DSP                                
+  Cache Info:              
+    L2:                      2048(0x800) KB                     
+  Chip ID:                 0(0x0)                             
+  ASIC Revision:           0(0x0)                             
+  Cacheline Size:          0(0x0)                             
+  Max Clock Freq. (MHz):   0                                  
+  BDFID:                   0                                  
+  Internal Node ID:        0                                  
+  Compute Unit:            0                                  
+  SIMDs per CU:            0                                  
+  Shader Engines:          0                                  
+  Shader Arrs. per Eng.:   0                                  
+  WatchPts on Addr. Ranges:0                                  
+  Memory Properties:       
+  Features:                AGENT_DISPATCH
+  Pool Info:               
+    Pool 1                   
+      Segment:                 GLOBAL; FLAGS: KERNARG, COARSE GRAINED
+      Size:                    96406220 (0x5bf0acc) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 2                   
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED      
+      Size:                    65536 (0x10000) KB                 
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:0KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 3                   
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED      
+      Size:                    96406220 (0x5bf0acc) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+  ISA Info:                
+*** Done ***             
+--- hipcc ---
+HIP version: 7.16.26385-0000000
+AMD clang version 24.0.0git (https://github.com/ROCm/llvm-project.git d6f6cb691863e9258034ab48c1dfce21689d5606)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /opt/rocm/core-10.1/lib/llvm/bin
+Configuration file: /opt/rocm/core-10.1/lib/llvm/bin/clang++.cfg
+--- meminfo ---
+MemTotal:       96406220 kB
+MemFree:        65103668 kB
+MemAvailable:   88835648 kB
+Buffers:          552228 kB
+Cached:         23376048 kB
+SwapCached:            0 kB
+Active:          8318096 kB
+Inactive:       21072724 kB
+Active(anon):    5563008 kB
+Inactive(anon):        0 kB
+Active(file):    2755088 kB
+Inactive(file): 21072724 kB
+Unevictable:         200 kB
+Mlocked:             200 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Zswap:                 0 kB
+Zswapped:              0 kB
+Dirty:              2652 kB
+Writeback:             0 kB
+AnonPages:       5463712 kB
+Mapped:          1528292 kB
+Shmem:             99980 kB
+KReclaimable:     849392 kB
+Slab:            1222872 kB
+SReclaimable:     849392 kB
+SUnreclaim:       373480 kB
+KernelStack:       41744 kB
+PageTables:       108276 kB
+SecPageTables:      4504 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    48203108 kB
+Committed_AS:   43012448 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:       98356 kB
+VmallocChunk:          0 kB
+Percpu:            28608 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:    208896 kB
+FilePmdMapped:         0 kB
+CmaTotal:              0 kB
+CmaFree:         7096320 kB
+Unaccepted:            0 kB
+Balloon:               0 kB
+GPUActive:        139212 kB
+GPUReclaim:        29756 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:      400624 kB
+DirectMap2M:    19122176 kB
+DirectMap1G:    78643200 kB
+--- kfd node 1 mem ---
+heap_type 1
+size_in_bytes 49359982592
+flags 0
+width 128
+mem_clk_max 2800
+--- dmesg tail pre-run ---
+[ 9956.281299] audit: type=1400 audit(1794685762.447:131): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=3906 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[10372.844529] pcieport 0000:00:08.1: PME: Spurious native interrupt!
+[13612.687230] audit: type=1400 audit(1794689418.835:132): apparmor="STATUS" operation="profile_load" profile="unconfined" name="/usr/sbin/chronyd" pid=13279 comm="apparmor_parser"
+[17156.519059] audit: type=1400 audit(1794692962.480:133): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=17282 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[17355.254897] hrtimer: interrupt took 26089 ns
+[24356.699201] audit: type=1400 audit(1794700162.511:134): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=77190 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[25898.926601] perf: interrupt took too long (2528 > 2500), lowering kernel.perf_event_max_sample_rate to 79000
+[31556.891606] audit: type=1400 audit(1794707362.543:135): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=97026 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[38165.992073] perf: interrupt took too long (3492 > 3160), lowering kernel.perf_event_max_sample_rate to 57000
+[39438.377101] audit: type=1400 audit(1794715243.858:136): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=119609 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[42997.217381] audit: type=1400 audit(1794718802.620:137): apparmor="DENIED" operation="capable" class="cap" profile="/usr/sbin/cupsd" pid=137948 comm="cupsd" capability=12  capname="net_admin"
+[53774.105465] wlp194s0: deauthenticated from 10:74:c5:6e:7e:a3 (Reason: 6=CLASS2_FRAME_FROM_NONAUTH_STA)
+[53774.790260] wlp194s0: authenticate with 10:74:c5:6e:7e:a3 (local address=ec:b5:0a:a1:2f:60)
+[53774.800988] wlp194s0: send auth to 10:74:c5:6e:7e:a3 (try 1/3)
+[53774.806471] wlp194s0: authenticated
+[53774.809998] wlp194s0: associate with 10:74:c5:6e:7e:a3 (try 1/3)
+[53774.836743] wlp194s0: RX AssocResp from 10:74:c5:6e:7e:a3 (capab=0x1511 status=0 aid=1)
+[53774.882537] wlp194s0: associated
+[53774.885770] wlp194s0: Limiting TX power to 30 (30 - 0) dBm as advertised by 10:74:c5:6e:7e:a3
+[69622.722985] audit: type=1400 audit(1794745427.539:138): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=167002 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[70751.563395] pcieport 0000:00:08.1: PME: Spurious native interrupt!
+[75404.279272] pcieport 0000:00:08.1: PME: Spurious native interrupt!
+[76823.152612] audit: type=1400 audit(1794752627.809:139): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=177550 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[77740.108057] audit: type=1400 audit(1794753544.744:140): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="ai.opencode" name="/opt/brave.com/brave/brave" pid=182100 comm="brave-browser-s" requested_mask="x" fsuid=1000 ouid=0
+[77740.132274] audit: type=1400 audit(1794753544.768:141): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="ai.opencode" name="/opt/brave.com/brave/brave" pid=182110 comm="brave" requested_mask="x" fsuid=1000 ouid=0
+[77740.133448] audit: type=1400 audit(1794753544.769:142): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="ai.opencode" name="/opt/brave.com/brave/brave" pid=182111 comm="brave" requested_mask="x" fsuid=1000 ouid=0
+[87063.196967] audit: type=1400 audit(1794762867.629:143): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=209604 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[94263.443939] audit: type=1400 audit(1794770067.716:144): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=227387 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[101463.632859] audit: type=1400 audit(1794777267.752:145): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=247958 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[108663.816705] audit: type=1400 audit(1794784467.781:146): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=261344 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[109816.980313] usb 3-2: new high-speed USB device number 4 using xhci_hcd
+[109817.106893] usb 3-2: New USB device found, idVendor=0781, idProduct=5575, bcdDevice= 1.00
+[109817.106912] usb 3-2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[109817.106916] usb 3-2: Product: Cruzer Glide
+[109817.106919] usb 3-2: Manufacturer: SanDisk
+[109817.106921] usb 3-2: SerialNumber: 04018122111120100504
+[109817.136814] usb-storage 3-2:1.0: USB Mass Storage device detected
+[109817.136982] scsi host0: usb-storage 3-2:1.0
+[109817.137083] usbcore: registered new interface driver usb-storage
+[109817.139063] usbcore: registered new interface driver uas
+[109818.149478] scsi 0:0:0:0: Direct-Access     SanDisk  Cruzer Glide     1.00 PQ: 0 ANSI: 6
+[109818.150203] sd 0:0:0:0: Attached scsi generic sg0 type 0
+[109818.161500] sd 0:0:0:0: [sda] 60088320 512-byte logical blocks: (30.8 GB/28.7 GiB)
+[109818.162643] sd 0:0:0:0: [sda] Write Protect is off
+[109818.162645] sd 0:0:0:0: [sda] Mode Sense: 43 00 00 00
+[109818.163027] sd 0:0:0:0: [sda] Write cache: disabled, read cache: enabled, doesn't support DPO or FUA
+[109818.195026]  sda: sda1
+[109818.195663] sd 0:0:0:0: [sda] Attached SCSI removable disk
+[110507.457558] perf: interrupt took too long (4597 > 4365), lowering kernel.perf_event_max_sample_rate to 43000
+[115864.010294] audit: type=1400 audit(1794791667.819:147): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=290589 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+--- amd-smi static ---
+GPU: 0
+    ASIC:
+        MARKET_NAME: AMD Radeon 890M Graphics
+        VENDOR_ID: 0x1002
+        VENDOR_NAME: Advanced Micro Devices Inc. [AMD/ATI]
+        SUBVENDOR_ID: 0x1f4c
+        DEVICE_ID: 0x150e
+        SUBSYSTEM_ID: 0xb020
+        REV_ID: 0xc1
+        CHIP_REV_ID: 0x04
+        EXTERNAL_REV_ID: 0x14
+        ASIC_SERIAL: N/A
+        OAM_ID: N/A
+        PHYSICAL_ACC_ID: N/A
+        NUM_COMPUTE_UNITS: 16
+        TARGET_GRAPHICS_VERSION: gfx1150
+        FLAGS: 25
+    BUS:
+        BDF: 0000:c5:00.0
+        MAX_PCIE_WIDTH: 16
+        MAX_PCIE_SPEED: 16 GT/s
+        PCIE_LEVELS: N/A
+        PCIE_INTERFACE_VERSION: Gen 4
+        SLOT_TYPE: PCIE
+    IFWI:
+        NAME: AMD STRIX_B0_GENERIC
+        BUILD_DATE: 2024/12/19 14:56
+        PART_NUMBER: 113-STRIXEMU-001
+        VERSION: 00133300
+        BOOT_FIRMWARE: 023.010.001.022.000001
+    LIMIT:
+        PPT0:
+            MAX_POWER_LIMIT: N/A
+            MIN_POWER_LIMIT: N/A
+            SOCKET_POWER_LIMIT: N/A
+        PPT1:
+            MAX_POWER_LIMIT: N/A
+            MIN_POWER_LIMIT: N/A
+            SOCKET_POWER_LIMIT: N/A
+        SLOWDOWN_EDGE_TEMPERATURE: N/A
+        SLOWDOWN_HOTSPOT_TEMPERATURE: N/A
+        SLOWDOWN_VRAM_TEMPERATURE: N/A
+        SHUTDOWN_EDGE_TEMPERATURE: N/A
+        SHUTDOWN_HOTSPOT_TEMPERATURE: N/A
+        SHUTDOWN_VRAM_TEMPERATURE: N/A
+        PTL_STATE: N/A
+        PTL_FORMAT: N/A
+    DRIVER:
+        NAME: amdgpu
+        VERSION: N/A
+        OS_KERNEL_VERSION: 7.0.0-42-generic
+    BOARD:
+        MODEL_NUMBER: N/A
+        PRODUCT_SERIAL: N/A
+        FRU_ID: N/A
+        PRODUCT_NAME: N/A
+        MANUFACTURER_NAME: Advanced Micro Devices, Inc. [AMD/ATI]
+    RAS:
+        EEPROM_VERSION: N/A
+        BAD_PAGE_THRESHOLD: N/A
+        BAD_PAGE_THRESHOLD_EXCEEDED: N/A
+        PARITY_SCHEMA: N/A
+        SINGLE_BIT_SCHEMA: N/A
+        DOUBLE_BIT_SCHEMA: N/A
+        POISON_SCHEMA: N/A
+        ECC_BLOCK_STATE: N/A
+    SOC_PSTATE: N/A
+    XGMI_PLPD: N/A
+    PROFILE: AMDSMI_STATUS_NOT_SUPPORTED - Feature not supported
+    PROCESS_ISOLATION: Disabled
+    NUMA:
+        NODE: 0
+        AFFINITY: NONE
+        CPU_AFFINITY: N/A
+        SOCKET_AFFINITY:
+            CPU_LIST_0:
+                BITMASK: 0000000000FFFFFF
+                CPU_CORES_AFFINITY: 0-23
+    VRAM:
+        TYPE: DDR5
+        VENDOR: UNKNOWN
+        SIZE: 2048 MB
+        BIT_WIDTH: 128
+        MAX_BANDWIDTH: N/A 
+    CACHE_INFO:
+        CACHE_0:
+            CACHE_ACRONYM: L1D
+            CACHE_PROPERTIES: DATA_CACHE, SIMD_CACHE
+            CACHE_SIZE: 32 KB
+            CACHE_LEVEL: 1
+            MAX_NUM_CU_SHARED: 1
+            NUM_CACHE_INSTANCE: 16
+            TOTAL_CACHE_SIZE: 512 KB
+        CACHE_1:
+            CACHE_ACRONYM: L1I
+            CACHE_PROPERTIES: INST_CACHE, SIMD_CACHE
+            CACHE_SIZE: 32 KB
+            CACHE_LEVEL: 1
+            MAX_NUM_CU_SHARED: 2
+            NUM_CACHE_INSTANCE: 8
+            TOTAL_CACHE_SIZE: 256 KB
+        CACHE_2:
+            CACHE_ACRONYM: L1D
+            CACHE_PROPERTIES: DATA_CACHE, SIMD_CACHE
+            CACHE_SIZE: 16 KB
+            CACHE_LEVEL: 1
+            MAX_NUM_CU_SHARED: 2
+            NUM_CACHE_INSTANCE: 8
+            TOTAL_CACHE_SIZE: 128 KB
+        CACHE_3:
+            CACHE_ACRONYM: L1D
+            CACHE_PROPERTIES: DATA_CACHE, SIMD_CACHE
+            CACHE_SIZE: 256 KB
+            CACHE_LEVEL: 1
+            MAX_NUM_CU_SHARED: 8
+            NUM_CACHE_INSTANCE: 2
+            TOTAL_CACHE_SIZE: 512 KB
+        CACHE_4:
+            CACHE_ACRONYM: L2
+            CACHE_PROPERTIES: DATA_CACHE, SIMD_CACHE
+            CACHE_SIZE: 2048 KB
+            CACHE_LEVEL: 2
+            MAX_NUM_CU_SHARED: 16
+            NUM_CACHE_INSTANCE: 1
+            TOTAL_CACHE_SIZE: 2048 KB
+    MEM_CARVEOUT: 
+                       [0] Minimum (512 MB)
+                       [1] (1 GB)
+                      *[2] (2 GB)
+                       [3] (4 GB)
+                       [4] (8 GB)
+                       [5] Medium (16 GB)
+                       [6] High (32 GB)
+    CLOCK:
+        SYS:
+            CURRENT_LEVEL: 1
+            FREQUENCY_LEVELS:
+                LEVEL 0: 600 MHz
+                LEVEL 1: 1203 MHz
+                LEVEL 2: 2900 MHz
+        MEM:
+            FREQUENCY_LEVELS:
+                LEVEL 0: 1000 MHz
+                LEVEL 1: 2400 MHz
+                LEVEL 2: 2800 MHz
+        DF:
+            FREQUENCY_LEVELS:
+                LEVEL 0: 500 MHz
+                LEVEL 1: 1050 MHz
+                LEVEL 2: 1100 MHz
+                LEVEL 3: 1400 MHz
+                LEVEL 4: 1500 MHz
+                LEVEL 5: 1600 MHz
+                LEVEL 6: 1800 MHz
+                LEVEL 7: 1960 MHz
+        SOC:
+            FREQUENCY_LEVELS:
+                LEVEL 0: 600 MHz
+                LEVEL 1: 736 MHz
+                LEVEL 2: 883 MHz
+                LEVEL 3: 981 MHz
+                LEVEL 4: 1104 MHz
+                LEVEL 5: 1261 MHz
+                LEVEL 6: 1261 MHz
+                LEVEL 7: 1472 MHz
+        DCEF: N/A
+        VCLK0:
+            CURRENT_LEVEL: 1
+            FREQUENCY_LEVELS:
+                LEVEL 0: 800 MHz
+                LEVEL 1: 800 MHz
+                LEVEL 2: 1605 MHz
+                LEVEL 3: 1766 MHz
+                LEVEL 4: 1962 MHz
+                LEVEL 5: 2208 MHz
+                LEVEL 6: 2523 MHz
+                LEVEL 7: 2944 MHz
+        VCLK1: N/A
+        DCLK0:
+            CURRENT_LEVEL: 0
+            FREQUENCY_LEVELS:
+                LEVEL 0: 800 MHz
+                LEVEL 1: 800 MHz
+                LEVEL 2: 1104 MHz
+                LEVEL 3: 1177 MHz
+                LEVEL 4: 1358 MHz
+                LEVEL 5: 1472 MHz
+                LEVEL 6: 1766 MHz
+                LEVEL 7: 2208 MHz
+        DCLK1: N/A
+
+--- amd-smi metric ---
+GPU: 0
+    USAGE:
+        GFX_ACTIVITY: 8 %
+        VCN_ACTIVITY: [N/A, N/A, N/A, N/A]
+        JPEG_ACTIVITY: [N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A]
+        GFX_BUSY_INST:
+            XCP_0: [N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A]
+        JPEG_BUSY:
+            XCP_0: [N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A]
+        VCN_BUSY:
+            XCP_0: [N/A, N/A, N/A, N/A]
+        APU_AVERAGE_GFX_ACTIVITY: 8 %
+        APU_AVERAGE_VCN_ACTIVITY: 0 %
+        APU_AVERAGE_IPU_ACTIVITY: [0 %, 0 %, 0 %, 0 %, 0 %, 0 %, 0 %, 0 %]
+        APU_AVERAGE_CORE_C0_ACTIVITY: [5 %, 0 %, 3 %, 0 %, 26 %, 0 %, 22 %, 0 %, 8 %, 6 %, 7 %, 6 %, 4 %, 4 %, 6 %, 6 %]
+        APU_AVERAGE_DRAM_READS: 1984 MB/s
+        APU_AVERAGE_DRAM_WRITES: 938 MB/s
+        APU_AVERAGE_IPU_READS: 0 MB/s
+        APU_AVERAGE_IPU_WRITES: 0 MB/s
+    POWER:
+        SOCKET_POWER: 9 W
+        APU_AVERAGE_SOCKET_POWER: 9.18 W
+        APU_AVERAGE_GFX_POWER: 5.38 W
+        APU_AVERAGE_CORE_POWER: [0.04 W, 0.0 W, 0.01 W, 0.0 W, 4.22 W, 0.0 W, 0.01 W, 0.0 W, 0.05 W, 0.03 W, 0.17 W, 0.01 W, 0.01 W, 0.02 W, 0.01 W, 0.01 W]
+        APU_AVERAGE_IPU_POWER: 0.0 W
+        APU_AVERAGE_APU_POWER: 9.18 W
+        APU_AVERAGE_DGPU_POWER: 0.0 W
+        APU_AVERAGE_ALL_CORE_POWER: 2.29 W
+        APU_AVERAGE_SYS_POWER: 63.54 W
+    CLOCK:
+        APU_CURRENT_CORECLK: [1368 MHz, 0 MHz, 1368 MHz, 0 MHz, 4105 MHz, 0 MHz, 1368 MHz, 0 MHz, 1400 MHz, 1400 MHz, 1400 MHz, 1400 MHz, 1400 MHz, 1400 MHz, 1400 MHz, 1400 MHz]
+        APU_CURRENT_L3CLK: [N/A, N/A]
+        APU_CURRENT_CORE_MAXFREQ: 4114 MHz
+        APU_CURRENT_GFX_MAXFREQ: 2900 MHz
+        APU_AVERAGE_GFXCLK_FREQUENCY: 1192 MHz
+        APU_AVERAGE_SOCCLK_FREQUENCY: 687 MHz
+        APU_AVERAGE_UCLK_FREQUENCY: 1771 MHz
+        APU_AVERAGE_FCLK_FREQUENCY: 1104 MHz
+        APU_AVERAGE_VCLK_FREQUENCY: 800 MHz
+        APU_AVERAGE_VPECLK_FREQUENCY: 800 MHz
+        APU_AVERAGE_IPUCLK_FREQUENCY: 4 MHz
+        APU_AVERAGE_MPIPU_FREQUENCY: 3 MHz
+    TEMPERATURE:
+        EDGE: 33 °C
+        HBM_STACKS: [N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A]
+        MID: [N/A, N/A]
+        AID: [N/A, N/A]
+        XCD:
+            XCP_0: [N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A]
+        APU_TEMPERATURE_GFX: 32.75 °C
+        APU_TEMPERATURE_SOC: 35.0 °C
+        APU_TEMPERATURE_CORE: [32.5 °C, 33.38 °C, 33.88 °C, 33.38 °C, 40.12 °C, 33.38 °C, 34.62 °C, 33.38 °C, 32.12 °C, 32.5 °C, 32.25 °C, 32.25 °C, 32.38 °C, 32.88 °C, 32.5 °C, 33.12 °C]
+        APU_TEMPERATURE_L3: [N/A, N/A]
+        APU_TEMPERATURE_SKIN: 0.0 °C
+        APU_AVERAGE_TEMPERATURE_CORE: [N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A]
+        APU_AVERAGE_TEMPERATURE_L3: [N/A, N/A]
+    ECC:
+        TOTAL_CORRECTABLE_COUNT: 0
+        TOTAL_UNCORRECTABLE_COUNT: 0
+        TOTAL_DEFERRED_COUNT: 0
+        CACHE_CORRECTABLE_COUNT: N/A
+        CACHE_UNCORRECTABLE_COUNT: N/A
+    PERF_LEVEL: AMDSMI_DEV_PERF_LEVEL_AUTO
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 1108 MB
+        FREE_VRAM: 940 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 1108 MB
+        FREE_VISIBLE_VRAM: 940 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 125 MB
+        FREE_GTT: 46948 MB
+    THROTTLE:
+        APU_THROTTLE_RESIDENCY_PROCHOT: 98
+        APU_THROTTLE_RESIDENCY_SPL: 0
+        APU_THROTTLE_RESIDENCY_FPPT: 1628
+        APU_THROTTLE_RESIDENCY_SPPT: 0
+        APU_THROTTLE_RESIDENCY_THM_CORE: 6
+        APU_THROTTLE_RESIDENCY_THM_GFX: 0
+        APU_THROTTLE_RESIDENCY_THM_SOC: 0
+
+--- amd-smi vram ---
+amdsmi_cli_exceptions.AmdSmiInvalidSubcommandException: AMD-SMI Command 'vram' is invalid. Must receive valid AMD-SMI Command first. Run 'amd-smi -h' for more info. Error code: -10
+--- generation command ---
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
+--- hash verification ---
+55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1  /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+--- model policy check ---
+role                 model                                      family
+-------------------- ------------------------------------------ --------
+architect            <unset>                                    -
+coder-primary        opencode-go/kimi-k2.7-code                 kimi
+coder-secondary      opencode-go/qwen3.8-flash#low              qwen3.8
+qaqc                 opencode-go/gemini-4-argon#high            gemini
+auditor              opencode-go/deepseek-v4.1-flash            deepseek
+
+PENDING: 1 role(s) have no explicit model: architect
+Apply MODEL_POLICY.md when the active agent is free.
+--- closure C1b: which rocm-smi ---
+date: 2026-11-15T22:54:03-05:00
+cwd: /home/kupipi/Documents/git/strata
+exit=1
+
+--- closure C1b: generation repeat ---
+date: 2026-11-15T22:54:03-05:00
+cwd: /home/kupipi/Documents/git/strata
+command: LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
+exit=0
+strata-q36: /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: 753 tensors (layout checked), 4.40 GiB on the GPU in 1.0 s (the routed experts are placed after the engine's buffers)
+strata-q36: prompt experts: 0 of 41 layers on the fused int8 kernels, 41 on our int8 kernels, 0 on MMQ (int8)
+strata-q36: context 1024 cells, prompt chunk 4096, MTP block loaded, 38.72 GiB of VRAM free
+strata-q36: every routed expert in VRAM (18.75 GiB) in 3.1 s
+strata-q36: warmed up in 3.8 s (one prompt chunk, a decode step)
+gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+strata-q36: prompt 5 tokens in 91.5 ms (54.7 tok/s), 32 generated in 1660.0 ms (19.3 tok/s)
+
+--- closure C1b: token ID comparison ---
+generated: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+expected:  11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+match: OK
+
+--- closure C1a: sha256sum -c hashes.txt ---
+date: 2026-11-15T22:56:18-05:00
+cwd: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-007
+command: sha256sum -c hashes.txt
+./artifacts/amd-smi-gtt.txt: OK
+./artifacts/control-launch-help.txt: OK
+./artifacts/control-plan-qwen36.json: OK
+./artifacts/decode-command.txt: OK
+./artifacts/engine-families.txt: OK
+./artifacts/engine-generate-help.txt: OK
+./artifacts/engine-geometry.txt: OK
+./artifacts/generated-text.txt: OK
+./artifacts/generated-token-ids.txt: OK
+./artifacts/prompt-token-ids.txt: OK
+./artifacts/prompt.txt: OK
+./commands.log: FAILED
+./manifest.md: FAILED
+./test-output.txt: OK
+/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: OK
+/home/kupipi/Documents/git/strata/build-hip/strata: OK
+
+--- closure C1a: sha256sum -c hashes.txt (after refreshing manifest.md hashes) ---
+date: 2026-11-15T22:59:06-05:00
+cwd: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-007
+command: sha256sum -c hashes.txt
+./artifacts/amd-smi-gtt.txt: OK
+./artifacts/control-launch-help.txt: OK
+./artifacts/control-plan-qwen36.json: OK
+./artifacts/decode-command.txt: OK
+./artifacts/engine-families.txt: OK
+./artifacts/engine-generate-help.txt: OK
+./artifacts/engine-geometry.txt: OK
+./artifacts/generated-text.txt: OK
+./artifacts/generated-token-ids.txt: OK
+./artifacts/prompt-token-ids.txt: OK
+./artifacts/prompt.txt: OK
+./commands.log: OK
+./manifest.md: OK
+./test-output.txt: OK
+/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: OK
+/home/kupipi/Documents/git/strata/build-hip/strata: OK
+exit=0
+Note: hashes.txt covers all files in this evidence directory except hashes.txt itself, plus the external model file and signed binary.
+
+--- residual C3 (unit labeling): corrected manifest.md model size and refreshed hashes ---
+date: 2026-11-16T04:02:46Z
+cwd: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-007
+command: sha256sum -c hashes.txt
+./artifacts/amd-smi-gtt.txt: OK
+./artifacts/control-launch-help.txt: OK
+./artifacts/control-plan-qwen36.json: OK
+./artifacts/decode-command.txt: OK
+./artifacts/engine-families.txt: OK
+./artifacts/engine-generate-help.txt: OK
+./artifacts/engine-geometry.txt: OK
+./artifacts/generated-text.txt: OK
+./artifacts/generated-token-ids.txt: OK
+./artifacts/prompt-token-ids.txt: OK
+./artifacts/prompt.txt: OK
+./commands.log: OK
+./manifest.md: OK
+./test-output.txt: OK
+/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: OK
+/home/kupipi/Documents/git/strata/build-hip/strata: OK
+exit=0
+note: manifest.md §5 model size corrected from (22.8 GiB) to (22,853,663,008 B; 21.28 GiB / 22.85 GB); manifest.md hash refreshed in hashes.txt.
