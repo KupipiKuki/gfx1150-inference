@@ -406,3 +406,41 @@ this file did not happen.
   recorded as `N/A — no code, no measurement` and the architect verifies the
   citations at the gate.
 - **Affected:** HO-STRATA-005, `STATUS.md`, DEC-002, DEC-010, DEC-016.
+
+## DEC-021 — Route 2 confirmed; Route 3 deferred with five triggers
+
+- **Date:** 2026-11-17
+- **Context:** HO-STRATA-005 (narrowed by DEC-020) assembled the recorded evidence
+  from HO-001 and HO-007. The pinned Strata build at `baf16363` configures,
+  builds, starts headlessly and runs one low-tier `qwen35moe` generation with
+  **zero source patches**; the cost of the current route is two environment
+  variables, an opt-in hipBLASLt table, and the `--native` invocation.
+  Evidence: `workflow/evidence/HO-STRATA-005/route-decision.md` and its
+  31-row citation map.
+- **Options:**
+  - Route 2 — pinned patch overlay (DEC-002), confirmed by this decision.
+  - Route 3 — fork + P0–P9; not costed, because DEC-016 holds HO-006 and a
+    comparison without the fork's price is not a comparison.
+  - Status quo — rejected implicitly: the engine already works on gfx1150.
+- **Decision:**
+  1. **Confirm Route 2** as the delivery route for gfx1150.
+  2. **Adopt five triggers** that reopen Route 3, each measurable:
+     - **T1** a requested family needs an engine path the pin lacks and cannot be
+       expressed as a localized patch (structural, not configuration, failure);
+     - **T2** the patch set exceeds **5 files or 300 inserted lines** against the
+       pin (working threshold, not a measured bound);
+     - **T3** rebase conflicts on **2 of 3** consecutive pin updates, or the pin is
+       abandoned upstream;
+     - **T4** a second hardware class (gfx1100, gfx900/MI25, gfx1201) enters the
+       critical path;
+     - **T5** the deliverable becomes an independent, machine-gated engine with its
+       own API/CLI contract.
+  3. **Route 3 is deferred, not rejected.** T1/T2/T3 are architect decisions;
+     T4/T5 need an owner scope decision through the auditor.
+- **Reversal cost:** the patch inventory (currently zero) must be rebased and
+  re-validated on the forked tree; the gfx1150 baseline from HO-001/HO-007 does
+  not expire, but post-confirmation patches would be unproven on Route 3.
+- **Consequences:** no fork work, no P0–P9, no new measurement; HO-006 stays
+  deferred (DEC-016) and HO-002/003/004 stay blocked; T1 firing is what would
+  start the support-investigation conversation, not this decision.
+- **Affected:** HO-STRATA-005 (`DONE`), `STATUS.md`, DEC-002, DEC-010, DEC-016.

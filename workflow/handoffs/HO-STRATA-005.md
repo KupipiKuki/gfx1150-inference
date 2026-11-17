@@ -143,7 +143,7 @@ already is.
 
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
-| Sender (Architect) | architect | 2026-11-17 | READY (narrowed per owner decision) |
+| Sender (Architect) | architect | 2026-11-17 | READY (narrowed per owner decision); **SIGNED** after the gate |
 | Receiver (Coder) | `coder-primary` | 2026-11-17 | `CODER_DONE` |
 
 ## 12. Log
@@ -157,3 +157,6 @@ already is.
   citation-map.md (31 claims), commands.log, and hashes.txt committed on the
   work-package branch. All 31 citations verified by `grep`; `sha256sum -c`
   19/19 OK. No measurement, build, model run, or download performed.
+- 2026-11-17 Architect: **SIGNED** → `DONE`; DEC-021 records Route 2 confirmed and
+  T1–T5 adopted. Citations verified against the merged bundles; hashes 19/19 OK.
+  See `HO-STRATA-005-APPROVAL.md`.
