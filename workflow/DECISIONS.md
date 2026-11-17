@@ -385,3 +385,24 @@ this file did not happen.
   acceptance decision, not a change to the audit requirement in the contract.
 - **Affected:** `OT-STRATA-001`, `STATUS.md`, `OWNER_AUDIT_CHECKLIST.md`,
   `MERGE_PLAN.md`.
+
+## DEC-020 — HO-005 is narrowed to "confirm Route 2 + define the Route 3 triggers"
+
+- **Date:** 2026-11-17
+- **Context:** the original HO-005 asked for a three-way Route 1/2/3 comparison
+  and depended on HO-STRATA-006, which the owner held under DEC-016. The first
+  low-tier run (HO-007) is now signed and merged, so two of the three inputs
+  exist; the third can never arrive while the hold stands, and a comparison that
+  cannot cost the fork is not a comparison.
+- **Decision (owner):** narrow HO-005. It **confirms Route 2** and writes the
+  **measurable triggers** that would reopen Route 3. Route 3 stays **deferred,
+  not rejected**. No HO-006, no fork work, no new measurements.
+- **Why this is not a formality:** the pinned overlay currently carries **zero
+  patches** — HO-001 and HO-007 both ran with a clean Strata checkout; the cost
+  of Route 2 today is an environment contract plus a pin.
+- **Consequences:** the decision is recorded as DEC-021 after the evidence pack
+  is assembled; the trigger table is the reversal record; HO-006 remains held;
+  the decision document is a documentation work package, so QAQC/audit are
+  recorded as `N/A — no code, no measurement` and the architect verifies the
+  citations at the gate.
+- **Affected:** HO-STRATA-005, `STATUS.md`, DEC-002, DEC-010, DEC-016.

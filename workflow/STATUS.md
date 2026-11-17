@@ -11,7 +11,7 @@ row is invisible.
 | HO-STRATA-002 | Mixtral 8x7B baseline | **BLOCKED** | Architect | — | nothing until the family exists in a runnable build + owner pack decision | family unimplemented at `baf16363`; DEC-003 kept, DEC-016 | — |
 | HO-STRATA-003 | Qwen3-30B-A3B baseline | **BLOCKED** | Architect | — | nothing until the family exists (**not** `qwen35moe`) | unimplemented at `baf16363`; DEC-003 kept, DEC-016 | — |
 | HO-STRATA-004 | DeepSeek baseline | **BLOCKED** | Architect | — | nothing until the family exists; needs an attention path | unimplemented; Control refuses it | — |
-| HO-STRATA-005 | Route 2 vs Route 3 decision | PROPOSED | Architect | — | after HO-007 (qwen35moe) baseline | no baseline yet | — |
+| HO-STRATA-005 | Confirm Route 2; define the Route 3 triggers (narrowed, DEC-020) | **READY** | Architect → Coder | `wp/strata-005-route-decision` @ `8c1a291` | coder assembles the decision + citation map; architect decides (DEC-021) | — | `workflow/evidence/HO-STRATA-005/` |
 | HO-STRATA-006 | model-support investigation (read-only) | **DEFERRED** (owner hold) | Architect | `wp/strata-006-model-support` @ `750dd2f` | restart only on the owner's go-ahead (DEC-016) | owner hold; OT decisions 2–5 | `workflow/evidence/HO-STRATA-006/` |
 | HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **DONE (SIGNED 2026-11-16)** | Architect | `wp/strata-007-qwen35moe-lowtier` @ `776b6ff` | merge per `MERGE_PLAN.md`; then HO-005 route decision | merge go-ahead | `workflow/evidence/HO-STRATA-007/` · `workflow/reports/qaqc/HO-STRATA-007-qaqc.md` · `workflow/reports/audit/HO-STRATA-007-audit.md` · `workflow/handoffs/HO-STRATA-007-APPROVAL.md` |
 
