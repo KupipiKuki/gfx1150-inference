@@ -409,3 +409,33 @@ this file did not happen.
     coder-secondary `qwen3.8`, QAQC `gemini`, auditor `deepseek` (waived).
 - **Affected:** `.opencode/agents/architect.md`, `workflow/MODEL_POLICY.md`,
   WAIVER-001, DEC-006, DEC-013.
+
+## DEC-023 — The architect stays on V4 Pro; heavy drafting goes to a coder
+
+- **Date:** 2026-11-17
+- **Context:** with the architect assigned (DEC-022), the owner proposed starting
+  the architect on DeepSeek V4 Pro to review the package outline, then handing
+  long work sections to Flash, on the grounds that Flash "is only temporarily
+  fulfilling another role".
+- **Analysis:**
+  - Family-wise this is allowed: both are `deepseek`, and the policy separates by
+    family (R7). No R1 breach.
+  - But Flash **is** the auditor (WAIVER-001). Using it for architect work means
+    the same model writes a document and audits it — collapsing the overlap from
+    "same family" to "same model", which is exactly what the waiver bounds. The
+    compensating layer above QAQC would become the owner audit alone.
+  - The cost case is negligible: a 50k-in/10k-out section is ≈$0.053 on V4 Pro
+    and ≈$0.014 on Flash, about 4¢ per section.
+  - The mechanism already exists: HO-005 ran as architect-contract →
+    coder-assembled evidence → architect-verified signature.
+- **Decision:** the **architect seat stays on `opencode-go/deepseek-v4-pro#max`**.
+  Long documents are delegated **by role, not by model**: `coder-secondary`
+  (Qwen) for pure assembly, `coder-primary` (Kimi) when drafting needs
+  reasoning; the architect writes the handoff, verifies, and signs. The
+  architect's model is not downgraded for cost or latency; if latency is a
+  problem, the work is split into smaller handoffs.
+- **Consequences:** the auditor's model never authors what it reviews; the model
+  policy needs no new waiver; the drafting path is a normal handoff with its own
+  evidence and guard rails. WAIVER-001 is unchanged.
+- **Affected:** `MODEL_POLICY.md` §3 (drafting rule), DEC-022, WAIVER-001,
+  HO-STRATA-005 (the precedent).

@@ -58,6 +58,23 @@ QAQC `opencode-go/gemini-4-argon#high`. `check_model_policy.py` reports no
 `PENDING` roles and `WAIVED` for the auditor/architect family; `--strict` exits
 0 with `RESULT: WAIVED`.
 
+### Drafting rule (DEC-023)
+
+The architect seat stays on its assigned model; heavy writing is delegated, not
+downgraded.
+
+- Long documents (evidence packs, citation maps, decision drafts, report
+  assembly) are **coder work**: `coder-secondary` (`qwen3.8-flash#low`) for pure
+  assembly, `coder-primary` (`kimi-k2.7-code`) when the draft needs reasoning.
+  The architect writes the handoff, reviews, and signs.
+- The architect's model is **not** swapped to `deepseek-v4.1-flash` for cost or
+  latency. Flash is the auditor's model (WAIVER-001); reusing it in the architect
+  seat would make one model write and audit the same artifact and remove the last
+  independent layer above QAQC and the owner.
+- Cost is not the constraint: a 50k-in/10k-out section is ≈$0.05 on V4 Pro vs
+  ≈$0.014 on Flash — about 4¢ per section. If latency hurts, split the work into
+  smaller handoffs.
+
 ### Complementary coverage
 
 ```text
