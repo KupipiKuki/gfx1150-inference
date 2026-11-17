@@ -198,10 +198,18 @@ repair() {
   # remove the stale local config (the same files `config.sh remove --local`
   # deletes), then configure with --replace so a still-existing server runner
   # with the same name is replaced too.
+  #
+  # `.runner_migrated`/`.credentials_migrated` are migration markers, and the
+  # runner's ConfigurationStore.IsConfigured() treats them as "already
+  # configured". Leaving them behind makes every repair fail before config.sh
+  # reads the token (observed 2026-11-16: the watchdog retried for hours with
+  # "Cannot configure the runner because it is already configured" while the
+  # service stayed dead), so they are removed with the rest of the state.
   log "stopping ${SERVICE_UNIT} and removing the stale local runner config"
   systemctl stop "${SERVICE_UNIT}" >/dev/null 2>&1 || true
   if ! rm -f "${RUNNER_DIR}/.runner" "${RUNNER_DIR}/.credentials" \
-    "${RUNNER_DIR}/.credentials_rsaparams"; then
+    "${RUNNER_DIR}/.credentials_rsaparams" "${RUNNER_DIR}/.runner_migrated" \
+    "${RUNNER_DIR}/.credentials_migrated"; then
     die "could not remove the stale local runner config in ${RUNNER_DIR}"
   fi
 
