@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-008 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **CODER_DONE** |
+| **State** | **REWORK** — `RW-HO-STRATA-008-1`: the first attempts were refused by the generic CLI parser (`--n` is qwen35-only), so the engine never reached either model |
 | **Created / updated (UTC)** | 2026-11-18 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-008-family-probe` |
