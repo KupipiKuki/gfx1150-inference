@@ -1,5 +1,4 @@
 b6f6fbad034125d12653a91a4a96c665a0c80e4575384ea7a4fd6149fb1ace76  planning/strata-engine/08-roadmap-decision.md
-584b954d6a22cb958817176641c76de0e430566bf5c5059217cf8112ab1c233f  workflow/DECISIONS.md
 9e26c0504dd45cfe2988678606fc4951c196ed4485d90e9bd2db660c9e62ac95  workflow/evidence/HO-STRATA-001/artifacts/build.log
 910025d91a83da266597a4fca42d5c4885f5d91313351c860d99f208b2a7f8ba  workflow/evidence/HO-STRATA-001/artifacts/configure.log
 5f656e56a87e063c813cbecf533d69b249f2804ea35fb1721e67584a6a78d759  workflow/evidence/HO-STRATA-001/artifacts/engine-boundary.md
@@ -11,7 +10,6 @@ a25d261e05f65b7f9fa29be422ebbb6f9ac1e77a9fbaad6bf4b1f05c54c1f7f5  workflow/evide
 8c0eec43c584268772f9960f761e6fe55f3f832d9e5778ffb5c600cb5ffa56ac  workflow/evidence/HO-STRATA-005/commands.log
 5e6b3365ab7f23b7f701e8b163df5ab1d435ca096286d413aa556ceb350dd416  workflow/evidence/HO-STRATA-005/route-decision.md
 198f239ac3a5cdb27a4b4dc47b60d41b326474a9abf0ddac6549d7f7c3ce5cac  workflow/evidence/HO-STRATA-007/artifacts/control-plan-qwen36.json
-1daad60682860ad09b2b5001a1b68bf7139e0542b766f84f72968fc65fdb1b79  workflow/evidence/HO-STRATA-007/manifest.md
 7986a489b77ad26f7174b200b651964e43fd60c2fe2e1f836d0d0485540a8aa9  workflow/evidence/HO-STRATA-007/test-output.txt
 0da998d0e6ecfd5602dca0d547a47290ed5810f87c387faee7ec7f844f0868be  workflow/handoffs/HO-STRATA-001-APPROVAL.md
 76ede3433793b312ad47568752d3288b644f2eac3d7102d7de7a13ec2b5a0517  workflow/handoffs/HO-STRATA-005.md

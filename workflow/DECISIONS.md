@@ -498,3 +498,25 @@ this file did not happen.
   evidence and guard rails. WAIVER-001 is unchanged.
 - **Affected:** `MODEL_POLICY.md` §3 (drafting rule), DEC-022, WAIVER-001,
   HO-STRATA-005 (the precedent).
+
+## DEC-024 — Hash immutable artifacts; pin mutable shared files by commit
+
+- **Date:** 2026-11-18
+- **Context:** HO-STRATA-005's `hashes.txt` listed two files that live on `main`
+  and change: `workflow/DECISIONS.md` and
+  `workflow/evidence/HO-STRATA-007/manifest.md`. After DEC-022/023 and the
+  HO-007 model-path PR landed, `sha256sum -c` reported both `FAILED` — the
+  decision's evidence rotted without anything in the decision changing.
+- **Decision:** `hashes.txt` covers **immutable** files only (the handoff's own
+  documents, raw run outputs, signed approvals). Mutable shared inputs are
+  **pinned by commit**: the base SHA the work was assembled from, with
+  `git show <sha>:<path> | sha256sum` and the resulting digest recorded in
+  `hashes-notes.txt`.
+- **Why:** a working-tree hash of a file that others append to is not a proof of
+  stability, it is a delayed failure. A commit pin is immutable and verifiable
+  with one command.
+- **Consequences:** no periodic rehashing of evidence for unrelated commits; the
+  `evidence-bundle` skill now states the rule; HO-005 applies it and verifies
+  16/16 hashed files.
+- **Affected:** `evidence-bundle` skill, HO-STRATA-005 evidence,
+  `HANDOFF_CONTRACT.md` §7 interpretation.
