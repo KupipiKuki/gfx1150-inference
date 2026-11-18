@@ -1,0 +1,42 @@
+=== HO-STRATA-008 memory envelope ===
+The engine exited immediately (exit 2) on both attempts, so there is no load-phase
+delta to report.  The amd-smi metric samples in commands.log show idle/startup
+envelope only.
+
+--- pre-run (Mixtral attempt) MEM_USAGE ---
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 412 MB
+        FREE_VRAM: 1636 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 412 MB
+        FREE_VISIBLE_VRAM: 1636 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+--- post-run (DeepSeek attempt) MEM_USAGE ---
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 412 MB
+        FREE_VRAM: 1636 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 412 MB
+        FREE_VISIBLE_VRAM: 1636 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+--- dmesg tail (no GPU fault / reset observed) ---
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000

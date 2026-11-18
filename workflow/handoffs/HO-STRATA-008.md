@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-008 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** — DoR met (§8) |
+| **State** | **CODER_DONE** |
 | **Created / updated (UTC)** | 2026-11-18 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-008-family-probe` |
@@ -124,12 +124,12 @@ DEC-024).
 
 ## 9. Definition of Done
 
-- [ ] Two attempts executed, raw output saved
-- [ ] Each classified with the justifying line
-- [ ] Envelope + `dmesg` recorded
-- [ ] Hashes match `workflow/MODELS.md`
-- [ ] No source change, no tuning, no support claim
-- [ ] Manifest complete; `CODER_DONE`; QAQC handoff created
+- [x] Two attempts executed, raw output saved
+- [x] Each classified with the justifying line
+- [x] Envelope + `dmesg` recorded
+- [x] Hashes match `workflow/MODELS.md`
+- [x] No source change, no tuning, no support claim
+- [x] Manifest complete; `CODER_DONE`; QAQC handoff created
 
 ## 10. Why the classification matters
 
@@ -145,10 +145,14 @@ DEC-024).
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | architect | 2026-11-18 | READY |
-| Receiver (Coder) | `coder-primary` | | |
+| Receiver (Coder) | `coder-primary` | 2026-11-18 | IN_PROGRESS → CODER_DONE |
 
 ## 12. Log
 
 - 2026-11-18 Architect: created READY after the owner downloaded the Mixtral Q3_K_M
   and DeepSeek Q4_K_M artifacts and asked to prepare the next phase. Bounded to a
   probe; implementation stays held under DEC-016 until the result is reviewed.
+- 2026-11-18 Coder: accepted; ran both attempts on signed binary `baf16363`.
+  Both exited 2 with `unknown argument: --n`; classified REFUSED. No fallback
+  (not allocation/OOM). Evidence bundle complete under
+  `workflow/evidence/HO-STRATA-008/`; QAQC handoff created.
