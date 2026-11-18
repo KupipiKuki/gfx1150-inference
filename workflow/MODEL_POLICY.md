@@ -1,10 +1,13 @@
 # Model selection policy
 
-**Status:** adopted 2026-11-15 · **auditor applied under WAIVER-001; QAQC
-(Gemini), coder-primary (Kimi), coder-secondary (Qwen) applied; architect
-pending (session model).** The HO-001 QAQC setup exception was closed by the
-Gemini/Argon re-run; the audit accepted it. The active agent must not be
-modified while in use.
+**Status:** adopted 2026-11-15 · **all five roles assigned (2026-11-17)**:
+architect `deepseek-v4-pro#max`, auditor `deepseek-v4.1-flash` (**WAIVER-001**),
+QAQC Gemini, coder-primary Kimi, coder-secondary Qwen. The HO-001 QAQC setup
+exception was closed by the Gemini/Argon re-run; the audit accepted it.
+**`check_model_policy.py --strict` exits 0 with `WAIVED`, not `PASS`** — the
+architect and auditor share the `deepseek` family under WAIVER-001. The active
+agent must not be modified while in use; a model change takes effect in the
+next session.
 **Enforcement:** `workflow/check_model_policy.py` (`--strict` once all five are
 assigned).
 **Decisions:** `DECISIONS.md` DEC-006 (rules), DEC-009 (temporary auditor
@@ -47,10 +50,30 @@ provider’s model; the family rule is what matters.
 | **coder-secondary** | `opencode-go/qwen3.8-flash#low` | no | cheap/fast; low-priority work |
 | **QAQC** | `opencode-go/gemini-4-argon#high` | no | strong reviewer; different family from both coders |
 
-**Status: PARTIALLY APPLIED.** The auditor is set in
-`.opencode/agents/auditor.md` under WAIVER-001. The architect, coders and QAQC
-are proposed but unset. `check_model_policy.py` reports `PENDING` for the unset
-roles and `WAIVED` for the auditor/architect family once both are set.
+**Status: APPLIED (2026-11-17).** Every role has an explicit `model` in its
+agent file: architect `opencode-go/deepseek-v4-pro#max` (DEC-022), auditor
+`opencode-go/deepseek-v4.1-flash` (WAIVER-001), coder-primary
+`opencode-go/kimi-k2.7-code`, coder-secondary `opencode-go/qwen3.8-flash#low`,
+QAQC `opencode-go/gemini-4-argon#high`. `check_model_policy.py` reports no
+`PENDING` roles and `WAIVED` for the auditor/architect family; `--strict` exits
+0 with `RESULT: WAIVED`.
+
+### Drafting rule (DEC-023)
+
+The architect seat stays on its assigned model; heavy writing is delegated, not
+downgraded.
+
+- Long documents (evidence packs, citation maps, decision drafts, report
+  assembly) are **coder work**: `coder-secondary` (`qwen3.8-flash#low`) for pure
+  assembly, `coder-primary` (`kimi-k2.7-code`) when the draft needs reasoning.
+  The architect writes the handoff, reviews, and signs.
+- The architect's model is **not** swapped to `deepseek-v4.1-flash` for cost or
+  latency. Flash is the auditor's model (WAIVER-001); reusing it in the architect
+  seat would make one model write and audit the same artifact and remove the last
+  independent layer above QAQC and the owner.
+- Cost is not the constraint: a 50k-in/10k-out section is ≈$0.05 on V4 Pro vs
+  ≈$0.014 on Flash — about 4¢ per section. If latency hurts, split the work into
+  smaller handoffs.
 
 ### Complementary coverage
 

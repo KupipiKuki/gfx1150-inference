@@ -1,0 +1,60 @@
+# Model re-verification — HO-STRATA-007 (post-signoff)
+
+| Field | Value |
+|---|---|
+| **Date (UTC)** | 2026-11-17T04:22:00Z |
+| **Handoff** | HO-STRATA-007 (SIGNED 2026-11-16) |
+| **Why** | The pack used by the signed run lived in `/tmp/opencode/qwen36/`, which the host cleaned. This re-establishes the exact pack on persistent storage so the evidence is verifiable without a network fetch. |
+| **Scope** | Provenance only. No command, output, measurement, model, quant or claim from the signed run changed. |
+
+## 1. Path and digest
+
+```text
+$ cd /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b
+$ ls -l Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+-rw-rw-r-- 1 kupipi kupipi 22853663008 Nov 16 22:13 Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+
+$ sha256sum Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1  Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+```
+
+Match: **OK** — identical to `hashes.txt`, to `manifest.md` §3, and to the
+catalog pin at `strata/setup.py:747`.
+
+## 2. Source and integrity
+
+- Source repo: `unsloth/Qwen3.6-35B-A3B-MTP-GGUF`, file
+  `Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf`.
+- Upstream LFS identity confirmed before re-download:
+  `x-linked-size: 22853663008`, `x-linked-etag: "55983c5a…3fe9f1"` (HF resolve
+  headers, 2026-11-16).
+- Re-downloaded with `hf download` (`huggingface_hub 1.27.0`), which validates
+  the LFS object; the local digest matches the pinned digest.
+
+### A corrupt same-size copy preceded this one
+
+An earlier local copy had the correct byte count but the wrong content, and was
+rejected:
+
+```text
+9f5daeecc3fc3facf1dc311280d2bda2e57ce92112652cb1dbbf8f1677f36508  (rejected)
+```
+
+It was produced by resuming (`wget -c`) a partial download; the size matched and
+the `GGUF` magic was intact, so only the hash exposed it. Practical rule for
+future handoffs: verify the SHA256 **before** the engine touches the file, and
+prefer `hf download` (LFS-validated) over a resumable raw HTTP fetch.
+
+## 3. Effect on `hashes.txt`
+
+`workflow/evidence/HO-STRATA-007/hashes.txt` now lists the persistent path in
+place of the removed `/tmp/opencode/qwen36/…` path, with the **same digest**
+(`55983c5a…3fe9f1`). `sha256sum -c hashes.txt` verifies every entry, including
+the model and the signed binary.
+
+## 4. Limits
+
+- This record proves the pack is present and intact at the recorded path; it does
+  not re-run the model or add a performance, quality, throughput or support claim.
+- The signed run remains the record of generation; its output and resource
+  envelope are unchanged.

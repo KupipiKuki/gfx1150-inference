@@ -167,3 +167,7 @@ and any refusal.
 - 2026-11-16 Architect: **SIGNED** → `DONE`; see
   `workflow/handoffs/HO-STRATA-007-APPROVAL.md`. Merge deferred to the DEC-015
   selective-merge plan; no performance/support/quality claim.
+- 2026-11-17 Post-signoff: the pack was re-established at
+  `/home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/` and its SHA256 re-verified
+  (`55983c5a…3fe9f1`); see `workflow/evidence/HO-STRATA-007/artifacts/model-reverify.txt`.
+  State stays `DONE`; no measurement or claim changed.

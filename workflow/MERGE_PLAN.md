@@ -116,6 +116,10 @@ After the push: `git revert -m 1 <merge-sha>` (a documented revert, not a force-
   is PR-based (`Merge pull request #12/#14`), so this merge must land as a PR
   from `merge/strata-001-007` → `main`. The architect cannot open or merge the
   PR from this session (no `gh` auth, no `GH_TOKEN`); the owner completes it.
+- **Merged 2026-11-17:** PR `#15` (`a18f12f` — HO-001 + HO-007) and PR `#16`
+  (`8c1a291` — runner watchdog fix). `main` is at `8c1a291`; both feature branches
+  are ancestors of it. Post-merge: 36 evidence files, HO-001 19/19 hashes,
+  HO-007 bundle hashes OK.
 - **Verification on the merge tree:**
   - `git ls-files workflow/evidence | wc -l` → **36**.
   - `.gitignore`: `build.log` still ignored; `workflow/evidence/**/commands.log`

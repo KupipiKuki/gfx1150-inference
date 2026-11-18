@@ -7,10 +7,11 @@ a8fb22e399fb03989b6d95c7665592b43fb76408c957047bd81487a5d8fa4068  ./artifacts/de
 d3bf520127354479c1de74999156654279c5d077618074593877814cce145c39  ./artifacts/engine-geometry.txt
 1d0bf1eaa15565e363b2a9a61936716b624647961c3688605d5866164902f1c5  ./artifacts/generated-text.txt
 d66cf4606974589d85738a7e9aa1b32741d7c5809e4eb1ba5d8a9e6f7b46d49e  ./artifacts/generated-token-ids.txt
+8922e68f555c7db60af059177a146cd2300973e2d89207f2707fdf393e23fec0  ./artifacts/model-reverify.txt
 e70bdc1bb2837068ae9ebde778d1c8a08f3bae2ee28f927df2bdcb24539037b7  ./artifacts/prompt-token-ids.txt
 0b8b55f996e7040d630079da36b3f1e0f08dffa8d014c9e5dada28b80396cbc4  ./artifacts/prompt.txt
 88f0b3873112bcd5d628b8373a8a7181884d4916b276db998ac17f30ee3d4886  ./commands.log
-1daad60682860ad09b2b5001a1b68bf7139e0542b766f84f72968fc65fdb1b79  ./manifest.md
+46423ca118f91b122af04a03264d5d64dc1cb643f24fb7217dddbd13d2299dc6  ./manifest.md
 7986a489b77ad26f7174b200b651964e43fd60c2fe2e1f836d0d0485540a8aa9  ./test-output.txt
-55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1  /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
 d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  /home/kupipi/Documents/git/strata/build-hip/strata
+55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1  /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
