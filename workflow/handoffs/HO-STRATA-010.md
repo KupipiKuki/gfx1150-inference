@@ -50,9 +50,13 @@ and S5 have a fixed target and an exact-token gate.
    engine's tokenizer) must encode/decode the three prompts to the **same IDs** as
    the reference. Record the table. A mismatch here invalidates every later token
    comparison, so it is a hard gate.
-5. **Reference runs** for both packs, greedy, 16 tokens, from the P1 token IDs:
-   - Mixtral 8x7B Q3_K_M;
-   - DeepSeek-MoE-16B Q4_K_M.
+5. **Reference runs**, greedy, 16 tokens, from the P1 token IDs:
+   - **DeepSeek-MoE-16B Q4_K_M** — in scope;
+   - **Mixtral 8x7B Q3_K_M — deferred** (2026-11-18): the TheBloke pack is the
+     2023 per-expert layout and current llama.cpp refuses it
+     (`check_tensor_dims: tensor 'blk.0.ffn_down_exps.weight' not found`).
+     Proving the harness on one family is sufficient for S0; Mixtral's oracle
+     waits for a stacked-format pack (DEC-029).
    Save: token IDs, per-layer dumps for a 4-token prompt, logits for the 16 steps
    (or top-2 per step), and the wall time as an observation only.
 
@@ -72,8 +76,8 @@ and S5 have a fixed target and an exact-token gate.
 |---|---|---|
 | 1 | llama.cpp pinned and built; provenance recorded | tag + commit + flags + binary SHA256 in `manifest.md` |
 | 2 | Harness reproduces the same IDs on two consecutive runs of the same input | run twice, `diff` empty |
-| 3 | Tokenizer parity: all 3 prompts, both families, zero ID differences vs the reference | parity table with the ID lists side by side |
-| 4 | Reference token IDs for both families, P1, 16 tokens | `gen:` lines, both saved |
+| 3 | Tokenizer parity: all 3 prompts, DeepSeek, zero ID differences vs the reference | parity table with the ID lists side by side |
+| 4 | Reference token IDs for DeepSeek, P1, 16 tokens (Mixtral deferred, DEC-029) | `gen:` line saved |
 | 5 | Per-layer dumps exist with the documented shape and are non-degenerate | shape line + `sha256` + a sanity check that consecutive layers differ |
 | 6 | Logits/top-2 dumps exist for the 16 steps | files present, shapes printed |
 | 7 | Harness script committed and runnable from a clean checkout of the workflow repo | command in `commands.log`, exit 0 |

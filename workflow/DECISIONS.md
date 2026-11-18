@@ -605,3 +605,25 @@ this file did not happen.
 - **Consequences:** the plan's estimate gets a real data point; the owner decides
   on S1 with the oracle in hand; DEC-016 remains for recognition and support.
 - **Affected:** HO-STRATA-010, `STATUS.md`, DEC-016, DEC-027.
+
+## DEC-029 — Mixtral oracle deferred: the downloaded pack is the legacy tensor layout
+
+- **Date:** 2026-11-18
+- **Context:** S0 (HO-STRATA-010) built a llama.cpp oracle at tag `b12527`. The
+  DeepSeek-MoE pack loads and decodes; the TheBloke Mixtral-8x7B Q3_K_M pack is
+  refused: `check_tensor_dims: tensor 'blk.0.ffn_down_exps.weight' not found`.
+  The pack stores experts per expert (`blk.N.ffn_down.E.weight`), the 2023
+  layout; current llama.cpp expects the stacked `_exps` form.
+- **Decision:**
+  - S0 is **narrowed to DeepSeek**; one family is enough to prove the harness,
+    the tokenizer gate and the dumps.
+  - Mixtral's parity target must be a **stacked-format** GGUF. The legacy pack is
+    recorded as format-incompatible in `workflow/MODELS.md`, not as "Mixtral
+    unsupported".
+  - Whether the Strata engine should also accept the legacy layout is a separate
+    scope question; default position: target the modern format.
+- **Consequences:** no extra download for S0; if Mixtral is to be the first
+  family, the owner fetches a modern pack (~19 GB at Q3/Q4). DeepSeek parity work
+  can start as soon as S0 closes.
+- **Affected:** HO-STRATA-010, `workflow/MODELS.md`, `planning/strata-engine/13`,
+  DEC-027, DEC-028.

@@ -1,0 +1,2 @@
+542d24532f63219db9f530bd2819be9c74f514919ab661dc5162cef844bac38b  /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf
+f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5  /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
