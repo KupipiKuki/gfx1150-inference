@@ -590,3 +590,18 @@ this file did not happen.
   estimate with its basis); the qwen baselines are protected by A6; no
   performance claim is introduced.
 - **Affected:** `planning/strata-engine/13`, DEC-016, DEC-021, `STATUS.md`.
+## DEC-028 — S0 authorized: reference oracle only; family work stays held
+
+- **Date:** 2026-11-18
+- **Context:** the owner chose **S0** from DEC-027's three options: build the
+  reference oracle and parity harness, change no engine code.
+- **Decision:** lift DEC-016 **for S0 only** (HO-STRATA-010). Scope: pin and build
+  llama.cpp, write the harness, prove tokenizer parity for three fixed prompts on
+  both packs, and record reference tokens, per-layer dumps and logits.
+  S1 (recognition) and everything after stay **held**.
+- **Why S0 first:** it cannot affect the signed baselines (no engine change), it
+  produces the target every later gate compares against, and it catches a
+  tokenizer mismatch before it can masquerade as a model bug.
+- **Consequences:** the plan's estimate gets a real data point; the owner decides
+  on S1 with the oracle in hand; DEC-016 remains for recognition and support.
+- **Affected:** HO-STRATA-010, `STATUS.md`, DEC-016, DEC-027.
