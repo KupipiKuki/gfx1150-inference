@@ -178,6 +178,7 @@ int main(int argc, char ** argv) {
 
     llama_backend_init();
     llama_numa_init(GGML_NUMA_STRATEGY_DISABLED);
+    llama_log_set([](enum ggml_log_level, const char *, void *) {}, nullptr);
 
     llama_model_params mparams = llama_model_default_params();
     mparams.n_gpu_layers = 0; // CPU-only oracle
@@ -273,20 +274,23 @@ int main(int argc, char ** argv) {
     if (state.collect_layers && !state.layer_data.empty()) {
         std::sort(state.layer_order.begin(), state.layer_order.end());
         const int n_layer = static_cast<int>(state.layer_order.size());
-        const int n_pos = state.last_n_tokens;
         const int n_embd = state.n_embd_expected;
+        const int n_tok = static_cast<int>(prompt_ids.size());
         std::ofstream f(dump_layers_path, std::ios::binary);
         if (!f) {
             std::fprintf(stderr, "error: cannot open %s\n", dump_layers_path.c_str());
         } else {
-            for (int p = 0; p < n_pos; ++p) {
+            std::vector<float> zero(n_embd, 0.f);
+            for (int t = 0; t < n_tok; ++t) {
                 for (int il : state.layer_order) {
                     const auto & layer = state.layer_data[il];
-                    const float * row = layer.data() + static_cast<size_t>(p) * n_embd;
-                    f.write(reinterpret_cast<const char *>(row), static_cast<std::streamsize>(n_embd * sizeof(float)));
+                    const int rows = static_cast<int>(layer.size() / n_embd);
+                    const int r = t - (n_tok - rows);
+                    const float * src = (r >= 0) ? layer.data() + static_cast<size_t>(r) * n_embd : zero.data();
+                    f.write(reinterpret_cast<const char *>(src), static_cast<std::streamsize>(n_embd * sizeof(float)));
                 }
             }
-            std::printf("layers shape: [%d][%d][%d]  file: %s\n", n_pos, n_layer, n_embd, dump_layers_path.c_str());
+            std::printf("layers shape: [%d][%d][%d]  file: %s\n", n_tok, n_layer, n_embd, dump_layers_path.c_str());
         }
         state.clear_layers();
     }

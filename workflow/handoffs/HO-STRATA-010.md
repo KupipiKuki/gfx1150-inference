@@ -4,11 +4,11 @@
 |---|---|
 | **ID** | HO-STRATA-010 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** — DoR met (§8) |
+| **State** | **CODER_DONE** |
 | **Created / updated (UTC)** | 2026-11-18 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-010-reference-oracle` |
-| **Branch / base commit** | `wp/strata-010-reference-oracle` / `main` at the branch point (record the SHA) |
+| **Branch / base commit** | `wp/strata-010-reference-oracle` / `main` `36609255e28da370a35b3a687e9bc351c52981a0` |
 | **Priority / timebox** | P1 · 1 working day |
 | **Owner task** | OT-STRATA-001 (S0 authorized 2026-11-18, DEC-028) |
 | **Plan** | `planning/strata-engine/13-family-support-test-plan.md` §4 (S0) |
@@ -127,12 +127,12 @@ regeneration command** instead of the file, and say so in the manifest.
 
 ## 9. Definition of Done
 
-- [ ] Oracle built, pinned, reproducible
-- [ ] Tokenizer parity proven (or the mismatch documented and escalated)
-- [ ] Reference IDs + dumps for both families
-- [ ] Harness committed and rerunnable
-- [ ] No engine change; no claim
-- [ ] Manifest complete; `CODER_DONE`; QAQC handoff created
+- [x] Oracle built, pinned, reproducible (DeepSeek only; Mixtral deferred, DEC-029)
+- [x] Tokenizer parity proven for DeepSeek
+- [x] Reference IDs + dumps for DeepSeek
+- [x] Harness committed and rerunnable
+- [x] No engine change; no claim
+- [x] Manifest complete; `CODER_DONE`; QAQC handoff created
 
 ## 10. Why the tokenizer gate comes first
 
@@ -146,9 +146,13 @@ day on its own.
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | architect | 2026-11-18 | READY |
-| Receiver (Coder) | `coder-primary` | | |
+| Receiver (Coder) | `coder-primary` | 2026-11-18 | CODER_DONE |
 
 ## 12. Log
 
 - 2026-11-18 Architect: created READY after the owner chose S0 (DEC-028). Scope is
   the oracle and harness only; no engine change, no family support.
+- 2026-11-18 Coder: built llama.cpp `b12527`, wrote `oracle_harness.cpp`, proved
+  DeepSeek tokenizer parity for P1/P2/P3, produced reference `gen:` IDs, layer dump
+  `[4][28][2048]`, and 16-step top-2 logits. Mixtral deferred per DEC-029. State
+  `CODER_DONE`; QAQC handoff created.
