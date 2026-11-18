@@ -10,3 +10,5 @@ eee7093bb547b860e88b63d9e0d20d8fcec37beadec01a71112d6825a7568378  workflow/evide
 5334baef84380f6060f8b1c4afda5fd45d367e9065ecdf2c6e4ea0642153fb2e  workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin
 dd72817354607116044b057f02f495f78543a4e7fc26871f0f07bb9d2c52acf6  workflow/evidence/HO-STRATA-010/commands.log
 2bfe2d0d0bad562d5154c816a830adf4c1b2b06a762df880789f52f2596083ea  workflow/evidence/HO-STRATA-010/test-output.txt
+1757f094a344ecd8d9a4a77ca891f5274e631bb1bc9ab27dc5c19332cb525b69  workflow/evidence/HO-STRATA-010/manifest.md
+1459853277685c669adb036ea527526ccb819a6502aafa8ff9b920e873f99e7c  workflow/evidence/HO-STRATA-010/hashes-notes.txt

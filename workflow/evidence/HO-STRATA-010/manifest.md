@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | **Handoff** | HO-STRATA-010 |
-| **Commit / branch** | `068e8fe` / `wp/strata-010-reference-oracle` (to be updated after final commit) |
+| **Commit / branch** | `56a1eb8969f1480ae799e4fba2ae6d8be1c17a24` / `wp/strata-010-reference-oracle` |
 | **Author / date (UTC)** | coder-primary / 2026-11-18 |
 | **Environment** | Ubuntu 24.04, Linux 7.0.0-42-generic, GCC 13.3.0, Python 3.14.10, CPU-only |
 | **Working directory** | `/home/kupipi/Documents/git/gfx1150-inference` |
