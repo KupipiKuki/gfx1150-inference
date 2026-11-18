@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-008 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **REWORK** — `RW-HO-STRATA-008-1`: the first attempts were refused by the generic CLI parser (`--n` is qwen35-only), so the engine never reached either model |
+| **State** | **DONE** (SIGNED 2026-11-18) — READY → CODER_DONE → REWORK (`RW-008-1`) → CODER_DONE → **DONE** (DEC-026) |
 | **Created / updated (UTC)** | 2026-11-18 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-008-family-probe` |
@@ -156,3 +156,11 @@ DEC-024).
   Both exited 2 with `unknown argument: --n`; classified REFUSED. No fallback
   (not allocation/OOM). Evidence bundle complete under
   `workflow/evidence/HO-STRATA-008/`; QAQC handoff created.
+- 2026-11-18 Coder (RW-008-1): re-ran with the generic parser (`--max-new 8`);
+  both files **REFUSED** before allocation —
+  `--native requires --ple-gguf … no shard … holds per_layer_token_embd.weight`;
+  evidence refreshed; commit `3eafe26`. State field was left at `REWORK`;
+  corrected by the architect at the gate.
+- 2026-11-18 Architect: **SIGNED** → `DONE`; DEC-026. The refusal is a loader
+  contract (PLE is mandatory on the generic path), not a missing family string;
+  no silent fallback occurred. Support scoping stays in HO-006 under DEC-016.
