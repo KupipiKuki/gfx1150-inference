@@ -439,3 +439,30 @@ this file did not happen.
   evidence and guard rails. WAIVER-001 is unchanged.
 - **Affected:** `MODEL_POLICY.md` §3 (drafting rule), DEC-022, WAIVER-001,
   HO-STRATA-005 (the precedent).
+
+## DEC-025 — Next phase prepared: model inventory + a bounded family probe
+
+- **Date:** 2026-11-18
+- **Context:** the owner downloaded the alternate (smaller) quants — Mixtral 8x7B
+  Q3_K_M (18.96 GiB) and DeepSeek-MoE-16B Q4_K_M (10.10 GiB) — and asked to
+  prepare the next development phase. Both files are intact (SHA256 matches the
+  LFS objects). The signed engine lists only `qwen4exp qwen35moe`.
+- **Decision:**
+  1. Register every pack in `workflow/MODELS.md` with size, SHA256, GGUF arch and
+     support status, so evidence bundles cite one source instead of restating
+     paths.
+  2. Prepare **HO-STRATA-008**, a bounded probe: one load-and-generate attempt per
+     family on the signed binary, classified as REFUSED,
+     LOADED-UNSUPPORTED, or FAILED-OTHER, with raw output. No source change, no
+     flag tuning, no support work.
+  3. **Implementation stays held (DEC-016).** The probe is evidence for DEC-021
+     trigger T1; it does not authorize family support, a fork, or HO-006.
+- **Why a probe and not a test:** the Mixtral GGUF reports arch `llama`. If the
+  engine has a generic llama path, it could load and emit plausible text — a
+  silent wrong-path success that looks like support. The probe distinguishes that
+  from a clean refusal before anyone invests in support work.
+- **Consequences:** the next phase has a concrete first step with a defined
+  stopping point; the hold remains until the result is reviewed and the owner
+  decides whether T1 fired.
+- **Affected:** `workflow/MODELS.md`, HO-STRATA-008, `STATUS.md`, DEC-016,
+  DEC-021.
