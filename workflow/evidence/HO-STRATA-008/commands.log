@@ -812,3 +812,209 @@ Mixtral Q3_K_M: exit 2, REFUSED, justifying line: "unknown argument: --n"
 DeepSeek Q4_K_M: exit 2, REFUSED, justifying line: "unknown argument: --n"
 No fallback performed: failure is CLI parse error, not allocation/OOM.
 No tokens generated for either family.
+=== Mixtral Q3_K_M generic attempt ===
+timestamp: 2026-11-18T04:24:02Z
+model: /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf
+pre amd-smi metric:
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 480 MB
+        FREE_VRAM: 1568 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 480 MB
+        FREE_VISIBLE_VRAM: 1568 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+pre dmesg tail:
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- command ---
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib timeout 600 ./build-hip/strata --native /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf --tokens 760,6511,314,9338,369 --max-new 8 --max-context 512
+exit=2
+--- during amd-smi metric (best effort) ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+--- post amd-smi metric ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+--- post dmesg tail ---
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- first lines of stdout ---
+
+--- first lines of stderr ---
+strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight
+
+=== DeepSeek Q4_K_M generic attempt ===
+timestamp: 2026-11-18T04:24:04Z
+model: /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+pre amd-smi metric:
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 45 MB
+        FREE_GTT: 47028 MB
+
+
+pre dmesg tail:
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- command ---
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib timeout 600 ./build-hip/strata --native /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf --tokens 760,6511,314,9338,369 --max-new 8 --max-context 512
+exit=2
+--- during amd-smi metric (best effort) ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 45 MB
+        FREE_GTT: 47028 MB
+
+
+--- post amd-smi metric ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 45 MB
+        FREE_GTT: 47028 MB
+
+
+--- post dmesg tail ---
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- first lines of stdout ---
+
+--- first lines of stderr ---
+strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight
+
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+=== clean checkout proof ===
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+=== --families re-run ===
+qwen4exp qwen35moe
+
+=== binary SHA256 ===
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  /home/kupipi/Documents/git/strata/build-hip/strata
+=== git HEAD ===
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+=== gfx1150-inference HEAD ===
+3b8d1ec59cad9cdc9a7dbb46f70a3270c2676570

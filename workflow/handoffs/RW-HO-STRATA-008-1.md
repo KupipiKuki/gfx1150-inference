@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | RW-HO-STRATA-008-1 |
 | **Type** | REWORK |
-| **State** | **OPEN** |
+| **State** | **CODER_DONE** |
 | **Created (UTC)** | 2026-11-18 |
 | **From → To** | Architect → Primary Coder |
 | **Original handoff** | HO-STRATA-008 (`CODER_DONE`, commit `deb4b90`) |
@@ -103,3 +103,17 @@ on this criterion escalates to the owner.
 
 - 2026-11-18 Architect: opened after reading `commands.log:524` and the engine's
   family switch; the `--n` refusal proves the CLI path, not the model outcome.
+- 2026-11-18 Primary Coder: accepted; re-ran both GGUFs with the generic-parser
+  flag set (`--max-new 8`). Both attempts reached model validation and were
+  refused with `--native requires --ple-gguf ... no shard of the model holds
+  per_layer_token_embd.weight`. First-attempt artifacts retained and labelled
+  "CLI parse — family path not reached". Evidence refreshed in
+  `workflow/evidence/HO-STRATA-008/`; `manifest.md`, `commands.log`,
+  `test-output.txt`, `hashes.txt`, `hashes-notes.txt` updated. No source edits,
+  no rebuild, no fallback, no support claim.
+
+## 8. Coder acknowledgment
+
+| Role | Date | Note |
+|---|---|---|
+| Primary Coder | 2026-11-18 | Fix complete; evidence attached; ready for architect re-check per RW-008-1 §6. |
