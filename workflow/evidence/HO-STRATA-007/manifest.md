@@ -40,7 +40,7 @@
 
 | Artifact | Path | SHA256 |
 |---|---|---|
-| model pack (not in git) | `/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` | `55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1` (license: `Apache 2.0: https://huggingface.co/Qwen/Qwen3.6-35B-A3B`, `setup.py:758`) |
+| model pack (not in git) | `/home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` (signed run used `/tmp/opencode/qwen36/`, since cleaned) | `55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1` (license: `Apache 2.0: https://huggingface.co/Qwen/Qwen3.6-35B-A3B`, `setup.py:758`) |
 | signed engine binary | `/home/kupipi/Documents/git/strata/build-hip/strata` | `d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858` |
 | prompt text | `artifacts/prompt.txt` | `0b8b55f996e7040d630079da36b3f1e0f08dffa8d014c9e5dada28b80396cbc4` |
 | prompt token IDs | `artifacts/prompt-token-ids.txt` | `e70bdc1bb2837068ae9ebde778d1c8a08f3bae2ee28f927df2bdcb24539037b7` |
@@ -63,7 +63,8 @@
 - `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib` is required; without it the binary exits 127 with missing shared libraries.
 - `HSA_OVERRIDE_GFX_VERSION` was not set.
 - Model weights are not committed; only hashes are in git.
-- The model file is at `/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` (22,853,663,008 B; 21.28 GiB / 22.85 GB) and will persist only on this host.
+- The signed run read the pack from `/tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` (22,853,663,008 B; 21.28 GiB / 22.85 GB); that temporary copy was cleaned by the host after the run.
+- **Post-signoff (2026-11-17):** the same pack is now at `/home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` with a re-verified digest; see `artifacts/model-reverify.txt`. Provenance only — no measurement or claim changed.
 
 ## 6. Statement
 
