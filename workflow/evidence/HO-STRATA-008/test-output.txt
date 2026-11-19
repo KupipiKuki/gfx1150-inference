@@ -1,0 +1,86 @@
+=== HO-STRATA-008 family probe (refreshed after RW-HO-STRATA-008-1) ===
+date: 2026-11-18T04:24Z
+command prefix (generic parser): 
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native <GGUF> --tokens 760,6511,314,9338,369 --max-new 8 --max-context 512
+engine families: qwen4exp qwen35moe
+binary SHA256: d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858
+Strata HEAD: baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+gfx1150-inference evidence branch: wp/strata-008-family-probe @ 3b8d1ec59cad9cdc9a7dbb46f70a3270c2676570
+
+Parser split: only GGUFs with architecture `qwen35moe` dispatch to the qwen35 path
+(`src/program/generate.cpp:3644-3656`), which accepts `--n`. All other architectures
+use the generic parser (`src/program/generate.cpp`), which accepts `--max-new` and
+rejects `--n`. The first attempt therefore never reached either model.
+
+=== Attempt 1a: Mixtral-8x7B-v0.1 Q3_K_M (CLI parse, --n) ===
+GGUF arch (per MODELS.md): llama
+path: /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf
+size/SHA256: 20363355584 bytes / 542d24532f63219db9f530bd2819be9c74f514919ab661dc5162cef844bac38b
+
+--- engine stdout ---
+(empty)
+
+--- engine stderr (first 40 lines) ---
+unknown argument: --n
+strata generate --pack DIR --tokens "1,2,3" [options]
+...
+exit: 2
+classification: CLI parse — family path not reached
+justifying line: "unknown argument: --n"
+
+=== Attempt 1b: DeepSeek-MoE-16B-base Q4_K_M (CLI parse, --n) ===
+GGUF arch (per MODELS.md): deepseek
+path: /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+size/SHA256: 10850181856 bytes / f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5
+
+--- engine stdout ---
+(empty)
+
+--- engine stderr (first 40 lines) ---
+unknown argument: --n
+strata generate --pack DIR --tokens "1,2,3" [options]
+...
+exit: 2
+classification: CLI parse — family path not reached
+justifying line: "unknown argument: --n"
+
+=== Attempt 2a: Mixtral-8x7B-v0.1 Q3_K_M (generic parser, --max-new) ===
+GGUF arch (per MODELS.md): llama
+path: /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf
+size/SHA256: 20363355584 bytes / 542d24532f63219db9f530bd2819be9c74f514919ab661dc5162cef844bac38b
+
+--- engine stdout ---
+(empty)
+
+--- engine stderr ---
+strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight
+
+exit: 2
+classification: REFUSED
+justifying line: "strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight"
+tokens: none
+
+=== Attempt 2b: DeepSeek-MoE-16B-base Q4_K_M (generic parser, --max-new) ===
+GGUF arch (per MODELS.md): deepseek
+path: /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+size/SHA256: 10850181856 bytes / f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5
+
+--- engine stdout ---
+(empty)
+
+--- engine stderr ---
+strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight
+
+exit: 2
+classification: REFUSED
+justifying line: "strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight"
+tokens: none
+
+=== Summary ===
+- First attempts (using --n): CLI parse failure before model inspection.
+- Generic-parser attempts (using --max-new): engine reached model validation and
+  refused because --native requires a PLE key that these non-qwen35moe GGUFs do not
+  provide.
+- No tokens generated for any attempt.
+- No fallback performed: failure is not allocation/OOM or timeout.
+- No performance/support/quality claim is made.

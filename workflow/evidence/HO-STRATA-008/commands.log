@@ -1,0 +1,1020 @@
+=== HO-STRATA-008 environment capture ===
+date: 2026-11-18T04:06:36Z
+
+cwd: /home/kupipi/Documents/git/strata
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib
+--- binary hash ---
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+
+--- git status (clean checkout proof) ---
+
+--- HEAD ---
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+
+--- rocminfo ---
+[37mROCk module is loaded[0m
+=====================    
+HSA System Attributes    
+=====================    
+Runtime Version:         1.21
+Runtime Ext Version:     1.32
+System Timestamp Freq.:  1000.000000MHz
+Sig. Max Wait Duration:  18446744073709551615 (0xFFFFFFFFFFFFFFFF) (timestamp count)
+Machine Model:           LARGE                              
+System Endianness:       LITTLE                             
+Mwaitx:                  ENABLED
+XNACK enabled:           NO
+DMAbuf Support:          YES
+VMM Support:             YES
+Fabric Support:          NO
+
+==========               
+HSA Agents               
+==========               
+*******                  
+Agent 1                  
+*******                  
+  Name:                    AMD Ryzen AI 9 HX 370 w/ Radeon 890M
+  Uuid:                    CPU-XX                             
+  Marketing Name:          AMD Ryzen AI 9 HX 370 w/ Radeon 890M
+  Vendor Name:             CPU                                
+  Feature:                 None specified                     
+  Profile:                 FULL_PROFILE                       
+  Float Round Mode:        NEAR                               
+  Max Queue Number:        0(0x0)                             
+  Queue Min Size:          0(0x0)                             
+  Queue Max Size:          0(0x0)                             
+  Queue Type:              MULTI                              
+  Node:                    0                                  
+  Device Type:             CPU                                
+  Cache Info:              
+    L1:                      49152(0xc000) KB                   
+  Chip ID:                 0(0x0)                             
+  ASIC Revision:           0(0x0)                             
+  Cacheline Size:          64(0x40)                           
+  Max Clock Freq. (MHz):   5157                               
+  BDFID:                   0                                  
+  Internal Node ID:        0                                  
+  Compute Unit:            24                                 
+  SIMDs per CU:            0                                  
+  Shader Engines:          0                                  
+  Shader Arrs. per Eng.:   0                                  
+  WatchPts on Addr. Ranges:1                                  
+  Memory Properties:       
+  Features:                None
+  Pool Info:               
+    Pool 1                   
+      Segment:                 GLOBAL; FLAGS: FINE GRAINED        
+      Size:                    96406208 (0x5bf0ac0) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 2                   
+      Segment:                 GLOBAL; FLAGS: EXTENDED FINE GRAINED
+      Size:                    96406208 (0x5bf0ac0) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 3                   
+      Segment:                 GLOBAL; FLAGS: KERNARG, FINE GRAINED
+      Size:                    96406208 (0x5bf0ac0) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 4                   
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED      
+      Size:                    96406208 (0x5bf0ac0) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+  ISA Info:                
+*******                  
+Agent 2                  
+*******                  
+  Name:                    gfx1150                            
+  Uuid:                    GPU-XX                             
+  Marketing Name:          AMD Radeon 890M Graphics           
+  Vendor Name:             AMD                                
+  Feature:                 KERNEL_DISPATCH                    
+  Profile:                 BASE_PROFILE                       
+  Float Round Mode:        NEAR                               
+  Max Queue Number:        128(0x80)                          
+  Queue Min Size:          64(0x40)                           
+  Queue Max Size:          131072(0x20000)                    
+  Queue Type:              MULTI                              
+  Node:                    1                                  
+  Device Type:             GPU                                
+  Cache Info:              
+    L1:                      32(0x20) KB                        
+    L2:                      2048(0x800) KB                     
+  Chip ID:                 5390(0x150e)                       
+  ASIC Revision:           4(0x4)                             
+  Cacheline Size:          128(0x80)                          
+  Max Clock Freq. (MHz):   2900                               
+  BDFID:                   50432                              
+  Internal Node ID:        1                                  
+  Compute Unit:            16                                 
+  SIMDs per CU:            2                                  
+  Shader Engines:          1                                  
+  Shader Arrs. per Eng.:   2                                  
+  WatchPts on Addr. Ranges:4                                  
+  Coherent Host Access:    FALSE                              
+  Memory Properties:       APU
+  Features:                KERNEL_DISPATCH 
+  Fast F16 Operation:      TRUE                               
+  Wavefront Size:          32(0x20)                           
+  Workgroup Max Size:      1024(0x400)                        
+  Workgroup Max Size per Dimension:
+    x                        1024(0x400)                        
+    y                        1024(0x400)                        
+    z                        1024(0x400)                        
+  Max Waves Per CU:        32(0x20)                           
+  Max Work-item Per CU:    1024(0x400)                        
+  Grid Max Size:           2147483647(0x7fffffff)             
+  Grid Max Size per Dimension:
+    x                        2147483647(0x7fffffff)             
+    y                        65535(0xffff)                      
+    z                        65535(0xffff)                      
+  Max fbarriers/Workgrp:   32                                 
+  Packet Processor uCode:: 31                                 
+  SDMA engine uCode::      14                                 
+  IOMMU Support::          None                               
+  Pool Info:               
+    Pool 1                   
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED      
+      Size:                    48203104 (0x2df8560) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:2048KB                             
+      Alloc Alignment:         4KB                                
+      Accessible by all:       FALSE                              
+    Pool 2                   
+      Segment:                 GLOBAL; FLAGS: EXTENDED FINE GRAINED
+      Size:                    48203104 (0x2df8560) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:2048KB                             
+      Alloc Alignment:         4KB                                
+      Accessible by all:       FALSE                              
+    Pool 3                   
+      Segment:                 GROUP                              
+      Size:                    64 (0x40) KB                       
+      Allocatable:             FALSE                              
+      Alloc Granule:           0KB                                
+      Alloc Recommended Granule:0KB                                
+      Alloc Alignment:         0KB                                
+      Accessible by all:       FALSE                              
+  ISA Info:                
+    ISA 1                    
+      Name:                    amdgcn-amd-amdhsa--gfx1150         
+      Machine Models:          HSA_MACHINE_MODEL_LARGE            
+      Profiles:                HSA_PROFILE_BASE                   
+      Default Rounding Mode:   NEAR                               
+      Default Rounding Mode:   NEAR                               
+      Fast f16:                TRUE                               
+      Workgroup Max Size:      1024(0x400)                        
+      Workgroup Max Size per Dimension:
+        x                        1024(0x400)                        
+        y                        1024(0x400)                        
+        z                        1024(0x400)                        
+      Grid Max Size:           18446744073709551615 (0xffffffffffffffff) 
+      Grid Max Size per Dimension:
+        x                        2147483647(0x7fffffff)             
+        y                        65535(0xffff)                      
+        z                        65535(0xffff)                      
+      FBarrier Max Size:       32                                 
+    ISA 2                    
+      Name:                    amdgcn-amd-amdhsa--gfx11-generic   
+      Machine Models:          HSA_MACHINE_MODEL_LARGE            
+      Profiles:                HSA_PROFILE_BASE                   
+      Default Rounding Mode:   NEAR                               
+      Default Rounding Mode:   NEAR                               
+      Fast f16:                TRUE                               
+      Workgroup Max Size:      1024(0x400)                        
+      Workgroup Max Size per Dimension:
+        x                        1024(0x400)                        
+        y                        1024(0x400)                        
+        z                        1024(0x400)                        
+      Grid Max Size:           18446744073709551615 (0xffffffffffffffff) 
+      Grid Max Size per Dimension:
+        x                        2147483647(0x7fffffff)             
+        y                        65535(0xffff)                      
+        z                        65535(0xffff)                      
+      FBarrier Max Size:       32                                 
+*******                  
+Agent 3                  
+*******                  
+  Name:                    aie2p                              
+  Uuid:                    AIE-XX                             
+  Marketing Name:          RyzenAI-npu4                       
+  Vendor Name:             AMD                                
+  Feature:                 AGENT_DISPATCH                     
+  Profile:                 BASE_PROFILE                       
+  Float Round Mode:        NEAR                               
+  Max Queue Number:        1(0x1)                             
+  Queue Min Size:          64(0x40)                           
+  Queue Max Size:          64(0x40)                           
+  Queue Type:              SINGLE                             
+  Node:                    0                                  
+  Device Type:             DSP                                
+  Cache Info:              
+    L2:                      2048(0x800) KB                     
+  Chip ID:                 0(0x0)                             
+  ASIC Revision:           0(0x0)                             
+  Cacheline Size:          0(0x0)                             
+  Max Clock Freq. (MHz):   0                                  
+  BDFID:                   0                                  
+  Internal Node ID:        0                                  
+  Compute Unit:            0                                  
+  SIMDs per CU:            0                                  
+  Shader Engines:          0                                  
+  Shader Arrs. per Eng.:   0                                  
+  WatchPts on Addr. Ranges:0                                  
+  Memory Properties:       
+  Features:                AGENT_DISPATCH
+  Pool Info:               
+    Pool 1                   
+      Segment:                 GLOBAL; FLAGS: KERNARG, COARSE GRAINED
+      Size:                    96406208 (0x5bf0ac0) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 2                   
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED      
+      Size:                    65536 (0x10000) KB                 
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:0KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+    Pool 3                   
+      Segment:                 GLOBAL; FLAGS: COARSE GRAINED      
+      Size:                    96406208 (0x5bf0ac0) KB            
+      Allocatable:             TRUE                               
+      Alloc Granule:           4KB                                
+      Alloc Recommended Granule:4KB                                
+      Alloc Alignment:         4KB                                
+      Accessible by all:       TRUE                               
+  ISA Info:                
+*** Done ***             
+
+--- hipcc ---
+HIP version: 7.16.26385-0000000
+AMD clang version 24.0.0git (https://github.com/ROCm/llvm-project.git d6f6cb691863e9258034ab48c1dfce21689d5606)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /opt/rocm/core-10.1/lib/llvm/bin
+Configuration file: /opt/rocm/core-10.1/lib/llvm/bin/clang++.cfg
+
+--- amd-smi static ---
+GPU: 0
+    ASIC:
+        MARKET_NAME: AMD Radeon 890M Graphics
+        VENDOR_ID: 0x1002
+        VENDOR_NAME: Advanced Micro Devices Inc. [AMD/ATI]
+        SUBVENDOR_ID: 0x1f4c
+        DEVICE_ID: 0x150e
+        SUBSYSTEM_ID: 0xb020
+        REV_ID: 0xc1
+        CHIP_REV_ID: 0x04
+        EXTERNAL_REV_ID: 0x14
+        ASIC_SERIAL: N/A
+        OAM_ID: N/A
+        PHYSICAL_ACC_ID: N/A
+        NUM_COMPUTE_UNITS: 16
+        TARGET_GRAPHICS_VERSION: gfx1150
+        FLAGS: 25
+    BUS:
+        BDF: 0000:c5:00.0
+        MAX_PCIE_WIDTH: 16
+        MAX_PCIE_SPEED: 16 GT/s
+        PCIE_LEVELS: N/A
+        PCIE_INTERFACE_VERSION: Gen 4
+        SLOT_TYPE: PCIE
+    IFWI:
+        NAME: AMD STRIX_B0_GENERIC
+        BUILD_DATE: 2024/12/19 14:56
+        PART_NUMBER: 113-STRIXEMU-001
+        VERSION: 00133300
+        BOOT_FIRMWARE: 023.010.001.022.000001
+    LIMIT:
+        PPT0:
+            MAX_POWER_LIMIT: N/A
+            MIN_POWER_LIMIT: N/A
+            SOCKET_POWER_LIMIT: N/A
+        PPT1:
+            MAX_POWER_LIMIT: N/A
+            MIN_POWER_LIMIT: N/A
+            SOCKET_POWER_LIMIT: N/A
+        SLOWDOWN_EDGE_TEMPERATURE: N/A
+        SLOWDOWN_HOTSPOT_TEMPERATURE: N/A
+        SLOWDOWN_VRAM_TEMPERATURE: N/A
+        SHUTDOWN_EDGE_TEMPERATURE: N/A
+        SHUTDOWN_HOTSPOT_TEMPERATURE: N/A
+        SHUTDOWN_VRAM_TEMPERATURE: N/A
+        PTL_STATE: N/A
+        PTL_FORMAT: N/A
+    DRIVER:
+        NAME: amdgpu
+        VERSION: N/A
+        OS_KERNEL_VERSION: 7.0.0-42-generic
+    BOARD:
+        MODEL_NUMBER: N/A
+        PRODUCT_SERIAL: N/A
+        FRU_ID: N/A
+        PRODUCT_NAME: N/A
+        MANUFACTURER_NAME: Advanced Micro Devices, Inc. [AMD/ATI]
+    RAS:
+        EEPROM_VERSION: N/A
+        BAD_PAGE_THRESHOLD: N/A
+        BAD_PAGE_THRESHOLD_EXCEEDED: N/A
+        PARITY_SCHEMA: N/A
+        SINGLE_BIT_SCHEMA: N/A
+        DOUBLE_BIT_SCHEMA: N/A
+        POISON_SCHEMA: N/A
+        ECC_BLOCK_STATE: N/A
+    SOC_PSTATE: N/A
+    XGMI_PLPD: N/A
+    PROFILE: AMDSMI_STATUS_NOT_SUPPORTED - Feature not supported
+    PROCESS_ISOLATION: Disabled
+    NUMA:
+        NODE: 0
+        AFFINITY: NONE
+        CPU_AFFINITY: N/A
+        SOCKET_AFFINITY:
+            CPU_LIST_0:
+                BITMASK: 0000000000FFFFFF
+                CPU_CORES_AFFINITY: 0-23
+    VRAM:
+        TYPE: DDR5
+        VENDOR: UNKNOWN
+        SIZE: 2048 MB
+        BIT_WIDTH: 128
+        MAX_BANDWIDTH: N/A 
+    CACHE_INFO:
+        CACHE_0:
+            CACHE_ACRONYM: L1D
+            CACHE_PROPERTIES: DATA_CACHE, SIMD_CACHE
+            CACHE_SIZE: 32 KB
+            CACHE_LEVEL: 1
+            MAX_NUM_CU_SHARED: 1
+            NUM_CACHE_INSTANCE: 16
+            TOTAL_CACHE_SIZE: 512 KB
+        CACHE_1:
+            CACHE_ACRONYM: L1I
+            CACHE_PROPERTIES: INST_CACHE, SIMD_CACHE
+            CACHE_SIZE: 32 KB
+            CACHE_LEVEL: 1
+            MAX_NUM_CU_SHARED: 2
+            NUM_CACHE_INSTANCE: 8
+            TOTAL_CACHE_SIZE: 256 KB
+        CACHE_2:
+            CACHE_ACRONYM: L1D
+            CACHE_PROPERTIES: DATA_CACHE, SIMD_CACHE
+            CACHE_SIZE: 16 KB
+            CACHE_LEVEL: 1
+            MAX_NUM_CU_SHARED: 2
+            NUM_CACHE_INSTANCE: 8
+            TOTAL_CACHE_SIZE: 128 KB
+        CACHE_3:
+            CACHE_ACRONYM: L1D
+            CACHE_PROPERTIES: DATA_CACHE, SIMD_CACHE
+            CACHE_SIZE: 256 KB
+            CACHE_LEVEL: 1
+            MAX_NUM_CU_SHARED: 8
+            NUM_CACHE_INSTANCE: 2
+            TOTAL_CACHE_SIZE: 512 KB
+        CACHE_4:
+            CACHE_ACRONYM: L2
+            CACHE_PROPERTIES: DATA_CACHE, SIMD_CACHE
+            CACHE_SIZE: 2048 KB
+            CACHE_LEVEL: 2
+            MAX_NUM_CU_SHARED: 16
+            NUM_CACHE_INSTANCE: 1
+            TOTAL_CACHE_SIZE: 2048 KB
+    MEM_CARVEOUT: 
+                       [0] Minimum (512 MB)
+                       [1] (1 GB)
+                      *[2] (2 GB)
+                       [3] (4 GB)
+                       [4] (8 GB)
+                       [5] Medium (16 GB)
+                       [6] High (32 GB)
+    CLOCK:
+        SYS:
+            CURRENT_LEVEL: 1
+            FREQUENCY_LEVELS:
+                LEVEL 0: 600 MHz
+                LEVEL 1: 1024 MHz
+                LEVEL 2: 2900 MHz
+        MEM:
+            FREQUENCY_LEVELS:
+                LEVEL 0: 1000 MHz
+                LEVEL 1: 2400 MHz
+                LEVEL 2: 2800 MHz
+        DF:
+            FREQUENCY_LEVELS:
+                LEVEL 0: 500 MHz
+                LEVEL 1: 1050 MHz
+                LEVEL 2: 1100 MHz
+                LEVEL 3: 1400 MHz
+                LEVEL 4: 1500 MHz
+                LEVEL 5: 1600 MHz
+                LEVEL 6: 1800 MHz
+                LEVEL 7: 1960 MHz
+        SOC:
+            FREQUENCY_LEVELS:
+                LEVEL 0: 600 MHz
+                LEVEL 1: 736 MHz
+                LEVEL 2: 883 MHz
+                LEVEL 3: 981 MHz
+                LEVEL 4: 1104 MHz
+                LEVEL 5: 1261 MHz
+                LEVEL 6: 1261 MHz
+                LEVEL 7: 1472 MHz
+        DCEF: N/A
+        VCLK0:
+            CURRENT_LEVEL: 1
+            FREQUENCY_LEVELS:
+                LEVEL 0: 800 MHz
+                LEVEL 1: 800 MHz
+                LEVEL 2: 1605 MHz
+                LEVEL 3: 1766 MHz
+                LEVEL 4: 1962 MHz
+                LEVEL 5: 2208 MHz
+                LEVEL 6: 2523 MHz
+                LEVEL 7: 2944 MHz
+        VCLK1: N/A
+        DCLK0:
+            CURRENT_LEVEL: 0
+            FREQUENCY_LEVELS:
+                LEVEL 0: 800 MHz
+                LEVEL 1: 800 MHz
+                LEVEL 2: 1104 MHz
+                LEVEL 3: 1177 MHz
+                LEVEL 4: 1358 MHz
+                LEVEL 5: 1472 MHz
+                LEVEL 6: 1766 MHz
+                LEVEL 7: 2208 MHz
+        DCLK1: N/A
+
+
+--- amd-smi metric pre-run ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 425 MB
+        FREE_VRAM: 1623 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 425 MB
+        FREE_VISIBLE_VRAM: 1623 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 53 MB
+        FREE_GTT: 47020 MB
+
+
+=== Mixtral Q3_K_M attempt ===
+2026-11-18T04:10:19Z
+pre amd-smi metric:
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 470 MB
+        FREE_VRAM: 1578 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 470 MB
+        FREE_VISIBLE_VRAM: 1578 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+pre dmesg tail:
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- command ---
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib timeout 600 ./build-hip/strata --native /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf --tokens 760,6511,314,9338,369 --n 8 --max-context 512
+exit=2
+
+--- during amd-smi metric (best effort) ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 470 MB
+        FREE_VRAM: 1578 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 470 MB
+        FREE_VISIBLE_VRAM: 1578 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 53 MB
+        FREE_GTT: 47020 MB
+
+
+--- post amd-smi metric ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 470 MB
+        FREE_VRAM: 1578 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 470 MB
+        FREE_VISIBLE_VRAM: 1578 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 51 MB
+        FREE_GTT: 47022 MB
+
+
+--- post dmesg tail ---
+[12055.870836] audit: type=1400 audit(1794965912.206:134): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=28574 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[12116.827452] perf: interrupt took too long (2618 > 2500), lowering kernel.perf_event_max_sample_rate to 76000
+[13421.135494] usb 3-1: USB disconnect, device number 2
+[13730.773065] usb 3-1: new full-speed USB device number 5 using xhci_hcd
+[13730.915967] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[13730.915987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[13730.915990] usb 3-1: Product: 2.4G Keyboard Mouse
+[13730.915993] usb 3-1: Manufacturer: MOSART Semi.
+[13730.943350] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0003/input/input13
+[13731.013797] hid-generic 0003:062A:410A.0003: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- first lines of stdout ---
+
+--- first lines of stderr ---
+unknown argument: --n
+strata generate --pack DIR --tokens "1,2,3" [options]
+
+  --pack DIR           the pack directory (default pack/full)
+  --tokens LIST        the prompt as comma-separated token IDS (required)
+  --tokens-file PATH   pretokenized prompt, commas or whitespace (alternative to --tokens)
+  --gpu LIST           run on these GPUs, comma-separated nvidia-smi/PCI indices (default: every
+                       visible one); sets CUDA_VISIBLE_DEVICES/CUDA_DEVICE_ORDER inside the engine,
+                       so a caller never has to export environment variables
+  --ple-gguf PATH      required PLE table (original second GGUF shard); with --native, the model's
+                       shard that holds per_layer_token_embd.weight when not given
+  --no-ple             explicit diagnostic ablation of the PLE layer
+  --ple-io direct|mmap|ram  n-gram table reads (plan v0.3 P2). direct (default): unbuffered SSD
+                       reads, the table never enters RAM or the file cache; mmap: A/B arm;
+                       ram: the whole table locked in RAM at start (VirtualLock on Windows,
+                       mlock elsewhere), so no SSD read sits on the prompt or token path
+  --ple-row-cache N    bounded cache of fetched rows, 90 B each (default 1048576; 0 = off)
+  --ple-inflight N     outstanding SSD reads (default 256)
+  --ple-delay-us U     fault injection: each row read completes no earlier than U us
+  --ple-sync-submit    A/B arm: submit table reads on the token thread (default: an I/O thread)
+  --kv fp16|int8       KV storage (plan v0.3 P7): int8 codes + fp16 scale per 64 values, half the
+                       VRAM; default fp16 until gate G-C accepts int8
+  --kv q4_0            4-bit K/V after a Hadamard rotation (PR #21): half of int8's memory,
+                       slightly lower precision (see bench/results/2026-09-27-kv-q4)
+  --kv k8v4            hybrid: INT8 K (exact attention scores) + rotated Q4_0 V, 816 B/cell
+                       (vs int8's 1,056); streams with --kv-resident too
+  --kv-resident N      KV streaming: keep N cells of each QSA layer in VRAM (min 20480) and the
+                       whole K/V in pinned RAM; the freed VRAM goes to expert slots. 0 (default):
+                       all of it in VRAM. A context of N cells or fewer is not streamed
+  --kv-grow            the K/V takes VRAM only for the cells the requests reach and the expert
+                       cache holds the rest, giving slots back as the context grows (one GPU, with
+                       --expert-profile; STRATA_KV_GROW=1/0 also). Default: the whole --max-context
+                       allocated at start
+  --stream-token       enqueue token work on the session stream (experimental)
+  --check-logits       copy and check all logits in the stream-token path
+  --gr-fp32-activations  experimental CUDA-oracle GR activation precision
+  --gr-native-mmvf      experimental pinned GR norm/projections; implies FP32 activations
+  --native-bf16         experimental CUDA-oracle SSM/router/indexer BF16 projections
+  --native-bf16-extra   experimental CUDA-oracle PLE/shared gate BF16 projections
+  --native-ple-key      experimental native PLE key; requires --native-dense-gguf
+  --native-moe-combine  experimental pinned CUDA routed/shared combination
+  --native-gdn          experimental pinned CUDA GDN norms/gates/recurrence
+  --native-flash-attn-short  diagnostic pinned vector attention; --max-context <=256
+  --native-qsa-indexer  experimental pinned indexer key cache and pooling
+  --native-qsa          experimental pinned QSA normalization and output gate
+  --native-rope         experimental pinned text-only CUDA rotary arithmetic
+  --native-ple-postops  experimental pinned PLE postprojection arithmetic
+  --native-router       experimental pinned CUDA 512-expert top-10 routing
+  --cpu-oracle-q8-0     experimental pinned CPU expert quantization and dot reduction
+  --native SHARD1      every full-context native path at once (plan v0.3 P1): stream-token,
+
+=== DeepSeek Q4_K_M attempt ===
+2026-11-18T04:12:31Z
+pre amd-smi metric:
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 468 MB
+        FREE_VRAM: 1580 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 468 MB
+        FREE_VISIBLE_VRAM: 1580 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+pre dmesg tail:
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- command ---
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib timeout 600 ./build-hip/strata --native /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf --tokens 760,6511,314,9338,369 --n 8 --max-context 512
+exit=2
+
+--- during amd-smi metric (best effort) ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 470 MB
+        FREE_VRAM: 1578 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 470 MB
+        FREE_VISIBLE_VRAM: 1578 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+--- post amd-smi metric ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 470 MB
+        FREE_VRAM: 1578 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 470 MB
+        FREE_VISIBLE_VRAM: 1578 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+--- post dmesg tail ---
+[12055.870836] audit: type=1400 audit(1794965912.206:134): apparmor="AUDIT" operation="exec" class="file" info="conflicting profile attachments" profile="unconfined" name="/opt/brave.com/brave/brave" pid=28574 comm="ThreadPoolForeg" requested_mask="x" fsuid=1000 ouid=0
+[12116.827452] perf: interrupt took too long (2618 > 2500), lowering kernel.perf_event_max_sample_rate to 76000
+[13421.135494] usb 3-1: USB disconnect, device number 2
+[13730.773065] usb 3-1: new full-speed USB device number 5 using xhci_hcd
+[13730.915967] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[13730.915987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[13730.915990] usb 3-1: Product: 2.4G Keyboard Mouse
+[13730.915993] usb 3-1: Manufacturer: MOSART Semi.
+[13730.943350] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0003/input/input13
+[13731.013797] hid-generic 0003:062A:410A.0003: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- first lines of stdout ---
+
+--- first lines of stderr ---
+unknown argument: --n
+strata generate --pack DIR --tokens "1,2,3" [options]
+
+  --pack DIR           the pack directory (default pack/full)
+  --tokens LIST        the prompt as comma-separated token IDS (required)
+  --tokens-file PATH   pretokenized prompt, commas or whitespace (alternative to --tokens)
+  --gpu LIST           run on these GPUs, comma-separated nvidia-smi/PCI indices (default: every
+                       visible one); sets CUDA_VISIBLE_DEVICES/CUDA_DEVICE_ORDER inside the engine,
+                       so a caller never has to export environment variables
+  --ple-gguf PATH      required PLE table (original second GGUF shard); with --native, the model's
+                       shard that holds per_layer_token_embd.weight when not given
+  --no-ple             explicit diagnostic ablation of the PLE layer
+  --ple-io direct|mmap|ram  n-gram table reads (plan v0.3 P2). direct (default): unbuffered SSD
+                       reads, the table never enters RAM or the file cache; mmap: A/B arm;
+                       ram: the whole table locked in RAM at start (VirtualLock on Windows,
+                       mlock elsewhere), so no SSD read sits on the prompt or token path
+  --ple-row-cache N    bounded cache of fetched rows, 90 B each (default 1048576; 0 = off)
+  --ple-inflight N     outstanding SSD reads (default 256)
+  --ple-delay-us U     fault injection: each row read completes no earlier than U us
+  --ple-sync-submit    A/B arm: submit table reads on the token thread (default: an I/O thread)
+  --kv fp16|int8       KV storage (plan v0.3 P7): int8 codes + fp16 scale per 64 values, half the
+                       VRAM; default fp16 until gate G-C accepts int8
+  --kv q4_0            4-bit K/V after a Hadamard rotation (PR #21): half of int8's memory,
+                       slightly lower precision (see bench/results/2026-09-27-kv-q4)
+  --kv k8v4            hybrid: INT8 K (exact attention scores) + rotated Q4_0 V, 816 B/cell
+                       (vs int8's 1,056); streams with --kv-resident too
+  --kv-resident N      KV streaming: keep N cells of each QSA layer in VRAM (min 20480) and the
+                       whole K/V in pinned RAM; the freed VRAM goes to expert slots. 0 (default):
+                       all of it in VRAM. A context of N cells or fewer is not streamed
+  --kv-grow            the K/V takes VRAM only for the cells the requests reach and the expert
+                       cache holds the rest, giving slots back as the context grows (one GPU, with
+                       --expert-profile; STRATA_KV_GROW=1/0 also). Default: the whole --max-context
+                       allocated at start
+  --stream-token       enqueue token work on the session stream (experimental)
+  --check-logits       copy and check all logits in the stream-token path
+  --gr-fp32-activations  experimental CUDA-oracle GR activation precision
+  --gr-native-mmvf      experimental pinned GR norm/projections; implies FP32 activations
+  --native-bf16         experimental CUDA-oracle SSM/router/indexer BF16 projections
+  --native-bf16-extra   experimental CUDA-oracle PLE/shared gate BF16 projections
+  --native-ple-key      experimental native PLE key; requires --native-dense-gguf
+  --native-moe-combine  experimental pinned CUDA routed/shared combination
+  --native-gdn          experimental pinned CUDA GDN norms/gates/recurrence
+  --native-flash-attn-short  diagnostic pinned vector attention; --max-context <=256
+  --native-qsa-indexer  experimental pinned indexer key cache and pooling
+  --native-qsa          experimental pinned QSA normalization and output gate
+  --native-rope         experimental pinned text-only CUDA rotary arithmetic
+  --native-ple-postops  experimental pinned PLE postprojection arithmetic
+  --native-router       experimental pinned CUDA 512-expert top-10 routing
+  --cpu-oracle-q8-0     experimental pinned CPU expert quantization and dot reduction
+  --native SHARD1      every full-context native path at once (plan v0.3 P1): stream-token,
+
+=== clean checkout proof ===
+git status --porcelain (expect empty):
+
+git rev-parse HEAD:
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+
+=== hash verification ===
+542d24532f63219db9f530bd2819be9c74f514919ab661dc5162cef844bac38b  /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf
+f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5  /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+
+=== expected hashes from workflow/MODELS.md ===
+Mixtral Q3_K_M: 542d24532f63219db9f530bd2819be9c74f514919ab661dc5162cef844bac38b
+DeepSeek Q4_K_M: f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5
+
+=== classification summary ===
+Mixtral Q3_K_M: exit 2, REFUSED, justifying line: "unknown argument: --n"
+DeepSeek Q4_K_M: exit 2, REFUSED, justifying line: "unknown argument: --n"
+No fallback performed: failure is CLI parse error, not allocation/OOM.
+No tokens generated for either family.
+=== Mixtral Q3_K_M generic attempt ===
+timestamp: 2026-11-18T04:24:02Z
+model: /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf
+pre amd-smi metric:
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 480 MB
+        FREE_VRAM: 1568 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 480 MB
+        FREE_VISIBLE_VRAM: 1568 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+pre dmesg tail:
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- command ---
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib timeout 600 ./build-hip/strata --native /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf --tokens 760,6511,314,9338,369 --max-new 8 --max-context 512
+exit=2
+--- during amd-smi metric (best effort) ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+--- post amd-smi metric ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 55 MB
+        FREE_GTT: 47018 MB
+
+
+--- post dmesg tail ---
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- first lines of stdout ---
+
+--- first lines of stderr ---
+strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight
+
+=== DeepSeek Q4_K_M generic attempt ===
+timestamp: 2026-11-18T04:24:04Z
+model: /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+pre amd-smi metric:
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 45 MB
+        FREE_GTT: 47028 MB
+
+
+pre dmesg tail:
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- command ---
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib timeout 600 ./build-hip/strata --native /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf --tokens 760,6511,314,9338,369 --max-new 8 --max-context 512
+exit=2
+--- during amd-smi metric (best effort) ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 45 MB
+        FREE_GTT: 47028 MB
+
+
+--- post amd-smi metric ---
+GPU: 0
+    MEM_USAGE:
+        TOTAL_VRAM: 2048 MB
+        USED_VRAM: 482 MB
+        FREE_VRAM: 1566 MB
+        TOTAL_VISIBLE_VRAM: 2048 MB
+        USED_VISIBLE_VRAM: 482 MB
+        FREE_VISIBLE_VRAM: 1566 MB
+        TOTAL_GTT: 47073 MB
+        USED_GTT: 45 MB
+        FREE_GTT: 47028 MB
+
+
+--- post dmesg tail ---
+[13731.019381] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input14
+[13731.019986] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input15
+[13731.072000] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input16
+[13731.072595] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0004/input/input17
+[13731.073358] hid-generic 0003:062A:410A.0004: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[14288.217300] usb 3-1: USB disconnect, device number 5
+[14343.843051] usb 3-2: USB disconnect, device number 3
+[14609.171620] usb 3-1: new full-speed USB device number 6 using xhci_hcd
+[14609.311970] usb 3-1: New USB device found, idVendor=062a, idProduct=410a, bcdDevice= 1.01
+[14609.311987] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[14609.311990] usb 3-1: Product: 2.4G Keyboard Mouse
+[14609.311993] usb 3-1: Manufacturer: MOSART Semi.
+[14609.342364] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.0/0003:062A:410A.0005/input/input18
+[14609.435654] hid-generic 0003:062A:410A.0005: input,hidraw0: USB HID v1.10 Keyboard [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input0
+[14609.441685] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input19
+[14609.441876] input: MOSART Semi. 2.4G Keyboard Mouse Consumer Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input20
+[14609.493140] input: MOSART Semi. 2.4G Keyboard Mouse System Control as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input21
+[14609.493259] input: MOSART Semi. 2.4G Keyboard Mouse as /devices/pci0000:00/0000:00:08.3/0000:c7:00.0/usb3/3-1/3-1:1.1/0003:062A:410A.0006/input/input22
+[14609.493559] hid-generic 0003:062A:410A.0006: input,hiddev0,hidraw1: USB HID v1.10 Mouse [MOSART Semi. 2.4G Keyboard Mouse] on usb-0000:c7:00.0-1/input1
+[16538.884626] perf: interrupt took too long (3366 > 3272), lowering kernel.perf_event_max_sample_rate to 59000
+
+--- first lines of stdout ---
+
+--- first lines of stderr ---
+strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight
+
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+=== clean checkout proof ===
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+=== --families re-run ===
+qwen4exp qwen35moe
+
+=== binary SHA256 ===
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  /home/kupipi/Documents/git/strata/build-hip/strata
+=== git HEAD ===
+baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+=== gfx1150-inference HEAD ===
+3b8d1ec59cad9cdc9a7dbb46f70a3270c2676570

@@ -520,3 +520,52 @@ this file did not happen.
   16/16 hashed files.
 - **Affected:** `evidence-bundle` skill, HO-STRATA-005 evidence,
   `HANDOFF_CONTRACT.md` §7 interpretation.
+
+## DEC-025 — Next phase prepared: model inventory + a bounded family probe
+
+- **Date:** 2026-11-18
+- **Context:** the owner downloaded the alternate (smaller) quants — Mixtral 8x7B
+  Q3_K_M (18.96 GiB) and DeepSeek-MoE-16B Q4_K_M (10.10 GiB) — and asked to
+  prepare the next development phase. Both files are intact (SHA256 matches the
+  LFS objects). The signed engine lists only `qwen4exp qwen35moe`.
+- **Decision:**
+  1. Register every pack in `workflow/MODELS.md` with size, SHA256, GGUF arch and
+     support status, so evidence bundles cite one source instead of restating
+     paths.
+  2. Prepare **HO-STRATA-008**, a bounded probe: one load-and-generate attempt per
+     family on the signed binary, classified as REFUSED,
+     LOADED-UNSUPPORTED, or FAILED-OTHER, with raw output. No source change, no
+     flag tuning, no support work.
+  3. **Implementation stays held (DEC-016).** The probe is evidence for DEC-021
+     trigger T1; it does not authorize family support, a fork, or HO-006.
+- **Why a probe and not a test:** the Mixtral GGUF reports arch `llama`. If the
+  engine has a generic llama path, it could load and emit plausible text — a
+  silent wrong-path success that looks like support. The probe distinguishes that
+  from a clean refusal before anyone invests in support work.
+- **Consequences:** the next phase has a concrete first step with a defined
+  stopping point; the hold remains until the result is reviewed and the owner
+  decides whether T1 fired.
+- **Affected:** `workflow/MODELS.md`, HO-STRATA-008, `STATUS.md`, DEC-016,
+  DEC-021.
+
+## DEC-026 — Family probe accepted: the refusal is a loader contract (PLE), not a family string
+
+- **Date:** 2026-11-18
+- **Context:** HO-STRATA-008 probed the signed build with Mixtral 8x7B Q3_K_M
+  (`llama`) and DeepSeek-MoE-16B Q4_K_M (`deepseek`). Both attempts were
+  **REFUSED** before allocation with
+  `--native requires --ple-gguf … no shard … holds per_layer_token_embd.weight`
+  (`generate.cpp:4810-4823`). The first attempts hit `unknown argument: --n`
+  because `--n` belongs to the `qwen35` path; `RW-008-1` corrected the flag.
+- **Finding:** the generic native loader is **PLE-mandatory**. PLE is a model
+  architecture component, not a user-supplied file, so `--ple-gguf` cannot be
+  used to force these families; `--no-ple` is a diagnostic ablation that is
+  itself refused. No silent dense fallback occurred — the engine refuses before
+  allocating, which is the safer failure mode.
+- **Decision:** accept the probe as **T1 evidence**. The build cannot load
+  non-PLE families. Whether support is a localized patch or a new model class is
+  **not** settled by this probe and belongs to a scoped investigation.
+- **Consequences:** HO-006 stays **held** (DEC-016). The owner now has a precise
+  question for it: *what does a non-PLE model class require, and is it a patch or
+  a fork?* That question — not "which families exist" — is what T1 turns on.
+- **Affected:** HO-STRATA-008 (`DONE`), `workflow/MODELS.md`, DEC-016, DEC-021.
