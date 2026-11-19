@@ -1,0 +1,165 @@
+C1   grep -F -- baf16363b4403ef0ed4f538f5d5ed11c43fb9535 workflow/evidence/HO-STRATA-001/artifacts/verify-pin.txt
+C1   exit=0
+
+C2   grep -F -- Built\ target\ strata workflow/evidence/HO-STRATA-001/artifacts/build.log
+C2   exit=0
+
+C3   grep -F -- No\ trace\ of\ them\ in\ the\ binary workflow/evidence/HO-STRATA-001/artifacts/engine-boundary.md
+C3   exit=0
+
+C4   grep -F -- Could\ not\ find\ a\ package\ configuration\ file\ provided\ by\ \"hip\" workflow/evidence/HO-STRATA-001/artifacts/configure.log
+C4   exit=0
+
+C5   grep -F -- -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.1 workflow/evidence/HO-STRATA-001/artifacts/configure.log
+C5   exit=0
+
+C6   grep -F -- error\ while\ loading\ shared\ libraries:\ libhipblas.so.3 workflow/evidence/HO-STRATA-001/artifacts/families.txt
+C6   exit=0
+
+C7   grep -F -- qwen4exp\ qwen35moe workflow/evidence/HO-STRATA-001/artifacts/families.txt
+C7   exit=0
+
+C8   grep -F -- LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib\`\ is\ required workflow/evidence/HO-STRATA-007/manifest.md
+C8   exit=0
+
+C9   grep -F -- gfx1150-hipblaslt-100401.txt workflow/evidence/HO-STRATA-001/artifacts/tuning-table.md
+C9   exit=0
+
+C10  grep -F -- aee2867c096887cccaef8bc04a9ef10adec43da58421edfdaaec04a61ec5549c workflow/evidence/HO-STRATA-001/artifacts/tuning-table.md
+C10  exit=0
+
+C11  grep -F -- STRATA_HIPBLASLT_TUNING_V1\ gfx1150\ 100401 workflow/evidence/HO-STRATA-001/artifacts/tuning-table.md
+C11  exit=0
+
+C12  grep -F -- hipblasLtGetVersion\ =\ 100401 workflow/evidence/HO-STRATA-001/artifacts/hipblaslt-version-probe.txt
+C12  exit=0
+
+C13  grep -F -- plain\ hipBLAS\ \(fallback\)\,\ not\ the\ table workflow/evidence/HO-STRATA-001/artifacts/tuning-table.md
+C13  exit=0
+
+C14  grep -F -- STRATA_HIPBLASLT_TUNING=/abs/path/gfx1150-hipblaslt-100401.txt workflow/evidence/HO-STRATA-001/artifacts/tuning-table.md
+C14  exit=0
+
+C15  grep -F -- \"engine_missing\":\ true\,\ \"engine_usable\":\ false workflow/evidence/HO-STRATA-007/artifacts/control-plan-qwen36.json
+C15  exit=0
+
+C16  grep -F -- ./build-hip/strata\ --native\ /tmp/opencode/qwen36/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf workflow/evidence/HO-STRATA-007/test-output.txt
+C16  exit=0
+
+C17  grep -F -- One\ profile\ only:\ AMD\ gfx1150\ /\ Qwen3.6-35B-A3B\ / workflow/evidence/HO-STRATA-007/manifest.md
+C17  exit=0
+
+C18  grep -F -- git\ status\ --porcelain workflow/evidence/HO-STRATA-001/artifacts/verify-pin.txt
+C18  exit=0
+
+C19  grep -F -- no\ Strata\ source\ change workflow/handoffs/HO-STRATA-007-APPROVAL.md
+C19  exit=0
+
+C20  grep -F -- baf16363b4403ef0ed4f538f5d5ed11c43fb9535 workflow/evidence/HO-STRATA-001/artifacts/verify-pin.txt
+C20  exit=0
+
+C21  grep -F -- deferred\,\ not workflow/handoffs/HO-STRATA-005.md
+C21  exit=0
+
+C22  grep -F -- A\ requested\ family\ needs\ an\ engine\ path\ the\ pin\ lacks workflow/handoffs/HO-STRATA-005.md
+C22  exit=0
+
+C23  grep -F -- Architect\ →\ HO-006 workflow/handoffs/HO-STRATA-005.md
+C23  exit=0
+
+C24  grep -F -- \>5\ files\ or\ \>300\ lines workflow/handoffs/HO-STRATA-005.md
+C24  exit=0
+
+C25  grep -F -- git\ diff\ --stat workflow/handoffs/HO-STRATA-005.md
+C25  exit=0
+
+C26  grep -F -- 2\ of\ 3\ consecutive\ pin\ updates workflow/handoffs/HO-STRATA-005.md
+C26  exit=0
+
+C27  grep -F -- A\ second\ hardware\ class\ \(gfx1100\,\ gfx900/MI25\) workflow/handoffs/HO-STRATA-005.md
+C27  exit=0
+
+C28  grep -F -- independent\,\ machine-gated\ engine\ with\ its\ own\ API/CLI\ contract workflow/handoffs/HO-STRATA-005.md
+C28  exit=0
+
+C29  grep -F -- scope\ decision\ in\ \`DECISIONS.md\` workflow/handoffs/HO-STRATA-005.md
+C29  exit=0
+
+C30  grep -F -- git\ status\ --porcelain workflow/evidence/HO-STRATA-001/artifacts/verify-pin.txt
+C30  exit=0
+
+C31  grep -F -- no\ Strata\ source\ change workflow/handoffs/HO-STRATA-007-APPROVAL.md
+C31  exit=0
+
+ALL_CITATIONS_RESOLVED=1
+
+=== Additional bookkeeping commands ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+git status --short
+?? workflow/evidence/HO-STRATA-005/
+exit=0
+
+git branch --show-current
+wp/strata-005-route-decision
+exit=0
+
+grep -o 'HO-STRATA-[0-9]*' workflow/evidence/HO-STRATA-005/route-decision.md | sort | uniq -c
+      1 HO-STRATA-001
+      1 HO-STRATA-005
+      1 HO-STRATA-007
+exit=0
+
+wc -l workflow/evidence/HO-STRATA-005/citation-map.md
+37 workflow/evidence/HO-STRATA-005/citation-map.md
+exit=0
+
+sha256sum workflow/evidence/HO-STRATA-005/route-decision.md workflow/evidence/HO-STRATA-005/citation-map.md workflow/evidence/HO-STRATA-005/commands.log
+5e6b3365ab7f23b7f701e8b163df5ab1d435ca096286d413aa556ceb350dd416  workflow/evidence/HO-STRATA-005/route-decision.md
+a25d261e05f65b7f9fa29be422ebbb6f9ac1e77a9fbaad6bf4b1f05c54c1f7f5  workflow/evidence/HO-STRATA-005/citation-map.md
+58ca6d8a7399100043cafe1e8b0f0832137b3854479e2fa4abaf4ae4851f4d9c  workflow/evidence/HO-STRATA-005/commands.log
+exit=0
+
+
+=== Final verification checks ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+
+$ grep -o 'HO-STRATA-[0-9]*' workflow/evidence/HO-STRATA-005/route-decision.md | sort | uniq -c
+      1 HO-STRATA-001
+      1 HO-STRATA-005
+      1 HO-STRATA-007
+exit=0
+
+$ grep -cE '^\| [0-9]+ \|' workflow/evidence/HO-STRATA-005/citation-map.md
+31
+exit=0
+
+$ wc -l -w workflow/evidence/HO-STRATA-005/route-decision.md
+  49  851 workflow/evidence/HO-STRATA-005/route-decision.md
+exit=0
+
+$ git diff --name-status
+exit=0
+
+=== Post-handoff-update verification ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+
+$ sha256sum -c workflow/evidence/HO-STRATA-005/hashes.txt
+workflow/evidence/HO-STRATA-005/route-decision.md: OK
+workflow/evidence/HO-STRATA-005/citation-map.md: OK
+workflow/evidence/HO-STRATA-005/commands.log: FAILED
+workflow/handoffs/HO-STRATA-001-APPROVAL.md: OK
+workflow/handoffs/HO-STRATA-007-APPROVAL.md: OK
+workflow/handoffs/HO-STRATA-005.md: OK
+workflow/evidence/HO-STRATA-001/artifacts/verify-pin.txt: OK
+workflow/evidence/HO-STRATA-001/artifacts/build.log: OK
+workflow/evidence/HO-STRATA-001/artifacts/engine-boundary.md: OK
+workflow/evidence/HO-STRATA-001/artifacts/configure.log: OK
+workflow/evidence/HO-STRATA-001/artifacts/families.txt: OK
+workflow/evidence/HO-STRATA-001/artifacts/tuning-table.md: OK
+workflow/evidence/HO-STRATA-001/artifacts/hipblaslt-version-probe.txt: OK
+workflow/evidence/HO-STRATA-007/manifest.md: OK
+workflow/evidence/HO-STRATA-007/artifacts/control-plan-qwen36.json: OK
+workflow/evidence/HO-STRATA-007/test-output.txt: OK
+workflow/DECISIONS.md: OK
+planning/strata-engine/08-roadmap-decision.md: OK
+exit=1
