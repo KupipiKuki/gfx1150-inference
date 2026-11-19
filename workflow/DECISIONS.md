@@ -386,6 +386,65 @@ this file did not happen.
 - **Affected:** `OT-STRATA-001`, `STATUS.md`, `OWNER_AUDIT_CHECKLIST.md`,
   `MERGE_PLAN.md`.
 
+## DEC-020 — HO-005 is narrowed to "confirm Route 2 + define the Route 3 triggers"
+
+- **Date:** 2026-11-17
+- **Context:** the original HO-005 asked for a three-way Route 1/2/3 comparison
+  and depended on HO-STRATA-006, which the owner held under DEC-016. The first
+  low-tier run (HO-007) is now signed and merged, so two of the three inputs
+  exist; the third can never arrive while the hold stands, and a comparison that
+  cannot cost the fork is not a comparison.
+- **Decision (owner):** narrow HO-005. It **confirms Route 2** and writes the
+  **measurable triggers** that would reopen Route 3. Route 3 stays **deferred,
+  not rejected**. No HO-006, no fork work, no new measurements.
+- **Why this is not a formality:** the pinned overlay currently carries **zero
+  patches** — HO-001 and HO-007 both ran with a clean Strata checkout; the cost
+  of Route 2 today is an environment contract plus a pin.
+- **Consequences:** the decision is recorded as DEC-021 after the evidence pack
+  is assembled; the trigger table is the reversal record; HO-006 remains held;
+  the decision document is a documentation work package, so QAQC/audit are
+  recorded as `N/A — no code, no measurement` and the architect verifies the
+  citations at the gate.
+- **Affected:** HO-STRATA-005, `STATUS.md`, DEC-002, DEC-010, DEC-016.
+
+## DEC-021 — Route 2 confirmed; Route 3 deferred with five triggers
+
+- **Date:** 2026-11-17
+- **Context:** HO-STRATA-005 (narrowed by DEC-020) assembled the recorded evidence
+  from HO-001 and HO-007. The pinned Strata build at `baf16363` configures,
+  builds, starts headlessly and runs one low-tier `qwen35moe` generation with
+  **zero source patches**; the cost of the current route is two environment
+  variables, an opt-in hipBLASLt table, and the `--native` invocation.
+  Evidence: `workflow/evidence/HO-STRATA-005/route-decision.md` and its
+  31-row citation map.
+- **Options:**
+  - Route 2 — pinned patch overlay (DEC-002), confirmed by this decision.
+  - Route 3 — fork + P0–P9; not costed, because DEC-016 holds HO-006 and a
+    comparison without the fork's price is not a comparison.
+  - Status quo — rejected implicitly: the engine already works on gfx1150.
+- **Decision:**
+  1. **Confirm Route 2** as the delivery route for gfx1150.
+  2. **Adopt five triggers** that reopen Route 3, each measurable:
+     - **T1** a requested family needs an engine path the pin lacks and cannot be
+       expressed as a localized patch (structural, not configuration, failure);
+     - **T2** the patch set exceeds **5 files or 300 inserted lines** against the
+       pin (working threshold, not a measured bound);
+     - **T3** rebase conflicts on **2 of 3** consecutive pin updates, or the pin is
+       abandoned upstream;
+     - **T4** a second hardware class (gfx1100, gfx900/MI25, gfx1201) enters the
+       critical path;
+     - **T5** the deliverable becomes an independent, machine-gated engine with its
+       own API/CLI contract.
+  3. **Route 3 is deferred, not rejected.** T1/T2/T3 are architect decisions;
+     T4/T5 need an owner scope decision through the auditor.
+- **Reversal cost:** the patch inventory (currently zero) must be rebased and
+  re-validated on the forked tree; the gfx1150 baseline from HO-001/HO-007 does
+  not expire, but post-confirmation patches would be unproven on Route 3.
+- **Consequences:** no fork work, no P0–P9, no new measurement; HO-006 stays
+  deferred (DEC-016) and HO-002/003/004 stay blocked; T1 firing is what would
+  start the support-investigation conversation, not this decision.
+- **Affected:** HO-STRATA-005 (`DONE`), `STATUS.md`, DEC-002, DEC-010, DEC-016.
+
 ## DEC-022 — Architect model assigned (DeepSeek V4 Pro, max reasoning)
 
 - **Date:** 2026-11-17
@@ -440,6 +499,77 @@ this file did not happen.
 - **Affected:** `MODEL_POLICY.md` §3 (drafting rule), DEC-022, WAIVER-001,
   HO-STRATA-005 (the precedent).
 
+## DEC-024 — Hash immutable artifacts; pin mutable shared files by commit
+
+- **Date:** 2026-11-18
+- **Context:** HO-STRATA-005's `hashes.txt` listed two files that live on `main`
+  and change: `workflow/DECISIONS.md` and
+  `workflow/evidence/HO-STRATA-007/manifest.md`. After DEC-022/023 and the
+  HO-007 model-path PR landed, `sha256sum -c` reported both `FAILED` — the
+  decision's evidence rotted without anything in the decision changing.
+- **Decision:** `hashes.txt` covers **immutable** files only (the handoff's own
+  documents, raw run outputs, signed approvals). Mutable shared inputs are
+  **pinned by commit**: the base SHA the work was assembled from, with
+  `git show <sha>:<path> | sha256sum` and the resulting digest recorded in
+  `hashes-notes.txt`.
+- **Why:** a working-tree hash of a file that others append to is not a proof of
+  stability, it is a delayed failure. A commit pin is immutable and verifiable
+  with one command.
+- **Consequences:** no periodic rehashing of evidence for unrelated commits; the
+  `evidence-bundle` skill now states the rule; HO-005 applies it and verifies
+  16/16 hashed files.
+- **Affected:** `evidence-bundle` skill, HO-STRATA-005 evidence,
+  `HANDOFF_CONTRACT.md` §7 interpretation.
+
+## DEC-025 — Next phase prepared: model inventory + a bounded family probe
+
+- **Date:** 2026-11-18
+- **Context:** the owner downloaded the alternate (smaller) quants — Mixtral 8x7B
+  Q3_K_M (18.96 GiB) and DeepSeek-MoE-16B Q4_K_M (10.10 GiB) — and asked to
+  prepare the next development phase. Both files are intact (SHA256 matches the
+  LFS objects). The signed engine lists only `qwen4exp qwen35moe`.
+- **Decision:**
+  1. Register every pack in `workflow/MODELS.md` with size, SHA256, GGUF arch and
+     support status, so evidence bundles cite one source instead of restating
+     paths.
+  2. Prepare **HO-STRATA-008**, a bounded probe: one load-and-generate attempt per
+     family on the signed binary, classified as REFUSED,
+     LOADED-UNSUPPORTED, or FAILED-OTHER, with raw output. No source change, no
+     flag tuning, no support work.
+  3. **Implementation stays held (DEC-016).** The probe is evidence for DEC-021
+     trigger T1; it does not authorize family support, a fork, or HO-006.
+- **Why a probe and not a test:** the Mixtral GGUF reports arch `llama`. If the
+  engine has a generic llama path, it could load and emit plausible text — a
+  silent wrong-path success that looks like support. The probe distinguishes that
+  from a clean refusal before anyone invests in support work.
+- **Consequences:** the next phase has a concrete first step with a defined
+  stopping point; the hold remains until the result is reviewed and the owner
+  decides whether T1 fired.
+- **Affected:** `workflow/MODELS.md`, HO-STRATA-008, `STATUS.md`, DEC-016,
+  DEC-021.
+
+## DEC-026 — Family probe accepted: the refusal is a loader contract (PLE), not a family string
+
+- **Date:** 2026-11-18
+- **Context:** HO-STRATA-008 probed the signed build with Mixtral 8x7B Q3_K_M
+  (`llama`) and DeepSeek-MoE-16B Q4_K_M (`deepseek`). Both attempts were
+  **REFUSED** before allocation with
+  `--native requires --ple-gguf … no shard … holds per_layer_token_embd.weight`
+  (`generate.cpp:4810-4823`). The first attempts hit `unknown argument: --n`
+  because `--n` belongs to the `qwen35` path; `RW-008-1` corrected the flag.
+- **Finding:** the generic native loader is **PLE-mandatory**. PLE is a model
+  architecture component, not a user-supplied file, so `--ple-gguf` cannot be
+  used to force these families; `--no-ple` is a diagnostic ablation that is
+  itself refused. No silent dense fallback occurred — the engine refuses before
+  allocating, which is the safer failure mode.
+- **Decision:** accept the probe as **T1 evidence**. The build cannot load
+  non-PLE families. Whether support is a localized patch or a new model class is
+  **not** settled by this probe and belongs to a scoped investigation.
+- **Consequences:** HO-006 stays **held** (DEC-016). The owner now has a precise
+  question for it: *what does a non-PLE model class require, and is it a patch or
+  a fork?* That question — not "which families exist" — is what T1 turns on.
+- **Affected:** HO-STRATA-008 (`DONE`), `workflow/MODELS.md`, DEC-016, DEC-021.
+- 
 ## DEC-027 — Family-support test plan prepared; execution waits on the owner
 
 - **Date:** 2026-11-18

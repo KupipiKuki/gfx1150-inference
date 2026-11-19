@@ -1,0 +1,22 @@
+# HO-STRATA-005 — hashing notes
+#
+# Two inputs read for this decision live on `main` and change after the handoff:
+#   workflow/DECISIONS.md                    (new decisions are appended)
+#   workflow/evidence/HO-STRATA-007/manifest.md  (post-signoff model-path note)
+#
+# A working-tree SHA256 for either would rot on the next decision or evidence
+# update (observed 2026-11-18: both failed `sha256sum -c` after DEC-022/023 and
+# the HO-007 model-path PR landed). They are therefore pinned by the base commit
+# the decision was assembled from, which is immutable:
+#
+#   pin: 8c1a291 (main, after PR #15/#16)
+#
+# Verify a pinned input with:
+#   $ git show 8c1a291:workflow/DECISIONS.md | sha256sum
+#   c93ff3bf5ec8e5f7b8ceeac208cfbab8600a41d95f362ec401f00a562df197c8
+#
+#   $ git show 8c1a291:workflow/evidence/HO-STRATA-007/manifest.md | sha256sum
+#   1daad60682860ad09b2b5001a1b68bf7139e0542b766f84f72968fc65fdb1b79
+#
+# Immutable evidence (HO-001 artifacts, the HO-007 run outputs, the HO-005
+# documents) stays in hashes.txt as a normal `sha256sum` list.

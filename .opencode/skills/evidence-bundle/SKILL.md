@@ -20,7 +20,11 @@ Use for every coder, QAQC, and audit handoff. Template:
 4. Keep raw output. Failures and skips stay verbatim with the reason; never
    paraphrase a failure or hide a skip.
 5. Hash the important artifacts: model, prompt/dataset, logs, reports
-   (`sha256sum`).
+   (`sha256sum`). Hash **only immutable files** — an artifact you will not edit
+   again. A mutable shared input (`DECISIONS.md`, `STATUS.md`, another handoff's
+   manifest) will rot the moment someone appends to it; pin it by commit instead
+   (`git show <sha>:<path> | sha256sum`, recorded in `hashes-notes.txt`) and say
+   which commit the handoff was assembled from.
 6. Redact secrets: PATs, tokens, keys, private data. A secret in the evidence
    is a failed handoff.
 7. State the limits: what was not tested, on which hardware/model/quant, and

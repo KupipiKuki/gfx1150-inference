@@ -1,0 +1,1 @@
+strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight

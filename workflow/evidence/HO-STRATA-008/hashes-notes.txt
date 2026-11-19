@@ -1,0 +1,13 @@
+# hashes-notes — HO-STRATA-008 (refreshed after RW-HO-STRATA-008-1)
+
+Per DEC-024: `workflow/MODELS.md` is a project file that may be amended by
+later handoffs, so it is pinned by commit rather than hashed as an immutable
+evidence artifact.
+
+| File | Commit | Path | Note |
+|---|---|---|---|
+| `workflow/MODELS.md` | `d9725cfafbcf3d3010cb61a3d8b03802175e2d83` | `/home/kupipi/Documents/git/gfx1150-inference/workflow/MODELS.md` | referenced for model sizes/SHA256; not re-hashed |
+
+The GGUFs and signed binary are immutable inputs and are recorded in `hashes.txt`.
+The refreshed evidence (generic-parser attempts) is on branch
+`wp/strata-008-family-probe` at commit `3b8d1ec59cad9cdc9a7dbb46f70a3270c2676570`.
