@@ -1,4 +1,3 @@
-  harness decode mismatch: 'def add(a, b):'
 | prompt | text | engine ids | harness ids | match | notes |
 |---|---|---|---|---|---|
 | P1 | 'The capital of France is' | [549, 6077, 280, 7239, 317] | [549, 6077, 280, 7239, 317] | True |  |

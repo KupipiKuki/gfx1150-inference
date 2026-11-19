@@ -1,4 +1,4 @@
 gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
-wall_s: 0.675
+wall_s: 0.686
 logits shape: [16][2][2]  file: workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin
 logits layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2

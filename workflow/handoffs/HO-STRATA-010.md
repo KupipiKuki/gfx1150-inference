@@ -8,7 +8,7 @@
 | **Created / updated (UTC)** | 2026-11-18 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-010-reference-oracle` |
-| **Branch / base commit** | `wp/strata-010-reference-oracle` / `main` `36609255e28da370a35b3a687e9bc351c52981a0` |
+| **Branch / base commit** | `wp/strata-010-reference-oracle` / `main` `8ce28c4` |
 | **Priority / timebox** | P1 · 1 working day |
 | **Owner task** | OT-STRATA-001 (S0 authorized 2026-11-18, DEC-028) |
 | **Plan** | `planning/strata-engine/13-family-support-test-plan.md` §4 (S0) |
@@ -163,3 +163,12 @@ day on its own.
   added, `tokenize_compare.py` now compares the full multi-line decode payload,
   and `commands.log` now includes the `git clone`/`checkout` and CMake build
   steps. `sha256sum -c` clean. State remains `CODER_DONE`.
+- 2026-11-19 Coder: closed RW-HO-STRATA-010-1 (A-1/A-2). Rebased branch onto
+  `main` `8ce28c4`; regenerated `tokenizer_parity_table.md` with no false P2
+  mismatch; recorded true `stdout_diff_exit=1` and the normalization command as
+  the reproducibility gate; updated `manifest.md` with runnable paths, host
+  provenance, tokenizer convention, and C1 last-block note; pinned
+  `workflow/MODELS.md` and the family test plan at `8ce28c4` in
+  `hashes-notes.txt`. Full acceptance set re-run: layer dump `db6eccb3…`, logits
+  `5334baef…`, gen line bit-identical. `sha256sum -c` clean. State remains
+  `CODER_DONE`; bundle commit is the tip of `wp/strata-010-reference-oracle`.

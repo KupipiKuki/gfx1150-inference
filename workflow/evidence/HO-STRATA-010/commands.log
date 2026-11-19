@@ -1,4 +1,3 @@
-# Commands for HO-STRATA-010 S0 reference oracle (DeepSeek only)
 # Environment: LD_LIBRARY_PATH=/tmp/opencode/llama.cpp/build/bin
 # llama.cpp pin: tag b12527, commit 78e05298f0d68abff41d08d79fa7469264b2aff0
 
@@ -22,7 +21,8 @@ g++ -O2 -std=c++17 workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp 
 # 2. Tokenizer parity (DeepSeek, 3 prompts)
 python3 workflow/evidence/HO-STRATA-010/artifacts/tokenize_compare.py \
   --gguf /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf \
-  --harness /tmp/opencode/oracle_harness
+  --harness /tmp/opencode/oracle_harness \
+  > workflow/evidence/HO-STRATA-010/artifacts/tokenizer_parity_table.md
 # exit 0; table saved to artifacts/tokenizer_parity_table.md
 
 # 3. Layer dump (4-token prompt: first 4 IDs of P1)
@@ -36,21 +36,31 @@ LD_LIBRARY_PATH=/tmp/opencode/llama.cpp/build/bin /tmp/opencode/oracle_harness \
 LD_LIBRARY_PATH=/tmp/opencode/llama.cpp/build/bin /tmp/opencode/oracle_harness \
   --model /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf \
   --tokens 549,6077,280,7239,317 --n 16 \
-  --dump-logits workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin
+  --dump-logits workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin \
+  > workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt
 # exit 0
 
 # 5. Reference generation run 2 (same input)
 LD_LIBRARY_PATH=/tmp/opencode/llama.cpp/build/bin /tmp/opencode/oracle_harness \
   --model /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf \
   --tokens 549,6077,280,7239,317 --n 16 \
-  --dump-logits workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits_run2.bin
+  --dump-logits workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits_run2.bin \
+  > workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt
 # exit 0
 
-# 6. Reproducibility diff
-# gen lines identical; logits binaries identical; only wall_s differs (observation)
+# 6. Reproducibility checks
+# Raw stdout diff is non-empty because wall_s and the output filename differ; exit 1.
 diff workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt
-# non-empty only because of wall_s and output filenames
+# exit 1 (only wall_s and filename differ)
+
+# Logits binaries are bit-identical; exit 0.
 diff workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits_run2.bin
+# exit 0 (empty)
+
+# Normalized gate of record: keep only the gen line, then diff.
+grep '^gen:' workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt > workflow/evidence/HO-STRATA-010/artifacts/runs/run1.norm.txt
+grep '^gen:' workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt > workflow/evidence/HO-STRATA-010/artifacts/runs/run2.norm.txt
+diff workflow/evidence/HO-STRATA-010/artifacts/runs/run1.norm.txt workflow/evidence/HO-STRATA-010/artifacts/runs/run2.norm.txt
 # exit 0 (empty)
 
 # 7. Layer sanity check

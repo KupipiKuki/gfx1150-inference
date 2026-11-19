@@ -1,17 +1,17 @@
 # SHA-256 hashes for HO-STRATA-010 evidence
-# Generated: 2026-11-18
+# Generated: 2026-11-19
 bdc9303d6d884452175e199fff3a894836409543ef6f5f390a4e7eb9ab9b8f33  workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp
 9903bc16ad8f7277631f6a209654c8903fa2d5295fc5aafd5e551c536c03e43c  workflow/evidence/HO-STRATA-010/artifacts/tokenize_compare.py
 65eca3bd7917805432e90ca782ad1d92dcfad9e211b9f291505e41f9957c3cfa  workflow/evidence/HO-STRATA-010/artifacts/check_layers.py
 eee7093bb547b860e88b63d9e0d20d8fcec37beadec01a71112d6825a7568378  workflow/evidence/HO-STRATA-010/artifacts/pack_hashes.txt
-06c62d18c39a016c086fb949404de76910035a20e334c39b790f947287a6c815  workflow/evidence/HO-STRATA-010/artifacts/tokenizer_parity_table.md
+8512eb971c4b029f38e9c934ecfb5a9cf53fffd102c79f93b613681d0b9d7270  workflow/evidence/HO-STRATA-010/artifacts/tokenizer_parity_table.md
 db6eccb3e8a949827c5c961fc732159daa1a0a9d52f7f88156d669845e0c7c73  workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin
 5334baef84380f6060f8b1c4afda5fd45d367e9065ecdf2c6e4ea0642153fb2e  workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin
-222623bc9db87e1bfebf77e7eba9487603b15ea73c1a02fe081a4374fe5bdaa5  workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt
-abf25cc48b42730a96309930e2d1a7ac96de9df124560cd2c4096c370a63ca6a  workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt
+b61da3fa0e50f8c0dac24dae61691877703265027509c26c526e04db08b8a9a4  workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt
+f1d6ade0cf5ffd4648d40126579a5202d4fa1b9b5dbf73c3813ad8bb0c6c2859  workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt
 88de45824c276d1ac4ecb3572e3ba6dd42a4130bb137522c3e64dcff780ead2a  workflow/evidence/HO-STRATA-010/artifacts/runs/run1.norm.txt
 88de45824c276d1ac4ecb3572e3ba6dd42a4130bb137522c3e64dcff780ead2a  workflow/evidence/HO-STRATA-010/artifacts/runs/run2.norm.txt
-f12b6c227aa82a0719098f84062447c098d10b75fff8438635362ae10cf53928  workflow/evidence/HO-STRATA-010/commands.log
-8ddadcb920b4c346d14bd0f04a5ae6f057596e3f5eeace85e752a0b468383650  workflow/evidence/HO-STRATA-010/test-output.txt
-499af97e2c0c24a0431f53d7458a9a69a1e775be24d2827d9189bbfa184e14d4  workflow/evidence/HO-STRATA-010/manifest.md
-1459853277685c669adb036ea527526ccb819a6502aafa8ff9b920e873f99e7c  workflow/evidence/HO-STRATA-010/hashes-notes.txt
+5027e17e629c0eb93bb1b120018e46020b09d5880d621e2db3fa013580e890cb  workflow/evidence/HO-STRATA-010/commands.log
+b4517ef5ddf7a315b0b74c4ddc7ca396f3fd21dea7a7a75a9244be949810e583  workflow/evidence/HO-STRATA-010/test-output.txt
+e597c01fa7237ce9e6764bb1f60af7e9f3cd0d9e7c613a3ebfba2b5fd3d9bfd8  workflow/evidence/HO-STRATA-010/manifest.md
+338d537c82b922926f18153a08e4c123d0e4b8e26593e6061e28a08b7edc5403  workflow/evidence/HO-STRATA-010/hashes-notes.txt
