@@ -569,3 +569,24 @@ this file did not happen.
   question for it: *what does a non-PLE model class require, and is it a patch or
   a fork?* That question — not "which families exist" — is what T1 turns on.
 - **Affected:** HO-STRATA-008 (`DONE`), `workflow/MODELS.md`, DEC-016, DEC-021.
+- 
+## DEC-027 — Family-support test plan prepared; execution waits on the owner
+
+- **Date:** 2026-11-18
+- **Context:** DEC-026 established that the engine cannot load non-PLE families
+  (Mixtral `llama`, DeepSeek `deepseek`). The owner asked for a test plan to add
+  model capabilities. The plan is
+  `planning/strata-engine/13-family-support-test-plan.md`.
+- **Decision:** adopt the plan as the working annex for family work. Its shape:
+  reference-oracle first (llama.cpp pinned), then recognition → geometry → load →
+  layer parity → token parity → baseline → review, with exact-token gates and a
+  regression gate that re-runs the HO-007 command bit-for-bit.
+- **Order:** Mixtral 8x7B first (downloaded, simplest routing, hardest dispatch),
+  then DeepSeek-MoE-16B, then Qwen3-30B-A3B if a pack is fetched.
+- **Status:** **prepared, not authorized.** DEC-016 still holds family work.
+  The owner chooses: lift for S0 only (oracle + harness), lift for Mixtral
+  S0–S7, or keep the hold and treat the plan as a costed annex.
+- **Consequences:** a costed estimate exists (5–7 days per family, stated as an
+  estimate with its basis); the qwen baselines are protected by A6; no
+  performance claim is introduced.
+- **Affected:** `planning/strata-engine/13`, DEC-016, DEC-021, `STATUS.md`.
