@@ -256,9 +256,15 @@ int main(int argc, char ** argv) {
         batch.pos[static_cast<int32_t>(i)] = static_cast<llama_pos>(i);
         batch.n_seq_id[static_cast<int32_t>(i)] = 1;
         batch.seq_id[static_cast<int32_t>(i)][0] = 0;
-        batch.logits[static_cast<int32_t>(i)] = 0;
+        // In layer-dump mode, request logits for every prompt position so the
+        // final transformer block (l_out-27) is computed for all positions.
+        // Generation still reads logits from the last token only, so semantics
+        // are unchanged when not dumping layers.
+        batch.logits[static_cast<int32_t>(i)] = state.collect_layers ? 1 : 0;
     }
-    batch.logits[static_cast<int32_t>(prompt_ids.size()) - 1] = 1;
+    if (!state.collect_layers) {
+        batch.logits[static_cast<int32_t>(prompt_ids.size()) - 1] = 1;
+    }
     batch.n_tokens = static_cast<int32_t>(prompt_ids.size());
 
     if (llama_decode(ctx, batch) != 0) {
@@ -341,7 +347,8 @@ int main(int argc, char ** argv) {
                 f.write(reinterpret_cast<const char *>(&idf), sizeof(float));
                 f.write(reinterpret_cast<const char *>(&p.second), sizeof(float));
             }
-            std::printf("logits shape: [%zu][2]  file: %s\n", state.top2_per_step.size() / 2, dump_logits_path.c_str());
+            std::printf("logits shape: [%zu][2][2]  file: %s\n", state.top2_per_step.size() / 2, dump_logits_path.c_str());
+            std::printf("logits layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2\n");
         }
     }
 

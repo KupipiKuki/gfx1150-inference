@@ -13,14 +13,27 @@
 
 ## 1. Scope (in)
 
-Independent review of the S0 reference oracle:
+Independent review of the S0 reference oracle, **re-checking the five Minor
+findings from `workflow/reports/qaqc/HO-STRATA-010-qaqc.md` §3** after coder
+closure:
+
+- **C1/M2:** layer dump completeness — verify `deepseek_p1_4_layers.bin` has
+  all 28 layers non-zero at all 4 prompt positions.
+- **C2/M3:** logits shape label — verify stdout reports `[16][2][2]` with a
+  layout note.
+- **C3/M4:** hash drift — verify `workflow/MODELS.md` is removed from
+  `hashes.txt` and the four helper stdout files are hashed.
+- **C4/M1:** tokenizer parity script — verify P2 multi-line decode is compared
+  in full and produces no mismatch warning.
+- **C5/M5:** provenance log — verify `commands.log` begins with the `git clone`,
+  `git checkout`, and CMake configure/build commands.
+
+Plus the original checks:
 
 - Verify llama.cpp is pinned and built at the recorded tag/commit with the recorded flags.
 - Verify the harness `workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp` builds and runs from a clean workflow checkout (llama.cpp must be cloned/built separately).
 - Verify DeepSeek tokenizer parity for the three fixed prompts (P1, P2, P3) by re-running `tokenize_compare.py` or an equivalent check.
 - Verify the DeepSeek reference `gen:` line reproduces on two independent runs.
-- Verify the layer dump shape is `[4][28][2048]` and the sanity script shows non-degenerate layers.
-- Verify the 16-step top-2 logits dump shape is `[16][2]`.
 - Confirm no `strata` source edits and no support/performance claims.
 
 ## 2. Out of scope
@@ -34,11 +47,12 @@ Independent review of the S0 reference oracle:
 | Input | Path / hash | Status |
 |---|---|---|
 | Architect handoff | `workflow/handoffs/HO-STRATA-010.md` | CODER_DONE |
-| Harness source | `workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp` (`fc0a01da…`) | committed |
-| Tokenizer parity script | `workflow/evidence/HO-STRATA-010/artifacts/tokenize_compare.py` (`9ff5a394…`) | committed |
+| Original QAQC report (findings C1–C5) | `workflow/reports/qaqc/HO-STRATA-010-qaqc.md` | findings closed by coder |
+| Harness source | `workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp` (`bdc9303d…`) | committed, rebuilt |
+| Tokenizer parity script | `workflow/evidence/HO-STRATA-010/artifacts/tokenize_compare.py` (`9903bc16…`) | committed |
 | Layer sanity script | `workflow/evidence/HO-STRATA-010/artifacts/check_layers.py` (`65eca3bd…`) | committed |
 | DeepSeek pack | `/home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf` (`f00ecd83…`) | present |
-| Evidence bundle | `workflow/evidence/HO-STRATA-010/` | complete |
+| Evidence bundle | `workflow/evidence/HO-STRATA-010/` | refreshed |
 
 ## 4. Acceptance criteria
 
@@ -46,12 +60,13 @@ Independent review of the S0 reference oracle:
 |---|---|---|---|
 | 1 | llama.cpp provenance matches manifest | inspect `manifest.md` §4 and re-run clone/build if needed | tag `b12527`, commit `78e05298…`, lib hashes match |
 | 2 | Harness builds and runs | run the build command in `commands.log` | exit 0, harness `--help` works |
-| 3 | Tokenizer parity passes for DeepSeek | `python3 artifacts/tokenize_compare.py --gguf <deepseek> --harness /tmp/opencode/oracle_harness` | all 3 prompts `match=True`, no BOS mismatch |
+| 3 | Tokenizer parity passes for DeepSeek | `python3 artifacts/tokenize_compare.py --gguf <deepseek> --harness /tmp/opencode/oracle_harness` | all 3 prompts `match=True`, no decode mismatch warning |
 | 4 | Reference `gen:` reproduces | run the P1 16-token command twice and `diff` the `gen:` lines and logits binaries | identical |
-| 5 | Layer dump shape + sanity | `python3 artifacts/check_layers.py artifacts/runs/deepseek_p1_4_layers.bin` | shape `(4,28,2048)`, L0 vs L1 differs, no nan/inf |
-| 6 | Logits dump shape | `ls -l artifacts/runs/deepseek_p1_logits.bin` | 256 bytes, shape `[16][2]` |
-| 7 | No engine change | `git -C /home/kupipi/Documents/git/strata status --porcelain` | empty; HEAD `baf16363…` |
-| 8 | No support/performance claims | review `manifest.md` and handoff | none |
+| 5 | Layer dump complete and non-degenerate | `python3 artifacts/check_layers.py artifacts/runs/deepseek_p1_4_layers.bin` | shape `(4,28,2048)`, **28 non-zero layers at every position**, no nan/inf |
+| 6 | Logits dump shape + layout | `ls -l artifacts/runs/deepseek_p1_logits.bin` and inspect run stdout | 256 bytes, shape `[16][2][2]`, layout line printed |
+| 7 | Hashes clean | `sha256sum -c workflow/evidence/HO-STRATA-010/hashes.txt` | all entries `OK`; `workflow/MODELS.md` not in file; helper stdout files present |
+| 8 | No engine change | `git -C /home/kupipi/Documents/git/strata status --porcelain` | empty; HEAD `baf16363…` |
+| 9 | No support/performance claims | review `manifest.md` and handoff | none |
 
 ## 5. Evidence required
 
@@ -108,3 +123,4 @@ Independent review of the S0 reference oracle:
 ## 11. Log
 
 - 2026-11-18 Coder: created `CODER_TO_QAQC` after completing S0 evidence bundle and updating `HO-STRATA-010.md` to `CODER_DONE`.
+- 2026-11-18 Coder: refreshed this handoff after closing findings C1–C5 from `workflow/reports/qaqc/HO-STRATA-010-qaqc.md`; evidence bundle, `hashes.txt`, `manifest.md`, `commands.log`, and `test-output.txt` updated; ready for QAQC re-review.

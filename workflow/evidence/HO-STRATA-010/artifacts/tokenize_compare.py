@@ -36,9 +36,13 @@ def main():
             if line.startswith("ids:"):
                 harness_ids = [int(x) for x in line[4:].split()]
         harness_decoded = ""
-        for line in out.stdout.splitlines():
-            if line.startswith("decode:"):
-                harness_decoded = line[7:].strip()
+        marker = "decode: "
+        idx = out.stdout.find(marker)
+        if idx != -1:
+            # The harness prints the full decoded text after "decode: ".
+            # Compare the whole payload, including embedded newlines; strip
+            # only the trailing newline added by printf.
+            harness_decoded = out.stdout[idx + len(marker):].rstrip("\n")
         notes = []
         if engine_ids and harness_ids and engine_ids[0] != harness_ids[0] and harness_ids[0] == 100000:
             notes.append("harness adds BOS 100000")

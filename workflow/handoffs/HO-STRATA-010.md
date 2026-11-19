@@ -156,3 +156,10 @@ day on its own.
   DeepSeek tokenizer parity for P1/P2/P3, produced reference `gen:` IDs, layer dump
   `[4][28][2048]`, and 16-step top-2 logits. Mixtral deferred per DEC-029. State
   `CODER_DONE`; QAQC handoff created.
+- 2026-11-18 Coder: closed all five QAQC findings (C1–C5). DoD re-verified:
+  layer dump regenerated with all 28 layers non-zero at all 4 positions
+  (`db6eccb3…`), logits shape label corrected to `[16][2][2]` with layout note,
+  `workflow/MODELS.md` removed from `hashes.txt` and four helper stdout files
+  added, `tokenize_compare.py` now compares the full multi-line decode payload,
+  and `commands.log` now includes the `git clone`/`checkout` and CMake build
+  steps. `sha256sum -c` clean. State remains `CODER_DONE`.
