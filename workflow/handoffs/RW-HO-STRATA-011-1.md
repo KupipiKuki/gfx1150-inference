@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | RW-HO-STRATA-011-1 |
 | **Type** | REWORK |
-| **State** | **OPEN** |
+| **State** | **CLOSED** — all four findings resolved; QAQC re-pass `c73b424`; fresh-clone 41/41 |
 | **Created (UTC)** | 2026-11-19 |
 | **From → To** | QAQC (`qaqc`) → Primary Coder (`coder-primary`) |
 | **Original handoff** | HO-STRATA-011, commit `bc93b56` |
@@ -74,7 +74,7 @@ the commit pins predate the change they are meant to pin.
 | Role | Date | Note |
 |---|---|---|
 | Coder | 2026-11-20 | F1–F4 fixed; bundle verifies from repo root and fresh clone; state remains `CODER_DONE`. |
-| QAQC (re-pass) | | |
-| Auditor | | |
+| QAQC (re-pass) | 2026-11-19 | PASS |
+| Auditor | 2026-11-19 | PASS (WAIVED) |
 
 **Escalation:** a second failure on the same criterion goes to the architect.

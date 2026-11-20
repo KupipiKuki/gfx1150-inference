@@ -613,3 +613,25 @@ this file did not happen.
   supported, unmeasured fourth point.
 - **Affected:** `planning/strata-engine/13` §5, `workflow/MODELS.md`,
   HO-STRATA-011, DEC-016, DEC-029.
+
+## DEC-032 — S0b accepted; AC-3 amended for a fail-closed tokenizer refusal
+
+- **Date:** 2026-11-19
+- **Context:** HO-STRATA-011 (S0b) extended the oracle to OLMoE. Its tokenizer
+  cannot be exercised at the pin: `tools/strata_tokenizer.py:104-112` knows only
+  `qwen35` and `deepseek*`, and the pack declares `tokenizer.ggml.pre = olmo`, so
+  the tool exits 1 with `UnknownPreTokenizer('olmo')` rather than mis-tokenize.
+- **Decision:** for S0b, AC-3 is satisfied by **either** tokenizer parity **or** a
+  recorded engine refusal with its reason. The oracle uses llama.cpp token IDs
+  until an `olmo` pre-tokenizer exists. This is an architect amendment to a
+  criterion, recorded here — not a coder reclassifying a failure.
+- **Why accept:** the engine's refusal is the safe behaviour ("running it with the
+  wrong rule would change what it reads"); the oracle's value — a fixed reference
+  for S4/S5 — does not depend on engine-side tokenization; and the gap is now
+  documented instead of discovered later.
+- **Consequences:** OLMoE needs **two** things, not one: a tokenizer pre-tokenizer
+  rule (small patch) and a family path (large). That sharpens DEC-021 **T1**:
+  the missing capability is tokenization *and* model class, not routing alone.
+  S1 remains held (DEC-016).
+- **Affected:** HO-STRATA-011 (`DONE`), `planning/strata-engine/13` §5,
+  DEC-016, DEC-021, DEC-031.

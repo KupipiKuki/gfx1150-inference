@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-011 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **REWORK** — `RW-HO-STRATA-011-1`: values reproduce, bundle packaging does not (dumps ignored, hash paths, hardcoded layer count, stale pins) |
+| **State** | **DONE** (SIGNED 2026-11-19) — READY → CODER_DONE → QAQC FAIL → RW-011-1 → QAQC PASS → AUDIT PASS → **DONE** (AC-3 amended by DEC-032) |
 | **Created / updated (UTC)** | 2026-11-19 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-011-olmoe-oracle` |
@@ -143,3 +143,7 @@ on exactly these:
   `--layers`-aware `check_layers.py`, repinned files at `6679e938` with digests,
   and passed the fresh-clone `git archive HEAD | tar -x` test; state remains
   `CODER_DONE`.
+- 2026-11-19 Architect: **SIGNED** → `DONE`. AC-3 amended (DEC-032): a recorded
+  engine refusal satisfies the criterion until an `olmo` pre-tokenizer exists.
+  `RW-HO-STRATA-011-1` closed by the auditor's re-check; stray HO-010 leftover
+  removed. See `HO-STRATA-011-APPROVAL.md`.
