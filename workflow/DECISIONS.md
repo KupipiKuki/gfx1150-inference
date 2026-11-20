@@ -590,3 +590,26 @@ this file did not happen.
   estimate with its basis); the qwen baselines are protected by A6; no
   performance claim is introduced.
 - **Affected:** `planning/strata-engine/13`, DEC-016, DEC-021, `STATUS.md`.
+
+## DEC-031 — Three-model set fixed: qwen35moe, deepseek, olmoe
+
+- **Date:** 2026-11-19
+- **Context:** Mixtral 8x7B was retired as a target (DEC-029): the TheBloke pack is
+  the 2023 per-expert layout and no modern stacked pack exists, so it cannot serve
+  as an oracle. The owner asked for a three-model set and a replacement family.
+- **Decision:** the three test families are:
+  1. **Qwen3.6-35B-A3B** (`qwen35moe`) — measured, HO-007;
+  2. **DeepSeek-MoE-16B** (`deepseek`) — oracle ready (S0);
+  3. **OLMoE-1B-7B-Instruct** (`olmoe`) — chosen as the third.
+- **Why OLMoE:** it is the only candidate that adds a structural axis the other
+  two lack — 64 experts, top-8, **no shared expert**, and a 50k tokenizer — for a
+  ~4 GiB download. Its size also makes S4/S5 parity iterations seconds rather than
+  minutes, and those stages are where the cost sits.
+- **Rejected:** Qwen3-30B-A3B (`qwen3moe`) — repeats qwen35moe's shape without
+  shared experts and costs an 18.6 GB download; Mistral 7B (dense) — outside the
+  MoE thesis and uses the arch string just retired.
+- **Consequences:** an OLMoE oracle extension (S0b) is authorized under this
+  decision; **S1 and later remain held** under DEC-016. `qwen4exp` stays a
+  supported, unmeasured fourth point.
+- **Affected:** `planning/strata-engine/13` §5, `workflow/MODELS.md`,
+  HO-STRATA-011, DEC-016, DEC-029.

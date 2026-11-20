@@ -137,18 +137,38 @@ stops the chain; it does not get "adjusted".
 - Independent QAQC re-runs the acceptance commands; auditor verifies claims;
   architect signs; owner accepts (Mistral 4 audit optional per DEC-019).
 
-## 5. Family order and cost
+## 5. The three-model set and build order
 
-| Order | Family | Arch | Pack (downloaded) | Why this position |
-|---|---|---|---|---|
-| **1** | Mixtral 8x7B v0.1 | `llama` | **Q3_K_M, 18.96 GiB** | Downloaded; simplest routing (top-2 of 8); forces the dense-vs-MoE arch detection that will recur; new tokenizer (SP) |
-| **2** | DeepSeek-MoE-16B-base | `deepseek` | **Q4_K_M, 10.10 GiB** | Downloaded; smallest; distinct arch string (clean dispatch); fine-grained + shared experts (top-6 of 64) is the real routing work |
-| 3 (optional) | Qwen3-30B-A3B | `qwen3moe` | **not downloaded** (~18 GiB at Q4) | Architecturally closest to `qwen35moe` (GQA + top-8 MoE); cheapest *if* a pack is fetched, but it teaches the least about new families |
+The owner fixed the set at **three families** (2026-11-19, DEC-031). Mixtral 8x7B
+is **out**: the TheBloke pack is the 2023 per-expert layout and no modern stacked
+pack exists (DEC-029), so it cannot serve as an oracle target.
 
-**Recommendation:** Mixtral first. It is the hardest *dispatch* case (arch `llama`
-is also a dense model) and the easiest *math* case (top-2 routing), so it forces
-the structural decisions early while the arithmetic is simple. DeepSeek second has
-the opposite shape and tests whether the layout abstraction actually generalizes.
+| # | Family | Arch | Pack | What it exercises | State |
+|---|---|---|---|---|---|
+| 1 | Qwen3.6-35B-A3B | `qwen35moe` | 21.28 GiB, local | hybrid GDN + gated attention, 256 experts top-8 **+ shared**, 151k BPE | **measured** (HO-007) |
+| 2 | DeepSeek-MoE-16B | `deepseek` | 10.10 GiB, local | standard MHA, 64 fine-grained **+ 2 shared** experts, top-6, 100k BPE | oracle ready (S0) |
+| 3 | OLMoE-1B-7B-Instruct | `olmoe` | ~4 GiB | 64 experts top-8, **no shared expert**, 50k BPE, 7B total | to be measured |
+
+Build order: **DeepSeek → OLMoE**. DeepSeek's oracle already exists and its arch
+string is clean; OLMoE is small enough that S4/S5 iterations are seconds, which is
+where the cost actually is.
+
+`qwen4exp` (Qwen3.8-Flash-Next) remains a supported, **unmeasured** fourth point.
+Downloading it would add a measured result with no engine work; it is not part of
+the three-model set.
+
+### Why these three
+
+They differ on the axes that break engines, not on marketing:
+
+- **shared experts**: qwen35moe and deepseek have them, OLMoE does not;
+- **attention**: hybrid (qwen35moe) vs standard MHA (deepseek/OLMoE);
+- **tokenizer**: 151k vs 100k vs 50k;
+- **routing width**: top-8 of 256, top-6 of 64, top-8 of 64.
+
+A fourth Qwen-lineage MoE (Qwen3-30B-A3B) was considered and rejected for
+coverage: it repeats qwen35moe's shape without shared experts and costs an 18.6 GB
+download.
 
 ### Effort (estimates, not commitments)
 
