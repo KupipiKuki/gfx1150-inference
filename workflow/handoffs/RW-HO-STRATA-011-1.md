@@ -73,7 +73,7 @@ the commit pins predate the change they are meant to pin.
 
 | Role | Date | Note |
 |---|---|---|
-| Coder | | |
+| Coder | 2026-11-20 | F1–F4 fixed; bundle verifies from repo root and fresh clone; state remains `CODER_DONE`. |
 | QAQC (re-pass) | | |
 | Auditor | | |
 
