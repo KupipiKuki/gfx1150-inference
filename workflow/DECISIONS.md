@@ -590,3 +590,27 @@ this file did not happen.
   estimate with its basis); the qwen baselines are protected by A6; no
   performance claim is introduced.
 - **Affected:** `planning/strata-engine/13`, DEC-016, DEC-021, `STATUS.md`.
+
+## DEC-033 — S1–S3 authorized for DeepSeek; Strata edits allowed for this package
+
+- **Date:** 2026-11-20
+- **Context:** the owner chose **S1 on DeepSeek** (DEC-031's three-model set).
+  S1–S3 require source changes in the Strata checkout, which DEC-008 kept
+  read-only for investigation handoffs. The pack's geometry was verified from its
+  header: 28 blocks, hidden 2048, 16/16 heads (MHA), 64 experts top-6, 2 shared,
+  expert FF 1408, dense leading block, rope 1e4, tokenizer `deepseek-llm`
+  (**supported** at the pin, unlike OLMoE).
+- **Decision:**
+  1. Authorize **S1–S3 only** (recognition, geometry, tensor inventory +
+     `--inspect`) for DeepSeek, under HO-STRATA-012.
+  2. **Relax DEC-008 for this handoff**: edits happen on the Strata branch
+     `strata-012-deepseek-s1`, never on `main`, and the patch is exported into the
+     workflow evidence with `git apply --check` proof.
+  3. Build in a **separate directory** so the signed `build-hip/strata`
+     (`d58ee239…`) stays intact for the regression gate.
+  4. No forward pass: if a change would make the engine *run* DeepSeek, stop — S4
+     is a separate authorization.
+- **Consequences:** the patch is measured against DEC-021 **T2** (>5 files or >300
+  lines ⇒ deviation); the first engine change since the pin is recorded, exported,
+  and reversible. S4–S5 remain held.
+- **Affected:** HO-STRATA-012, DEC-008, DEC-016, DEC-021, DEC-031.
