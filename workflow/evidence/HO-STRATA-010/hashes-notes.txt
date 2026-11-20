@@ -1,0 +1,12 @@
+# Pin notes for HO-STRATA-010
+# Generated: 2026-11-19
+
+This file records the git commit that last changed the authoritative input
+registries, so a later audit can verify the exact inputs used.
+
+| File | Path | Commit | Note |
+|---|---|---|---|
+| Model pack registry | `workflow/MODELS.md` | `8ce28c4` | DeepSeek-MoE-16B Q4_K_M inventory; Mixtral deferred (DEC-029). |
+| Family test plan | `planning/strata-engine/13-family-support-test-plan.md` | `8ce28c4` | S0 plan context, now in-tree after rebase. |
+
+The immutable dump hashes are in `hashes.txt` at the same commit.

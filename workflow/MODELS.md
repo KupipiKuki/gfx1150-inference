@@ -48,6 +48,26 @@ keeps ~7 GiB of headroom under the Qwen run's 26.2 GiB GTT peak (ceiling
 convention. The Q4_K_M Mixtral and Q8_0 DeepSeek files are kept as a fallback if
 a smaller quant fails for a reason unrelated to support.
 
+### Format note — the TheBloke Mixtral pack is legacy (2026-11-18)
+
+`TheBloke/Mixtral-8x7B-v0.1-GGUF` stores experts **per expert**
+(`blk.N.ffn_down.0.weight` … `.7`), the 2023 layout. Current llama.cpp expects the
+stacked form (`blk.N.ffn_down_exps.weight`) and refuses the file:
+
+```text
+llama_model_load: error loading model: check_tensor_dims:
+  tensor 'blk.0.ffn_down_exps.weight' not found
+```
+
+Two consequences:
+
+- The pack cannot serve as the parity oracle for Mixtral at a modern llama.cpp
+  pin, so S0 (HO-STRATA-010) proves the harness on DeepSeek and defers Mixtral.
+- A future Mixtral target should be a **stacked-format** GGUF. Whether the Strata
+  engine also accepts the legacy layout is a separate scope decision, not a given.
+
+`deepseek-moe-16b-base-q4_k_m.gguf` is stacked and loads at the same pin.
+
 ### Paths (Hugging Face cache)
 
 ```text

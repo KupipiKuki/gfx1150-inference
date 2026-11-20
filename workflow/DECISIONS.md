@@ -591,6 +591,65 @@ this file did not happen.
   performance claim is introduced.
 - **Affected:** `planning/strata-engine/13`, DEC-016, DEC-021, `STATUS.md`.
 
+## DEC-028 — S0 authorized: reference oracle only; family work stays held
+
+- **Date:** 2026-11-18
+- **Context:** the owner chose **S0** from DEC-027's three options: build the
+  reference oracle and parity harness, change no engine code.
+- **Decision:** lift DEC-016 **for S0 only** (HO-STRATA-010). Scope: pin and build
+  llama.cpp, write the harness, prove tokenizer parity for three fixed prompts on
+  both packs, and record reference tokens, per-layer dumps and logits.
+  S1 (recognition) and everything after stay **held**.
+- **Why S0 first:** it cannot affect the signed baselines (no engine change), it
+  produces the target every later gate compares against, and it catches a
+  tokenizer mismatch before it can masquerade as a model bug.
+- **Consequences:** the plan's estimate gets a real data point; the owner decides
+  on S1 with the oracle in hand; DEC-016 remains for recognition and support.
+- **Affected:** HO-STRATA-010, `STATUS.md`, DEC-016, DEC-027.
+
+## DEC-029 — Mixtral oracle deferred: the downloaded pack is the legacy tensor layout
+
+- **Date:** 2026-11-18
+- **Context:** S0 (HO-STRATA-010) built a llama.cpp oracle at tag `b12527`. The
+  DeepSeek-MoE pack loads and decodes; the TheBloke Mixtral-8x7B Q3_K_M pack is
+  refused: `check_tensor_dims: tensor 'blk.0.ffn_down_exps.weight' not found`.
+  The pack stores experts per expert (`blk.N.ffn_down.E.weight`), the 2023
+  layout; current llama.cpp expects the stacked `_exps` form.
+- **Decision:**
+  - S0 is **narrowed to DeepSeek**; one family is enough to prove the harness,
+    the tokenizer gate and the dumps.
+  - Mixtral's parity target must be a **stacked-format** GGUF. The legacy pack is
+    recorded as format-incompatible in `workflow/MODELS.md`, not as "Mixtral
+    unsupported".
+  - Whether the Strata engine should also accept the legacy layout is a separate
+    scope question; default position: target the modern format.
+- **Consequences:** no extra download for S0; if Mixtral is to be the first
+  family, the owner fetches a modern pack (~19 GB at Q3/Q4). DeepSeek parity work
+  can start as soon as S0 closes.
+- **Affected:** HO-STRATA-010, `workflow/MODELS.md`, `planning/strata-engine/13`,
+  DEC-027, DEC-028.
+
+## DEC-030 — S0 accepted: the oracle exists; S1+ still held
+
+- **Date:** 2026-11-19
+- **Context:** HO-STRATA-010 (S0) produced the llama.cpp oracle and harness. It
+  passed QAQC, failed the first audit on two evidence defects (stale parity
+  table, `stdout_diff_exit=0` for a failing diff), closed them under
+  RW-HO-STRATA-010-1, and passed a second audit after a rebase onto `main`.
+- **Decision:** **accept S0**. The oracle is the reference for S4/S5 parity:
+  `gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280`,
+  logits `5334baef…`, layers `db6eccb3…`, tokenizer parity exact, 15/15 hashes.
+- **Carried, not waived:** B-1 (the transcript is curated, not raw — the manifest
+  over-claims "raw"), B-2 (lib digests are build-instance scoped), B-4 (pins
+  recorded without their digests). All non-gating; fixed at the next bundle
+  touch and none used as evidence for a claim.
+- **Consequences:** S4/S5 have a fixed target. **S1 (recognition) remains held**
+  under DEC-016 — this decision signs off a harness, not a family.
+  Mixtral's legacy pack stays deferred (DEC-029); the auditor confirmed 995
+  tensors with zero stacked `*_exps`.
+- **Affected:** HO-STRATA-010 (`DONE`), DEC-016, DEC-028, DEC-029,
+  `STATUS.md`.
+
 ## DEC-031 — Three-model set fixed: qwen35moe, deepseek, olmoe
 
 - **Date:** 2026-11-19
