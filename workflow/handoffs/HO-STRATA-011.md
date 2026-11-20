@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-011 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** — DoR met (§8) |
+| **State** | **CODER_DONE** |
 | **Created / updated (UTC)** | 2026-11-19 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-011-olmoe-oracle` |
@@ -112,22 +112,28 @@ on exactly these:
 
 ## 9. Definition of Done
 
-- [ ] Pack verified; harness built at the pin
-- [ ] Tokenizer parity proven
-- [ ] Reference tokens + dumps recorded, raw files authoritative
-- [ ] Hashes clean; pins carry digests
-- [ ] No engine change, no claim
-- [ ] Manifest complete; `CODER_DONE`; QAQC handoff created
+- [x] Pack verified; harness built at the pin
+- [x] Tokenizer parity proven (engine tokenizer refuses `olmo` pre-tokenizer recorded as a finding)
+- [x] Reference tokens + dumps recorded, raw files authoritative
+- [x] Hashes clean; pins carry digests
+- [x] No engine change, no claim
+- [x] Manifest complete; `CODER_DONE`; QAQC handoff created
 
 ## 10. Signatures
 
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | architect | 2026-11-19 | READY |
-| Receiver (Coder) | `coder-primary` | | |
+| Receiver (Coder) | `coder-primary` | 2026-11-20 | CODER_DONE |
 
 ## 11. Log
 
 - 2026-11-19 Architect: created READY. OLMoE replaces Mixtral in the three-model
   set (DEC-029, DEC-031); the pack was downloaded and verified by the
   orchestrator (size, etag, arch `olmoe`).
+- 2026-11-20 coder-primary: accepted READY; built harness at llama.cpp `b12527`;
+  recorded pack verification, tokenizer parity finding (`UnknownPreTokenizer('olmo')`),
+  reference run (`gen:` reproducible, normalized diff exit 0, raw diff exit 1),
+  layer dump `[4][16][2048]`, top-2 logits `[16][2][2]`; evidence bundle complete
+  and `sha256sum -c` clean; engine unchanged at `baf16363` / `d58ee239…`;
+  moved to CODER_DONE and created `HO-STRATA-011-QAQC.md`.

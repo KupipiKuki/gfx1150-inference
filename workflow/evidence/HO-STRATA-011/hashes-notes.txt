@@ -1,0 +1,75 @@
+# Pin notes and provenance — HO-STRATA-011
+
+## Repository base commit
+
+Branch `wp/strata-011-olmoe-oracle` was created from `main` at:
+
+  8ce28c4e2e33904b824d8541d69f1ea770548424
+
+Pinned files at that commit and their `git show <sha>:<path> | sha256sum` digests:
+
+| File | Commit | Digest |
+|---|---|---|
+| workflow/MODELS.md | 8ce28c4e | 1883c62b5052e36316fc31f48ccfb4b3912ef0d14540170475c4c79071f6e10b |
+| planning/strata-engine/13-family-support-test-plan.md | 8ce28c4e | 023a37de06e785f96f94890fc16cec9279ca000513c1d2eedb6d779f28450bec |
+| workflow/DECISIONS.md | 8ce28c4e | 2e6529b50800d0f073342b2c7693a794c262cd4fefc36c5b4dec3b02f039a907 |
+
+These files are intentionally excluded from `hashes.txt` because their content
+is pinned by the base commit, not by the evidence bundle.
+
+## Model pack
+
+| Field | Value |
+|---|---|
+| File | `/home/kupipi/Documents/models/gguf/olmoe-1b-7b/olmoe-1b-7b-0924-instruct-q4_k_m.gguf` |
+| Size | 4,213,512,672 bytes |
+| SHA256 | `8c310f1435a1222338fd2d3d974975be9cd908180b644bab0c2a94da1ac32f3f` |
+| Architecture | `olmoe` |
+| Geometry (from GGUF metadata) | n_layer=16, n_embd=2048, n_vocab≈50304, n_experts=64, n_experts_per_tok=8, no shared expert |
+
+## llama.cpp provenance
+
+| Field | Value |
+|---|---|
+| Tag | `b12527` |
+| Commit | `78e05298f0d68abff41d08d79fa7469264b2aff0` |
+| Path | `/tmp/opencode/llama.cpp` |
+| Build command | `cmake -B build -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=ON -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF -DCMAKE_BUILD_TYPE=Release && cmake --build build -j` |
+| CMake version | `3.28.3` |
+| Compiler | GCC 13.3.0 |
+| `GGML_NATIVE` | `ON` (CMake default; `-march=native` used by `ggml-cpu`) |
+| CPU | AMD Ryzen AI 9 HX 370 w/ Radeon 890M |
+| `nproc` | 24 |
+
+### Shared-library digests (this host and this build only)
+
+Because `GGML_NATIVE=ON` selects `-march=native`, the `ggml-cpu` (and indirectly
+`ggml-base`) shared-library digests depend on the host CPU features. The recipe
+above is reproducible; the digests below are valid only on this AMD Ryzen AI 9
+HX 370 host and this build.
+
+| Library | SHA256 |
+|---|---|
+| `libllama.so.1` | `2397a75f56dfd74b7b66c68b507c46080ee3bbca0bd4aa2e1aa179f552d1b8b1` |
+| `libggml.so.1` | `8f923882e63e28c33db684010ef44ed4867842c19c79701ac5ba8e62840fc34a` |
+| `libggml-base.so.1` | `437dd6b7b20c6c4595ef5bbd6628250a819b884e34661f4ee3717194f704ddf5` |
+| `libggml-cpu.so.1` | `fcc9fa13f1a3b3136c08e5ffc7ef7e9a120f5157496ab1cc19bc9b53da2bff14` |
+
+## Engine no-change check
+
+Strata repository: `/home/kupipi/Documents/git/strata`
+
+| Field | Value |
+|---|---|
+| HEAD | `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` |
+| `git status --porcelain` | empty |
+| `build-hip/strata` SHA256 | `d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858` |
+
+## Notes
+
+- The OLMoE tokenizer uses a 50k vocabulary and the `olmo` pre-tokenizer rule.
+  The engine's `strata_tokenizer.py` at the Strata pin raises
+  `UnknownPreTokenizer('olmo')`, so the parity table records this as a finding
+  rather than hiding it. The harness ids above are the reference of record.
+- No performance or support claim is made. CPU wall time is recorded only as
+  an observation.

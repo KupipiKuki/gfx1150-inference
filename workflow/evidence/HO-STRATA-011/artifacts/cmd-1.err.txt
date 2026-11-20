@@ -1,0 +1,47 @@
+/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-011/artifacts/oracle_harness.cpp: In function ‘int main(int, char**)’:
+/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-011/artifacts/oracle_harness.cpp:253:41: warning: ‘llama_batch llama_batch_init(int32_t, int32_t, int32_t)’ is deprecated: use llama_batch_ext_init instead [-Wdeprecated-declarations]
+  253 |     llama_batch batch = llama_batch_init(static_cast<int32_t>(prompt_ids.size()), 0, 1);
+      |                         ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-011/artifacts/oracle_harness.cpp:12:
+/tmp/opencode/llama.cpp/include/llama.h:972:45: note: declared here
+  972 |     DEPRECATED(LLAMA_API struct llama_batch llama_batch_init(
+      |                                             ^~~~~~~~~~~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:30:36: note: in definition of macro ‘DEPRECATED’
+   30 | #    define DEPRECATED(func, hint) func __attribute__((deprecated(hint)))
+      |                                    ^~~~
+/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-011/artifacts/oracle_harness.cpp:270:21: warning: ‘int32_t llama_decode(llama_context*, llama_batch)’ is deprecated: use llama_process with LLAMA_PROCESS_TYPE_DECODE instead [-Wdeprecated-declarations]
+  270 |     if (llama_decode(ctx, batch) != 0) {
+      |         ~~~~~~~~~~~~^~~~~~~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:1005:34: note: declared here
+ 1005 |     DEPRECATED(LLAMA_API int32_t llama_decode(
+      |                                  ^~~~~~~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:30:36: note: in definition of macro ‘DEPRECATED’
+   30 | #    define DEPRECATED(func, hint) func __attribute__((deprecated(hint)))
+      |                                    ^~~~
+/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-011/artifacts/oracle_harness.cpp:272:25: warning: ‘void llama_batch_free(llama_batch)’ is deprecated: use llama_batch_ext_free instead [-Wdeprecated-declarations]
+  272 |         llama_batch_free(batch);
+      |         ~~~~~~~~~~~~~~~~^~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:979:31: note: declared here
+  979 |     DEPRECATED(LLAMA_API void llama_batch_free(struct llama_batch batch),
+      |                               ^~~~~~~~~~~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:30:36: note: in definition of macro ‘DEPRECATED’
+   30 | #    define DEPRECATED(func, hint) func __attribute__((deprecated(hint)))
+      |                                    ^~~~
+/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-011/artifacts/oracle_harness.cpp:328:25: warning: ‘int32_t llama_decode(llama_context*, llama_batch)’ is deprecated: use llama_process with LLAMA_PROCESS_TYPE_DECODE instead [-Wdeprecated-declarations]
+  328 |         if (llama_decode(ctx, batch) != 0) {
+      |             ~~~~~~~~~~~~^~~~~~~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:1005:34: note: declared here
+ 1005 |     DEPRECATED(LLAMA_API int32_t llama_decode(
+      |                                  ^~~~~~~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:30:36: note: in definition of macro ‘DEPRECATED’
+   30 | #    define DEPRECATED(func, hint) func __attribute__((deprecated(hint)))
+      |                                    ^~~~
+/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-011/artifacts/oracle_harness.cpp:355:21: warning: ‘void llama_batch_free(llama_batch)’ is deprecated: use llama_batch_ext_free instead [-Wdeprecated-declarations]
+  355 |     llama_batch_free(batch);
+      |     ~~~~~~~~~~~~~~~~^~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:979:31: note: declared here
+  979 |     DEPRECATED(LLAMA_API void llama_batch_free(struct llama_batch batch),
+      |                               ^~~~~~~~~~~~~~~~
+/tmp/opencode/llama.cpp/include/llama.h:30:36: note: in definition of macro ‘DEPRECATED’
+   30 | #    define DEPRECATED(func, hint) func __attribute__((deprecated(hint)))
+      |                                    ^~~~

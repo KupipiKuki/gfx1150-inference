@@ -1,0 +1,4 @@
+gen: 7785 15 187 187 510 14731 273 6181 310 14029 15 187 187 510 3072 273
+wall_s: 0.317
+logits shape: [16][2][2]  file: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-011/artifacts/runs/olmoe_p1_logits_run2.bin
+logits layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2

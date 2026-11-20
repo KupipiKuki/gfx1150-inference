@@ -1,0 +1,38 @@
+curated excerpt — the raw files in artifacts/cmd-*.{out,err}.txt and commands.log are authoritative
+
+HO-STRATA-011 — OLMoE oracle (S0b) curated results
+
+Pack verification (cmd-0.out.txt):
+  size: 4213512672
+  sha256: 8c310f1435a1222338fd2d3d974975be9cd908180b644bab0c2a94da1ac32f3f
+  general.architecture: olmoe
+
+Harness build (cmd-1.err.txt): g++ warnings only, exit 0.
+
+Tokenizer parity (cmd-2.out.txt / artifacts/tokenizer_parity_table.md):
+  Engine tokenizer refuses the 'olmo' pre-tokenizer at this pin; harness ids are:
+    P1: [510, 5347, 273, 6181, 310]
+    P2: [1545, 823, 9, 66, 13, 270, 2262, 187, 50274, 2309]
+    P3: [11831, 3625, 9830, 403]
+  BOS convention: tokenizer.ggml.add_bos_token=False, BOS id 50279.
+  Harness uses llama_tokenize with add_special=false; no BOS is prepended.
+
+Reference run (P1 ids, 16 greedy, cmd-4/5.out.txt):
+  gen: 7785 15 187 187 510 14731 273 6181 310 14029 15 187 187 510 3072 273
+  raw_diff_exit=1  (wall_s and logits filename differ)
+  normalized_diff_exit=0  (gen: lines identical)
+  logits binary diff exit=0
+
+Layer dump (cmd-3.out.txt / cmd-7.out.txt):
+  shape: (4, 16, 2048)  file: artifacts/runs/olmoe_p1_4_layers.bin  size: 524288 B
+  non-zero rows per position: [(0, 16), (1, 16), (2, 16), (3, 16)]
+  any nan/inf: False
+
+Top-2 logits dump (cmd-4.out.txt):
+  shape: [16][2][2]  file: artifacts/runs/olmoe_p1_logits.bin  size: 256 B
+  layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2
+
+No engine change (cmd-9.out.txt):
+  strata HEAD baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+  strata binary sha256: d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858
+  git status --porcelain: empty
