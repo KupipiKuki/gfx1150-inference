@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-010 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **CODER_DONE** |
+| **State** | **DONE** (SIGNED 2026-11-19) — READY → CODER_DONE → QAQC PASS → AUDIT FAIL → RW-010-1 → QAQC PASS → AUDIT PASS → **DONE** (DEC-030) |
 | **Created / updated (UTC)** | 2026-11-18 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-010-reference-oracle` |
@@ -172,3 +172,7 @@ day on its own.
   `hashes-notes.txt`. Full acceptance set re-run: layer dump `db6eccb3…`, logits
   `5334baef…`, gen line bit-identical. `sha256sum -c` clean. State remains
   `CODER_DONE`; bundle commit is the tip of `wp/strata-010-reference-oracle`.
+- 2026-11-19 Architect: **SIGNED** → `DONE` after the second audit PASS. Residual
+  minors B-1 (curated transcript labelled raw), B-2 (build-scoped lib digests),
+  B-4 (pins recorded without digests) are carried to the next bundle touch; B-3
+  closed here. See `HO-STRATA-010-APPROVAL.md`.

@@ -627,3 +627,24 @@ this file did not happen.
   can start as soon as S0 closes.
 - **Affected:** HO-STRATA-010, `workflow/MODELS.md`, `planning/strata-engine/13`,
   DEC-027, DEC-028.
+
+## DEC-030 — S0 accepted: the oracle exists; S1+ still held
+
+- **Date:** 2026-11-19
+- **Context:** HO-STRATA-010 (S0) produced the llama.cpp oracle and harness. It
+  passed QAQC, failed the first audit on two evidence defects (stale parity
+  table, `stdout_diff_exit=0` for a failing diff), closed them under
+  RW-HO-STRATA-010-1, and passed a second audit after a rebase onto `main`.
+- **Decision:** **accept S0**. The oracle is the reference for S4/S5 parity:
+  `gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280`,
+  logits `5334baef…`, layers `db6eccb3…`, tokenizer parity exact, 15/15 hashes.
+- **Carried, not waived:** B-1 (the transcript is curated, not raw — the manifest
+  over-claims "raw"), B-2 (lib digests are build-instance scoped), B-4 (pins
+  recorded without their digests). All non-gating; fixed at the next bundle
+  touch and none used as evidence for a claim.
+- **Consequences:** S4/S5 have a fixed target. **S1 (recognition) remains held**
+  under DEC-016 — this decision signs off a harness, not a family.
+  Mixtral's legacy pack stays deferred (DEC-029); the auditor confirmed 995
+  tensors with zero stacked `*_exps`.
+- **Affected:** HO-STRATA-010 (`DONE`), DEC-016, DEC-028, DEC-029,
+  `STATUS.md`.

@@ -4,11 +4,11 @@
 |---|---|
 | **ID** | HO-STRATA-010-QAQC |
 | **Type** | CODER_TO_QAQC |
-| **State** | PROPOSED |
+| **State** | **DONE** — QAQC PASS (re-pass `664bd40`) → AUDIT PASS → architect SIGNED (mirrored per DEC-018) |
 | **Created / updated (UTC)** | 2026-11-18 |
 | **From → To** | Primary Coder (`coder-primary`) → QAQC (`qaqc`) |
 | **Work package** | `strata-010-reference-oracle` |
-| **Branch / base commit** | `wp/strata-010-reference-oracle` / `main` `36609255e28da370a35b3a687e9bc351c52981a0` |
+| **Branch / base commit** | `wp/strata-010-reference-oracle` / `main` `8ce28c4e2e33904b824d8541d69f1ea770548424` |
 | **Priority / timebox** | P1 · 1 working day |
 
 ## 1. Scope (in)
