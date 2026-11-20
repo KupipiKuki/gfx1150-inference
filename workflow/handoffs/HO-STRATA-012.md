@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-012 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** — DoR met (§8) |
+| **State** | **DEVIATION** — DR-HO-STRATA-012-1 raised: patch touches 6 Strata files, exceeding DEC-021 T2's 5-file threshold |
 | **Created / updated (UTC)** | 2026-11-20 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-012-deepseek-s1` |
@@ -161,3 +161,6 @@ what is missing.
 
 - 2026-11-20 Architect: created READY after the owner chose S1 on DeepSeek
   (DEC-033). Geometry in §2 was read from the pack header by the orchestrator.
+- 2026-11-20 Coder: implemented S1–S3; measured patch at 6 files / 265 delta lines,
+  exceeding DEC-021 T2's 5-file threshold. Raised DR-HO-STRATA-012-1 and paused
+  pending architect decision. No commit, no build, no evidence bundle yet.
