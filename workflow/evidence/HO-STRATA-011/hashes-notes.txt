@@ -1,21 +1,23 @@
 # Pin notes and provenance — HO-STRATA-011
 
-## Repository base commit
+## Repository commits
 
-Branch `wp/strata-011-olmoe-oracle` was created from `main` at:
+Branch `wp/strata-011-olmoe-oracle` was created from `main` at
+`8ce28c4e2e33904b824d8541d69f1ea770548424`. The `HO-STRATA-011` READY commit
+that adds the OLMoE row to `workflow/MODELS.md` and records DEC-031 is
+`6679e938a7c49314da85cf73e8f7b0263571529e`.
 
-  8ce28c4e2e33904b824d8541d69f1ea770548424
-
-Pinned files at that commit and their `git show <sha>:<path> | sha256sum` digests:
+Pinned files at the READY commit and their `git show <sha>:<path> | sha256sum`
+digests:
 
 | File | Commit | Digest |
 |---|---|---|
-| workflow/MODELS.md | 8ce28c4e | 1883c62b5052e36316fc31f48ccfb4b3912ef0d14540170475c4c79071f6e10b |
-| planning/strata-engine/13-family-support-test-plan.md | 8ce28c4e | 023a37de06e785f96f94890fc16cec9279ca000513c1d2eedb6d779f28450bec |
-| workflow/DECISIONS.md | 8ce28c4e | 2e6529b50800d0f073342b2c7693a794c262cd4fefc36c5b4dec3b02f039a907 |
+| workflow/MODELS.md | 6679e938 | 16041e44bced09f7905d1a930f75744011055f683d3a7e43006126f4172ba57e |
+| planning/strata-engine/13-family-support-test-plan.md | 6679e938 | 1cfe6f4a4c68e5b220a56dffe3609cdb16b4e8a4b6dad1dd1cf2dd0cc8b40936 |
+| workflow/DECISIONS.md | 6679e938 | 8a03370d15be6a7b94c2d79b3171757b61d58bc187b4eab55c90ac56197a8ace |
 
 These files are intentionally excluded from `hashes.txt` because their content
-is pinned by the base commit, not by the evidence bundle.
+is pinned by commit, not by the evidence bundle.
 
 ## Model pack
 

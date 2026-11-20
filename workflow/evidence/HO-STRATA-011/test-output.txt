@@ -32,7 +32,16 @@ Top-2 logits dump (cmd-4.out.txt):
   shape: [16][2][2]  file: artifacts/runs/olmoe_p1_logits.bin  size: 256 B
   layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2
 
+Hash integrity (cmd-8.out.txt):
+  sha256sum -c workflow/evidence/HO-STRATA-011/hashes.txt from the repo root:
+  all OK, exit 0.
+
 No engine change (cmd-9.out.txt):
   strata HEAD baf16363b4403ef0ed4f538f5d5ed11c43fb9535
   strata binary sha256: d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858
   git status --porcelain: empty
+
+Fresh-clone test (cmd-10.out.txt):
+  mkdir -p /tmp/opencode/fresh011 && git archive HEAD | tar -x -C /tmp/opencode/fresh011
+  cd /tmp/opencode/fresh011 && sha256sum -c workflow/evidence/HO-STRATA-011/hashes.txt
+  exit 0, all 38 entries OK (no ignored/untracked dependencies).

@@ -137,3 +137,9 @@ on exactly these:
   layer dump `[4][16][2048]`, top-2 logits `[16][2][2]`; evidence bundle complete
   and `sha256sum -c` clean; engine unchanged at `baf16363` / `d58ee239…`;
   moved to CODER_DONE and created `HO-STRATA-011-QAQC.md`.
+- 2026-11-20 coder-primary: rework `RW-HO-STRATA-011-1` bundle-integrity fixes
+  (F1–F4): committed `.bin` dumps via `.gitignore` negation, made `hashes.txt`
+  repo-root-relative, replaced unrecorded stdin scripts with `check_pack.py` and
+  `--layers`-aware `check_layers.py`, repinned files at `6679e938` with digests,
+  and passed the fresh-clone `git archive HEAD | tar -x` test; state remains
+  `CODER_DONE`.
