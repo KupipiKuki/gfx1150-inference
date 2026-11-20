@@ -614,3 +614,29 @@ this file did not happen.
   lines ⇒ deviation); the first engine change since the pin is recorded, exported,
   and reversible. S4–S5 remain held.
 - **Affected:** HO-STRATA-012, DEC-008, DEC-016, DEC-021, DEC-031.
+
+## DEC-034 — T2 fired on the first family patch; reviewed, Route 2 continues
+
+- **Date:** 2026-11-20
+- **Context:** HO-STRATA-012's S1–S3 patch touches **6 files / 234 insertions / 31
+  deletions** in the Strata checkout, crossing DEC-021 **T2**'s 5-file clause (265
+  delta lines, under the 300-line clause). The coder stopped and raised
+  `DR-HO-STRATA-012-1` rather than proceeding.
+- **Review:** the six files are `model_family.hpp`, `geometry.hpp`,
+  `family_layout.hpp`, `gguf_reader.hpp`, `generate.cpp` and one test file. There
+  is **no kernel, no forward pass, no attention, no routing** — it is family
+  metadata, geometry reading, a read-only inventory mode, and tests. The sixth
+  file is required to read the new metadata keys and to make the refusal *named*
+  instead of the current PLE message.
+- **Decision:** approve the deviation; continue on Route 2. T2 is a **review
+  trigger**, not a fork ban: 234 lines of metadata is two orders of magnitude
+  below a fork, and the trigger did its job by forcing this review.
+- **Conditions:** metadata-only; the signed binary stays untouched (separate
+  `build-deepseek/`); S4 (forward) needs a separate authorization; the next
+  increment that touches kernels, or the overlay passing 300 lines, starts a fresh
+  review with a Route 3 comparison on the table.
+- **Consequences:** the overlay's measured inventory is now **6 files / 234 lines**
+  and will be tracked per handoff, so T2 is a cumulative measurement rather than a
+  per-patch surprise.
+- **Affected:** HO-STRATA-012 (`IN_PROGRESS`), DR-HO-STRATA-012-1 (`APPROVED`),
+  DEC-021, DEC-033.

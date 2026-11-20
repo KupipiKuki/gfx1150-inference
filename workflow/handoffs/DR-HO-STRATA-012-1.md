@@ -7,7 +7,7 @@
 | **Raised by** | Primary Coder (`coder-primary`) |
 | **Date (UTC)** | 2026-11-20 |
 | **Decision owner** | Architect |
-| **State** | PROPOSED |
+| **State** | **APPROVED** — 6 files / 234 insertions, metadata-only; Route 2 continues (DEC-034) |
 
 ## 1. Original scope
 
@@ -95,3 +95,22 @@ No design I found satisfies the named-refusal acceptance criterion without editi
 
 - If **approved**: continue with build, tests, evidence bundle, and `CODER_DONE`; record the 6-file patch stat in the evidence manifest.
 - If **rejected**: stop S1–S3 implementation; revert or stash the Strata working-tree changes; await a revised handoff or split plan.
+
+## 6. Decision
+
+**APPROVED** (architect, 2026-11-20), recorded as **DEC-034**.
+
+The trigger fired on the file count (6 > 5) and was reviewed:
+
+- the six files are `model_family.hpp`, `geometry.hpp`, `family_layout.hpp`,
+  `gguf_reader.hpp`, `generate.cpp` and one test file — **no kernels, no forward
+  path, no attention, no routing**;
+- 234 inserted / 31 deleted lines for a family's recognition, geometry and tensor
+  inventory is metadata work, not fork-scale;
+- the sixth file (`gguf_reader.hpp`) is required to read the new metadata keys and
+  to make the refusal *named* rather than the current PLE message.
+
+Conditions: the patch stays metadata-only; the signed binary stays untouched
+(`build-deepseek/`); S4 (forward) remains a separate authorization; and any future
+increment that touches kernels or pushes the overlay past 300 lines starts a fresh
+review with a Route 3 comparison on the table.

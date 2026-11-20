@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-012 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **DEVIATION** — DR-HO-STRATA-012-1 raised: patch touches 6 Strata files, exceeding DEC-021 T2's 5-file threshold |
+| **State** | **IN_PROGRESS** — `DR-HO-STRATA-012-1` approved (DEC-034); S1–S3 continue |
 | **Created / updated (UTC)** | 2026-11-20 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-012-deepseek-s1` |
@@ -164,3 +164,7 @@ what is missing.
 - 2026-11-20 Coder: implemented S1–S3; measured patch at 6 files / 265 delta lines,
   exceeding DEC-021 T2's 5-file threshold. Raised DR-HO-STRATA-012-1 and paused
   pending architect decision. No commit, no build, no evidence bundle yet.
+- 2026-11-20 Coder: patch reached 6 files / 234 insertions, raising T2; paused and
+  opened `DR-HO-STRATA-012-1` instead of proceeding silently.
+- 2026-11-20 Architect: **DR approved** (DEC-034) — metadata-only, no kernels; S1–S3
+  resume. The trigger worked as intended: it forced a decision, not a ban.
