@@ -183,3 +183,255 @@ deepseek_p1_logits.bin: 64 float32 = 16×2×2; top-1 id column == the 16 gen ids
 ## 6. Statement
 
 I did not modify code, tests, docs, configuration, evidence, handoffs, or the Strata checkout. My only writes were this report and `workflow/handoffs/RW-HO-STRATA-010-1.md`; all executions used `/tmp/opencode/audit-010/` as a scratch directory (harness build, two generation runs, one layer dump, one parity run) and the pinned trees read-only (`git`/`sha256sum`/`diff` on `/tmp/opencode/llama.cpp`, `/home/kupipi/Documents/git/strata`, `workflow/evidence/HO-STRATA-010/`). Model separation is **WAIVED** under WAIVER-001 (auditor and architect share the `deepseek` family); this is not a clean independent-family audit.
+
+---
+
+## 7. Re-audit (0369ec8) — after `RW-HO-STRATA-010-1`
+
+| Field | Value |
+|---|---|
+| **Handoff** | HO-STRATA-010 (`ARCHITECT_TO_CODER`), state `CODER_DONE`; rework `RW-HO-STRATA-010-1` |
+| **Reviewer** | Auditor (`auditor`), runtime `opencode-go/deepseek-v4.1-flash` (family `deepseek`) — **WAIVED under WAIVER-001 / DEC-009**, as in §2.5 |
+| **Date (UTC)** | 2026-11-19 |
+| **Audited commit** | `0369ec87d9e84e664356a3423f3744541054e321` (`0369ec8`, tip of `wp/strata-010-reference-oracle`), rebased onto `main` `8ce28c4e2e33904b824d8541d69f1ea770548424`; rework commit `664bd408ed011a7041f43a81c02c237f71290866` (`664bd40`); working tree clean |
+| **Verdict** | **PASS → `ARCHITECT_APPROVAL`** — A-1, A-2, A-3, A-10, A-11 closed; full acceptance set reproduced bit-for-bit at the audited tip; residual R1 is reclassified **Minor fidelity (not cosmetic)** and is non-blocking (below) |
+| **Evidence reviewed** | `workflow/evidence/HO-STRATA-010/` at `0369ec8` — 16 tracked files, `hashes.txt` 15 entries, `hashes-notes.txt`, `artifacts/` (5 files + `runs/` 6 tracked + 1 git-ignored) |
+| **QAQC report** | `workflow/reports/qaqc/HO-STRATA-010-qaqc.md` — re-pass section names `664bd40`, 15/15 hashes, both dump digests. **Not stale this time.** |
+| **Scope reviewed** | `git diff 8ce28c4..0369ec8` — 24 files (16 evidence, 3 handoffs, 2 reports, `DECISIONS.md`, `MODELS.md`, `STATUS.md`); `git diff 664bd40..0369ec8` — 1 file (the QAQC report only) |
+
+### 7.1 Disposition of the first verdict (A-1, A-2, A-3, A-10, A-11, A-4…A-9, A-12)
+
+| # | Was | Re-verified independently (this audit) | Status |
+|---|---|---|---|
+| **A-1** | Major (evidence) | `head -2 artifacts/tokenizer_parity_table.md` → `\| prompt \| text \| …` + separator; `grep -c 'harness decode mismatch'` → `0`; digest `8512eb971c4b029f38e9c934ecfb5a9cf53fffd102c79f93b613681d0b9d7270` = `hashes.txt:7` = `manifest.md:52`. Ran `tokenize_compare.py --gguf <deepseek> --harness /tmp/opencode/audit-010b/oracle_harness` → exit `0`, **0 stderr lines**, `diff` against the committed table → **empty, exit `0`**. The table is now the artifact of record the command produces, and P2 compares the full `'def add(a, b):\n    return'` payload. | **CLOSED** |
+| **A-2** | Major (evidence) | `grep -n` on `test-output.txt` → `35:stdout_diff_exit=1`, `45:normalized_diff_exit=0` (QAQC's line refs are correct). `diff run1.txt run2.txt` on the committed files → exit **1** with body `2,3c2,3` (`wall_s` `0.686`/`0.678` + filename). The normalization command is in `commands.log:61-63` and `manifest.md:23` (row `6c`); re-running it on the committed `run1/run2.txt` reproduces both `.norm` files byte-for-byte (`88de4582…`, `diff` exit `0`) and they agree (`normalized_diff_exit=0`). No false exit code remains. Residual **R1** → §7.3. | **CLOSED** (R1 recorded as B-1) |
+| **A-3** | Major (process) | The QAQC report names `664bd408ed011a7041f43a81c02c237f71290866` in the header, the re-pass fingerprint, and the `QAQC_TO_AUDITOR` record; it states **15/15** `hashes.txt` entries and both dump digests (`db6eccb3…` layers, `5334baef…` logits), which I verified. `git diff 664bd40..0369ec8` is **the QAQC report and nothing else**, so the re-pass covers exactly the evidence under audit. The gate now covers the commit it claims to. | **CLOSED** |
+| **A-10** | Minor (traceability) | `DEC-024` and `DEC-027` exist **in-tree at both `8ce28c4` and `0369ec8`**; `DEC-028`/`DEC-029` are added by this branch and present at `0369ec8`. Every citation resolves: `HO-STRATA-010.md:13,92,126`, `manifest.md:85`, `hashes-notes.txt:9`. No dead SHA is used as an evidence pin (§7.4 B-3 for two stale bookkeeping references). | **CLOSED** |
+| **A-11** | Minor (inputs) | `planning/strata-engine/13-family-support-test-plan.md` is tracked at `8ce28c4` and at `0369ec8`; `git show 8ce28c4:…13… \| sha256sum` → `023a37de06e785f96f94890fc16cec9279ca000513c1d2eedb6d779f28450bec`, the digest QAQC reported and the file present now. §4/S0 of the plan is the handoff's declared source. | **CLOSED** |
+| **A-4** | Minor (reproducibility) | Normalization command present in `commands.log:61-63`, `manifest.md` row `6c`, `test-output.txt:42-44`; reproduces the `.norm` files (§A-2). | **CLOSED** |
+| **A-5** | Minor (reproducibility) | `manifest.md` §1 rows `2`–`7` are repo-root CWD with full `workflow/evidence/HO-STRATA-010/…` paths; I executed rows `1`, `2`, `3`, `4`, `5`, `6a`–`6c`, `7` from the repo root unmodified. | **CLOSED** |
+| **A-6** | Minor (record) | `manifest.md:4` no longer names a stale commit; it points to the handoff log and the branch, with `base main 8ce28c4`. No circular self-hash, no wrong SHA. | **CLOSED** |
+| **A-7** | Minor (provenance) | `manifest.md:6,70-79` records CMake `3.28.3`, `GGML_NATIVE=ON`, `AMD Ryzen AI 9 HX 370 w/ Radeon 890M`, `24 vCPUs`, and says the lib digests are host-scoped. Verified `cmake --version` → `3.28.3`, `nproc` → `24`, `/proc/cpuinfo` → the named CPU; all four `.so.1` digests equal §4. Caveat → B-2. | **CLOSED** |
+| **A-8** | Minor (documentation) | `manifest.md:92-100` states the convention: harness `llama_tokenize(…, add_special=false, parse_special=true)` (`oracle_harness.cpp:197-198`, positional `false, true`) and engine `Tokenizer.encode()` with `add_bos_token=False`; no id list contains `100000`. I re-derived the engine ids directly from `strata_tokenizer.py` (not via the compare script): P1/P2/P3 exact, round-trip `True`, no BOS; GGUF metadata `add_bos_token=True`, `bos_token_id=100000`, `add_eos_token=False`. | **CLOSED** |
+| **A-9** | Observation (S4 input) | `manifest.md:90` records the C1 last-block note. I recomputed it from `e54a319:…deepseek_p1_4_layers.bin` vs the committed dump: layers 0–26 max abs diff **0.0**; `l_out-27` pos 3 max abs **3.8147e-06**, rel L2 **8.0729e-08**, **699/2048** bit-equal; pre-fix dump has **3** all-zero rows (pos 0–2 of `l_out-27`), current has **0**. The note's numbers are exact. | **CLOSED** |
+| **A-12** | Minor (bookkeeping) | **Not closed**, and not the coder's to close: `STATUS.md:19` still `@ 068e8fe` / "QAQC independent review"; `HO-STRATA-010-QAQC.md:7` still `PROPOSED`, base `3660925…`, DoD unticked (`:113`). Neither is an evidence pin. → B-3. | **OPEN → B-3 (architect, DEC-018)** |
+| **A-13** | Minor (portability) | Unchanged by design: `tokenize_compare.py:8,32` still hardcodes `/home/kupipi/Documents/git/strata/tools` and `/tmp/opencode/llama.cpp/build/bin`, and passes `env={"LD_LIBRARY_PATH": …}` (wiping `PATH`/`HOME`). Works here, not portable. The first report assigned this to S1+, so it is not a gate for S0. | **OPEN — deferred to S1+ (coder)** |
+
+### 7.2 Independent full re-run at `0369ec8`
+
+Scratch `/tmp/opencode/audit-010b/`; `G` = the DeepSeek GGUF; every command below is from the bundle's `commands.log` / `manifest.md` §1, run from the repo root. Nothing was written inside the repo.
+
+```text
+$ git rev-parse HEAD                     -> 0369ec87d9e84e664356a3423f3744541054e321
+$ git status --porcelain                 -> (empty)
+$ git -C /tmp/opencode/llama.cpp rev-parse HEAD -> 78e05298f0d68abff41d08d79fa7469264b2aff0
+$ git -C /tmp/opencode/llama.cpp describe --tags --exact-match -> b12527
+$ sha256sum lib{llama,ggml,ggml-base,ggml-cpu}.so.1
+  2397a75f… 8f923882… 437dd6b7… fcc9fa13…   (= manifest §4, all four)
+
+$ g++ -O2 -std=c++17 …/oracle_harness.cpp -o /tmp/opencode/audit-010b/oracle_harness …
+  exit 0 (5 deprecation warnings)
+  40cf635f0dc36a26202f9145af786423c200633c4b9bd1986be42f7159f68506  oracle_harness
+  40cf635f…  == the binary on disk                     (source bdc9303d… matches hashes.txt)
+
+$ harness --tokens 549,6077,280,7239,317 --n 16 --dump-logits logits1.bin   (run 1)
+$ harness … --dump-logits logits2.bin                                        (run 2, fresh process)
+gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280   (both runs)
+5334baef84380f6060f8b1c4afda5fd45d367e9065ecdf2c6e4ea0642153fb2e  logits1.bin
+5334baef…  logits2.bin
+5334baef…  workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin   <-- 3-way match
+  content: 64 float32 = 16x2x2; top-1 ids == the 16 gen ids; rank-1 > rank-2 at every
+  step (min margin 0.3555, max 3.8040)
+
+$ harness --tokens 549,6077,280,7239 --n 0 --dump-layers layers.bin
+layers shape: [4][28][2048]  exit 0
+db6eccb3e8a949827c5c961fc732159daa1a0a9d52f7f88156d669845e0c7c73  layers.bin
+db6eccb3…  == artifacts/runs/deepseek_p1_4_layers.bin
+  content: 0 zero rows of 112; all finite; consecutive-layer L2 (pos 3) 3.47…117.77;
+  pos3 layer27 ||.|| = 172.65
+
+$ python3 …/check_layers.py layers.bin
+shape: (4, 28, 2048)
+non-zero rows per position: [(0, 28), (1, 28), (2, 28), (3, 28)]
+L0 vs L1 L2 norm (last pos): 3.566159
+L0 vs L1 dot (last pos): 43.325943
+any nan/inf: False
+
+$ python3 …/tokenize_compare.py --gguf "$G" --harness audit-010b/oracle_harness > parity.md 2> parity.err
+  exit 0; stderr: 0 lines
+  P1 [549,6077,280,7239,317]  P2 [1558,962,7,64,11,270,1780,185,300,972]  P3 [21477,6663,8247,418]
+  all match=True
+$ diff parity.md …/artifacts/tokenizer_parity_table.md -> empty, exit 0
+$ sha256sum parity.md -> 8512eb971c4b029f38e9c934ecfb5a9cf53fffd102c79f93b613681d0b9d7270
+
+$ grep '^gen:' run1.txt > r1.norm && grep '^gen:' run2.txt > r2.norm && diff r1.norm r2.norm
+  exit 0; both 88de45824c276d1ac4ecb3572e3ba6dd42a4130bb137522c3e64dcff780ead2a
+  (== committed run1.norm.txt / run2.norm.txt byte-for-byte)
+
+$ sha256sum -c workflow/evidence/HO-STRATA-010/hashes.txt     -> 15/15 OK, exit 0
+   hashes.txt itself = 4f1f045ba7b432b8fb0ed91fb3d3c8992bd4e3ca7494beeac2efc48f2c41c535
+$ sha256sum -c …/artifacts/pack_hashes.txt                    -> 2/2 OK, exit 0
+   Mixtral 542d2453…  DeepSeek f00ecd83…
+$ git show 8ce28c4:workflow/MODELS.md | sha256sum             -> 1883c62b…  (= pin)
+$ git show 8ce28c4:planning/strata-engine/13-… | sha256sum    -> 023a37de…  (= pin)
+$ sha256sum workflow/MODELS.md                                -> dae0b4ea…  (branch adds the DEC-029 note)
+$ git -C /home/kupipi/Documents/git/strata status --porcelain -> (empty)
+$ git -C …/strata rev-parse HEAD                              -> baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+$ sha256sum …/strata/build-hip/strata                         -> d58ee239…  (mtime 2026-11-15, not rebuilt)
+```
+
+**Re-run match: exact** — `40cf635f…` binary, the 16-token `gen:` line, `5334baef…` logits (three independent copies), `db6eccb3…` layers, `8512eb97…` parity table, `88de4582…` normalized gen line. No token, hash, or shape moved.
+
+### 7.3 R1 — judgement: **Minor fidelity defect, not cosmetic; non-blocking**
+
+R1 is real and QAQC's *description* of it is accurate, but its *classification* ("cosmetic") understates it. The facts:
+
+- `diff run1.txt run2.txt` on the committed files prints the header `2,3c2,3` followed by **two changed lines per side** (`< wall_s`, `< logits shape`, `---`, `> wall_s`, `> logits shape`) — exit `1`. I reproduced this, and the identical shape from my own two fresh runs (`2,3c2,3`, `wall_s` + filename only).
+- `test-output.txt:27-34` prints the correct header and exit but **six** body lines (**three per side**): it also prints `< logits layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2` and the `>` twin, which are byte-identical in both files and which `diff` never emits. `git diff 25c6a9a..664bd40` shows the previous transcript used `2,4c2,4` with the same three-line body; the rework fixed the header to `2,3c2,3` and left the body. So the block was never a paste of command output — it is a hand transcription.
+
+Why it is **not cosmetic**: it asserts a fact about the files that is false (that line 4 changed between runs), in a file whose section is labelled `=== diff run1 vs run2 (stdout) ===`. A cosmetic defect is one that changes only presentation; this changes meaning, narrowly.
+
+Why it is nonetheless **non-blocking**:
+
+1. **Direction.** The error *over-reports*: an identical line is shown as changed. Nothing is concealed, and no acceptance claim depends on line 4 differing or not.
+2. **The gate of record is elsewhere and is clean.** AC-2's reproducibility result is carried by the normalized gen-line comparison: the command is recorded (`commands.log:61-63`, `manifest.md` row `6c`), it reproduces the hashed `.norm` files byte-for-byte, and `normalized_diff_exit=0` is true. I re-derived it three ways.
+3. **The true diff is one command away on committed, hashed inputs.** `run1.txt`, `run2.txt` and both `.norm` files are committed and hashed; any reader can run `diff` and get the truth in one step. The transcript's exit code, reason line, and conclusion are correct.
+4. **No criterion fails.** A-1 is closed, A-2's required fix (true exits + recorded, reproducible normalization) is done, and the parity/AC-3 artifact is now byte-reproducible.
+
+Combined with B-1(b) (§7.4: the parity block drops the table's two header lines the command emits), the accurate statement is: **`test-output.txt` is a curated transcript, not a single raw command stream**, and `manifest.md` §8's "outputs are raw; no paraphrasing" is therefore a slight over-claim. That is a documentation/fidelity debt, not a false result. The correct fix is to regenerate the transcript from the recorded commands at the next touch of the bundle (and re-hash `test-output.txt`), not a new evidence round on its own. The architect may still prefer to issue `RW-HO-STRATA-010-2` for a strictly verbatim transcript — it is a two-line body plus two header lines — but my recommendation is to accept B-1 as recorded, because no claim, hash, shape, or scope depends on it and the underlying artifacts are committed.
+
+### 7.4 New findings from this re-audit
+
+| # | Severity | Finding | Required action | Owner |
+|---|---|---|---|---|
+| **B-1** | **Minor** (fidelity) | `test-output.txt` is a composed transcript, not raw stdout: (a) the `=== diff run1 vs run2 (stdout) ===` block prints 6 body lines under `2,3c2,3`, including the byte-identical `logits layout` line as changed (R1, §7.3); (b) the parity block (`:2-4`) omits the table header and separator lines that command 2 emits. `manifest.md:111` nevertheless ticks "outputs are raw; no paraphrasing". | At the next touch of the bundle, regenerate `test-output.txt` from the recorded commands (or store one file per command) and re-hash it. Not required for this PASS. | Coder (next touch) |
+| **B-2** | Observation (provenance) | The shared-library digests are **build-instance** scoped, not merely host-scoped: `libggml-base.so.1` was `2cc34f6f…` in `manifest.md` at `02bc3c2` and is `437dd6b7…` today, from a rebuild at the same pin (`78e05298f`, embedded in the binary) on the same host. `libllama`, `libggml`, `libggml-cpu` did not move. The recipe reproduces; the digests do not identify a reproducible build. | Change "this-host only" (`manifest.md:79`) to "this host **and this build**"; keep the digests as identification, not as a build-reproducibility proof. No result depends on them — the dumps reproduce. | Coder (next touch) |
+| **B-3** | Minor (bookkeeping) | A-12 carry-over. `STATUS.md:19`: `wp/strata-010-reference-oracle @ 068e8fe`, next action "QAQC independent review". `HO-STRATA-010-QAQC.md:7`: state `PROPOSED`, base `3660925…` (pre-rebase), DoD `:113` unticked. `068e8fe` and `3660925` are ancestors, so no diff is invalidated, but the board and the QAQC handoff disagree with `HO-STRATA-010.md:11` (base `8ce28c4`). | Architect mirrors the state (DEC-018): STATUS row to the audited tip + current next action; QAQC handoff state/base refreshed. | Architect |
+| **B-4** | Minor (DEC-024 completeness) | `hashes-notes.txt:9-10` records the two commit pins but **not** the resulting digests, which DEC-024 requires ("`git show <sha>:<path> \| sha256sum` and the resulting digest recorded in `hashes-notes.txt`"). The pins are verifiable (I verified both: `1883c62b…`, `023a37de…`), so nothing is lost, but the note is incomplete on its own terms. | Add the two digests to `hashes-notes.txt` at the next touch. | Coder (next touch) |
+
+No Blocker and no Major finding. B-1/B-2/B-4 are inside the evidence bundle and can be folded into any later commit; B-3 is the architect's board.
+
+### 7.5 Evidence verification at `0369ec8`
+
+- [x] **Manifest complete; commands reproducible.** Rows `1`–`7` of `manifest.md` §1 were executed as written from the repo root (§7.2); rows `0a`–`0c` were verified against the existing tree (tag `b12527`, commit `78e05298…`, clean, the four lib digests, CMake `3.28.3`). `<deepseek>` is expanded at `manifest.md:26`. The exit codes I observed match the table (`0` for rows 1–5 and 7, `1` for `6a`, `0` for `6b`/`6c`).
+- [x] **Outputs raw; failures/skips kept verbatim — with the B-1 exception.** Mixtral's refusal, the non-empty stdout diff and the reason are preserved; the diff *body* and the parity block are curated (B-1). No failed step is hidden.
+- [x] **Artifacts/hashes match the manifest.** `sha256sum -c hashes.txt` → **15/15 `OK`**, exit `0`; every §3 digest equals `hashes.txt` and the file on disk; `pack_hashes.txt` **2/2 `OK`** (13.7 s, both packs fully re-read).
+- [x] **Environment recorded.** Ubuntu 24.04, `Linux 7.0.0-42-generic`, GCC `13.3.0`, Python `3.14.10`, CMake `3.28.3`, `GGML_NATIVE=ON`, `CMAKE_BUILD_TYPE=Release`, `BUILD_SHARED_LIBS=ON`, `LLAMA_CURL=OFF`, `LLAMA_BUILD_{TESTS,EXAMPLES,SERVER}=OFF`, CPU-only `n_gpu_layers=0`, Ryzen AI 9 HX 370, 24 vCPUs. Matches the host I ran on.
+- [x] **No secrets.** Pattern scan (`ghp_`, `github_pat_`, `hf_<token>`, `sk-`, `api_key`, `password`, private-key header) over the bundle and handoff: **0** matches. Largest committed file is the 917,504 B layer dump; no weights.
+
+### 7.6 Claim and scope audit at `0369ec8`
+
+- [x] **Every claim cites a command and an output.** The parity claim cites command 2 + the regenerated table; the reproducibility claim cites commands 4/5/6b/6c + the hashed `.norm` files; the dump claims cite commands 3/4/7 + digests and shapes; provenance cites 0a–0c + §4; "no engine change" cites AC-8. The one over-claim is `manifest.md:111` "outputs are raw" (B-1); every *substantive* claim holds against its artifact.
+- [x] **One profile per claim.** CPU-only, llama.cpp `b12527`/`78e05298…`, DeepSeek-MoE-16B-base `Q4_K_M` (`f00ecd83…`), 3-prompt parity + 4-token dump + 5-token/16-step decode, `n_ctx=4096`. No Mixtral data, no Strata run, no 780M/MI25/gfx1100. No cross-profile transfer.
+- [x] **Scope matches the handoff; no silent expansion.** `8ce28c4..0369ec8` = 24 files: 16 evidence, `HO-STRATA-010.md`, `HO-STRATA-010-QAQC.md`, `RW-…-1.md`, the two reports, `DECISIONS.md`, `MODELS.md`, `STATUS.md`. The `DECISIONS.md` delta is DEC-028/DEC-029 (architect's decisions for this work package); `MODELS.md` is the DEC-029 format note the decision authorises; `STATUS.md` adds the HO-010 row. No engine code, no CMake, no family enum, no S1+ work.
+- [x] **Guard rails respected.** Strata checkout clean at `baf16363…`, `build-hip/strata` `d58ee239…` (mtime 2026-11-15) — not rebuilt, not edited. No new dependency (numpy was already present; llama.cpp stays at the pin in `/tmp`). No download: the HF cache dirs are untouched since 2026-11-17 and no `.gguf` is newer; both packs match `pack_hashes.txt`. No prompt tuning (§2.3 prompts unchanged). No secret, no weights in git.
+- [x] **Mixtral deferral is real, not hidden.** I parsed the Mixtral GGUF header independently: **995** tensors, arch `llama`, **0** stacked `*_exps` tensors, `blk.0.ffn_down.0…7.weight` present — exactly the per-expert 2023 layout DEC-029 describes, and the pack hash matches. The refusal reason is factually correct; the deferral is recorded in DEC-029, `MODELS.md`, and `manifest.md:85`.
+- [x] **No perf/support claim; no tolerance chosen.** Case-insensitive scan for `faster|speedup|outperform|tok/s|SOTA|production|benchmark|performance` returns only the sentence "no performance claim". `tolerance|KL` returns only the S4-baseline note. Wall time stays an observation (`0.687`/`0.665` here vs `0.686`/`0.678` committed — labelled as such).
+- [x] **Rework history closed.** `RW-HO-STRATA-010-1` F1/F2/F3 are closed (§7.1); the log entry at `HO-STRATA-010.md:166-174` records the rework; no open rework file.
+
+### 7.7 Counter-hypotheses tested in this re-audit
+
+| Hypothesis | Test | Result |
+|---|---|---|
+| The regenerated parity table was hand-edited to remove the mismatch line | Re-ran command 2 twice into fresh files, `diff` against the committed table, and read stderr | **Falsified.** Exit `0`, stderr `0` lines, byte-identical (`8512eb97…`). The line is gone because the script parses the full payload. |
+| The "true exit" was fixed only in prose, not in the pipeline | Ran `diff run1.txt run2.txt` and the normalization recipe on the committed files | **Falsified.** Raw diff exits `1`; normalization exits `0` and reproduces the hashed `.norm` files. |
+| The QAQC re-pass reviewed the new commit but an older bundle | `git diff 664bd40..0369ec8` | **Falsified.** The only post-rework commit changes the QAQC report; the evidence bytes QAQC saw are the bytes I audited. |
+| The pins were moved to `8ce28c4` without the files existing there | `git show 8ce28c4:<path> \| sha256sum` for both inputs | **Falsified.** Both resolve; the plan is byte-identical, `MODELS.md` differs only by the branch's DEC-029 note, and both are present at `0369ec8`. |
+| The dumps were re-generated from a different build and only the hashes were copied | Rebuilt the harness from the committed source, re-ran both generations, the dump and the parity check | **Falsified.** `40cf635f…` binary; `5334baef…` logits; `db6eccb3…` layers; `8512eb97…` table. |
+| The engine was rebuilt to make parity pass | `sha256sum build-hip/strata` + mtime | **Falsified.** `d58ee239…`, mtime 2026-11-15, tree clean at `baf16363`. |
+| The C1 note is a post-hoc rationalisation | Recomputed the pre-fix vs post-fix dump difference | **Confirmed accurate**, not rationalised: 0.0 for layers 0–26, `3.8147e-06` / `8.0729e-08` / 699-of-2048 at `l_out-27` pos 3. |
+
+### 7.8 Verdict
+
+- **PASS → `ARCHITECT_APPROVAL`.** Of the thirteen findings in §3.2, eleven are closed (A-1…A-11), A-12 is the architect's board (→ B-3) and A-13 was deferred to S1+ by the first report. The oracle, the parity gate, the dumps and the provenance reproduce exactly from the committed sources at `0369ec8`; the QAQC re-pass covers that commit; the pins resolve at `8ce28c4`; the scope is clean.
+- **What changed since the first audit:** A-1 (stale parity artifact) and A-2 (falsified diff exit) are fixed *in the artifact*, not just in prose; A-3 (stale QAQC) is fixed by a re-pass on the audited commit; A-10/A-11 are fixed by the rebase that brought `DEC-024`, `DEC-027` and the family test plan in-tree.
+- **What remains:** one Minor fidelity debt in the transcript assembly (B-1/R1, with its exact cause identified), one provenance-wording observation (B-2), one DEC-024 completeness item (B-4), and the architect's own board (B-3). None changes a token, a digest, a shape, a claim or the scope.
+- **R1:** **not cosmetic — a Minor fidelity defect; non-blocking** (§7.3). The block's header and exit are right; its body shows an unchanged line as changed. It over-reports, contradicts no claim, and the true diff is reproducible from committed, hashed inputs in one command.
+- **Not signed by the auditor.** The architect decides `DONE` and merges, and may fold B-1/B-2/B-4 into a later bundle commit or require them first via `RW-HO-STRATA-010-2`; my recommendation is to accept them as recorded and correct them at the next touch.
+
+### 7.9 Owner-task oversight (updated)
+
+- Owner task: `OT-STRATA-001` (S0 authorised 2026-11-18, DEC-028).
+- Checkpoint **S0 — reference oracle + parity harness: met and evidence-verified**. Reproducible oracle (llama.cpp `b12527` @ `78e05298…`), tokenizer parity on three fixed prompts with no BOS on either side, 16-token reference IDs, `[4][28][2048]` layer dump and `[16][2][2]` top-2 logits, all bit-reproducible; engine untouched (`baf16363…`, `d58ee239…`); Mixtral deferred for a documented format reason (DEC-029).
+- Owner acceptance: **still pending** — it is recorded in `OT-STRATA-001` only after the architect signs `HO-STRATA-010` `DONE`. Nothing in this re-audit requires owner action.
+
+### 7.10 Statement (re-audit)
+
+I did not modify code, tests, docs, configuration, evidence, handoffs, or the Strata checkout. My only write is this added section. All executions used `/tmp/opencode/audit-010b/` as scratch (harness rebuild, two generation runs, layer dump, parity run, normalization reproduction, a numpy inspection of both dumps, and a GGUF header read of both packs); the pinned trees were read-only (`git`/`sha256sum`/`diff` over `/tmp/opencode/llama.cpp`, `/home/kupipi/Documents/git/strata`, `workflow/evidence/HO-STRATA-010/`). Model separation remains **WAIVED** under WAIVER-001: `python3 workflow/check_model_policy.py --strict` → `RESULT: WAIVED — policy exception in force (not PASS)`, because auditor and architect share the `deepseek` family. This is a WAIVED audit, not a clean independent-family one. Coder (`kimi-k2.7-code`) and QAQC (`gemini-4-argon`) remain on different families.
+
+---
+
+## 8. `AUDITOR_TO_ARCHITECT` handoff record
+
+Per DEC-018, the auditor's handoff to the architect is embedded here (write boundary: `workflow/reports/audit/` only).
+
+```markdown
+# HO-STRATA-010-ARCHITECT — S0 reference oracle: audit PASS (re-audit)
+
+| Field | Value |
+|---|---|
+| **ID** | HO-STRATA-010-ARCHITECT |
+| **Type** | AUDITOR_TO_ARCHITECT |
+| **State** | ARCHITECT_APPROVAL |
+| **Created / updated (UTC)** | 2026-11-19 |
+| **From → To** | Auditor (`auditor`, `opencode-go/deepseek-v4.1-flash`) → Architect (`architect`) |
+| **Work package** | `strata-010-reference-oracle` |
+| **Branch / audited commit** | `wp/strata-010-reference-oracle` @ `0369ec87d9e84e664356a3423f3744541054e321`, based on `main` `8ce28c4e2e33904b824d8541d69f1ea770548424` |
+| **Priority / timebox** | P1 |
+| **Original handoff** | `workflow/handoffs/HO-STRATA-010.md` (state `CODER_DONE`) |
+| **Rework** | `workflow/handoffs/RW-HO-STRATA-010-1.md` (closed) |
+| **QAQC report** | `workflow/reports/qaqc/HO-STRATA-010-qaqc.md` (PASS on `664bd40`, re-pass section) |
+| **Audit report** | `workflow/reports/audit/HO-STRATA-010-audit.md` (§7 re-audit) |
+| **Evidence path** | `workflow/evidence/HO-STRATA-010/` |
+
+## 1. Verdict
+
+**PASS → `ARCHITECT_APPROVAL`.** A-1, A-2, A-3, A-10, A-11 and A-4…A-9 are closed and
+independently reproduced. No Blocker, no Major finding. Four items remain, all
+non-blocking (B-1 transcript fidelity, B-2 provenance wording, B-3 board
+bookkeeping, B-4 pin digests).
+
+## 2. Evidence the architect should look at
+
+| Item | Value |
+|---|---|
+| `sha256sum -c workflow/evidence/HO-STRATA-010/hashes.txt` | 15/15 `OK`, exit 0; `hashes.txt` = `4f1f045ba7b432b8fb0ed91fb3d3c8992bd4e3ca7494beeac2efc48f2c41c535` |
+| Reference gen line | `gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280` |
+| Logits dump | `5334baef84380f6060f8b1c4afda5fd45d367e9065ecdf2c6e4ea0642153fb2e` (16x2x2) |
+| Layer dump | `db6eccb3e8a949827c5c961fc732159daa1a0a9d52f7f88156d669845e0c7c73` (4x28x2048, 112/112 non-zero rows) |
+| Parity table | `8512eb971c4b029f38e9c934ecfb5a9cf53fffd102c79f93b613681d0b9d7270` (regeneration diff empty, exit 0) |
+| Harness binary (rebuilt) | `40cf635f0dc36a26202f9145af786423c200633c4b9bd1986be42f7159f68506` |
+| Pins at `8ce28c4` | `MODELS.md` `1883c62b…`; `planning/strata-engine/13-…` `023a37de…` |
+| Engine guard rail | Strata clean at `baf16363…`; `build-hip/strata` `d58ee239…` (not rebuilt) |
+| Model packs | DeepSeek `f00ecd83…` OK; Mixtral `542d2453…` OK (995 tensors, 0 stacked `_exps` — DEC-029 reason confirmed) |
+
+## 3. Decisions requested from the architect
+
+1. **Sign or reject** `HO-STRATA-010` at `0369ec8` (`DONE` / `REWORK`). If signing,
+   record `ARCHITECT_APPROVAL` and merge with the HO ID and evidence path.
+2. **B-1:** accept the curated-transcript debt (recommended: correct at the next
+   bundle touch) or require `RW-HO-STRATA-010-2` for a verbatim `test-output.txt`.
+3. **B-3:** update `STATUS.md:19` (still `@ 068e8fe`) and the QAQC handoff
+   (`PROPOSED`, base `3660925…`) when mirroring the state (DEC-018).
+
+## 4. Acceptance status
+
+| AC | Status |
+|---|---|
+| 1 llama.cpp pinned/built, provenance | PASS (tag `b12527`, `78e05298…`, flags, CMake `3.28.3`, `GGML_NATIVE=ON`, host CPU/24 vCPU, lib digests) |
+| 2 reproduces on two runs | PASS (raw diff exit 1 for `wall_s`+filename only; normalized gen gate exit 0; logits binaries identical) |
+| 3 tokenizer parity, 3 prompts, zero diffs | PASS (regenerated table byte-identical, 0 mismatch lines, no BOS either side) |
+| 4 reference IDs, DeepSeek P1, 16 tokens | PASS (Mixtral deferred, DEC-029) |
+| 5 per-layer dump, shape, non-degenerate | PASS (112/112 rows non-zero, finite, layers distinct) |
+| 6 logits/top-2 for 16 steps | PASS (256 B, 16x2x2, top-1 == gen ids) |
+| 7 harness committed and runnable | PASS (rebuilt and re-run from the repo root) |
+| 8 no engine change | PASS (clean `baf16363…`, binary `d58ee239…`) |
+| 9 no perf/support claim | PASS (wall time labelled observation; no tolerance/KL chosen) |
+
+## 5. Signatures
+
+| Role | Name/agent | Date | Decision |
+|---|---|---|---|
+| Sender (Auditor) | `auditor` (`opencode-go/deepseek-v4.1-flash`, WAIVED) | 2026-11-19 | PASS → `ARCHITECT_APPROVAL` |
+| Receiver (Architect) | `architect` | | |
+```
