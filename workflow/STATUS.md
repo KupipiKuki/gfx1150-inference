@@ -15,6 +15,7 @@ row is invisible.
 | HO-STRATA-008 | family probe: engine behaviour on unsupported GGUFs (Mixtral, DeepSeek) | **DONE (SIGNED 2026-11-18)** · DEC-026 | Architect | `wp/strata-008-family-probe` @ `3eafe26` | merge via PR; owner decides whether to open HO-006 with the sharpened question | — | `workflow/evidence/HO-STRATA-008/` · `workflow/handoffs/HO-STRATA-008-APPROVAL.md` |
 | HO-STRATA-006 | model-support investigation (read-only) | **DEFERRED** (owner hold) | Architect | `wp/strata-006-model-support` @ `750dd2f` | restart only on the owner's go-ahead (DEC-016) | owner hold; OT decisions 2–5 | `workflow/evidence/HO-STRATA-006/` |
 | HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **DONE (SIGNED 2026-11-16) · MERGED #15** | Architect | `main` @ `a18f12f` | HO-005 route decision | — | `workflow/evidence/HO-STRATA-007/` · `workflow/reports/qaqc/HO-STRATA-007-qaqc.md` · `workflow/reports/audit/HO-STRATA-007-audit.md` · `workflow/handoffs/HO-STRATA-007-APPROVAL.md` |
+| HO-STRATA-012 | DeepSeek S1–S3: recognition, geometry, tensor inventory | **READY** | Architect → Coder | `wp/strata-012-deepseek-s1` | coder adds the `deepseek` family + `--inspect`; no forward | — | `workflow/evidence/HO-STRATA-012/` |
 | — | family-support test plan (planning 13) | **PREPARED** (execution held, DEC-027) | Architect | `docs/13-family-test-plan` | owner decides: S0 only / Mixtral S0–S7 / keep hold | DEC-016 | `planning/strata-engine/13-family-support-test-plan.md` |
 
 **Project state (2026-11-16):** HO-STRATA-001 is DONE and accepted as the
