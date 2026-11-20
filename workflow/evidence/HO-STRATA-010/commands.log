@@ -1,0 +1,72 @@
+# Environment: LD_LIBRARY_PATH=/tmp/opencode/llama.cpp/build/bin
+# llama.cpp pin: tag b12527, commit 78e05298f0d68abff41d08d79fa7469264b2aff0
+
+# 0. Clone and build llama.cpp (CPU, shared libs, no extras)
+git clone https://github.com/ggerganov/llama.cpp.git /tmp/opencode/llama.cpp
+git -C /tmp/opencode/llama.cpp checkout 78e05298f0d68abff41d08d79fa7469264b2aff0
+cmake -S /tmp/opencode/llama.cpp -B /tmp/opencode/llama.cpp/build \
+  -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=ON -DLLAMA_BUILD_TESTS=OFF \
+  -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/opencode/llama.cpp/build -j
+# exit 0
+
+# 1. Build harness
+g++ -O2 -std=c++17 workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp \
+  -o /tmp/opencode/oracle_harness \
+  -I/tmp/opencode/llama.cpp/include -I/tmp/opencode/llama.cpp/ggml/include \
+  -L/tmp/opencode/llama.cpp/build/bin \
+  -lllama -lggml -lggml-base -lggml-cpu -lpthread
+# exit 0 (warnings only, deprecated API)
+
+# 2. Tokenizer parity (DeepSeek, 3 prompts)
+python3 workflow/evidence/HO-STRATA-010/artifacts/tokenize_compare.py \
+  --gguf /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf \
+  --harness /tmp/opencode/oracle_harness \
+  > workflow/evidence/HO-STRATA-010/artifacts/tokenizer_parity_table.md
+# exit 0; table saved to artifacts/tokenizer_parity_table.md
+
+# 3. Layer dump (4-token prompt: first 4 IDs of P1)
+LD_LIBRARY_PATH=/tmp/opencode/llama.cpp/build/bin /tmp/opencode/oracle_harness \
+  --model /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf \
+  --tokens 549,6077,280,7239 --n 0 \
+  --dump-layers workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin
+# exit 0; shape [4][28][2048]
+
+# 4. Reference generation run 1 (P1, 16 tokens greedy)
+LD_LIBRARY_PATH=/tmp/opencode/llama.cpp/build/bin /tmp/opencode/oracle_harness \
+  --model /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf \
+  --tokens 549,6077,280,7239,317 --n 16 \
+  --dump-logits workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin \
+  > workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt
+# exit 0
+
+# 5. Reference generation run 2 (same input)
+LD_LIBRARY_PATH=/tmp/opencode/llama.cpp/build/bin /tmp/opencode/oracle_harness \
+  --model /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf \
+  --tokens 549,6077,280,7239,317 --n 16 \
+  --dump-logits workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits_run2.bin \
+  > workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt
+# exit 0
+
+# 6. Reproducibility checks
+# Raw stdout diff is non-empty because wall_s and the output filename differ; exit 1.
+diff workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt
+# exit 1 (only wall_s and filename differ)
+
+# Logits binaries are bit-identical; exit 0.
+diff workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits_run2.bin
+# exit 0 (empty)
+
+# Normalized gate of record: keep only the gen line, then diff.
+grep '^gen:' workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt > workflow/evidence/HO-STRATA-010/artifacts/runs/run1.norm.txt
+grep '^gen:' workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt > workflow/evidence/HO-STRATA-010/artifacts/runs/run2.norm.txt
+diff workflow/evidence/HO-STRATA-010/artifacts/runs/run1.norm.txt workflow/evidence/HO-STRATA-010/artifacts/runs/run2.norm.txt
+# exit 0 (empty)
+
+# 7. Layer sanity check
+python3 workflow/evidence/HO-STRATA-010/artifacts/check_layers.py workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin
+# exit 0
+
+# 8. Hashes
+sha256sum workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin
+sha256sum workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin

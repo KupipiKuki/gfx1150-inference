@@ -1,0 +1,52 @@
+=== tokenizer parity (DeepSeek) ===
+| P1 | 'The capital of France is' | [549, 6077, 280, 7239, 317] | [549, 6077, 280, 7239, 317] | True |  |
+| P2 | 'def add(a, b):\n    return' | [1558, 962, 7, 64, 11, 270, 1780, 185, 300, 972] | [1558, 962, 7, 64, 11, 270, 1780, 185, 300, 972] | True |  |
+| P3 | 'Three primary colors are' | [21477, 6663, 8247, 418] | [21477, 6663, 8247, 418] | True |  |
+
+=== layer dump (4-token prompt) ===
+layers shape: [4][28][2048]  file: workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin
+gen: 
+wall_s: 0.106
+db6eccb3e8a949827c5c961fc732159daa1a0a9d52f7f88156d669845e0c7c73  workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin
+
+=== reference run 1 (P1, n=16) ===
+gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+wall_s: 0.686
+logits shape: [16][2][2]  file: workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin
+logits layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2
+5334baef84380f6060f8b1c4afda5fd45d367e9065ecdf2c6e4ea0642153fb2e  workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin
+
+=== reference run 2 (P1, n=16) ===
+gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+wall_s: 0.678
+logits shape: [16][2][2]  file: workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits_run2.bin
+logits layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2
+5334baef84380f6060f8b1c4afda5fd45d367e9065ecdf2c6e4ea0642153fb2e  workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits_run2.bin
+
+=== diff run1 vs run2 (stdout) ===
+2,3c2,3
+< wall_s: 0.686
+< logits shape: [16][2][2]  file: workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin
+< logits layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2
+---
+> wall_s: 0.678
+> logits shape: [16][2][2]  file: workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits_run2.bin
+> logits layout: [step][rank][(token_id_f32, logit_f32)]  ranks: top-1, top-2
+stdout_diff_exit=1
+# reason: only wall_s and the output filename differ; the gen lines and logits binaries are identical
+
+=== diff logits binaries ===
+logits_binary_diff_exit=0
+
+=== normalization (gen-line gate of record) ===
+grep '^gen:' workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt > workflow/evidence/HO-STRATA-010/artifacts/runs/run1.norm.txt
+grep '^gen:' workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt > workflow/evidence/HO-STRATA-010/artifacts/runs/run2.norm.txt
+diff workflow/evidence/HO-STRATA-010/artifacts/runs/run1.norm.txt workflow/evidence/HO-STRATA-010/artifacts/runs/run2.norm.txt
+normalized_diff_exit=0
+
+=== layer sanity check ===
+shape: (4, 28, 2048)
+non-zero rows per position: [(0, np.int64(28)), (1, np.int64(28)), (2, np.int64(28)), (3, np.int64(28))]
+L0 vs L1 L2 norm (last pos): 3.566159
+L0 vs L1 dot (last pos): 43.325943
+any nan/inf: False
