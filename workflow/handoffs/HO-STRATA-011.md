@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-011 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **CODER_DONE** |
+| **State** | **REWORK** — `RW-HO-STRATA-011-1`: values reproduce, bundle packaging does not (dumps ignored, hash paths, hardcoded layer count, stale pins) |
 | **Created / updated (UTC)** | 2026-11-19 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-011-olmoe-oracle` |
