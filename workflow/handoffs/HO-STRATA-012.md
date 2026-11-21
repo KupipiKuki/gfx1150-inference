@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-012 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **IN_PROGRESS** — `DR-HO-STRATA-012-1` approved (DEC-034); S1–S3 continue |
+| **State** | **CODER_DONE** |
 | **Created / updated (UTC)** | 2026-11-20 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-012-deepseek-s1` |
@@ -135,13 +135,13 @@ only), `hashes-notes.txt` (commit pins **with** digests, DEC-024).
 
 ## 9. Definition of Done
 
-- [ ] Family recognized; named refusal verified
-- [ ] Geometry matches metadata field by field
-- [ ] `--inspect` inventories 363 tensors, exit 0
-- [ ] Mismatch refused
-- [ ] Qwen regression exact; signed binary intact
-- [ ] Patch measured and exported
-- [ ] Evidence complete; `CODER_DONE`; QAQC handoff created
+- [x] Family recognized; named refusal verified
+- [x] Geometry matches metadata field by field
+- [x] `--inspect` inventories 363 tensors, exit 0
+- [x] Mismatch refused
+- [x] Qwen regression exact; signed binary intact
+- [x] Patch measured and exported
+- [x] Evidence complete; `CODER_DONE`; QAQC handoff created
 
 ## 10. Why the refusal matters
 

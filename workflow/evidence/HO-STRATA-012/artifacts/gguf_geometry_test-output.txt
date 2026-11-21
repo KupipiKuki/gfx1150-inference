@@ -1,0 +1,36 @@
+strata: qwen4exp.attention.compress_ratios is all zeros (a converter's placeholder): using the compiled pooling block of 4 cells (#2396)
+gguf_geometry_test
+  the full key set reads                                                                     ok
+    and gives the compiled shape (vocabulary from tokenizer.ggml.tokens)                     ok
+    conv channels derived: 2 x 128 x 16 + 6144 = 10240                                       ok
+    which the kernels run, and the guard passes                                              ok
+  only the six required keys: the rest keeps the compiled values                             ok
+  a file without block_count is refused, naming it                                           ok
+  a file without embedding_length is refused, naming it                                      ok
+  a file without expert_count is refused, naming it                                          ok
+  a file without expert_used_count is refused, naming it                                     ok
+  a file without attention.head_count is refused, naming it                                  ok
+  a file without attention.head_count_kv is refused, naming it                               ok
+  a pruned variant: 384 experts, 8 per token, read and accepted                              ok
+  65 experts per token is refused (the router takes 1..64)                                   ok
+  0 experts per token is refused                                                             ok
+  a value head width other than the key head width is refused                                ok
+  a shared expert wider than the routed ones is refused                                      ok
+  ssm.inner_size other than state_size x time_step_rank is refused                           ok
+  compress_ratios that disagree with full_attention_interval are refused at the first layer  ok
+  compress_ratios of another length are refused                                              ok
+  two pooling blocks in one model are refused                                                ok
+  an all-zero compress_ratios list is treated as absent                                      ok
+  an all-zero list of another length is still refused                                        ok
+  a list with one non-zero entry is checked in full                                          ok
+  a float where a count belongs is refused                                                   ok
+  40 layers read: 10 QSA, 30 GDN                                                             ok
+    and refused: qwen4exp.block_count = 40, the kernels are compiled for 48                  ok
+  head width 128 reads and is refused: qwen4exp.attention.key_length = 128, the kernels are compiled for 256 ok
+  an indexer budget of 1024 is refused                                                       ok
+  an rms epsilon of 1e-5 is refused                                                          ok
+  another vocabulary size is accepted (the head and embedding take their tensors' shapes)    ok
+  another architecture is refused by name, by the reader and the guard                       ok
+  a dense qwen35 file is refused by its architecture: architecture is 'qwen35', this engine requires 'qwen4exp' ok
+  a file without general.architecture says so                                                ok
+gguf_geometry_test: all passed

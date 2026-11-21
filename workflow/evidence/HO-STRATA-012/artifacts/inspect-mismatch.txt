@@ -1,0 +1,1 @@
+strata inspect: blk.0.attn_q.weight is [2049, 2048], the DeepSeek-MoE-16B-base layout wants [2048, 2048]
