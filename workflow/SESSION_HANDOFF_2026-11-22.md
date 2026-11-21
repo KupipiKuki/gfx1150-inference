@@ -76,6 +76,36 @@ oracle only).
    `workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp`.
 5. **Then** decide S4 (§5). Do not start it before 1–2 are done.
 
+### 4.1 Live llama.cpp reference (verified 2026-11-21)
+
+A llama.cpp server is running on this machine and serves the **same DeepSeek pack**
+we are targeting, so S4 can use it as the parity reference instead of rebuilding
+the CLI harness:
+
+```text
+endpoint   http://127.0.0.1:9931   (llama serve; /health 200, /v1/models 200)
+model      Lucy-in-the-Sky/deepseek-moe-16b-base-Q4_K_M-GGUF:Q4_K_M  (lazy load)
+```
+
+**It reproduces the oracle exactly — but only with token input:**
+
+```text
+POST /completion  {"model":"…","prompt":[549,6077,280,7239,317],
+                   "n_predict":16,"temperature":0}
+  → tokens_evaluated 5, content " Paris.\nParis is the capital of France.\nParis is the capital of"
+  → tokenize that content: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+  → identical to HO-010's `gen:` line (16/16)
+```
+
+**Do not send text.** `/v1/completions` with a prompt string prepends a BOS
+(`prompt_tokens: 6` for a 5-token prompt) and produces a different continuation
+(`" a city of art, culture, and"`). The tokenizer itself is correct — `/tokenize`
+returns the 5 IDs — the BOS is added by the completion path.
+
+Notes: the server is a **router** (`--hf-repo`, lazy load) launched with
+`--port 33739`; 9931 is where it is reachable, so ignore the args. The response
+does not carry a `tokens` array — recover IDs with `/tokenize` on the content.
+
 ## 5. S4 — the forward pass (next, not yet authorised)
 
 **Scope:** make DeepSeek-MoE-16B actually run, to the oracle's numbers.
