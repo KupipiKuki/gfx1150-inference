@@ -640,3 +640,30 @@ this file did not happen.
   per-patch surprise.
 - **Affected:** HO-STRATA-012 (`IN_PROGRESS`), DR-HO-STRATA-012-1 (`APPROVED`),
   DEC-021, DEC-033.
+
+## DEC-035 — Pause at the S1 QAQC gate; resume conditions recorded
+
+- **Date:** 2026-11-20
+- **Context:** HO-STRATA-012 reached `CODER_DONE` (code complete, evidence
+  exported). The QAQC seat cannot run: Gemini returned
+  `429 — billing account has exceeded its monthly spending cap`. The OpenCode
+  weekly cap is also close, and the owner has paused work until it resets and the
+  plan is reviewed.
+- **Decision:** pause. No model substitution is made under budget pressure;
+  changing the QAQC model is a policy decision to be taken deliberately when work
+  resumes, not at the end of a budget window.
+- **State on pause:**
+  - `wp/strata-012-deepseek-s1` @ `66267d2` — CODER_DONE, pushed.
+  - Strata implementation on local branch `strata-012-deepseek-s1` @ `bac859ef9`;
+    the exported patch (6 files / 234 insertions) is the durable artifact and
+    applies cleanly to `baf16363`.
+  - Signed binary intact (`d58ee359…` unchanged); Qwen regression exact.
+  - HO-010 (DeepSeek oracle) and HO-011 (OLMoE oracle) are signed but **unmerged**.
+- **Resume order:**
+  1. merge the HO-010 and HO-011 PRs;
+  2. restore or replace the QAQC seat (Gemini billing, or a documented
+     substitution), then QAQC `66267d2`;
+  3. audit, then architect signoff of S1–S3;
+  4. decide S4 (the forward pass) — the first work that touches kernels.
+- **Affected:** HO-STRATA-012, `MODEL_POLICY.md` (substitution deferred),
+  DEC-016, DEC-034.

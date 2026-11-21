@@ -168,3 +168,10 @@ what is missing.
   opened `DR-HO-STRATA-012-1` instead of proceeding silently.
 - 2026-11-20 Architect: **DR approved** (DEC-034) — metadata-only, no kernels; S1–S3
   resume. The trigger worked as intended: it forced a decision, not a ban.
+- 2026-11-20 Coder: **CODER_DONE** at `66267d2`; patch exported and
+  `git apply --check` clean; 363 tensors; named refusal; Qwen regression exact;
+  signed binary untouched. Strata branch `bac859ef9` is local only (upstream is
+  third-party).
+- 2026-11-20 Architect: paused at the QAQC gate — Gemini returned
+  `429 billing cap exceeded` and the OpenCode weekly cap is near (DEC-035). No
+  work is lost; resumption starts at QAQC on `66267d2`.
