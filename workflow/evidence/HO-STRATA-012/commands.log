@@ -1,0 +1,64 @@
+# Commands log — HO-STRATA-012
+# CWD: /home/kupipi/Documents/git/strata unless noted
+# Env: LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib for all engine/test runs
+
+# C1. Configure the deepseek build
+$ cmake -S . -B build-deepseek -DCMAKE_BUILD_TYPE=Release -DSTRATA_ENABLE_HIP=ON -DSTRATA_ENABLE_CUDA=OFF -DCMAKE_HIP_ARCHITECTURES=gfx1150 -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.1
+exit 0
+
+# C2. Build strata + core tests
+$ cmake --build build-deepseek --target strata model_family_test gguf_geometry_test -j$(nproc)
+exit 0
+
+# C3. Verify signed build-hip/strata hash is unchanged
+$ sha256sum build-hip/strata
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+exit 0
+
+# C4. --families (must still be exactly qwen4exp qwen35moe)
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --families
+qwen4exp qwen35moe
+exit 0
+
+# C5. --inspect on DeepSeek-MoE-16B-base Q4_K_M
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --inspect /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf > artifacts/inspect-deepseek.txt 2>&1
+exit 0
+# (full output in artifacts/inspect-deepseek.txt; 363 tensors; geometry matches §2)
+
+# C6. --native refusal on DeepSeek
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf --tokens 1,2,3 --max-new 32 --max-context 1024 > artifacts/native-deepseek-refusal.txt 2>&1
+exit 2
+# Refusal line: "strata generate: --native ...: DeepSeek-MoE-16B-base (architecture 'deepseek') is recognised by Strata but this build does not run it yet"
+
+# C7. Mismatch refusal: a copy of the deepseek GGUF with blk.0.attn_q.weight shape [2049,2048]
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --inspect /tmp/opencode/deepseek-mismatched.gguf > artifacts/inspect-mismatch.txt 2>&1
+exit 2
+# Refusal line: "strata inspect: blk.0.attn_q.weight is [2049, 2048], the DeepSeek-MoE-16B-base layout wants [2048, 2048]"
+
+# C8. Qwen regression (HO-007 command)
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024 > artifacts/qwen-regression.txt 2>&1
+exit 0
+# Generated IDs: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+
+# C9. Core unit tests
+$ ./build-deepseek/model_family_test > artifacts/model_family_test-output.txt 2>&1
+exit 0
+$ ./build-deepseek/gguf_geometry_test > artifacts/gguf_geometry_test-output.txt 2>&1
+exit 0
+
+# C10. Patch stat and apply check
+$ git -C /home/kupipi/Documents/git/strata diff --stat bac859ef9^..bac859ef9
+ include/strata/artifact/gguf_reader.hpp  |  18 +++++
+ include/strata/artifact/model_family.hpp |   9 ++-
+ include/strata/core/family_layout.hpp    | 121 +++++++++++++++++++++++++++++--
+ include/strata/core/geometry.hpp         |   6 ++
+ src/program/generate.cpp                 |  10 ++++
+ tests/core/model_family_test.cpp         | 101 ++++++++++++++++++++------
+ 6 files changed, 234 insertions(+), 31 deletions(-)
+exit 0
+
+$ git -C /home/kupipi/Documents/git/strata format-patch -1 --stdout bac859ef9 > workflow/evidence/HO-STRATA-012/patches/0001-deepseek-family.patch
+exit 0
+
+$ git -C /home/kupipi/Documents/git/strata worktree add /tmp/opencode/strata-clean baf16363b4403ef0ed4f538f5d5ed11c43fb9535 && cd /tmp/opencode/strata-clean && git apply --check /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-012/patches/0001-deepseek-family.patch
+exit 0

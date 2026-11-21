@@ -1,0 +1,1 @@
+strata generate: --native /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf: DeepSeek-MoE-16B-base (architecture 'deepseek') is recognised by Strata but this build does not run it yet

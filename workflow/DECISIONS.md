@@ -694,3 +694,121 @@ this file did not happen.
   S1 remains held (DEC-016).
 - **Affected:** HO-STRATA-011 (`DONE`), `planning/strata-engine/13` §5,
   DEC-016, DEC-021, DEC-031.
+## DEC-033 — S1–S3 authorized for DeepSeek; Strata edits allowed for this package
+
+- **Date:** 2026-11-20
+- **Context:** the owner chose **S1 on DeepSeek** (DEC-031's three-model set).
+  S1–S3 require source changes in the Strata checkout, which DEC-008 kept
+  read-only for investigation handoffs. The pack's geometry was verified from its
+  header: 28 blocks, hidden 2048, 16/16 heads (MHA), 64 experts top-6, 2 shared,
+  expert FF 1408, dense leading block, rope 1e4, tokenizer `deepseek-llm`
+  (**supported** at the pin, unlike OLMoE).
+- **Decision:**
+  1. Authorize **S1–S3 only** (recognition, geometry, tensor inventory +
+     `--inspect`) for DeepSeek, under HO-STRATA-012.
+  2. **Relax DEC-008 for this handoff**: edits happen on the Strata branch
+     `strata-012-deepseek-s1`, never on `main`, and the patch is exported into the
+     workflow evidence with `git apply --check` proof.
+  3. Build in a **separate directory** so the signed `build-hip/strata`
+     (`d58ee239…`) stays intact for the regression gate.
+  4. No forward pass: if a change would make the engine *run* DeepSeek, stop — S4
+     is a separate authorization.
+- **Consequences:** the patch is measured against DEC-021 **T2** (>5 files or >300
+  lines ⇒ deviation); the first engine change since the pin is recorded, exported,
+  and reversible. S4–S5 remain held.
+- **Affected:** HO-STRATA-012, DEC-008, DEC-016, DEC-021, DEC-031.
+
+## DEC-034 — T2 fired on the first family patch; reviewed, Route 2 continues
+
+- **Date:** 2026-11-20
+- **Context:** HO-STRATA-012's S1–S3 patch touches **6 files / 234 insertions / 31
+  deletions** in the Strata checkout, crossing DEC-021 **T2**'s 5-file clause (265
+  delta lines, under the 300-line clause). The coder stopped and raised
+  `DR-HO-STRATA-012-1` rather than proceeding.
+- **Review:** the six files are `model_family.hpp`, `geometry.hpp`,
+  `family_layout.hpp`, `gguf_reader.hpp`, `generate.cpp` and one test file. There
+  is **no kernel, no forward pass, no attention, no routing** — it is family
+  metadata, geometry reading, a read-only inventory mode, and tests. The sixth
+  file is required to read the new metadata keys and to make the refusal *named*
+  instead of the current PLE message.
+- **Decision:** approve the deviation; continue on Route 2. T2 is a **review
+  trigger**, not a fork ban: 234 lines of metadata is two orders of magnitude
+  below a fork, and the trigger did its job by forcing this review.
+- **Conditions:** metadata-only; the signed binary stays untouched (separate
+  `build-deepseek/`); S4 (forward) needs a separate authorization; the next
+  increment that touches kernels, or the overlay passing 300 lines, starts a fresh
+  review with a Route 3 comparison on the table.
+- **Consequences:** the overlay's measured inventory is now **6 files / 234 lines**
+  and will be tracked per handoff, so T2 is a cumulative measurement rather than a
+  per-patch surprise.
+- **Affected:** HO-STRATA-012 (`IN_PROGRESS`), DR-HO-STRATA-012-1 (`APPROVED`),
+  DEC-021, DEC-033.
+
+## DEC-035 — Pause at the S1 QAQC gate; resume conditions recorded
+
+- **Date:** 2026-11-20
+- **Context:** HO-STRATA-012 reached `CODER_DONE` (code complete, evidence
+  exported). The QAQC seat cannot run: Gemini returned
+  `429 — billing account has exceeded its monthly spending cap`. The OpenCode
+  weekly cap is also close, and the owner has paused work until it resets and the
+  plan is reviewed.
+- **Decision:** pause. No model substitution is made under budget pressure;
+  changing the QAQC model is a policy decision to be taken deliberately when work
+  resumes, not at the end of a budget window.
+- **State on pause:**
+  - `wp/strata-012-deepseek-s1` @ `66267d2` — CODER_DONE, pushed.
+  - Strata implementation on local branch `strata-012-deepseek-s1` @ `bac859ef9`;
+    the exported patch (6 files / 234 insertions) is the durable artifact and
+    applies cleanly to `baf16363`.
+  - Signed binary intact (`d58ee359…` unchanged); Qwen regression exact.
+  - HO-010 (DeepSeek oracle) and HO-011 (OLMoE oracle) are signed but **unmerged**.
+- **Resume order:**
+  1. merge the HO-010 and HO-011 PRs;
+  2. restore or replace the QAQC seat (Gemini billing, or a documented
+     substitution), then QAQC `66267d2`;
+  3. audit, then architect signoff of S1–S3;
+  4. decide S4 (the forward pass) — the first work that touches kernels.
+- **Affected:** HO-STRATA-012, `MODEL_POLICY.md` (substitution deferred),
+  DEC-016, DEC-034.
+
+## DEC-036 — QAQC on Claude Sonnet while Gemini is billing-capped
+
+- **Date:** 2026-11-20
+- **Context:** the QAQC seat returned `429 — billing account has exceeded its
+  monthly spending cap` on Gemini, blocking HO-STRATA-012 at the first gate. The
+  owner approved one bounded QAQC run on a substitute model within the remaining
+  weekly budget.
+- **Decision:** QAQC runs on `opencode/claude-sonnet-5-5` (family `claude`) until
+  the Gemini billing is restored. `claude` is distinct from the coder (`kimi`) and
+  from the architect/auditor (`deepseek`), so R4/R5 hold without a waiver.
+- **Scope:** HO-STRATA-012 and any handoff whose coder is `coder-primary` (Kimi).
+  It must **not** be used to QAQC `coder-secondary` work later, since that seat is
+  `qwen3.8` — a different family, but the rule is recorded so the substitution is
+  never assumed permanent.
+- **Expiry:** revert `.opencode/agents/qaqc.md` to `opencode-go/gemini-4-argon#high`
+  when Gemini billing is restored; record the restoration here.
+- **Cost note:** Sonnet is $2/$10 per M, roughly 10× Gemini's rate. That is
+  acceptable for one gate, not as a steady state.
+- **Affected:** `.opencode/agents/qaqc.md`, `MODEL_POLICY.md`, HO-STRATA-012.
+
+## DEC-037 — S1–S3 accepted; the recognition layer is real, the model still does not run
+
+- **Date:** 2026-11-20
+- **Context:** HO-STRATA-012 added `deepseek` recognition, geometry reading, a
+  read-only `--inspect` inventory and the named refusal. QAQC (Claude Sonnet,
+  DEC-036) and the auditor both passed; the audit left four record-only
+  conditions, all closed at this gate.
+- **Decision:** accept **S1–S3**. The engine recognises the family and says so by
+  name; `model_family_runs()` is unchanged, so it still does not run it.
+- **Corrections recorded at this gate:**
+  - DEC-034's rationale: the sixth file is required by **`--inspect`**, not by the
+    `--native` refusal (`generate.cpp` never calls `check_architecture`). The
+    6-file approval stands on the corrected reasoning.
+  - DEC-035 typo: `d58ee359…` → `d58ee239…`.
+  - **F1 accepted as scope**: `model_family_not_supported` is family-generic, so
+    dropping its CUDA/HIP/SYCL suffix also changes the `qwen35moe` guard text.
+    Text only; the Qwen run path is untouched (regression exact).
+- **Consequences:** OT-STRATA-001 checkpoint 4 stays open — no DeepSeek number
+  exists. **S4 (forward pass) is not authorized**; it is the first work that
+  touches kernels and the first that can fail on numerics rather than structure.
+- **Affected:** HO-STRATA-012 (`DONE`), DEC-034, DEC-035, DEC-021 (T2), DEC-036.
