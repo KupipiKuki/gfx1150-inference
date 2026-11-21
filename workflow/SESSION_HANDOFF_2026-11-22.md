@@ -76,7 +76,7 @@ oracle only).
    `workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp`.
 5. **Then** decide S4 (§5). Do not start it before 1–2 are done.
 
-### 4.1 Live llama.cpp reference (verified 2026-11-21)
+### 4.1 Live llama.cpp reference (pinned — `workflow/REFERENCE_SERVER.md`)
 
 A llama.cpp server is running on this machine and serves the **same DeepSeek pack**
 we are targeting, so S4 can use it as the parity reference instead of rebuilding
@@ -97,7 +97,7 @@ POST /completion  {"model":"…","prompt":[549,6077,280,7239,317],
   → identical to HO-010's `gen:` line (16/16)
 ```
 
-**Do not send text.** `/v1/completions` with a prompt string prepends a BOS
+**Version skew:** the server is build `12607` (`1fdda89a4`); the oracle is `b12527` (`78e05298…`). They agree here, but only the CLI oracle is authoritative. **Do not send text.** `/v1/completions` with a prompt string prepends a BOS
 (`prompt_tokens: 6` for a 5-token prompt) and produces a different continuation
 (`" a city of art, culture, and"`). The tokenizer itself is correct — `/tokenize`
 returns the 5 IDs — the BOS is added by the completion path.

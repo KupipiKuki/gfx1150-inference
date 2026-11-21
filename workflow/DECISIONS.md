@@ -694,3 +694,22 @@ this file did not happen.
   S1 remains held (DEC-016).
 - **Affected:** HO-STRATA-011 (`DONE`), `planning/strata-engine/13` §5,
   DEC-016, DEC-021, DEC-031.
+
+## DEC-038 — The live llama.cpp server is pinned as a convenience reference, not the authority
+
+- **Date:** 2026-11-21
+- **Context:** a llama.cpp server on `127.0.0.1:9931` serves the same DeepSeek pack.
+  Driven with a **token array**, it reproduces the HO-010 oracle's 16 IDs exactly
+  (16/16, two consecutive runs). Driven with **text**, it prepends a BOS and
+  diverges. Its build is `12607` (`1fdda89a4`) — 80 commits after the oracle's
+  `b12527` (`78e05298…`).
+- **Decision:** pin the server's identity, endpoint, model hash and the working
+  call in `workflow/REFERENCE_SERVER.md`. Its role is **convenience for
+  iteration**; the **CLI oracle remains authoritative** for S4/S5 gate values. If
+  the server is ever used as a gate reference, re-derive the expected values with
+  it and record its version alongside them.
+- **Consequences:** no rebuild of the CLI harness is needed for exploratory runs;
+  parity gates keep a single authority; the BOS trap is documented so it cannot
+  be mistaken for an engine bug.
+- **Affected:** `workflow/REFERENCE_SERVER.md`, `SESSION_HANDOFF_2026-11-22.md` §4.1,
+  the S4 handoff when written.
