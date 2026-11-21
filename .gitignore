@@ -68,6 +68,10 @@ Thumbs.db
 # requires as a tracked artifact (HANDOFF_CONTRACT.md §7; DEC-008).
 !workflow/evidence/**/*.log
 
+# Binary oracle dumps (*.bin) are generally build/model artifacts, but the
+# evidence bundle's reference dumps are tracked per the handoff contract (DEC-008).
+!workflow/evidence/**/*.bin
+
 # Local PTDS test build
 build-ptds/
 7c/

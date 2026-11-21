@@ -1,0 +1,5 @@
+shape: (4, 16, 2048)
+non-zero rows per position: [(0, 16), (1, 16), (2, 16), (3, 16)]
+L0 vs L1 L2 norm (last pos): 0.164723
+L0 vs L1 dot (last pos): 0.109986
+any nan/inf: False

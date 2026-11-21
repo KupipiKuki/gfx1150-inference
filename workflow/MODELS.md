@@ -31,8 +31,8 @@ downloaded**; no test bed requires it under DEC-003.
 
 ## 2. Downloaded, unsupported at the pin
 
-These are the DEC-003 test beds. The files are intact; the engine has no family
-path for them. Running one is a **probe** (HO-STRATA-008), not a test.
+These are the three-model set (DEC-031). The files are intact; the engine has no
+family path for any of them. Running one is a **probe** (HO-STRATA-008), not a test.
 
 | GGUF arch | Model | Quant | Size (bytes / GiB) | SHA256 |
 |---|---|---|---|---|
@@ -40,6 +40,7 @@ path for them. Running one is a **probe** (HO-STRATA-008), not a test.
 | `llama` | Mixtral-8x7B-v0.1 | Q4_K_M | 26,441,532,864 / 24.63 | `5e066c60d89d904db46c3bf577661040578a223a5a39ba3fd23ff091549767f0` |
 | `deepseek` | DeepSeek-MoE-16B-base | **Q4_K_M** | 10,850,181,856 / 10.10 | `f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5` |
 | `deepseek` | DeepSeek-MoE-16B-base | Q8_0 | 17,413,944,032 / 16.22 | `7734995ec7ca26cef38e7c2fa6654fdac97cfc2809ddee6451cd172d5db4ffa3` |
+| `olmoe` | OLMoE-1B-7B-0924-Instruct | **Q4_K_M** | 4,213,512,672 / 3.92 | `8c310f1435a1222338fd2d3d974975be9cd908180b644bab0c2a94da1ac32f3f` |
 
 Recommended low-tier artifact per family is the **bold** row: Mixtral at Q3_K_M
 keeps ~7 GiB of headroom under the Qwen run's 26.2 GiB GTT peak (ceiling

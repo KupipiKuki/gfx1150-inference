@@ -590,6 +590,7 @@ this file did not happen.
   estimate with its basis); the qwen baselines are protected by A6; no
   performance claim is introduced.
 - **Affected:** `planning/strata-engine/13`, DEC-016, DEC-021, `STATUS.md`.
+
 ## DEC-028 — S0 authorized: reference oracle only; family work stays held
 
 - **Date:** 2026-11-18
@@ -648,3 +649,48 @@ this file did not happen.
   tensors with zero stacked `*_exps`.
 - **Affected:** HO-STRATA-010 (`DONE`), DEC-016, DEC-028, DEC-029,
   `STATUS.md`.
+
+## DEC-031 — Three-model set fixed: qwen35moe, deepseek, olmoe
+
+- **Date:** 2026-11-19
+- **Context:** Mixtral 8x7B was retired as a target (DEC-029): the TheBloke pack is
+  the 2023 per-expert layout and no modern stacked pack exists, so it cannot serve
+  as an oracle. The owner asked for a three-model set and a replacement family.
+- **Decision:** the three test families are:
+  1. **Qwen3.6-35B-A3B** (`qwen35moe`) — measured, HO-007;
+  2. **DeepSeek-MoE-16B** (`deepseek`) — oracle ready (S0);
+  3. **OLMoE-1B-7B-Instruct** (`olmoe`) — chosen as the third.
+- **Why OLMoE:** it is the only candidate that adds a structural axis the other
+  two lack — 64 experts, top-8, **no shared expert**, and a 50k tokenizer — for a
+  ~4 GiB download. Its size also makes S4/S5 parity iterations seconds rather than
+  minutes, and those stages are where the cost sits.
+- **Rejected:** Qwen3-30B-A3B (`qwen3moe`) — repeats qwen35moe's shape without
+  shared experts and costs an 18.6 GB download; Mistral 7B (dense) — outside the
+  MoE thesis and uses the arch string just retired.
+- **Consequences:** an OLMoE oracle extension (S0b) is authorized under this
+  decision; **S1 and later remain held** under DEC-016. `qwen4exp` stays a
+  supported, unmeasured fourth point.
+- **Affected:** `planning/strata-engine/13` §5, `workflow/MODELS.md`,
+  HO-STRATA-011, DEC-016, DEC-029.
+
+## DEC-032 — S0b accepted; AC-3 amended for a fail-closed tokenizer refusal
+
+- **Date:** 2026-11-19
+- **Context:** HO-STRATA-011 (S0b) extended the oracle to OLMoE. Its tokenizer
+  cannot be exercised at the pin: `tools/strata_tokenizer.py:104-112` knows only
+  `qwen35` and `deepseek*`, and the pack declares `tokenizer.ggml.pre = olmo`, so
+  the tool exits 1 with `UnknownPreTokenizer('olmo')` rather than mis-tokenize.
+- **Decision:** for S0b, AC-3 is satisfied by **either** tokenizer parity **or** a
+  recorded engine refusal with its reason. The oracle uses llama.cpp token IDs
+  until an `olmo` pre-tokenizer exists. This is an architect amendment to a
+  criterion, recorded here — not a coder reclassifying a failure.
+- **Why accept:** the engine's refusal is the safe behaviour ("running it with the
+  wrong rule would change what it reads"); the oracle's value — a fixed reference
+  for S4/S5 — does not depend on engine-side tokenization; and the gap is now
+  documented instead of discovered later.
+- **Consequences:** OLMoE needs **two** things, not one: a tokenizer pre-tokenizer
+  rule (small patch) and a family path (large). That sharpens DEC-021 **T1**:
+  the missing capability is tokenization *and* model class, not routing alone.
+  S1 remains held (DEC-016).
+- **Affected:** HO-STRATA-011 (`DONE`), `planning/strata-engine/13` §5,
+  DEC-016, DEC-021, DEC-031.
