@@ -667,3 +667,23 @@ this file did not happen.
   4. decide S4 (the forward pass) — the first work that touches kernels.
 - **Affected:** HO-STRATA-012, `MODEL_POLICY.md` (substitution deferred),
   DEC-016, DEC-034.
+
+## DEC-036 — QAQC on Claude Sonnet while Gemini is billing-capped
+
+- **Date:** 2026-11-20
+- **Context:** the QAQC seat returned `429 — billing account has exceeded its
+  monthly spending cap` on Gemini, blocking HO-STRATA-012 at the first gate. The
+  owner approved one bounded QAQC run on a substitute model within the remaining
+  weekly budget.
+- **Decision:** QAQC runs on `opencode/claude-sonnet-5-5` (family `claude`) until
+  the Gemini billing is restored. `claude` is distinct from the coder (`kimi`) and
+  from the architect/auditor (`deepseek`), so R4/R5 hold without a waiver.
+- **Scope:** HO-STRATA-012 and any handoff whose coder is `coder-primary` (Kimi).
+  It must **not** be used to QAQC `coder-secondary` work later, since that seat is
+  `qwen3.8` — a different family, but the rule is recorded so the substitution is
+  never assumed permanent.
+- **Expiry:** revert `.opencode/agents/qaqc.md` to `opencode-go/gemini-4-argon#high`
+  when Gemini billing is restored; record the restoration here.
+- **Cost note:** Sonnet is $2/$10 per M, roughly 10× Gemini's rate. That is
+  acceptable for one gate, not as a steady state.
+- **Affected:** `.opencode/agents/qaqc.md`, `MODEL_POLICY.md`, HO-STRATA-012.
