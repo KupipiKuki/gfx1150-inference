@@ -7,9 +7,9 @@ Immutable artifacts in this bundle are listed in `hashes.txt`.
 
 | File / tree | Repository | Commit | Command | Digest (git show <commit>:<path> | sha256sum) |
 |---|---|---|---|---|
-| `workflow/handoffs/HO-STRATA-012.md` | gfx1150-inference | (this bundle's commit) | `git show <commit>:workflow/handoffs/HO-STRATA-012.md \| sha256sum` | recorded at bundle commit |
-| `workflow/DECISIONS.md` | gfx1150-inference | (this bundle's commit) | `git show <commit>:workflow/DECISIONS.md \| sha256sum` | recorded at bundle commit |
-| `planning/strata-engine/13-family-support-test-plan.md` | gfx1150-inference | (this bundle's commit) | `git show <commit>:planning/strata-engine/13-family-support-test-plan.md \| sha256sum` | recorded at bundle commit |
+| `workflow/handoffs/HO-STRATA-012.md` | gfx1150-inference | `66267d2` | `git show 66267d2:workflow/handoffs/HO-STRATA-012.md \| sha256sum` | digest below; the handoff is signed after this bundle, so pin the assembly commit |
+| `workflow/DECISIONS.md` | gfx1150-inference | `66267d2` | `git show 66267d2:workflow/DECISIONS.md \| sha256sum` | `843ed7c0…d8aa` |
+| `planning/strata-engine/13-family-support-test-plan.md` | gfx1150-inference | `66267d2` | `git show 66267d2:planning/strata-engine/13-family-support-test-plan.md \| sha256sum` | `023a37de…0bec` |
 | Strata source tree | strata | `bac859ef9` | `git -C /home/kupipi/Documents/git/strata rev-parse bac859ef9` | patch exported in `patches/0001-deepseek-family.patch` |
 | Strata base commit | strata | `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` | `git -C /home/kupipi/Documents/git/strata rev-parse baf16363` | baseline for patch stat |
 | `build-hip/strata` (signed binary) | strata | N/A — untracked build artifact | `sha256sum /home/kupipi/Documents/git/strata/build-hip/strata` | `d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858` |
@@ -32,4 +32,12 @@ Immutable artifacts in this bundle are listed in `hashes.txt`.
  src/program/generate.cpp                 |  10 ++++
  tests/core/model_family_test.cpp         | 101 ++++++++++++++++++++------
  6 files changed, 234 insertions(+), 31 deletions(-)
+```
+
+## Digests at the assembly commit `66267d2` (added at the architect gate, C1)
+
+```text
+1883c62b5052e36316fc31f48ccfb4b3912ef0d14540170475c4c79071f6e10b  workflow/MODELS.md
+843ed7c02b532de548e60a1c3f9051249ad00a9893c27eee56f486ec6fcbd8aa  workflow/DECISIONS.md
+023a37de06e785f96f94890fc16cec9279ca000513c1d2eedb6d779f28450bec  planning/strata-engine/13-family-support-test-plan.md
 ```

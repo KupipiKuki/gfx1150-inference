@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-012 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **CODER_DONE** |
+| **State** | **DONE** (SIGNED 2026-11-20) — READY → DEVIATION (DR-1 approved) → CODER_DONE → QAQC PASS (Sonnet) → AUDIT PASS → **DONE** (DEC-037) |
 | **Created / updated (UTC)** | 2026-11-20 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `strata-012-deepseek-s1` |
@@ -175,3 +175,6 @@ what is missing.
 - 2026-11-20 Architect: paused at the QAQC gate — Gemini returned
   `429 billing cap exceeded` and the OpenCode weekly cap is near (DEC-035). No
   work is lost; resumption starts at QAQC on `66267d2`.
+- 2026-11-20 Architect: **SIGNED** → `DONE`. Auditor conditions C1–C4 closed
+  (pins, fixture recipe, record corrections, state mirror). F1 accepted as scope,
+  F2 carried to S4. See `HO-STRATA-012-APPROVAL.md`.

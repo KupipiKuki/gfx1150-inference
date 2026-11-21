@@ -23,6 +23,8 @@ Full transcript with cwd, env and exit codes: **`commands.log`**. Raw outputs: `
 | C5 | `LD_LIBRARY_PATH=… ./build-deepseek/strata --inspect <deepseek.gguf>` | strata | 0 | `artifacts/inspect-deepseek.txt` |
 | C6 | `LD_LIBRARY_PATH=… ./build-deepseek/strata --native <deepseek.gguf> --tokens 1,2,3 --max-new 32 --max-context 1024` | strata | 2 | `artifacts/native-deepseek-refusal.txt` |
 | C7 | `LD_LIBRARY_PATH=… ./build-deepseek/strata --inspect /tmp/opencode/deepseek-mismatched.gguf` | strata | 2 | `artifacts/inspect-mismatch.txt` |
+
+Fixture recipe (C7): a copy of the DeepSeek pack with the `blk.0.attn_q.weight` shape entry in the GGUF tensor header changed from `[2048, 2048]` to `[2049, 2048]` — a metadata/tensor contradiction the reader must refuse. The 10.8 GB copy lived in `/tmp/opencode` and was deleted after the run; regenerate it with that one-field edit if the check must be repeated.
 | C8 | `LD_LIBRARY_PATH=… ./build-deepseek/strata --native <qwen.gguf> --tokens 760,6511,314,9338,369 --n 32 --max-context 1024` | strata | 0 | `artifacts/qwen-regression.txt` |
 | C9 | `./build-deepseek/model_family_test`; `./build-deepseek/gguf_geometry_test` | strata | 0 | `artifacts/model_family_test-output.txt`, `artifacts/gguf_geometry_test-output.txt` |
 | C10 | `git diff --stat bac859ef9^..bac859ef9`; `git format-patch`; `git apply --check` | strata / tmp | 0 | `commands.log`, `patches/0001-deepseek-family.patch` |

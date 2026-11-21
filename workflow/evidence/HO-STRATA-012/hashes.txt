@@ -1,5 +1,5 @@
-cd673abfb248f0b8b0fb97faeb5c1eb570f83b195c3aaf86a012951a1e3f6ceb  workflow/evidence/HO-STRATA-012/manifest.md
-005bea9080ac041bd7a1810a0367ddc6be380c432e4bf3ff8ad67e33e4d8d423  workflow/evidence/HO-STRATA-012/hashes-notes.txt
+79c5f895c8707479d05a86ff0486bc9f818324712ef03b58d45383e69269ba57  workflow/evidence/HO-STRATA-012/manifest.md
+19839b5d5e31f9324e7a24334418e6d6b7e328dca8ecfec3ade3e39778054e67  workflow/evidence/HO-STRATA-012/hashes-notes.txt
 4bd238dcc9e4a52cd8d71fb14faf43828d961f227be92f78d64aa4804faa2ea3  workflow/evidence/HO-STRATA-012/commands.log
 83c37db3aac6def0ba3c1730fdd40eb840f9372c1e889d075a73d88e80c6a844  workflow/evidence/HO-STRATA-012/artifacts/gguf_geometry_test-output.txt
 9c191c4d08e0672f13825b61741a7f798fa920fdaed10eeac1bf2708e894e65e  workflow/evidence/HO-STRATA-012/artifacts/inspect-deepseek.txt

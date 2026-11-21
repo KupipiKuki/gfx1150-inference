@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-012-QAQC |
 | **Type** | CODER_TO_QAQC |
-| **State** | PROPOSED |
+| **State** | **DONE** — QAQC PASS (Claude Sonnet, DEC-036) → AUDIT PASS → architect SIGNED (mirrored per DEC-018) |
 | **Created / updated (UTC)** | 2026-11-20 |
 | **From → To** | Primary Coder (`coder-primary`) → QAQC (`qaqc`) |
 | **Work package** | `strata-012-deepseek-s1` |

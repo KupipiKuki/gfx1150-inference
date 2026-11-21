@@ -687,3 +687,25 @@ this file did not happen.
 - **Cost note:** Sonnet is $2/$10 per M, roughly 10× Gemini's rate. That is
   acceptable for one gate, not as a steady state.
 - **Affected:** `.opencode/agents/qaqc.md`, `MODEL_POLICY.md`, HO-STRATA-012.
+
+## DEC-037 — S1–S3 accepted; the recognition layer is real, the model still does not run
+
+- **Date:** 2026-11-20
+- **Context:** HO-STRATA-012 added `deepseek` recognition, geometry reading, a
+  read-only `--inspect` inventory and the named refusal. QAQC (Claude Sonnet,
+  DEC-036) and the auditor both passed; the audit left four record-only
+  conditions, all closed at this gate.
+- **Decision:** accept **S1–S3**. The engine recognises the family and says so by
+  name; `model_family_runs()` is unchanged, so it still does not run it.
+- **Corrections recorded at this gate:**
+  - DEC-034's rationale: the sixth file is required by **`--inspect`**, not by the
+    `--native` refusal (`generate.cpp` never calls `check_architecture`). The
+    6-file approval stands on the corrected reasoning.
+  - DEC-035 typo: `d58ee359…` → `d58ee239…`.
+  - **F1 accepted as scope**: `model_family_not_supported` is family-generic, so
+    dropping its CUDA/HIP/SYCL suffix also changes the `qwen35moe` guard text.
+    Text only; the Qwen run path is untouched (regression exact).
+- **Consequences:** OT-STRATA-001 checkpoint 4 stays open — no DeepSeek number
+  exists. **S4 (forward pass) is not authorized**; it is the first work that
+  touches kernels and the first that can fail on numerics rather than structure.
+- **Affected:** HO-STRATA-012 (`DONE`), DEC-034, DEC-035, DEC-021 (T2), DEC-036.
