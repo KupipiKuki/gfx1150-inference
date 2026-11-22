@@ -19,7 +19,7 @@ row is invisible.
 | — | family-support test plan (planning 13) | **PREPARED (execution held, DEC-027) · MERGED #21** | Architect | `main` | owner decides: S0 only / Mixtral S0–S7 / keep hold | DEC-016 | `planning/strata-engine/13-family-support-test-plan.md` |
 | HO-STRATA-010 | reference oracle + parity harness (S0) | **DONE (SIGNED 2026-11-19) · MERGED #22** · DEC-030 | Architect | `main` | — | B-1/B-2/B-4 carried to S1 | `workflow/evidence/HO-STRATA-010/` · `workflow/handoffs/HO-STRATA-010-APPROVAL.md` |
 | HO-STRATA-011 | OLMoE oracle extension (S0b) | **DONE (SIGNED 2026-11-19) · MERGED #23** · DEC-032 | Architect | `main` | — | — | `workflow/evidence/HO-STRATA-011/` · `workflow/handoffs/HO-STRATA-011-APPROVAL.md` |
-| HO-STRATA-013 | `check_bundle.py`: evidence-packaging invariants | **READY** (2026-11-22) | Primary Coder | `wp/strata-013-check-bundle` @ `91eac12` | coder accepts and implements; 8 codes + negative controls | base `91eac12` not yet on `origin/main` (DEC-040) | `workflow/handoffs/HO-STRATA-013.md` |
+| HO-STRATA-013 | `check_bundle.py`: evidence-packaging invariants | **REWORK** (RW-HO-STRATA-013-1) | Primary Coder | `wp/strata-013-check-bundle` @ `7715f68` | fix B2/B3 path classification, add 4 fixtures; then QAQC | base `91eac12` not yet on `origin/main` (DEC-040) | `workflow/handoffs/HO-STRATA-013.md` |
 
 **Project state (2026-11-22):** the signed baseline stands — `qwen35moe` loads
 and generates 32 deterministic tokens on gfx1150 (#15). DeepSeek S1–S3
