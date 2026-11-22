@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-013 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | CODER_DONE |
+| **State** | REWORK (RW-HO-STRATA-013-1) |
 | **Created / updated (UTC)** | 2026-11-22 / 2026-11-22 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `check-bundle` |
@@ -203,3 +203,16 @@ What QAQC must re-run:
 Notes:
 - Do not edit existing bundles; the tool is right if it FAILs a bundle.
 - The per-bundle verdict table is in `workflow/evidence/HO-STRATA-013/manifest.md` §3.
+
+## 12. Architect review of CODER_DONE (2026-11-22)
+
+Verdict: **REWORK** — see `RW-HO-STRATA-013-1.md`.
+
+Verified good: AC-1 (HO-012 PASS), AC-3 (7 fixtures), AC-4, AC-5, AC-6, AC-7,
+AC-8; the tool's own bundle passes 25 checks; `HO-STRATA-011`'s two unlisted
+artifacts are a genuine find.
+
+Failed: **AC-2** — `--all` reports 32 FAILs that are path-spelling artifacts of
+three legacy bundles (HO-001, HO-007, HO-008). All their digests verify from the
+bundle dir or by basename (proof in the rework §1). AC-3 is also incomplete: it
+has no fixture for the legacy spellings it misclassifies.
