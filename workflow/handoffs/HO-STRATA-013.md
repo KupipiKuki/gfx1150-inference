@@ -1,0 +1,185 @@
+# HO-STRATA-013 — `check_bundle.py`: automate the evidence-packaging invariants
+
+| Field | Value |
+|---|---|
+| **ID** | HO-STRATA-013 |
+| **Type** | ARCHITECT_TO_CODER |
+| **State** | READY |
+| **Created / updated (UTC)** | 2026-11-22 / 2026-11-22 |
+| **From → To** | Architect → Primary Coder (`coder-primary`) |
+| **Work package** | `check-bundle` |
+| **Branch / base commit** | `wp/strata-013-check-bundle` / `91eac12` (`workflow/resume-2026-11-22`; remote `workflow/resume-2026-11-22`) |
+| **Priority / timebox** | P1 · 1 working day |
+
+## 0. Why this exists
+
+Every rework in this project so far has been **packaging, not engineering**:
+HO-008 (`--n` vs `--native` flag), HO-010 (curated transcript labelled raw,
+build-scoped lib digests, pins without digests), HO-011 (bundle completeness).
+Each was found by a human running the same handful of checks by hand at the
+gate. S4 is the largest bundle yet; the class must be removed before it.
+
+This handoff builds the checker. It changes **no engine code, no evidence
+bundle, and no existing evidence**.
+
+## 1. Scope (in)
+
+Add one stdlib-only Python tool, its negative-control self-test, and a short
+README section.
+
+### 1.1 `workflow/tools/check_bundle.py`
+
+CLI:
+
+```text
+python3 workflow/tools/check_bundle.py <bundle-dir> [--json]
+python3 workflow/tools/check_bundle.py --all [--json]
+python3 workflow/tools/check_bundle.py --self-test
+```
+
+Exit codes: `0` no FAIL, `1` at least one FAIL, `2` usage error. Output: one
+`PASS|WARN|FAIL <code> <message>` line per finding, then a summary
+`RESULT: PASS|FAIL (n checks, m warnings)`. `--json` emits a stable object
+(`{"bundle": ..., "checks": [{"code","status","message","path"}], "result": ...}`)
+with **no timestamps, durations, or absolute paths** so two runs are
+byte-identical.
+
+Checks (codes are part of the contract; keep these names):
+
+| Code | Check |
+|---|---|
+| `B1-structure` | `manifest.md` and `hashes.txt` exist. When the manifest declares commands, `commands.log` exists. A directory without `manifest.md` is `WARN skipped`, not FAIL (it may be a decision artifact such as `workflow/evidence/DEC-039/`). |
+| `B2-hash-verify` | Every `<sha256>  <path>` line in `hashes.txt` verifies against the working tree, paths resolved from the **repo root**, not the bundle dir. |
+| `B3-hash-coverage` | Every file under the bundle dir is listed in `hashes.txt`, except `hashes.txt` itself. Extra listed paths that do not exist are already `B2` failures. |
+| `B4-tracked` | Every file in the bundle is known to git (`git ls-files`), and `git status --porcelain <bundle>` is empty. |
+| `B5-not-ignored` | No bundle file matches `git check-ignore` — proves the DEC-008 negations (`!workflow/evidence/**/*.log`, `*.bin`) still work. |
+| `B6-pins` | Rows in `hashes-notes.txt` that record a commit pin are verified: the commit and `commit:path` must resolve, and when a full 64-hex digest is recorded it must match `git show <commit>:<path> \| sha256sum`. Abbreviated digests (`abc123…def`) are `WARN`, unresolvable pins are `FAIL`. |
+| `B7-secrets` | No credential-shaped strings in any bundle file: `ghp_`, `github_pat_`, `sk-`, `AKIA`, `xox[baprs]-`, `-----BEGIN … PRIVATE KEY-----`, or `(?i)(api[_-]?key\|token\|secret)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{20,}`. A line carrying an explicit `check_bundle: allow-secret <reason>` marker is downgraded to `WARN`. |
+| `B8-read-only` | `git status --porcelain` is identical before and after the run. The tool writes nothing inside the repo. |
+
+`--all` iterates `workflow/evidence/HO-*` directories in sorted order and
+aggregates; exit `1` if any bundle FAILs. Repo root is discovered with
+`git rev-parse --show-toplevel`.
+
+### 1.2 `--self-test` — negative controls
+
+The positive case alone proves nothing: a checker that never fails is worse
+than none. `--self-test` creates throwaway git repos under a temp directory and
+asserts each code **fires** on a purpose-built defect:
+
+| Fixture | Must report |
+|---|---|
+| hash edited after `hashes.txt` was written | `B2-hash-verify` FAIL |
+| extra artifact not listed in `hashes.txt` | `B3-hash-coverage` FAIL |
+| file written but never added | `B4-tracked` FAIL |
+| artifact matched by `.gitignore` | `B5-not-ignored` FAIL |
+| pin to a commit that does not contain the path | `B6-pins` FAIL |
+| `ghp_`-shaped string in a log | `B7-secrets` FAIL |
+| clean bundle | `RESULT: PASS` |
+
+It must also assert the **positive** case: a clean fixture passes. Self-test
+exits `0` only when every expectation holds, and prints one line per fixture.
+
+### 1.3 `workflow/README.md`
+
+Add a short section under the loop: what the tool checks, the two commands
+(`<bundle>`, `--all`), and when to run it (**before `CODER_DONE`**, and by QAQC
+before its review). No other README edits.
+
+## 2. Out of scope
+
+- No edits to any existing bundle under `workflow/evidence/` — signed evidence is immutable.
+- No edits to `workflow/handoffs/` other than `HO-STRATA-013.md`; QAQC and audit reports belong to other roles.
+- No edits to `workflow/DECISIONS.md`, `workflow/STATUS.md`, `.opencode/**`, `.github/**`.
+- No CI wiring (a follow-up handoff decides whether `--all` becomes a required check).
+- No engine, Strata-checkout, tokenizer, kernel or model work. **Nothing in this handoff may make DeepSeek run.**
+- No fixing of defects the tool finds in HO-001/005/007/008/010/011/012 — report only.
+
+## 3. Inputs
+
+| Input | Path / hash | Status |
+|---|---|---|
+| Contract | `workflow/HANDOFF_CONTRACT.md` §7 (evidence contract) | available |
+| Hash rule | `workflow/DECISIONS.md` DEC-024 (immutable hashed, mutable pinned by commit) | available |
+| Packaging rule | DEC-008 (evidence in this repo; `.gitignore` negations) | available |
+| Known defects to reproduce | DEC-030 B-1/B-2/B-4 (HO-010), DEC-037 F1 (HO-012) | available |
+| Reference bundle | `workflow/evidence/HO-STRATA-012/` (10 files, 10 hashes) | available |
+| Target path | `workflow/tools/check_bundle.py` (new directory) | to create |
+| Base commit | `91eac12` | available |
+
+## 4. Acceptance criteria
+
+| # | Criterion | Command / check | Expected |
+|---|---|---|---|
+| AC-1 | Runs on a real, signed bundle | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012` | exit `0`, `RESULT: PASS`, every code `PASS`. If a check legitimately FAILs on this bundle, **do not edit the bundle**: record the finding and raise it to the architect (`NEEDS_INFO`) — the signed bundle is evidence, the tool is new |
+| AC-2 | Aggregate run over every bundle | `python3 workflow/tools/check_bundle.py --all` | Processes every `workflow/evidence/HO-*` dir; exit code equals `0` iff zero FAIL lines; `workflow/evidence/DEC-039/` is `WARN skipped`. Raw output committed. Pre-existing defects are reported, not fixed |
+| AC-3 | Negative controls | `python3 workflow/tools/check_bundle.py --self-test` | exit `0`; one line per fixture; all seven fixtures above demonstrated, including the clean PASS |
+| AC-4 | Stdlib only, isolated interpreter | `python3 -I workflow/tools/check_bundle.py --self-test` and `grep -nE '^(import\|from) ' workflow/tools/check_bundle.py` | exit `0` under `-I`; imports are stdlib only (no pip installs, no network) |
+| AC-5 | Read-only | `git status --porcelain > /tmp/before.txt`; run AC-1 and AC-2; `git status --porcelain > /tmp/after.txt`; `diff /tmp/before.txt /tmp/after.txt` | no diff |
+| AC-6 | Works from a fresh clone | `git clone --branch wp/strata-013-check-bundle . /tmp/cb-fresh`; run AC-1 there | same exit code and same verdict as AC-1 (proves no dependence on untracked working-tree state) |
+| AC-7 | Documented | `grep -n "check_bundle" workflow/README.md` | section present with both commands and the "run before CODER_DONE" rule |
+| AC-8 | Deterministic output | run AC-1 twice, `diff` the two outputs | identical (no timestamps, absolute paths, or ordering drift) |
+
+## 5. Evidence required
+
+- `workflow/evidence/HO-STRATA-013/manifest.md` (filled `templates/EVIDENCE_MANIFEST.md`; §4 environment: OS, kernel, `python3 --version`, `git --version`).
+- `commands.log` — every command with cwd, exit code, verbatim.
+- `test-output.txt` — raw output of AC-1, AC-2, AC-3, AC-4, AC-6, AC-8; failures kept verbatim.
+- `artifacts/` — `check-ho012.txt`, `check-all.txt`, `self-test.txt`, `fresh-clone.txt`, `git-status-before.txt`, `git-status-after.txt`.
+- `hashes.txt` (SHA256 of the immutable files in the bundle) and `hashes-notes.txt` (commit pins per DEC-024; pin `workflow/DECISIONS.md` and `workflow/README.md` by commit, do not hash them).
+- A per-bundle verdict table for `--all` in the manifest, including any pre-existing defect found, with the code and the file.
+
+## 6. Guard rails
+
+- Do not touch: any existing `workflow/evidence/**` bundle, `workflow/DECISIONS.md`, `workflow/STATUS.md`, `.opencode/**`, `.github/**`, the Strata checkout, `build-hip/`, `build-deepseek/`.
+- Do not add dependencies. Stdlib only. No network at runtime.
+- Do not change acceptance criteria or scope. Ambiguity → `NEEDS_INFO` to the architect, not a local reinterpretation.
+- Do not merge or push to `main`. Commit and push only `wp/strata-013-check-bundle`.
+- Do not make a check pass by weakening it: if a bundle is wrong, the tool is right. The only permitted tuning is a false positive demonstrated with a fixture.
+- No secrets in the repo, logs, or handoff.
+- Evidence must be raw. A curated transcript labelled "raw" is a failed handoff (DEC-030 B-1).
+
+## 7. Dependencies / blockers
+
+| Dependency | Owner | Status | Needed by |
+|---|---|---|---|
+| `git` ≥ 2.x, `python3` ≥ 3.11 | environment | available | start |
+| `workflow/evidence/HO-STRATA-012` as the positive control | Architect | available | AC-1 |
+| Bases `91eac12` not yet on `origin/main` (DEC-040, PR pending) | Architect | open | at merge time, rebase onto `origin/main` if it moved |
+
+## 8. Definition of Ready
+
+- [x] ID/type/from/to/title/work package present
+- [x] Branch and base commit named (`wp/strata-013-check-bundle` @ `91eac12`)
+- [x] Scope and out-of-scope explicit
+- [x] Inputs linked and available
+- [x] Every criterion has a command/check
+- [x] Evidence requirements runnable
+- [x] Guard rails explicit
+- [x] Dependencies resolved or owned
+- [x] Priority/timebox set (P1, 1 day)
+- [x] No open `NEEDS_INFO`
+
+## 9. Definition of Done
+
+- [ ] `workflow/tools/check_bundle.py` committed on `wp/strata-013-check-bundle`
+- [ ] AC-1…AC-8 run; raw output in the manifest
+- [ ] The seven negative controls pass; the clean fixture passes
+- [ ] No out-of-scope edits, no new dependencies
+- [ ] No secrets in the bundle
+- [ ] Evidence manifest complete, hashes verify, pins resolve with digests
+- [ ] Handoff updated to `CODER_DONE`; `CODER_TO_QAQC` record attached
+
+## 10. Signatures
+
+| Role | Name/agent | Date | Decision |
+|---|---|---|---|
+| Sender | Architect (`opencode-go/deepseek-v4-pro#max`) | 2026-11-22 | READY |
+| Receiver | Primary Coder (`opencode-go/kimi-k2.7-code`) | — | pending acceptance |
+
+## 11. Log
+
+- 2026-11-22 Architect: created, `READY`. Predecessor recommendation was
+  `SESSION_HANDOFF_2026-11-22.md` §5; scope widened from "hash + ignore checks"
+  to the eight codes above because B-1 (curated transcript) and B-6 (pins) were
+  both gate findings.
