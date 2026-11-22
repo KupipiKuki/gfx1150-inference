@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-013 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | READY |
+| **State** | IN_PROGRESS |
 | **Created / updated (UTC)** | 2026-11-22 / 2026-11-22 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `check-bundle` |
@@ -175,7 +175,7 @@ before its review). No other README edits.
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender | Architect (`opencode-go/deepseek-v4-pro#max`) | 2026-11-22 | READY |
-| Receiver | Primary Coder (`opencode-go/kimi-k2.7-code`) | — | pending acceptance |
+| Receiver | Primary Coder (`opencode-go/kimi-k2.7-code`) | 2026-11-22 | accepted (IN_PROGRESS) |
 
 ## 11. Log
 
@@ -183,3 +183,4 @@ before its review). No other README edits.
   `SESSION_HANDOFF_2026-11-22.md` §5; scope widened from "hash + ignore checks"
   to the eight codes above because B-1 (curated transcript) and B-6 (pins) were
   both gate findings.
+- 2026-11-22 Primary Coder: accepted, `IN_PROGRESS`.
