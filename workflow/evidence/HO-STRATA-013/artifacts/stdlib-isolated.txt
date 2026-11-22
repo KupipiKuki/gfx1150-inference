@@ -1,0 +1,23 @@
+$ python3 -I workflow/tools/check_bundle.py --self-test
+PASS hash-edited
+PASS extra-artifact
+PASS untracked
+PASS ignored
+PASS bad-pin
+PASS secret
+PASS clean
+RESULT: PASS (all fixtures behaved as expected)
+exit 0
+$ grep -nE '^(import|from) ' workflow/tools/check_bundle.py
+17:from __future__ import annotations
+19:import argparse
+20:import hashlib
+21:import json
+22:import os
+23:import re
+24:import shutil
+25:import subprocess
+26:import sys
+27:import tempfile
+28:from pathlib import Path
+29:from typing import Dict, List, Optional, Tuple

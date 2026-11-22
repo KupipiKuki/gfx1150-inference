@@ -1,0 +1,4 @@
+$ python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run1.txt
+$ python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run2.txt
+$ diff /tmp/ac8-run1.txt /tmp/ac8-run2.txt
+exit 0

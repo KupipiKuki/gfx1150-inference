@@ -1,0 +1,58 @@
+# Commands log — HO-STRATA-013
+# CWD: /home/kupipi/Documents/git/gfx1150-inference for all commands
+# Env: no special environment variables
+
+# AC-1: run on signed bundle HO-STRATA-012
+$ python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
+exit 0
+# (raw output in artifacts/check-ho012.txt)
+
+# AC-2: aggregate run over every bundle
+$ python3 workflow/tools/check_bundle.py --all
+exit 1
+# (raw output in artifacts/check-all.txt; pre-existing defects in HO-001/007/008/011)
+
+# AC-3: negative-control self-test
+$ python3 workflow/tools/check_bundle.py --self-test
+exit 0
+# (raw output in artifacts/self-test.txt)
+
+# AC-4: stdlib-only, isolated interpreter
+$ python3 -I workflow/tools/check_bundle.py --self-test
+exit 0
+$ grep -nE '^(import|from) ' workflow/tools/check_bundle.py
+exit 0
+# (raw output in artifacts/stdlib-isolated.txt)
+
+# AC-5: read-only — git status before and after AC-1 + AC-2
+$ git status --porcelain > workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
+exit 0
+$ python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 >/dev/null 2>&1
+exit 0
+$ python3 workflow/tools/check_bundle.py --all >/dev/null 2>&1
+exit 1
+$ git status --porcelain > workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
+exit 0
+$ diff workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
+exit 0
+
+# AC-6: works from a fresh clone
+$ git clone --branch wp/strata-013-check-bundle . /tmp/cb-fresh
+exit 0
+$ python3 /tmp/cb-fresh/workflow/tools/check_bundle.py /tmp/cb-fresh/workflow/evidence/HO-STRATA-012
+exit 0
+# (raw output in artifacts/fresh-clone.txt)
+
+# AC-7: documentation present
+$ grep -n "check_bundle" workflow/README.md
+exit 0
+# (raw output in artifacts/readme-section.txt)
+
+# AC-8: deterministic output
+$ python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run1.txt
+exit 0
+$ python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run2.txt
+exit 0
+$ diff /tmp/ac8-run1.txt /tmp/ac8-run2.txt
+exit 0
+# (raw output in artifacts/deterministic.txt)

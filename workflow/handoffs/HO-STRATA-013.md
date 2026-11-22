@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-013 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | IN_PROGRESS |
+| **State** | CODER_DONE |
 | **Created / updated (UTC)** | 2026-11-22 / 2026-11-22 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `check-bundle` |
@@ -162,20 +162,20 @@ before its review). No other README edits.
 
 ## 9. Definition of Done
 
-- [ ] `workflow/tools/check_bundle.py` committed on `wp/strata-013-check-bundle`
-- [ ] AC-1…AC-8 run; raw output in the manifest
-- [ ] The seven negative controls pass; the clean fixture passes
-- [ ] No out-of-scope edits, no new dependencies
-- [ ] No secrets in the bundle
-- [ ] Evidence manifest complete, hashes verify, pins resolve with digests
-- [ ] Handoff updated to `CODER_DONE`; `CODER_TO_QAQC` record attached
+- [x] `workflow/tools/check_bundle.py` committed on `wp/strata-013-check-bundle` — `git log --oneline wp/strata-013-check-bundle`
+- [x] AC-1…AC-8 run; raw output in the manifest — see `workflow/evidence/HO-STRATA-013/test-output.txt`
+- [x] The seven negative controls pass; the clean fixture passes — `python3 workflow/tools/check_bundle.py --self-test` exit 0
+- [x] No out-of-scope edits, no new dependencies — `git diff --stat 91eac12..HEAD` shows only `workflow/tools/check_bundle.py`, `workflow/README.md`, `workflow/handoffs/HO-STRATA-013.md`, `workflow/evidence/HO-STRATA-013/`
+- [x] No secrets in the bundle — `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-013` reports `PASS B7-secrets`
+- [x] Evidence manifest complete, hashes verify, pins resolve with digests — `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-013` after commit
+- [x] Handoff updated to `CODER_DONE`; `CODER_TO_QAQC` record attached — see §11/§12
 
 ## 10. Signatures
 
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender | Architect (`opencode-go/deepseek-v4-pro#max`) | 2026-11-22 | READY |
-| Receiver | Primary Coder (`opencode-go/kimi-k2.7-code`) | 2026-11-22 | accepted (IN_PROGRESS) |
+| Receiver | Primary Coder (`opencode-go/kimi-k2.7-code`) | 2026-11-22 | accepted (IN_PROGRESS) → CODER_DONE |
 
 ## 11. Log
 
@@ -184,3 +184,22 @@ before its review). No other README edits.
   to the eight codes above because B-1 (curated transcript) and B-6 (pins) were
   both gate findings.
 - 2026-11-22 Primary Coder: accepted, `IN_PROGRESS`.
+- 2026-11-22 Primary Coder: implemented `workflow/tools/check_bundle.py`, README
+  section, evidence bundle; `CODER_DONE`.
+
+## 12. CODER_TO_QAQC
+
+**Branch:** `wp/strata-013-check-bundle` (tip will be the CODER_DONE commit).
+**Evidence:** `workflow/evidence/HO-STRATA-013/`.
+
+What QAQC must re-run:
+1. `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012` — expect exit 0, `RESULT: PASS`.
+2. `python3 workflow/tools/check_bundle.py --all` — expect exit 1 due to pre-existing defects in HO-001/007/008/011; verify DEC-039 is WARN skipped.
+3. `python3 workflow/tools/check_bundle.py --self-test` — expect exit 0, all seven fixtures pass.
+4. `python3 -I workflow/tools/check_bundle.py --self-test` — expect exit 0.
+5. `git status --porcelain` before and after (2) + (3) — expect no diff.
+6. `grep -n "check_bundle" workflow/README.md` — expect section with both commands and the CODER_DONE rule.
+
+Notes:
+- Do not edit existing bundles; the tool is right if it FAILs a bundle.
+- The per-bundle verdict table is in `workflow/evidence/HO-STRATA-013/manifest.md` §3.

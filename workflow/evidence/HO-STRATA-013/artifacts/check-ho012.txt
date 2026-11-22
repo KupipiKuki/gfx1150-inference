@@ -1,0 +1,25 @@
+$ python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/manifest.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/hashes-notes.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/commands.log
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/gguf_geometry_test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/inspect-deepseek.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/inspect-mismatch.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/model_family_test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/native-deepseek-refusal.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/qwen-regression.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/patches/0001-deepseek-family.patch
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
+WARN B6-pins abbreviated digest for 66267d2:workflow/DECISIONS.md
+WARN B6-pins abbreviated digest for 66267d2:planning/strata-engine/13-family-support-test-plan.md
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: PASS (22 checks, 3 warnings)
+exit 0

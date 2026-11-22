@@ -1,0 +1,19 @@
+# Hashes notes — HO-STRATA-013
+
+Per DEC-024, mutable shared files are pinned by commit rather than hashed.
+Immutable artifacts in this bundle are listed in `hashes.txt`.
+
+## Commit pins
+
+| File / tree | Repository | Commit | Command | Digest (git show <commit>:<path> | sha256sum) |
+|---|---|---|---|---|
+| `workflow/DECISIONS.md` | gfx1150-inference | `315030e` | `git show 315030e:workflow/DECISIONS.md \| sha256sum` | `600d123a…1f7b05` |
+| `workflow/README.md` | gfx1150-inference | `315030e` | `git show 315030e:workflow/README.md \| sha256sum` | `3bfcf2aa…6874e` |
+
+## Notes
+
+- The `workflow/tools/check_bundle.py` file is hashed in `hashes.txt`; it is an
+  immutable deliverable of this handoff.
+- `workflow/handoffs/HO-STRATA-013.md` is the handoff file and is mutable during
+  review; it is pinned above indirectly via `workflow/README.md` and
+  `workflow/DECISIONS.md` at the assembly commit.

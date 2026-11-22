@@ -1,0 +1,10 @@
+$ python3 workflow/tools/check_bundle.py --self-test
+PASS hash-edited
+PASS extra-artifact
+PASS untracked
+PASS ignored
+PASS bad-pin
+PASS secret
+PASS clean
+RESULT: PASS (all fixtures behaved as expected)
+exit 0

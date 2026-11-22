@@ -1,0 +1,248 @@
+$ python3 workflow/tools/check_bundle.py --all
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+FAIL B2-hash-verify malformed hashes.txt line: 'strata HEAD              baf16363b4403ef0ed4f538f5d5ed11c43fb9535   (git -C /home/kupipi/Documents/git/strata rev-parse HEAD; DEC-007)'
+FAIL B2-hash-verify malformed hashes.txt line: 'workflow base commit     a6166f7ebd48eabaffc4809c76c9460b92441cde   (wp/strata-001-gfx1150-build, base)'
+PASS B2-hash-verify ok: /home/kupipi/Documents/git/strata/tools/hip/gfx1150-hipblaslt-100401.txt
+PASS B2-hash-verify ok: /home/kupipi/Documents/git/strata/build-hip/strata
+FAIL B2-hash-verify malformed hashes.txt line: 'N/A — no model, dataset or prompt was used in this handoff (no model run, per §2 of the handoff).'
+FAIL B2-hash-verify missing: manifest.md
+FAIL B2-hash-verify missing: commands.log
+FAIL B2-hash-verify missing: test-output.txt
+FAIL B2-hash-verify missing: boundary-layout.txt
+FAIL B2-hash-verify missing: build.log
+FAIL B2-hash-verify missing: configure.log
+FAIL B2-hash-verify missing: control-launch-help.txt
+FAIL B2-hash-verify missing: engine-boundary.md
+FAIL B2-hash-verify missing: engine-deps.txt
+FAIL B2-hash-verify missing: families.txt
+FAIL B2-hash-verify missing: geometry.txt
+FAIL B2-hash-verify missing: help.txt
+FAIL B2-hash-verify missing: hipblaslt-version-probe.txt
+FAIL B2-hash-verify missing: launch-plan.txt
+FAIL B2-hash-verify missing: pinned-commit.txt
+FAIL B2-hash-verify missing: toolchain.txt
+FAIL B2-hash-verify missing: tuning-table.md
+FAIL B2-hash-verify missing: tuning-table-raw.txt
+FAIL B2-hash-verify missing: verify-pin.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/boundary-layout.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/build.log
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/configure.log
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/control-launch-help.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/engine-boundary.md
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/engine-deps.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/families.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/geometry.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/help.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/hipblaslt-version-probe.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/launch-plan.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/pinned-commit.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/toolchain.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/tuning-table-raw.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/tuning-table.md
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/artifacts/verify-pin.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/commands.log
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/manifest.md
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-001/test-output.txt
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+HO-STRATA-001: RESULT: FAIL (51 checks, 0 warnings)
+
+WARN B1-structure no manifest.md; skipped
+HO-STRATA-005: RESULT: PASS (1 checks, 1 warnings)
+
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+FAIL B2-hash-verify missing: ./artifacts/amd-smi-gtt.txt
+FAIL B2-hash-verify missing: ./artifacts/control-launch-help.txt
+FAIL B2-hash-verify missing: ./artifacts/control-plan-qwen36.json
+FAIL B2-hash-verify missing: ./artifacts/decode-command.txt
+FAIL B2-hash-verify missing: ./artifacts/engine-families.txt
+FAIL B2-hash-verify missing: ./artifacts/engine-generate-help.txt
+FAIL B2-hash-verify missing: ./artifacts/engine-geometry.txt
+FAIL B2-hash-verify missing: ./artifacts/generated-text.txt
+FAIL B2-hash-verify missing: ./artifacts/generated-token-ids.txt
+FAIL B2-hash-verify missing: ./artifacts/model-reverify.txt
+FAIL B2-hash-verify missing: ./artifacts/prompt-token-ids.txt
+FAIL B2-hash-verify missing: ./artifacts/prompt.txt
+FAIL B2-hash-verify missing: ./commands.log
+FAIL B2-hash-verify missing: ./manifest.md
+FAIL B2-hash-verify missing: ./test-output.txt
+PASS B2-hash-verify ok: /home/kupipi/Documents/git/strata/build-hip/strata
+PASS B2-hash-verify ok: /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/amd-smi-gtt.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/control-launch-help.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/control-plan-qwen36.json
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/decode-command.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/engine-families.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/engine-generate-help.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/engine-geometry.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/generated-text.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/generated-token-ids.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/model-reverify.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/prompt-token-ids.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/artifacts/prompt.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/commands.log
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/manifest.md
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-007/test-output.txt
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+HO-STRATA-007: RESULT: FAIL (40 checks, 0 warnings)
+
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+FAIL B2-hash-verify missing: ./artifacts/amd-smi-envelope.txt
+FAIL B2-hash-verify missing: ./artifacts/deepseek-q4_k_m-generic.stderr.txt
+FAIL B2-hash-verify missing: ./artifacts/deepseek-q4_k_m-generic.stdout.txt
+FAIL B2-hash-verify missing: ./artifacts/deepseek-q4_k_m.stderr.txt
+FAIL B2-hash-verify missing: ./artifacts/deepseek-q4_k_m.stdout.txt
+FAIL B2-hash-verify missing: ./artifacts/engine-families.txt
+FAIL B2-hash-verify missing: ./artifacts/mixtral-q3_k_m-generic.stderr.txt
+FAIL B2-hash-verify missing: ./artifacts/mixtral-q3_k_m-generic.stdout.txt
+FAIL B2-hash-verify missing: ./artifacts/mixtral-q3_k_m.stderr.txt
+FAIL B2-hash-verify missing: ./artifacts/mixtral-q3_k_m.stdout.txt
+FAIL B2-hash-verify missing: ./commands.log
+FAIL B2-hash-verify missing: ./hashes-notes.txt
+FAIL B2-hash-verify missing: ./manifest.md
+FAIL B2-hash-verify missing: ./test-output.txt
+PASS B2-hash-verify ok: /home/kupipi/Documents/git/strata/build-hip/strata
+PASS B2-hash-verify ok: /home/kupipi/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-v0.1-GGUF/snapshots/38762deaceb8f976428ab44e4c3ccf927a91132a/mixtral-8x7b-v0.1.Q3_K_M.gguf
+PASS B2-hash-verify ok: /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/amd-smi-envelope.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/deepseek-q4_k_m-generic.stderr.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/deepseek-q4_k_m-generic.stdout.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/deepseek-q4_k_m.stderr.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/deepseek-q4_k_m.stdout.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/engine-families.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/mixtral-q3_k_m-generic.stderr.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/mixtral-q3_k_m-generic.stdout.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/mixtral-q3_k_m.stderr.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/artifacts/mixtral-q3_k_m.stdout.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/commands.log
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/hashes-notes.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/manifest.md
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-008/test-output.txt
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+HO-STRATA-008: RESULT: FAIL (39 checks, 0 warnings)
+
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/tokenize_compare.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/check_layers.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/pack_hashes.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/tokenizer_parity_table.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_logits.bin
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/runs/run2.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/runs/run1.norm.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/runs/run2.norm.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/commands.log
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/manifest.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/hashes-notes.txt
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+HO-STRATA-010: RESULT: PASS (24 checks, 0 warnings)
+
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: /home/kupipi/Documents/models/gguf/olmoe-1b-7b/olmoe-1b-7b-0924-instruct-q4_k_m.gguf
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/check_layers.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/check_pack.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-0.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-0.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-10.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-10.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-1.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-1.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-2.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-2.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-3.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-3.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-4.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-4.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-5.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-5.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-6a.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-6a.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-6b.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-6b.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-6c.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-6c.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-7.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-7.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-9.err.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/cmd-9.out.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/generate_parity_table.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/oracle_harness.cpp
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/runs/olmoe_p1_4_layers.bin
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/runs/olmoe_p1_logits.bin
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/runs/run1.norm.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/runs/run1.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/runs/run2.norm.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/runs/run2.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/tokenize_compare.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/artifacts/tokenizer_parity_table.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/commands.log
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/manifest.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-011/hashes-notes.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-011/artifacts/cmd-8.err.txt
+FAIL B3-hash-coverage not listed in hashes.txt: workflow/evidence/HO-STRATA-011/artifacts/cmd-8.out.txt
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+HO-STRATA-011: RESULT: FAIL (51 checks, 0 warnings)
+
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/manifest.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/hashes-notes.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/commands.log
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/gguf_geometry_test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/inspect-deepseek.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/inspect-mismatch.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/model_family_test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/native-deepseek-refusal.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/artifacts/qwen-regression.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-012/patches/0001-deepseek-family.patch
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
+WARN B6-pins abbreviated digest for 66267d2:workflow/DECISIONS.md
+WARN B6-pins abbreviated digest for 66267d2:planning/strata-engine/13-family-support-test-plan.md
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+HO-STRATA-012: RESULT: PASS (22 checks, 3 warnings)
+
+WARN B1-structure no manifest.md; skipped
+HO-STRATA-013: RESULT: PASS (1 checks, 1 warnings)
+
+RESULT: FAIL (229 checks, 5 warnings)
+exit 1
