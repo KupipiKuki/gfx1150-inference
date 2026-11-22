@@ -1,0 +1,8 @@
+# DEC-039 probe — Gemini Argon billing, 2026-11-22
+# cwd: /tmp/opencode
+# cmd: opencode run --model 'opencode-go/gemini-4-argon#high' "Reply with exactly the word OK and nothing else. Do not use any tools."
+# --- raw output ---
+
+> build · gemini-4-argon
+OK
+# exit=0

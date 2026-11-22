@@ -831,3 +831,55 @@ this file did not happen.
   be mistaken for an engine bug.
 - **Affected:** `workflow/REFERENCE_SERVER.md`, `SESSION_HANDOFF_2026-11-22.md` §4.1,
   the S4 handoff when written.
+
+## DEC-039 — Gemini billing restored: QAQC returns to Argon; DEC-036 closed
+
+- **Date:** 2026-11-22
+- **Context:** DEC-036 moved QAQC to `opencode/claude-sonnet-5-5` because
+  `opencode-go/gemini-4-argon` returned `429 — billing account has exceeded its
+  monthly spending cap`. The resume checklist (SESSION_HANDOFF §4.2) requires the
+  seat to be decided before S4. The owner asked to use Argon if it was restored and
+  to fall back to `opencode/gemini-4-neon` if it was not.
+- **Evidence:** two independent `opencode run` calls on
+  `opencode-go/gemini-4-argon#high` returned `OK`, exit 0, on 2026-11-22
+  (`workflow/evidence/DEC-039/gemini-argon-probe.txt`). No 429. The billing cap
+  is lifted.
+- **Decision:** revert `.opencode/agents/qaqc.md` to
+  `opencode-go/gemini-4-argon#high`. **DEC-036 is closed** — its expiry clause is
+  satisfied, not waived. The `opencode/gemini-4-neon` fallback is **not** used and
+  is not recorded as a seat.
+- **Why not stay on Sonnet:** it is ~10× the rate (DEC-036 cost note) and its only
+  justification was the Gemini outage. Argon is the policy seat in
+  `MODEL_POLICY.md` and needs no substitution note.
+- **Consequences:** `check_model_policy.py --strict` still reports `RESULT: WAIVED`
+  (exit 0) — WAIVER-001 is the remaining exception and is unaffected. Family
+  coverage is architect `deepseek`, coder-primary `kimi`, coder-secondary
+  `qwen3.8`, QAQC `gemini`, auditor `deepseek` (waived). R4/R5 hold without a
+  waiver.
+- **Affected:** `.opencode/agents/qaqc.md`, `MODEL_POLICY.md`, DEC-036,
+  HO-STRATA-012 (the Sonnet gate that DEC-036 covered stays valid — it ran, it was
+  disclosed, and the substitution was recorded).
+
+## DEC-040 — `main` is branch-protected: the architect publishes through a PR branch
+
+- **Date:** 2026-11-22
+- **Context:** the HO-012 merge (DEC-037) was committed locally as `115ca02` on
+  2026-11-21 but never reached `origin/main`. The 2026-11-22 resume tried to push
+  `main` directly and GitHub rejected it:
+  `push declined due to repository rule violations` — *4 of 4 required status checks
+  are expected*. Direct pushes to `main` are no longer possible, and `gh` is not
+  authenticated on this machine.
+- **Decision:**
+  1. The architect still merges (ENGINEERING_WORKFLOW §9), but the **mechanism** is
+     a PR from a `merge/*` branch onto `main`, merged **with a merge commit** so the
+     signed work-package commits stay reachable by SHA.
+  2. A merge is not "done" until `origin/main` contains it. The 2026-11-22 state is
+     the counter-example: `STATUS.md` said "merge via PR" while the merge sat in a
+     local commit, and `origin/main` was 16 commits behind.
+  3. Branch protection is not bypassed (no admin push, no force-push). The required
+     checks are the gate.
+- **Consequences:** the architect's final approval now produces a `merge/*` branch
+  and a PR, not a push; `STATUS.md` distinguishes `MERGE IN PR` from `MERGED #n`;
+  local and remote `main` are checked at every resume (`git status --branch`).
+- **Affected:** `ENGINEERING_WORKFLOW.md` §9 (mechanism, not authority),
+  `STATUS.md`, HO-STRATA-012, all future merges.
