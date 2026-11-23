@@ -401,11 +401,12 @@ def check_b3_hash_coverage(
     coverage_warns: List[Finding] = []
     coverage_fails: List[Finding] = []
 
+    own_hashes = rel_to_repo(bundle_dir / "hashes.txt", root)
     for current in sorted(bundle_dir.rglob("*")):
         if not current.is_file():
             continue
         fpath = rel_to_repo(current, root)
-        if fpath.endswith("hashes.txt"):
+        if fpath == own_hashes:
             continue
         if fpath in exact_paths:
             continue
@@ -525,19 +526,17 @@ def check_b6_pins(bundle_dir: Path, root: Path) -> List[Finding]:
         commit_ref = row.get("commit", "").strip()
         fpath = row.get("path", "").strip()
         digest = row.get("digest", "").strip()
-        cmd = row.get("command", "").strip()
 
-        # Only verify pins whose command explicitly uses `git show <commit>:<path>`.
-        # Tree/binary pins (e.g. "Strata source tree", signed binary) use other
-        # commands and are informational.
-        if not re.search(r"git\s+show\s+[0-9a-fA-F]+:\S+\s*\\?\|\s*sha256sum", cmd):
-            continue
+        # Verify every row that carries a commit and a path. The Command column
+        # is documentation only; tree/binary pins with no commit/path are warned
+        # rather than silently skipped.
         if not fpath or not commit_ref:
+            findings.append(finding_warn("B6-pins", "not a path pin", rel))
             continue
 
         repo = _repo_for_pin(repo_name, root)
         if repo is None:
-            findings.append(finding_warn("B6-pins", f"unknown repository '{repo_name}' for {fpath}", rel))
+            findings.append(finding_warn("B6-pins", f"unknown repository '{repo_name}'", rel))
             continue
 
         # Resolve commit.
@@ -561,11 +560,11 @@ def check_b6_pins(bundle_dir: Path, root: Path) -> List[Finding]:
 
         if is_full:
             if actual != digest:
-                findings.append(finding_fail("B6-pins", f"digest mismatch for {commit_ref}:{fpath}", rel))
+                findings.append(finding_fail("B6-pins", f"{fpath} (recorded {digest}, actual {actual})", rel))
             else:
                 findings.append(finding_pass("B6-pins", f"pin ok: {commit_ref}:{fpath}", rel))
         elif is_abbreviated:
-            findings.append(finding_warn("B6-pins", f"abbreviated digest for {commit_ref}:{fpath}", rel))
+            findings.append(finding_warn("B6-pins", "abbreviated digest", rel))
         else:
             findings.append(finding_warn("B6-pins", f"no comparable digest for {commit_ref}:{fpath}", rel))
 
@@ -1030,6 +1029,78 @@ def fixture_malformed_separator(repo: Path) -> Tuple[int, str]:
     return _run_tool(repo, bundle)
 
 
+def fixture_unlisted_hashes_suffix(repo: Path) -> Tuple[int, str]:
+    """An unlisted file whose name ends in `hashes.txt` must be reported."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    _write_manifest(bundle)
+    (bundle / "commands.log").write_text("log\n", encoding="utf-8")
+    artifact = bundle / "artifact.txt"
+    artifact.write_text("data\n", encoding="utf-8")
+    artifacts = bundle / "artifacts"
+    artifacts.mkdir()
+    notes_hashes = artifacts / "notes-hashes.txt"
+    notes_hashes.write_text("notes\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    _write_hashes(
+        bundle,
+        [
+            (sha256_file(artifact), "bundle/artifact.txt"),
+            (sha256_file(bundle / "manifest.md"), "bundle/manifest.md"),
+            (sha256_file(bundle / "commands.log"), "bundle/commands.log"),
+        ],
+    )
+    _git_commit_all(repo, "hashes")
+    return _run_tool(repo, bundle)
+
+
+def fixture_pin_wrong_digest_reworded(repo: Path) -> Tuple[int, str]:
+    """A full wrong digest must fail even when the Command is not the expected spelling."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    _write_manifest(bundle)
+    (bundle / "commands.log").write_text("log\n", encoding="utf-8")
+    artifact = bundle / "artifact.txt"
+    artifact.write_text("pinned data\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    commit = run(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip()
+    notes = bundle / "hashes-notes.txt"
+    notes.write_text(
+        "## Commit pins\n\n"
+        "| File | Repository | Commit | Command | Digest |\n"
+        "|---|---|---|---|---|\n"
+        f"| artifact.txt | gfx1150-inference | {commit} | "
+        f"git cat-file -p {commit}:artifact.txt \\| sha256sum | "
+        f"{'0' * 64} |\n",
+        encoding="utf-8",
+    )
+    _git_commit_all(repo, "notes")
+    return _run_tool(repo, bundle)
+
+
+def fixture_pin_unresolvable_commit_reworded(repo: Path) -> Tuple[int, str]:
+    """An unresolvable commit must fail even with a reworded Command."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    _write_manifest(bundle)
+    (bundle / "commands.log").write_text("log\n", encoding="utf-8")
+    artifact = bundle / "artifact.txt"
+    artifact.write_text("data\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    notes = bundle / "hashes-notes.txt"
+    notes.write_text(
+        "## Commit pins\n\n"
+        "| File | Repository | Commit | Command | Digest |\n"
+        "|---|---|---|---|---|\n"
+        "| artifact.txt | gfx1150-inference | deadbeef | "
+        "git show deadbeef:artifact.txt \\| sha256sum | "
+        f"{'0' * 64} |\n",
+        encoding="utf-8",
+    )
+    _git_commit_all(repo, "notes")
+    return _run_tool(repo, bundle)
+
+
 FIXTURES: List[Tuple[str, callable, Optional[str], str]] = [
     ("hash-edited", fixture_hash_edited, "B2-hash-mismatch", "FAIL"),
     ("extra-artifact", fixture_extra_artifact, "B3-unlisted", "FAIL"),
@@ -1043,7 +1114,19 @@ FIXTURES: List[Tuple[str, callable, Optional[str], str]] = [
     ("prose", fixture_prose, "B2-prose", "WARN"),
     ("basename-spelling", fixture_basename_spelling, "B2-path-spelling", "WARN"),
     ("malformed-separator", fixture_malformed_separator, "B2-malformed", "FAIL"),
+    ("unlisted-hashes-suffix", fixture_unlisted_hashes_suffix, "B3-unlisted", "FAIL"),
+    ("pin-wrong-digest-reworded", fixture_pin_wrong_digest_reworded, "B6-pins", "FAIL"),
+    ("pin-unresolvable-commit-reworded", fixture_pin_unresolvable_commit_reworded, "B6-pins", "FAIL"),
 ]
+
+# Fixtures that must also report a FAIL under --strict (B6/B3 are not upgraded,
+# but the default FAIL must remain a FAIL).
+STRICT_FIXTURES: Dict[str, Tuple[str, str]] = {
+    "bundle-relative": ("B2-legacy-path", "FAIL"),
+    "unlisted-hashes-suffix": ("B3-unlisted", "FAIL"),
+    "pin-wrong-digest-reworded": ("B6-pins", "FAIL"),
+    "pin-unresolvable-commit-reworded": ("B6-pins", "FAIL"),
+}
 
 
 def cmd_self_test() -> int:
@@ -1074,12 +1157,12 @@ def cmd_self_test() -> int:
                     failures += 1
                     continue
 
-            # Strict-mode variant for bundle-relative fixture.
-            if name == "bundle-relative":
+            # Strict-mode variant for fixtures whose FAIL must stay a FAIL.
+            if name in STRICT_FIXTURES:
+                strict_code, strict_status = STRICT_FIXTURES[name]
                 try:
                     _, strict_stdout = _run_tool(repo, repo / "bundle", strict=True)
-                    _assert_contains(strict_stdout, "B2-legacy-path", "FAIL")
-                    # Under strict the overall result must be FAIL.
+                    _assert_contains(strict_stdout, strict_code, strict_status)
                     if "RESULT: FAIL" not in strict_stdout:
                         raise AssertionError("expected RESULT: FAIL under --strict")
                 except AssertionError as exc:
