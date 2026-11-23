@@ -279,3 +279,9 @@ for p in files:
     print(f"{h.hexdigest()}  {rel}")
 PY
 exit: 0
+
+=== C2f (fixed-point verification after final commit) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all > /tmp/check-all-fp.txt 2>&1
+diff -u /tmp/check-all-fp.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt && echo IDENTICAL
+exit: 0
