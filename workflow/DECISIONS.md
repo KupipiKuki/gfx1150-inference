@@ -883,3 +883,39 @@ this file did not happen.
   local and remote `main` are checked at every resume (`git status --branch`).
 - **Affected:** `ENGINEERING_WORKFLOW.md` §9 (mechanism, not authority),
   `STATUS.md`, HO-STRATA-012, all future merges.
+
+## DEC-041 — `check_bundle.py` is the evidence gate; capture ordering is a rule
+
+- **Date:** 2026-11-23
+- **Context:** HO-STRATA-013 delivered `workflow/tools/check_bundle.py` after three
+  QAQC rounds and three audit rounds. The tool itself converged quickly; what kept
+  failing was **evidence packaging** — the same class that produced every rework
+  since HO-008 (DEC-026, DEC-030). Two of the six blocking findings were defects
+  in the evidence *procedure*, not in the code: a capture that redirected output
+  into the file the run was inspecting (the tool hashed an empty file,
+  `e3b0c442…`), and a logged capture written as `tool … && mv` where the tool
+  legitimately exits 1, so the `mv` never ran.
+- **Decision:**
+  1. **Adopt** `workflow/tools/check_bundle.py` as the project's evidence gate:
+     run it on the bundle **before `CODER_DONE`**, and QAQC runs it before
+     review. Eight codes (B1 structure, B2 hash-verify, B3 coverage, B4 tracked,
+     B5 not-ignored, B6 commit pins, B7 secrets, B8 read-only), 16
+     negative-control fixtures, `--strict` for new bundles.
+  2. **Capture ordering is a rule, not a preference:**
+     - never redirect a capture into a file the run inspects — write to `/tmp`,
+       then move;
+     - after a command that may exit non-zero, use `;` and capture the code,
+       never `&&`;
+     - rebuild derived artifacts (`test-output.txt`) **after** the final capture;
+     - rehash **last**; a second convergence pass is normal when an artifact
+       contains its own verification line.
+  3. **QAQC report materialisation:** QAQC cannot push; the architect commits the
+     report verbatim and says so (extends DEC-018). Content is never edited.
+  4. `--all` staying red while `HO-STRATA-011` has two unlisted artifacts is
+     **correct**; the tool is not tuned green (carried with DEC-030's B-class).
+- **Consequences:** S4 is the first bundle to be gated by the tool; a "PASS" from
+  a reviewer now means the packaging invariants were checked mechanically. The
+  cost of the learning was high (three gate cycles); the rules above are the
+  durable part.
+- **Affected:** HO-STRATA-013 (`DONE`), DEC-018, DEC-030, DEC-034, the S4 handoff,
+  `workflow/README.md`.
