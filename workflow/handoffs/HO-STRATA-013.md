@@ -244,3 +244,21 @@ legacy warnings to FAILs for new bundles, and the self-test covers all 12
 classifications. The two remaining FAILs on `--all` are the genuine
 `HO-STRATA-011` cmd-8 artifact gaps identified in the original review; no
 legacy bundle was edited.
+
+## 13. QAQC review (architect mirrors the transition, DEC-018)
+
+| Field | Value |
+|---|---|
+| Reviewer | QAQC, `opencode-go/gemini-4-argon`, DEC-039 |
+| Verdict | **PASS** |
+| Report | `workflow/reports/qaqc/HO-STRATA-013-qaqc.md` |
+| Reproduced | 8/8 ACs, 5/5 RW-1 criteria, on clean tree `2800d64` |
+| Findings | F1 `--all` globs `HO-*` so DEC-039 is only reachable per-directory (accepted); F2 `--strict` matches F3 verbatim; F3 manifest §3 lists 2 warnings where the authoritative artifact shows 0 (non-blocking, see below) |
+
+State `CODER_DONE → QAQC_REVIEW → AUDIT_REVIEW`, recorded here because QAQC
+writes only its report (DEC-018). Next: auditor review.
+
+Carried to the auditor, not fixed: `manifest.md` §3's HO-STRATA-013 row still
+lists 2 B6 warnings; `artifacts/check-all.txt` is authoritative and shows
+`PASS (29 checks, 0 warnings)` after the digests became full 64-hex. Editing the
+manifest now would invalidate the hashes QAQC verified.
