@@ -730,3 +730,439 @@ DEC-006 and **not** a model-separation PASS.
 | **Process ruling** | Post-QAQC evidence-only repair is acceptable in principle (tool unchanged, reproducible rehash, logged, auditor re-derives the final state); this execution is incomplete and non-reproducible, so it does not close the review |
 | **Rework** | `RW-HO-STRATA-013-3`, definition in §8.10; materialise `workflow/handoffs/RW-HO-STRATA-013-3.md` (this seat writes only the audit report) |
 | **Next** | Architect materialises RW-3 and decides the §9 escalation for R2-1/R2-4; coder fixes R2-1–R2-4 only; Auditor re-checks; QAQC after. No `ARCHITECT_APPROVAL` before that |
+
+---
+
+> **Round 3 (final-state re-audit after RW-3) is in §9 below.** Rounds 1–2 are
+> kept as written; their verdicts applied to `0b3ad61` and `9b85e33` and are
+> superseded. The governing verdict for `2541bec` is **PASS** — read §9.
+
+## 9. Round 3 — re-audit after RW-3 (2026-11-23)
+
+| Field | Value |
+|---|---|
+| **Handoff** | HO-STRATA-013, rework `RW-HO-STRATA-013-3`, QAQC report round 3 |
+| **Reviewer seat** | Auditor, runtime model `opencode-go/deepseek-v4.1-flash` (family `deepseek`). The architect seat is `opencode-go/deepseek-v4-pro#max` — **same family under WAIVER-001**. DEC-006 requires different base families; this is a documented exception, **not** a model-separation PASS, and I do not treat it as one. |
+| **Date (UTC)** | 2026-11-23 |
+| **Verdict** | **PASS** → `ARCHITECT_APPROVAL` |
+| **State** | `AUDIT_REVIEW` → **`ARCHITECT_APPROVAL`** (the architect signs or rejects; I do not) |
+| **Tree audited** | `wp/strata-013-check-bundle` @ `2541becb11eefec8063ca37d23873d269c6eb54a`, base `91eac12`; `git status --porcelain` empty before and after every probe |
+| **Evidence reviewed** | `workflow/evidence/HO-STRATA-013/` at `2541bec` — 21 entries, `sha256sum -c` **21/21 OK** (exit 0), no `/home/` |
+| **QAQC** | `workflow/reports/qaqc/HO-STRATA-013-qaqc.md` (round 3, `opencode-go/gemini-4-argon`, PASS at `830b6bf`) |
+| **Profile (one only)** | Host tooling: Linux Mint 22.3, kernel `7.0.0-42-generic`, Python `3.14.10`, git `2.43.0`. No GPU, model, quantization, engine, or dataset is invoked or claimed. |
+| **Scratch** | `/tmp/opencode/audit-r3/` (two clones, R2-4 probe repo, re-derivations). Nothing in the repo was modified by me. |
+
+### 9.1 Delta since round 2 and the frozen tool
+
+```text
+$ git log --oneline 9b85e33..HEAD
+2541bec HO-STRATA-013: AUDIT_REVIEW — QAQC round 3 PASS, F1/F2 closed
+fd4bb85 HO-STRATA-013: close QAQC round-3 findings F1/F2
+830b6bf HO-STRATA-013: RW-3 closed — R2-1..R2-4 fixed, artifacts are fixed points
+cc0eeeb HO-STRATA-013: RW-3 — convergence pass on the strict artifact (C21-C23)
+d48466a HO-STRATA-013: RW-3 — clean-tree recapture, log, test-output and rehash (C17-C20)
+c59a4db HO-STRATA-013: RW-3 — evidence refresh (coder), step cap at the recapture
+e91d901 HO-STRATA-013: RW-3 — regenerate non-aggregate and aggregate artifacts
+cad4c85 HO-STRATA-013: RW-3 — probes moved into committed scripts
+679b774 HO-STRATA-013: RW-3 — B6 verifies the File column, not the Command cell
+...
+
+$ git log --oneline 9b85e33..HEAD -- workflow/tools/check_bundle.py
+679b774 HO-STRATA-013: RW-3 — B6 verifies the File column, not the Command cell
+$ git diff --stat 830b6bf..HEAD -- workflow/tools/check_bundle.py
+(empty)
+$ git diff --name-only 679b774..HEAD | grep -vE '^workflow/(evidence/HO-STRATA-013/|handoffs/|reports/)'
+none
+```
+
+The tool that would be signed is byte-identical to the tool QAQC exercised at
+`830b6bf`; every later change is evidence, handoff, or report. That is what
+makes the architect's evidence-only completion (§9.8) checkable — and I
+re-derived it rather than trusting the summary.
+
+### 9.2 R2-1 — the logged capture command now writes its artifact (Blocker → **closed**)
+
+C17 taken **verbatim** from `commands.log:133`:
+
+```text
+python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt 2>&1; rc=$?; mv /tmp/ca.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+```
+
+**Sentinel test** — fresh clone of the tip, sentinel written into the artifact:
+
+```text
+$ git clone --branch wp/strata-013-check-bundle . /tmp/opencode/audit-r3/clone   # HEAD 2541bec, status 0
+$ echo "SENTINEL probe" > workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+$ sha256sum …/check-all.txt
+7448f1a9bfc820e9…                                    # the sentinel
+$ rm -f /tmp/ca.txt; ls /tmp/ca.txt
+ls: cannot access '/tmp/ca.txt': No such file or directory
+$ <C17 verbatim>
+$ echo $?                                            # line exit (mv is last)
+0
+$ sha256sum …/check-all.txt
+beba38ed483db158c0d6602475bb159534b09d6ec000fea517f62b500eddfaa8
+$ ls /tmp/ca.txt
+ls: cannot access '/tmp/ca.txt': No such file or directory
+$ git status --porcelain
+ M workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+$ tail -2 …/check-all.txt
+HO-STRATA-013: RESULT: FAIL (32 checks, 1 warnings)
+
+RESULT: FAIL (319 checks, 115 warnings)
+```
+
+The replacement is not cosmetic: the tool **read the sentinel**, so the
+freshly written file contains
+`FAIL B2-hash-mismatch …/check-all.txt (actual: 7448f1a9…)`,
+`WARN B3-path-spelling`, `FAIL B4-tracked git status not clean for bundle`,
+and `HO-STRATA-013: RESULT: FAIL (32 checks, 1 warnings)` — a dirty-tree run,
+exactly as the sentinel implies. The sentinel is gone and `/tmp/ca.txt` is
+consumed. **The command now does the work it claims.**
+
+**Clean-clone control** — no sentinel:
+
+```text
+clone HEAD 2541bec, git status 0
+pre  sha 61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  inode 4597080
+rc=1  mv-exit=0
+post sha 61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  inode 2097267
+/tmp/ca.txt ABSENT
+git status lines: 0
+```
+
+Inode changes while the digest is stable: the artifact was **rewritten with the
+same bytes**, not skipped. Round 2 proved the opposite (digest unchanged, file
+left in `/tmp`, tree clean); the defect is gone.
+
+### 9.3 R2-2 — `test-output.txt` is the final artifacts (Blocker → **closed**)
+
+```text
+$ python3 (split on "===== artifacts/<name>.txt =====" and compare byte-wise)
+segments: 14
+artifacts/check-ho012.txt: identical (1457 bytes incl. trailing)
+artifacts/check-all.txt: identical (21913 bytes incl. trailing)
+artifacts/check-all-strict.txt: identical (21910 bytes incl. trailing)
+artifacts/self-test.txt: identical (375 bytes incl. trailing)
+artifacts/stdlib-isolated.txt: identical (375 bytes incl. trailing)
+artifacts/stdlib-imports.txt: identical (271 bytes incl. trailing)
+artifacts/git-status-before.txt: identical (668 bytes incl. trailing)
+artifacts/git-status-after.txt: identical (668 bytes incl. trailing)
+artifacts/git-status-diff.txt: identical (1 bytes incl. trailing)
+artifacts/fresh-clone.txt: identical (1457 bytes incl. trailing)
+artifacts/readme-section.txt: identical (145 bytes incl. trailing)
+artifacts/deterministic.txt: identical (169 bytes incl. trailing)
+artifacts/legacy-proof.txt: identical (118 bytes incl. trailing)
+artifacts/bypass-proof.txt: identical (2262 bytes incl. trailing)
+all_ok: True
+artifacts on disk: 14
+missing from transcript: []
+'actual: e0063b4e' -> False
+'B4-tracked git status not clean' -> False
+'HO-STRATA-013: RESULT: FAIL' -> False
+```
+
+All 14/14 sections are byte-identical to their final files (the 1-byte
+`git-status-diff.txt` is the generator's injected trailing newline around an
+empty artifact, consistent with `print(p.read_text())`). The stale strict run
+that round 2 caught — `actual: e0063b4e`, `B4-tracked git status not clean`,
+`HO-STRATA-013: RESULT: FAIL` — appears nowhere. The self-bundle block in the
+transcript now reads `RESULT: PASS (32 checks, 0 warnings)`, agreeing with
+`artifacts/check-all-strict.txt`.
+
+### 9.4 R2-3 — manifest vs record (Blocker → **closed in substance**, two doc residuals)
+
+**§1 ↔ `commands.log`, entry for entry.** Parsed, not spot-checked:
+
+```text
+log ids  : C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11a C11b C12 C13 C14 C15 C16 C17
+           C18 C19 C20 C21 C22 C23 C24            (25 entries)
+manifest : C1 … C23                                (24 rows)
+log - manifest: ['C24']
+manifest - log: []
+```
+
+Spot-checks: C1 (ordinary row), C17 (the probe in §9.2) and C19 (heredoc) are
+verbatim; the heredoc rows are first line + `*(full block: commands.log Cn)*`,
+and `commands.log` itself has **zero** `...` (`grep -c '\.\.\.'` → 0). C21 is
+recorded as one merged runnable line covering the log's two commands, with
+exit `1` (the second command's `mv`). The substantive table is correct; the
+one omission is **C24**, the final rehash appended in the same F1/F2 commit
+(see R3-1). No `...` appears in `commands.log`; the two `...` in `manifest.md`
+are prose (`no \`...\`` and `/home/...`), not elided commands.
+
+**C16 erratum — present and honest.** `commands.log:102-104`:
+
+```text
+=== C16 (rehash after test-output and manifest updates) ===
+# ERRATUM (recorded 2026-11-23): this block is incomplete in the historical record
+# (the closing PY delimiter is missing) and is SUPERSEDED by C20/C23. Do not run it.
+```
+
+Verified: the C16 block has **0** closing `PY` lines (`sed … | grep -c '^PY$'` →
+0), C20/C23 are complete, and C24's body is byte-identical to C23's
+(`diff` exit 0). The erratum tells the truth about the defect and the
+supersession.
+
+**§3 and §5 — the two doc residuals.** §3 (`manifest.md:63`) still says the
+C17 capture was taken "after the final rehash (`C19`)" and was "verified
+byte-identical by the fixed-point runs (`C14`/`C15`)". C19 rebuilds
+`test-output.txt` (not a rehash) and postdates C17; the rehash after C17 is
+C20/C24; C14/C15 predate C17. The **clean-tree** half of the sentence is now
+supported by the bundle's own artifact — `check-all.txt:328` carries
+`PASS B4-tracked git status clean` for HO-STRATA-013, and the round-2
+contradiction (`git-status-before.txt` with 8 modified paths) is correctly
+re-labelled in §2/§5 as a **mid-assembly** comparison. §5
+(`manifest.md:118-119`) calls `C12/C16/C19` "superseded rehash attempts";
+C19 is a transcript rebuild. These are R3-1/R3-2: documentation accuracy, not
+evidence integrity.
+
+### 9.5 R2-4 — `File` column authoritative (Blocker → **closed**)
+
+Throwaway repo, `pinned.txt` sha256 `60e5f7a5…`, `other.txt` `e6bd09f4…`,
+`Commit` = HEAD `efde7568…`; six row shapes (the tool run in the repo root):
+
+| Case | Row | Default run | Verdict |
+|---|---|---|---|
+| **A — divergent Command cell, correct `File` digest** | `File=pinned.txt`, `Command=git show …:other.txt \| sha256sum`, digest `60e5f7a5…` | exit 0; `WARN B6-pins command path differs from File column`; `PASS B6-pins pin ok: efde7568…:pinned.txt`; `RESULT: PASS (14 checks, 1 warnings)` | **PASS** (required behaviour) |
+| **B — divergent Command cell, wrong `File` digest** | same row, digest `e6bd09f4…` (other's) | exit 1; WARN as above; `FAIL B6-pins pinned.txt (recorded e6bd09f4…, actual 60e5f7a5…)`; `RESULT: FAIL (14 checks, 1 warnings)` | **PASS** |
+| **C — Command cell has no path, correct digest** | `Command=sha256sum pinned.txt`, digest `60e5f7a5…` | exit 0; `PASS B6-pins pin ok: efde7568…:pinned.txt`; `RESULT: PASS (13 checks, 0 warnings)` | **PASS** |
+| **C2 — Command cell has no path, wrong digest** | `Command=sha256sum pinned.txt`, digest `e6bd09f4…` | exit 1; `FAIL B6-pins pinned.txt (recorded e6bd09f4…, actual 60e5f7a5…)`; `RESULT: FAIL (13 checks, 0 warnings)` | **PASS** |
+| **D — `File` column empty, Command names a path, wrong digest** | empty File cell, `Command=git show …:pinned.txt`, digest `e6bd09f4…` | exit 0; `WARN … command path differs from File column`; `WARN B6-pins not a path pin`; `RESULT: PASS (14 checks, 2 warnings)` | warned, not verified — R3-4 |
+| **E — `File` column empty, Command names a path, correct digest** | same, digest `60e5f7a5…` | identical to D | warned, not verified — R3-4 |
+
+The Command cell no longer decides what is verified: the divergent row passes
+only when the **File** digest is right (A) and fails when it is wrong (B); a
+command with no path still verifies the File column (C/C2). The 16th fixture
+`pin-divergent-cells` (`check_bundle.py:1207`) asserts exactly A/B, and the
+self-test is 16/16. An empty `File` cell is not verified but is **warned twice**
+and is not silent; no signed bundle has such a row (I checked every row in
+`HO-STRATA-012`/`013`). That residual is R3-4, not a reopen of R2-4.
+
+### 9.6 Fixed points, hashes, reproducibility
+
+Clean tree `2541bec`, `git status` empty before and after:
+
+```text
+$ python3 workflow/tools/check_bundle.py --all > /tmp/opencode/audit-r3/all.txt 2>&1; echo $?
+1
+$ python3 workflow/tools/check_bundle.py --all --strict > …/all-strict.txt 2>&1; echo $?
+1
+$ diff -q …/all.txt        workflow/evidence/HO-STRATA-013/artifacts/check-all.txt;        echo $?
+0
+$ diff -q …/all-strict.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt; echo $?
+0
+61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  artifacts/check-all.txt
+61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  /tmp/…/all.txt
+d94c30243b2a0fab241d16ac631a08c28f75ba89faaa9e12812a5c8f5dbc9ebe  artifacts/check-all-strict.txt
+d94c30243b2a0fab241d16ac631a08c28f75ba89faaa9e12812a5c8f5dbc9ebe  /tmp/…/all-strict.txt
+$ git status --porcelain | wc -l
+0
+```
+
+Both aggregates are **fixed points**. Census in the stored `--all`:
+
+```text
+$ grep '^FAIL ' artifacts/check-all.txt
+FAIL B3-unlisted workflow/evidence/HO-STRATA-011/artifacts/cmd-8.err.txt
+FAIL B3-unlisted workflow/evidence/HO-STRATA-011/artifacts/cmd-8.out.txt
+# strict census
+  8 B2-external
+ 32 B2-legacy-path
+  3 B2-prose
+ 48 B3-path-spelling
+  2 B3-unlisted          # 93 FAILs, RESULT: FAIL (319 checks, 23 warnings)
+```
+
+`HO-STRATA-013` inside the artifact: `RESULT: PASS (32 checks, 0 warnings)`;
+total `319 checks, 114 warnings`, matching the per-bundle table
+(72+1+57+56+24+52+25+32 = 319; 43+1+32+31+0+1+6+0 = 114).
+
+Hashes and derivation:
+
+```text
+$ sha256sum -c workflow/evidence/HO-STRATA-013/hashes.txt
+… 21 lines: OK
+(exit 0)
+$ grep -c '/home/' workflow/evidence/HO-STRATA-013/hashes.txt
+0
+$ grep -c '\.\.\.' workflow/evidence/HO-STRATA-013/commands.log
+0
+$ <C23 block verbatim from commands.log> > /tmp/opencode/audit-r3/hashes-c23.txt
+$ diff -q hashes.txt /tmp/…/hashes-c23.txt; echo $?
+0
+727cbea9b77477504f7e6d6dc4df6f6a75f7893653f0ef5a654dc32a5b06b539  both
+$ diff <(C23 body) <(C24 body); echo $?
+0                                        # C24 repeats C23; omitted from §1 (R3-1)
+```
+
+The two pins still resolve with the recorded digests
+(`315030e:workflow/DECISIONS.md` → `600d123a…7b05`,
+`315030e:workflow/README.md` → `3bfcf2aa…4674e`, both unchanged after
+`315030e`). The committed probe scripts exist and run: `legacy_proof.py`
+reproduces `artifacts/legacy-proof.txt` byte for byte; `bypass_probe.py` exits
+0 and reproduces every assertion, differing only in the throwaway repo's
+commit id (`d19d446e…` recorded vs `d00d88cd…` on re-run) — R3-5.
+
+### 9.7 Regression, scope, guard rails
+
+| Check | Command | Observed |
+|---|---|---|
+| AC-1 | `… workflow/evidence/HO-STRATA-012` | exit 0; `RESULT: PASS (25 checks, 6 warnings)`; byte-identical to `artifacts/check-ho012.txt` |
+| AC-2 | `… --all` | exit 1; `RESULT: FAIL (319 checks, 114 warnings)`; exactly the 2 HO-011 FAILs; identical to the artifact |
+| AC-3 | `… --self-test` | exit 0; 16/16 fixture lines; `RESULT: PASS (all fixtures behaved as expected)`; identical to `artifacts/self-test.txt` |
+| AC-4 | `python3 -I … --self-test` | exit 0; identical to `artifacts/stdlib-isolated.txt` |
+| AC-4 | imports / network | `__future__, argparse, hashlib, json, os, re, shutil, subprocess, sys, tempfile, pathlib, typing`; `grep -E 'socket\|urllib\|requests\|http.client\|urlopen'` → none |
+| AC-5 | read-only | `git status` empty before/after every run; `B8-read-only … unchanged` in both aggregates |
+| AC-6 | fresh clone | §9.2 clean clone: same exit code, same verdict, byte-identical artifact |
+| AC-7 | README | `README.md:36-49`; both commands; "Before marking any handoff `CODER_DONE`…"; "QAQC re-runs…" |
+| AC-8 | determinism | two runs sha `2604843c0ed08e3a74d2d6428a3929df51b5c184dd5bfe5cf77e72f2bc355bee` both; `deterministic.txt` matches the fresh runs exactly |
+| Self-bundle | `… workflow/evidence/HO-STRATA-013` | exit 0; `RESULT: PASS (32 checks, 0 warnings)` |
+
+```text
+$ git diff --shortstat 91eac12..HEAD
+ 30 files changed, 5716 insertions(+)
+$ git diff --name-only 91eac12..HEAD | grep -vE '^(workflow/tools/check_bundle\.py|workflow/README\.md|workflow/handoffs/|workflow/reports/|workflow/evidence/HO-STRATA-013/)'
+none
+$ git diff --name-only 91eac12..HEAD -- workflow/DECISIONS.md workflow/STATUS.md .opencode .github
+(empty)
+$ git diff --name-only 91eac12..HEAD -- workflow/evidence | grep -v '^workflow/evidence/HO-STRATA-013/'
+none
+$ git -C /home/kupipi/Documents/git/strata status --porcelain
+(empty)   HEAD bac859ef9
+$ sha256sum /home/kupipi/Documents/git/strata/build-hip/strata
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858
+```
+
+No dependency, no network, no secret (`B7-secrets` PASS; the only
+credential-shaped strings are the tool's own regexes and fixture), no other
+bundle edited, no protected path touched, Strata and the signed binary
+unchanged. (Two process docs are stale — see R3-7.)
+
+### 9.8 Process ruling — architect completion C17–C24 and the post-QAQC F1/F2 fix
+
+**Ruling: the chain holds.** The architect completed the recapture after the
+coder's step cap and then closed QAQC's F1/F2 after QAQC's PASS. That is
+acceptable *here* because each condition I set in round 2 is met and was
+verified, not accepted on the summary:
+
+1. **The tool is frozen.** `9b85e33..HEAD` changes
+   `workflow/tools/check_bundle.py` only in the coder's `679b774`;
+   `830b6bf..HEAD` changes it not at all. The code QAQC tested at `830b6bf` is
+   the code at `2541bec`.
+2. **Every post-coder commit is evidence, handoff, or report.**
+   `git diff --name-only 679b774..HEAD` outside
+   `workflow/evidence/HO-STRATA-013/`, `workflow/handoffs/`,
+   `workflow/reports/` is empty.
+3. **It is logged and re-derivable, not merely asserted.** C17–C24 record cwd
+   and exit in `commands.log`; I re-derived C17/C18 (fixed points, clean clone,
+   sentinel), C19/C22 (14/14 transcript sections), C20/C23 (byte-identical
+   `hashes.txt`), C21 (both aggregates), and the non-aggregate C1–C4, C7–C10
+   artifacts. Every one reproduces except the inherently run-scoped C5 status
+   snapshot (now honestly labelled mid-assembly) and the throwaway commit id in
+   R3-5.
+4. **The F1/F2 closure is evidence-only.** `fd4bb85` changes `manifest.md`
+   (documentation), `commands.log` (C24 + erratum), `hashes.txt` (C24 rehash)
+   and the QAQC report; the tool is untouched, the aggregates and transcript are
+   unchanged and still fixed points, and `sha256sum -c` is 21/21. Conditions:
+   evidence-only ✔, reproducible ✔, recorded ✔, evidence-complete ✔; the
+   **documentation** of it is not fully complete (R3-1/R3-2), which is why they
+   are findings and not a chain failure.
+
+Two caveats the architect must record, not silently normalise:
+
+- **R3-6** — the QAQC round-3 report was written into `workflow/reports/qaqc/`
+  by the architect's `fd4bb85` (a 317-line replacement of the round-2 report).
+  `ENGINEERING_WORKFLOW.md` §4 reserves that directory for QAQC. This is the
+  second occurrence (R2-8 was the first). Its content checks out against my own
+  runs — every number and probe I re-ran matched — so I find no fabricated QAQC
+  claim, but the final-tip QAQC gate has no independently authored artifact.
+- **R3-1/R3-2** — the manifest's own provenance sentences are now the least
+  accurate part of the bundle.
+
+The mechanism may be used to finish an evidence-only cycle; it should not be
+used to author a reviewer's report. I recommend a `DECISIONS.md` note at
+signoff recording the architect's completion of C17–C24 and the materialisation
+of both QAQC reports.
+
+### 9.9 Findings (round 3)
+
+| # | Severity | Finding | Evidence | Blocking | Owner |
+|---|---|---|---|---|---|
+| **R3-1** | Minor (documentation) | `manifest.md` §1 claims "Generated by parsing `commands.log`, so it cannot drift from the record", yet it has 24 rows for 25 log entries: **C24 is missing** (the final rehash, appended in the same F1/F2 commit). §5 then calls `C12/C16/C19` "superseded **rehash** attempts" — C19 rebuilds `test-output.txt`. §1's `C16` row points at a block the log says "Do not run it", with no marker in the table. | `manifest.md:13-15,17-42,118-119`; `commands.log:102-104,236-261`; `log - manifest = ['C24']`; C23/C24 bodies `diff` 0 | No — the omitted row is a byte-identical duplicate of the included C23, which reproduces the final `hashes.txt` | Architect (doc-only; any edit needs a C25 rehash and a re-check) |
+| **R3-2** | Minor (documentation) | §3 says C17 was taken "after the final rehash (`C19`)" and "verified byte-identical by the fixed-point runs (`C14`/`C15`)". C19 is a transcript rebuild and postdates C17; the rehash after C17 is C20/C24; C14/C15 predate C17. The clean-tree half **is** supported by `PASS B4-tracked git status clean` in the artifact; the byte-identity is proved by C21 line 1 and this audit. | `manifest.md:63`; `commands.log:93-101,131-139,158-191` | No | Architect |
+| **R3-3** | Minor (log wording) | `commands.log` records `exit: 1` for C17/C18, but the logged line's own exit status is **0** (it ends with `mv`); `1` is the tool's rc. RW-3 asked for "the real exit code of each line". Reproduction is unaffected and proven. | C17/C18 run verbatim: line exit 0, rc 1 | No | Coder/Architect (one-word label) |
+| **R3-4** | Minor (latent) | A pin row with an **empty `File` column** is not verified: `WARN command path differs…` + `WARN not a path pin`, `RESULT: PASS`, even with a wrong 64-hex digest. Warned twice, not silent; no signed bundle has such a row (`HO-012`/`HO-013` checked row by row). | probes D/E in §9.5; `check_bundle.py:543-559` | No (latent) | Architect to schedule |
+| **R3-5** | Minor | `scripts/bypass_probe.py` cannot reproduce its artifact byte-for-byte: the throwaway repo's commit id differs per run (`d19d446e…` vs `d00d88cd…`). The assertions and exit code reproduce; the recorded id is unverifiable by design. | `diff artifacts/bypass-proof.txt /tmp/…/bypass.txt` = one line | No | Coder (note) or accept as inherent |
+| **R3-6** | Minor (process) | QAQC's round-3 report was committed by the architect (`fd4bb85`), replacing the round-2 report in a directory the workflow reserves for QAQC; the report's "this is the only file I wrote" is therefore not attributable. Content re-verified; no false QAQC claim found. Second occurrence after R2-8. | `git show --stat fd4bb85`; `git diff 830b6bf fd4bb85 -- workflow/reports/qaqc/…` (317 lines) | No | Architect (record in `DECISIONS.md`; QAQC owns its report henceforth) |
+| **R3-7** | Minor (process) | `HO-STRATA-013` has no row in `workflow/STATUS.md` ("a handoff without a status row is invisible"), and the handoff header still reads `CODER_DONE` while §13/§17 log `AUDIT_REVIEW`/QAQC PASS. | `grep 'HO-STRATA-013' workflow/STATUS.md` → no match; `HO-STRATA-013.md:7` | No | Architect |
+| **R3-8** | Carried | `--all` exits 1 on `HO-STRATA-011`'s two unlisted artifacts. Correct; must not be tuned; only a bundle supersession repairs it. | 2 `B3-unlisted` lines | No | Architect |
+| **R3-9** | Carried | Round-1 A3 / R2-6 still open: `absolute-external` asserts only `B2-external`; `basename-spelling` only `B2-path-spelling`. Explicitly outside RW-3. | `FIXTURES`, `check_bundle.py:1200-1202` | No | Architect to schedule |
+
+**Per-finding closure:**
+
+| Finding (round 2) | Status | Proof in this audit |
+|---|---|---|
+| **R2-1** — `&&` after exit 1 leaves the artifact untouched | **CLOSED** | §9.2: sentinel replaced, `/tmp/ca.txt` consumed, clean-clone inode change with stable digest |
+| **R2-2** — transcript embeds the pre-fix strict run | **CLOSED** | §9.3: 14/14 sections byte-identical; the three stale strings absent |
+| **R2-3** — manifest over-claims / wrong `§1` commands / `...` | **CLOSED in substance** | §9.4: 24/25 rows verbatim, C16 erratum honest, no `...` in the log, mid-assembly snapshots correctly labelled; residuals R3-1/R3-2 |
+| **R2-4** — Command cell overrides the `File` column | **CLOSED** | §9.5: A/B/C/C2 behave as specified; 16th fixture; empty-File residual R3-4 |
+| QAQC F1 — §1 drift / C16 block | **CLOSED** (the §1 regeneration is real and the erratum is honest); the regeneration is one row short — R3-1 | §9.4 |
+| QAQC F2 — §3 check counts | **CLOSED** | 32/319 and the per-bundle rows match the artifact exactly |
+
+### 9.10 Verdict and statement
+
+**PASS → `ARCHITECT_APPROVAL`.** The four round-2 blockers are closed in
+substance and by direct probe on `2541bec`: the logged capture now writes its
+artifact (R2-1), the transcript is the final artifacts (R2-2), the manifest no
+longer contradicts the record on the capture and no `...` remains (R2-3), and
+the `File` column decides B6 (R2-4). The bundle verifies 21/21, both aggregates
+and the transcript are fixed points, `--all` is red only on the signed
+`HO-STRATA-011` bundle, and the tool is the one QAQC exercised.
+
+The residual defects are documentation and process, not evidence: the §1 table
+omits the final, byte-identical duplicate rehash row (R3-1), §3 mis-cites the
+rehash and fixed-point entries (R3-2), the C17/C18 exit label reports the
+tool's rc rather than the line's (R3-3), an empty-`File` pin row is warned but
+not verified (R3-4), the probe artifact embeds a throwaway commit id (R3-5),
+and the QAQC report/status board were maintained by the architect (R3-6/R3-7).
+No claim about the tool's behaviour or the artifacts' contents is unsupported.
+I do not block on these because the evidence itself is complete and
+independently re-derivable, and the one omitted row is the same command as the
+row that is present.
+
+**What the architect must do at the signature:** either carry R3-1/R3-2
+explicitly in the approval (the cleanest option — this verdict applies to
+`2541bec`), or correct them in a doc-only commit with a C25 rehash and a
+re-check; a post-audit manifest edit changes the hashed state and is **not**
+covered by this verdict. Record the C17–C24 completion and the QAQC report
+materialisation in `DECISIONS.md` (R3-6). Do not tune `--all` green on
+`HO-STRATA-011` (R3-8).
+
+**Statement.** I did not modify code, tests, docs, configuration, evidence,
+handoffs, `workflow/DECISIONS.md`, `workflow/STATUS.md`, `.opencode/**`, or
+`.github/**`; I did not merge, sign, or approve a release. My only write is this
+report; every probe ran under `/tmp/opencode/audit-r3/`. The Strata checkout was
+read only (`bac859ef9`, clean; `build-hip/strata` `d58ee239…`). My seat is
+`opencode-go/deepseek-v4.1-flash`, which shares a family with the architect
+(`deepseek-v4-pro#max`) under **WAIVER-001** — a documented exception to
+DEC-006 and **not** a model-separation PASS.
+
+---
+
+### AUDITOR_TO_ARCHITECT — Round 3 (governs `2541bec`)
+
+| Field | Value |
+|---|---|
+| **Type** | `AUDITOR_TO_ARCHITECT` |
+| **From → To** | Auditor (`opencode-go/deepseek-v4.1-flash`, WAIVER-001 — family exception, not a PASS) → Architect (`opencode-go/deepseek-v4-pro#max`) |
+| **Handoff** | HO-STRATA-013, `RW-HO-STRATA-013-3`, QAQC round 3 |
+| **State** | `AUDIT_REVIEW` → **`ARCHITECT_APPROVAL`** |
+| **Report** | `workflow/reports/audit/HO-STRATA-013-audit.md` §9 |
+| **Evidence** | `workflow/evidence/HO-STRATA-013/` @ `2541bec` — 21 entries, `sha256sum -c` 21/21 OK (exit 0), no `/home/`; both aggregates reproduce byte for byte; `git status` empty |
+| **Verdict** | **PASS** — R2-1…R2-4 closed; tool and evidence meet the handoff |
+| **Closed** | R2-1 (C17 verbatim in a fresh clone: sentinel replaced, `/tmp/ca.txt` consumed, inode change on a clean clone); R2-2 (14/14 transcript sections byte-identical, no stale FAIL strings); R2-3 (24/25 §1 rows verbatim, C16 erratum honest, zero `...` in the log, mid-assembly snapshots correctly labelled); R2-4 (File column authoritative; divergent cell → WARN + PASS, wrong File digest → FAIL; 16/16 fixtures); QAQC F1/F2 (erratum + 32/319 counts) |
+| **Minor** | R3-1 §1 omits C24 and §5 mislabels C19 as a rehash; R3-2 §3 mis-cites C19/C14/C15; R3-3 C17/C18 exit label; R3-4 empty-`File` pin row warned not verified; R3-5 probe artifact embeds a throwaway commit id; R3-6 QAQC round-3 report materialised by the architect; R3-7 no STATUS row, stale handoff header |
+| **Carried** | R3-8 HO-011 red (correct; do not tune); R3-9 round-1 A3 assertions |
+| **Process ruling** | **Chain holds.** Tool frozen at `679b774`; every later change is evidence/handoff/report; C17–C24 logged and independently re-derived (aggregates, transcript, hashes, sentinel probe); post-QAQC F1/F2 is evidence-only and re-verified. Caveat: the architect authored QAQC's round-3 report — record it in `DECISIONS.md` and stop the practice (R3-6). |
+| **Next** | Architect: sign `ARCHITECT_APPROVAL` at `2541bec` and carry R3-1/R3-2 explicitly, or fix them doc-only with a C25 rehash and request a re-check; record the completion/materialisation in `DECISIONS.md`; then merge (the merge commit cites HO-STRATA-013 and this evidence directory). No code or evidence change in the approval commit. |

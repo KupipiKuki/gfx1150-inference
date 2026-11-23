@@ -352,3 +352,11 @@ rehash heredocs and stopped at C19 — the table is now **generated from
 `commands.log`**, and the historical `C16` block carries an erratum because its
 closing `PY` was missing and it is superseded by `C20`/`C23`) and F2 (§3 check
 counts corrected to 32/319).
+
+## 18. Architect signoff (2026-11-23)
+
+**SIGNED** — `workflow/handoffs/HO-STRATA-013-APPROVAL.md`. Audit round 3 PASS
+with no blocking findings; the seven record-only minors (R3-1…R3-9) are carried
+in the approval with owners, none touching the claim. Merge via PR with a merge
+commit (DEC-040). Adopted as the evidence gate (DEC-041): run before
+`CODER_DONE`, and by QAQC before review.
