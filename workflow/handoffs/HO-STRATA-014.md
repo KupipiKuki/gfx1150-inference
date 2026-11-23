@@ -303,6 +303,7 @@ another quant, family or host.
   pointer only, checkout untouched) created. `coder-primary` launched. AC-10's
   `artifacts/plan.md` and any `DR-HO-STRATA-014-1` are due before the forward
   code is written.
+- 2026-11-23 Coder (`coder-primary`, `opencode-go/kimi-k2.7-code`): **READY → IN_PROGRESS**. AC-10: produced `artifacts/llama-ref-graph.md` and `artifacts/plan.md`; raising `DR-HO-STRATA-014-1` because the chosen shape crosses DEC-021 T2 and the alternative shape crosses T1.
 
 ## 12. Pre-registered tolerance (fixed 2026-11-23, before any S4 run)
 
