@@ -86,10 +86,14 @@ reference server        UP — 127.0.0.1:9931, pid varies, verified 16/16 today
    before rebuilding anything — it was down on 2026-11-22 and came back without a
    rebuild.
 
-3. **Decide S4** (§5). It is **not authorised**. Nothing in the last two sessions
+3. **Check GitHub Actions billing** before planning any merge — on 2026-11-23 the
+   hosted runners were refused at the account level (§6). PR #28 may still be open
+   for that reason alone.
+
+4. **Decide S4** (§5). It is **not authorised**. Nothing in the last two sessions
    moved toward it.
 
-4. **If S4 is authorised:** write `HO-STRATA-014` (ARCHITECT_TO_CODER) with the
+5. **If S4 is authorised:** write `HO-STRATA-014` (ARCHITECT_TO_CODER) with the
    layer-parity gate, the tolerance fixed **before** the run, and DEC-041's
    capture rules. Then launch `coder-primary`.
 
@@ -169,6 +173,20 @@ auditor          opencode-go/deepseek-v4.1-flash   (WAIVED, WAIVER-001)
 `gh` is authenticated (account `KupipiKuki`, SSH protocol), so PRs can be opened
 and merged from the session. `main` requires **4 checks**; the clean-clone build
 takes 9–14 min, so expect ~15 min per merge.
+
+**GitHub Actions billing — check this first (2026-11-23 22:17 UTC).** The three
+GitHub-hosted lanes refused to start:
+
+```text
+The job was not started because recent account payments have failed or your
+spending limit needs to be increased. Please check the 'Billing & plans' section.
+```
+
+The **self-hosted GPU lane still passes** (18 s) — self-hosted minutes are free —
+but 3 of the 4 required checks cannot run, so **nothing can be merged** while this
+stands. It blocked PR #28 (this handoff). Fix it in Settings → Billing & plans,
+then re-run the checks on the open PR; no code change is involved. This is GitHub
+billing, not the Gemini cap of DEC-036/039.
 
 ## 7. Carried findings (do not rediscover)
 
