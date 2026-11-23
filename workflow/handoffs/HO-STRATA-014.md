@@ -1,13 +1,13 @@
-# HO-STRATA-014 — DeepSeek S4: forward pass + layer parity
+# HO-STRATA-014 — DeepSeek S4a: forward skeleton + block-0 layer parity
 
 | Field | Value |
 |---|---|
 | **ID** | HO-STRATA-014 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** (owner authorized 2026-11-23) — PROPOSED → READY. First deliverable is AC-10 (plan / T2 deviation), not code |
+| **State** | **IN_PROGRESS** (S4a) — READY (owner authorized 2026-11-23) → IN_PROGRESS → DEVIATION (DR-HO-STRATA-014-1 **APPROVED**, DEC-043: split into S4a/S4b, `dsref.cu` cut) → IN_PROGRESS again. First gate is AC-5a (layer 0, 4 cells) |
 | **Created / updated (UTC)** | 2026-11-23 / 2026-11-23 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
-| **Work package** | `deepseek-s4` |
+| **Work package** | `deepseek-s4a` |
 | **Branch (workflow)** | `wp/strata-014-deepseek-s4` / base `main` @ `d1a974db0ace2cc78d77efd1eec123ea93bb865b` |
 | **Branch (Strata checkout)** | `strata-014-deepseek-s4`, cut from `strata-012-deepseek-s1` @ `bac859ef91fb0d432eaf9675fc769bc3afe313cf` (S1–S3 included; never `main`) |
 | **Priority / timebox** | P1 · 2 working days coder time, + 1 day per gate cycle |
@@ -30,6 +30,22 @@ shape, not an oversight (DEC-042).
 The tolerance is **pre-registered in §12 before any run**. Seeing a number and
 then proposing a bound is the failure mode this section exists to prevent.
 
+**Amended 2026-11-23 (DEC-043, after AC-10).** The coder found that the generic
+engine has no standard-MHA path (T1) and that a dedicated `src/deepseek/` engine
+crosses T2. The architect approved the dedicated path and **split the stage** so
+that the non-MoE machinery is gated first:
+
+| Increment | Handoff | Scope | Gate |
+|---|---|---|---|
+| **S4a** | **this file** | skeleton, tensor mapping, geometry, RMSNorm/rope/MHA, **block 0 dense FFN**, `--dump-layers` plumbing, `--parity-run`, tests, comparison tool | **layer 0** at 4 positions — 4 cells, max relative L2 ≤ 5e-3 |
+| S4b | HO-STRATA-015 | the MoE blocks: router, top-6 **without** renormalisation, 2 shared experts, expert matmuls | layers 1–27 (108 cells), then the full 112-cell AC-5 |
+
+`dsref.cu` (an in-repo reference implementation) is **dropped from both**: the
+llama.cpp dumps are the reference, and a second implementation would double the
+parity work before any optimisation exists (DEC-043). The engine stays simple —
+no pooling, no expert cache/streaming, no batching, no MTP, no new fast-path
+kernels.
+
 ## 1. Scope (in)
 
 ### 1.1 A forward path for `deepseek`
@@ -39,13 +55,13 @@ from constants that happen to match:
 
 | Property | Value | Consequence |
 |---|---|---|
-| blocks | 28 | 28 residual updates, `slot 1..28` in the dump |
+| blocks | 28 | 28 residual updates, `slot 1..28` in the dump. **S4a runs block 0 only** (`slot 1`); blocks 1–27 are S4b |
 | hidden | 2048 | comparison width |
 | attention | MHA 16/16 heads, **no GQA** | head dim 128; no KV broadcast path |
 | rope | base 1e4 | no scaling, no yarn |
 | norm | RMSNorm, eps 1e-6, pre-norm | — |
-| block 0 | **dense**, FF 10944 | a loader that assumes "every block has experts" mis-maps it |
-| blocks 1–27 | **MoE**: 64 experts, top-6, **2 shared**, expert FF 1408 | shared experts always active; top-k selection and whether the router normalises over the selected set are **read from the cited graph (§1.1), never assumed** |
+| block 0 | **dense**, FF 10944 | a loader that assumes "every block has experts" mis-maps it — this is S4a's FFN |
+| blocks 1–27 | **MoE**: 64 experts, top-6, **2 shared**, expert FF 1408 | **S4b (HO-STRATA-015)**; shared experts always active; top-k selection and whether the router normalises over the selected set are **read from the cited graph (§1.1), never assumed** |
 
 **Arithmetic source of truth:** the oracle's llama.cpp tree at
 `78e05298f0d68abff41d08d79fa7469264b2aff0` (HO-010). Extract the `deepseek`
@@ -57,18 +73,20 @@ those citations. Do not port from memory, blog posts or `docs/DEEPSEEK41.md`
 Reuse existing kernels (dequant, GEMM, RMSNorm, rope, attention) rather than
 writing new ones wherever the arithmetic is identical.
 
-### 1.2 Which code shape
+### 1.2 Which code shape — **decided: (B)**
 
-Two shapes are acceptable; the coder reports which, and why, at the **early
-checkpoint (AC-10)** before writing more than a skeleton:
+Two shapes were acceptable; the coder reported at AC-10 (2026-11-23) and the
+architect approved **(B)**, because (A) is not a localized patch:
 
-- **(A) extend the generic path** — it already has MoE routing
-  (`g.n_expert_used`, `generate.cpp:5293`) and standard attention; the work is a
-  PLE-optional load branch for `deepseek` plus the dense-first-block and
-  shared-expert handling;
-- **(B) a dedicated path** in the `src/qwen35` mould. Real precedent exists
-  (`src/qwen35` is 5,522 lines including its reference), so (B) is a **deviation
-  trigger**, not a default — see §6 T1/T2.
+- **(A) extend the generic path** — rejected: it has **no standard-MHA path**.
+  `family_layout.hpp:178-181` makes every layer `Attention` (QSA) or `Gdn`, and
+  QSA requires `attn_q_norm` / `attn_k_norm` / `indexer.*` (`:262-269`) that the
+  DeepSeek layout does not declare (`:196-220`). Adding an MHA layer kind to the
+  generic engine is a structural change (T1) with regression risk to `qwen4exp`.
+- **(B) a dedicated `src/deepseek/` path**, dispatched from `generate.cpp` for
+  `deepseek` GGUFs **only** under `--parity-run`, in the `src/qwen35` mould. This
+  is what DR-HO-STRATA-014-1 proposed and DEC-043 approved, with the split, the
+  `dsref.cu` cut and the simplicity condition.
 
 ### 1.3 Diagnostic run mode (gating, not support)
 
@@ -101,6 +119,12 @@ strata slot 0    =  not comparable (the oracle does not dump it)
 A comparison that reshapes the engine dump as `[-1, 28, 2048]` is off by one and
 will "fail every layer" for a reason that is not the engine's. Drop slot 0 first.
 
+**How many slots:** the engine dumps **what it computed** — `N + 1` slots, where
+`N` is the number of blocks the engine actually ran. S4a computes block 0, so
+`N = 1` and the file is `2` slots per position; S4b raises `N` to 28. The
+comparison tool derives `N` from the dump size and checks oracle blocks `0…N-1`
+against engine slots `1…N`. Never pad uncomputed slots to look like a full stack.
+
 ### 1.5 Comparison tool
 
 Add `workflow/evidence/HO-STRATA-014/scripts/compare_layers.py` (committed, stdlib
@@ -110,11 +134,12 @@ Add `workflow/evidence/HO-STRATA-014/scripts/compare_layers.py` (committed, stdl
 compare_layers.py --oracle <oracle.bin> --dump <engine.bin> [--shape-only]
 ```
 
-It prints, per the §12 contract: shape check, NaN/Inf check, the 112 per-cell
-relative L2 errors, median, max, worst cell `(layer, position)`, first cell above
-the bound (if any), and a single `RESULT: PASS|FAIL`. `--shape-only` stops after
-the size/NaN checks. Copy the shape and verdict logic from
-`tools/qwen35/compare_dumps.py`; do not import it (the evidence must stand alone).
+It derives `N` from the engine dump, prints, per the §12 contract: shape check,
+NaN/Inf check, the `28 × 4`-capped per-cell relative L2 errors for the blocks in
+scope, median, max, worst cell `(layer, position)`, first cell above the bound (if
+any), and a single `RESULT: PASS|FAIL`. `--shape-only` stops after the size/NaN
+checks. Copy the shape and verdict logic from `tools/qwen35/compare_dumps.py`; do
+not import it (the evidence must stand alone).
 
 ### 1.6 Tests
 
@@ -170,8 +195,8 @@ gate.
 | **AC-1** | Builds in the family build directory; the signed binary is untouched | `cmake --build build-deepseek --target strata model_family_test gguf_geometry_test -j$(nproc)`; `sha256sum build-hip/strata` | build exit 0; `d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858` unchanged |
 | **AC-2** | Normal runs still refuse, unchanged | `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native <pack> --tokens 1,2,3 --max-new 32 --max-context 1024`; `--families` | exit 2; the HO-012 C6 refusal line **verbatim**; `--families` prints exactly `qwen4exp qwen35moe` |
 | **AC-3** | The diagnostic mode is explicit and cannot be reached by accident | `--parity-run` **without** `--dump-layers`; `--parity-run` on an unknown-arch GGUF; `--parity-run --native <pack> --dump-layers /tmp/opencode/s4-dump.bin --tokens 549,6077,280,7239` | first two exit ≠ 0 with a usage/refusal line; the third exits 0 and prints the one-line "not supported; parity only" warning on stderr |
-| **AC-4** | Dump obeys the layout contract | `stat -c%s` the dump; the run's `layers dumped` stdout line; `compare_layers.py --shape-only` | size is `k × 29 × 2048 × 4` B with `k ≥ 4`; line reads `28 layers + the input x 1 streams x 2048`; zero NaN/Inf in the compared cells. The comparison uses the **first 4 records** (the prompt positions) — if the CLI cannot express "no generation", run `--max-new 1` and ignore the 5th record; never trim the dump file |
-| **AC-5** | **Layer parity vs the oracle** (the gate) | `python3 workflow/evidence/HO-STRATA-014/scripts/compare_layers.py --oracle workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin --dump <engine dump>` | `RESULT: PASS`; max relative L2 over the 112 cells **≤ 5e-3**; every cell finite; median and max reported; worst cell `(layer, position)` named; **no cell above the bound** (§12) |
+| **AC-4** | Dump obeys the layout contract | `stat -c%s` the dump; the run's `layers dumped` stdout line; `compare_layers.py --shape-only` | size is `k × (N+1) × 2048 × 4` B with `k ≥ 4` and `N` = blocks computed (**1 in S4a** → 16,384 B per position); the line reads `1 layer + the input x 1 streams x 2048`; zero NaN/Inf in every dumped slot. The comparison uses the **first 4 records** (the prompt positions) — if the CLI cannot express "no generation", run `--max-new 1` and ignore the 5th record; never trim the dump file |
+| **AC-5a** | **Layer parity, block 0** (S4a's gate) | `python3 workflow/evidence/HO-STRATA-014/scripts/compare_layers.py --oracle workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin --dump <engine dump>` | `RESULT: PASS`; **N = 1, 4 cells** (`l=0`, `p=0…3`); max relative L2 **≤ 5e-3**; every cell finite; median and max reported; every cell's value printed; **no cell above the bound** (§12). AC-5b (layers 1–27, 108 cells, then all 112) is **HO-STRATA-015**, not this handoff |
 | **AC-6** | Deterministic | run AC-3 twice to two paths; `cmp` the two dumps | identical (byte-for-byte) |
 | **AC-7** | Qwen regression exact, tests green | the HO-012 C8 command on `build-deepseek/strata`; `./build-deepseek/model_family_test`; `./build-deepseek/gguf_geometry_test` | the 32 HO-007 IDs identical, in order; both tests exit 0 |
 | **AC-8** | Patch measured, exported, applies cleanly | `git -C strata diff --stat bac859ef9..HEAD`; cumulative `git diff --stat baf16363..HEAD`; `format-patch` → `workflow/evidence/HO-STRATA-014/patches/0002-s4-forward.patch`; `git apply --check` in a clean `baf16363` worktree **with `0001-…` applied** | both stats recorded verbatim; patch applies; the T2 number (cumulative files/lines) stated explicitly in the manifest |
@@ -226,19 +251,18 @@ another quant, family or host.
 - **Do not add dependencies.** No new third-party library, no network at runtime.
 - **Do not change acceptance criteria or the §12 bound.** Ambiguity → `NEEDS_INFO`
   to the architect, not a local reinterpretation.
-- **T1 (DEC-021):** if `deepseek` cannot be expressed as a localized path — i.e.
-  it needs a structural engine change (a new dispatch/precision/attention
-  architecture rather than a path) — **stop** and raise `DR-HO-STRATA-014-1`.
-- **T2 (DEC-021 / DEC-034):** the cumulative overlay is **6 files / 234
-  insertions / 31 deletions** against `baf16363`. S4 touches kernels and will
-  cross **300 inserted lines**; DEC-034 already conditions that on a **fresh
-  review with a Route 3 comparison on the table**. Raise the deviation at AC-10
-  with the measured estimate; do not wait for `CODER_DONE`.
-- **If the stage needs splitting, say so rather than half-delivering:** a partial
-  forward (e.g. block 0 only) is a `DEVIATION` proposing S4a/S4b, not a
-  `CODER_DONE` with an unreached block. The split is acceptable when block-0
-  parity is cheap and the MoE blocks are the cost — but the architect decides
-  it, and the bundled evidence must state exactly which cells were compared.
+- **T1 fired and was confirmed** (DEC-043): there is no standard-MHA path in the
+  generic engine, so shape (A) is out. Do not "also" extend `src/core/layer.cpp`
+  or the QSA path in this handoff.
+- **T2 is crossed by design and approved** (DEC-043): the overlay grows by a new
+  `src/deepseek/**` path. Re-measure `git diff --stat baf16363..HEAD` in **each**
+  increment and record the cumulative number; keep the shared-file hunks to the
+  dispatch, the build and the test. **New deviation trigger:** if the path turns
+  out to need edits in shared code (`src/core/**`, shared kernels, `qwen35`),
+  stop and raise a fresh DR — that is the calculus DEC-043 says to re-review.
+- **The stage is already split** (DEC-043): this handoff is **S4a** (block 0).
+  Do not deliver partial MoE work as if it were S4b, and do not pad the dump with
+  uncomputed slots.
 - **Do not merge, do not push** the Strata tree anywhere (upstream is third-party),
   do not push `main` in this repo. Commit and push only `wp/strata-014-deepseek-s4`.
 - **No performance or support claim.** The only numbers in the manifest are the
@@ -275,8 +299,8 @@ another quant, family or host.
 
 ## 9. Definition of Done
 
-- [ ] AC-1…AC-10 run; raw output in `test-output.txt`
-- [ ] Layer parity PASS at the pre-registered bound; worst cell named
+- [ ] AC-1…AC-10 run (AC-5 → **AC-5a**); raw output in `test-output.txt`
+- [ ] **AC-5a** PASS at the pre-registered bound (block 0, 4 cells); each cell printed
 - [ ] Normal refusal, `--families` and the Qwen regression unchanged
 - [ ] Signed binary hash unchanged; nothing built in `build-hip/`
 - [ ] Patch exported, measured against T2, `git apply --check` clean
@@ -303,6 +327,19 @@ another quant, family or host.
   pointer only, checkout untouched) created. `coder-primary` launched. AC-10's
   `artifacts/plan.md` and any `DR-HO-STRATA-014-1` are due before the forward
   code is written.
+- 2026-11-23 Coder: accepted (`IN_PROGRESS`). AC-10 delivered — `artifacts/plan.md`,
+  `artifacts/llama-ref-graph.md` (citations into `78e05298…`), commit `36256b6`.
+  Found that the generic engine has no standard-MHA path (T1) and that a
+  dedicated engine is engine-sized (T2). Raised **DR-HO-STRATA-014-1**; Strata
+  checkout untouched (`git status` empty).
+- 2026-11-23 Architect: **T1 confirmed independently**
+  (`family_layout.hpp:178-181`, `:262-269`, `:196-220`). **DR-1 APPROVED with
+  conditions** (DEC-043): shape (B) dedicated path on Route 2 (the ~5k lines are
+  additive new files; upstream-facing edits stay at three small hunks), the stage
+  **split into S4a/S4b** on the oracle's per-layer resolution, **`dsref.cu` cut**,
+  simplicity condition, T2 re-measured per increment. This handoff is now **S4a**
+  (`IN_PROGRESS`); AC-5 becomes **AC-5a**; the MoE blocks and the full 112-cell
+  gate move to HO-STRATA-015.
 - 2026-11-23 Coder (`coder-primary`, `opencode-go/kimi-k2.7-code`): **READY → IN_PROGRESS**. AC-10: produced `artifacts/llama-ref-graph.md` and `artifacts/plan.md`; raising `DR-HO-STRATA-014-1` because the chosen shape crosses DEC-021 T2 and the alternative shape crosses T1.
 
 ## 12. Pre-registered tolerance (fixed 2026-11-23, before any S4 run)
@@ -317,11 +354,17 @@ over `l = 0…27` (28 blocks) and `p = 0…3` (4 prompt positions) → **112 cel
 `engine[l+1]` is the strata slot after block `l`; `oracle[l]` is `l_out-<l>`.
 Nothing is averaged; the gate is on the **maximum**.
 
+**Cells in scope = blocks computed × 4.** S4a computes block 0 (`l = 0`, 4
+cells); S4b extends to `l = 0…27` (112 cells). The bound is identical; only the
+cell count grows. A bound that holds on 4 cells is evidence for block 0's
+arithmetic (embedding → norm → attention → rope → residual → dense FFN →
+residual) and for nothing after it.
+
 | Gate | Value | Rule |
 |---|---|---|
-| **max over all 112 cells** | **≤ 5e-3** | binding; one cell above ⇒ FAIL |
+| **max over the cells in scope** | **≤ 5e-3** | binding; one cell above ⇒ FAIL |
 | finiteness | every cell finite | NaN/Inf anywhere ⇒ FAIL |
-| shape | engine dump `[k][29][2048]` f32 with `k ≥ 4`, oracle `[4][28][2048]` f32; the first 4 engine records are the prompt positions | mismatch ⇒ FAIL |
+| shape | engine dump `[k][N+1][2048]` f32 with `k ≥ 4`, `N` = blocks computed (1 in S4a, 28 in S4b), oracle `[4][28][2048]` f32; the first 4 engine records are the prompt positions; oracle blocks `0…N-1` are compared | mismatch ⇒ FAIL |
 | reporting | median, max, worst `(l,p)`, first cell above bound | always printed, pass or fail |
 | determinism | two runs byte-identical | otherwise ⇒ FAIL |
 
@@ -350,12 +393,16 @@ architect and is recorded in `DECISIONS.md`.
 
 ## 13. S4 task map (what follows this handoff)
 
+Renumbered by DEC-043 (the S4 deviation inserted S4b). This supersedes the map
+DEC-042 wrote; DEC-042's "HO-STRATA-015 = S5" reference is corrected here.
+
 | Stage | Handoff | Gate | State |
 |---|---|---|---|
-| **S4** forward + layer parity | **HO-STRATA-014** (this file) | max relative L2 ≤ 5e-3 over 112 cells | PROPOSED — needs owner authorization |
-| S5 token parity + KL + the support flip | HO-STRATA-015 (to be written on AC-5 PASS) | 3 prompts × 16 greedy tokens **zero** mismatches; KL ≤ 1.5× the CPU/HIP floor; then `model_family_runs()` → true, `--families` gains `deepseek` | not written |
-| S6/S7 baseline, envelope, regression, signoff | HO-STRATA-016 (to be written on S5 PASS) | GTT/`dmesg` envelope, HO-007 32 IDs bit-identical, QAQC → audit → sign | not written |
+| **S4a** skeleton + block-0 parity | **HO-STRATA-014** (this file) | max relative L2 ≤ 5e-3 over **4 cells** (block 0 × 4 positions) | IN_PROGRESS |
+| **S4b** MoE blocks 1–27 | **HO-STRATA-015** (to be written on AC-5a PASS, with DR-HO-STRATA-014-1 as an input) | layers 1–27 (**108 cells**), then all 112; no renormalisation over the selected set, 2 shared experts | not written |
+| **S5** token parity + KL + the support flip | **HO-STRATA-016** (on S4b PASS) | 3 prompts × 16 greedy tokens **zero** mismatches; KL ≤ 1.5× the CPU/HIP floor; then `model_family_runs()` → true, `--families` gains `deepseek` | not written |
+| S6/S7 baseline, envelope, regression, signoff | **HO-STRATA-017** (on S5 PASS) | GTT/`dmesg` envelope, HO-007 32 IDs bit-identical, QAQC → audit → sign | not written |
 
-HO-STRATA-015 cannot be written before AC-5's result: its prompt set and its KL
-bound depend on an engine that reaches the last block. Writing it now would be a
-guess presented as a contract.
+HO-STRATA-015 cannot be written before AC-5a's result: its scope is "the blocks
+after the one S4a proved", and its evidence starts from the dump shape S4a
+produces. Writing it now would be a guess presented as a contract.

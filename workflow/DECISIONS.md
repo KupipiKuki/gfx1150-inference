@@ -977,3 +977,60 @@ this file did not happen.
   unwritten until their inputs exist.
 - **Affected:** HO-STRATA-014 (PROPOSED), DEC-016, DEC-033, DEC-034, DEC-037,
   DEC-038, DEC-041, `workflow/STATUS.md`, `planning/strata-engine/13`.
+
+## DEC-043 — T1/T2 on the DeepSeek forward: dedicated path approved, split into S4a/S4b
+
+- **Date:** 2026-11-23
+- **Context:** HO-STRATA-014's AC-10 checkpoint required the coder to choose the
+  code shape before writing kernel code. It returned `DR-HO-STRATA-014-1`:
+  shape (A) "extend the generic path" is **structurally** impossible —
+  `family_layout.hpp:178-181` makes every layer `Attention` (QSA) or `Gdn`, and
+  QSA requires `attn_q_norm`/`attn_k_norm`/`indexer.*` (`:262-269`) that the
+  DeepSeek layout does not declare (`:196-220`). Shape (B), a dedicated
+  `src/deepseek/` path, is ~4,800–6,200 lines across 6–7 new files: **T1 fires**
+  for (A) and **T2 fires** for (B). DEC-034 left this exact condition open — "the
+  next increment that touches kernels ... starts a fresh review with a Route 3
+  comparison on the table".
+- **Verification:** the architect re-read the three citation sites before
+  deciding. The coder's claim is factual, not a convenience.
+- **Options:**
+  - (a) **Shape A with T1 accepted** — add a standard-MHA layer kind to the
+    generic engine. Rejected: it edits the code path the signed `qwen4exp`
+    evidence depends on, for a feature that path does not need.
+  - (b) **Shape B on Route 2** (approved) — additive new files, dispatched only
+    for `deepseek` under `--parity-run`.
+  - (c) **Route 3 fork + P0–P9** — rejected for now: the ~5k lines are *new
+    files*, so a pin bump rebases the three small upstream-facing hunks
+    (dispatch, build, test), not 5,000 lines; T3's rebase trigger is not at risk.
+    T4 (second hardware class) and T5 (independent machine-gated engine with its
+    own API) — the triggers that would make a fork cheaper — have not fired.
+- **Decision:**
+  1. **DR-HO-STRATA-014-1 APPROVED** on Route 2, shape (B).
+  2. **Split by the oracle's own resolution:** **HO-STRATA-014 = S4a** (skeleton,
+     tensor mapping, geometry, RMSNorm/rope/MHA, block 0 dense FFN, dump plumbing,
+     `--parity-run`, tests, comparison tool) gated on **block 0 × 4 positions = 4
+     cells**; **HO-STRATA-015 = S4b** (MoE: router, top-6 with **no**
+     renormalisation, 2 shared experts) gated on layers 1–27 (108 cells) and then
+     all 112. The bound is the same 5e-3 in both.
+  3. **`dsref.cu` is cut from S4.** llama.cpp's dumps are the reference; an
+     in-repo reference implementation would double the parity surface before any
+     optimisation exists. It returns only if the engine is optimised, as its own
+     work package.
+  4. **The engine stays simple** (no pooling, no expert cache/streaming, no
+     batching, no MTP, no new fast-path kernels) — this is the mitigation for its
+     size, and the reason 5e-3 is achievable without a second implementation.
+  5. **Re-review trigger:** if the path needs edits in shared code
+     (`src/core/**`, shared kernels, `src/qwen35/**`) rather than new files, the
+     Route 3 calculus is re-opened before the work continues.
+  6. **Renumbering:** S5 (token parity + KL + the support flip) becomes
+     **HO-STRATA-016**, S6/S7 becomes **HO-STRATA-017**. DEC-042's "HO-015 = S5"
+     is corrected by this decision, and §13 of HO-014 carries the live map.
+- **Consequences:** the overlay's measured inventory becomes "6 files / 234 lines
+  (S1–S3) + a new engine path", and T2's meaning changes from "insufficient
+  patch size" to "a second engine lives in the tree". That is a real cost and it
+  is recorded as one: every future pin bump carries it. The compensating fact is
+  that the cost is additive and reversible, and the supported Qwen paths are not
+  touched (AC-7 stays bit-identical in both increments).
+- **Affected:** HO-STRATA-014 (now S4a, `IN_PROGRESS`), DR-HO-STRATA-014-1
+  (APPROVED), HO-STRATA-015/016/017 (numbering + scope), DEC-021 (T1/T2),
+  DEC-033, DEC-034, DEC-042, `workflow/STATUS.md`.

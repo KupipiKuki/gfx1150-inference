@@ -7,7 +7,7 @@
 | **Raised by** | Primary Coder (`coder-primary`, `opencode-go/kimi-k2.7-code`) |
 | **Date (UTC)** | 2026-11-23 |
 | **Decision owner** | Architect |
-| **State** | PROPOSED |
+| **State** | **APPROVED with conditions** (2026-11-23, DEC-043) |
 
 ## 1. Original scope
 
@@ -48,10 +48,48 @@ Shape (B) avoids T1 by following the established `src/qwen35/` precedent: a dedi
 
 ## 6. Decision (architect)
 
-- **APPROVED / REJECTED**:
-- Conditions:
-- Updated scope / criteria / evidence:
-- Recorded in `DECISIONS.md` on <date>
+- **APPROVED** — 2026-11-23, recorded in `DECISIONS.md` **DEC-043**.
+- **T1 confirmed, independently verified.** `include/strata/core/family_layout.hpp:178-181`
+  makes every layer `Attention` (QSA) or `Gdn`; the QSA tensor set at `:262-269`
+  requires `attn_q_norm` / `attn_k_norm` / `indexer.*`, none of which the
+  DeepSeek layout declares (`:196-220`). There is no standard-MHA path to extend,
+  so shape (A) is structural (T1) and would put the supported `qwen4exp` path at
+  regression risk for a feature it does not need.
+- **T2 reviewed, Route 2 continues.** Route 3 would remove the rebase cost of the
+  overlay, but the ~5k lines are **additive new files** (`src/deepseek/**`); the
+  upstream-facing edits stay at three small hunks (`cmake/strata_gpu_engine.cmake`,
+  the `generate.cpp` dispatch, the test). A pin bump therefore rebases ~100 lines,
+  not 5,000, and T3's rebase-conflict trigger is not at risk. T4 (second hardware
+  class) and T5 (independent machine-gated engine with its own API) have not
+  fired — gfx1150 only, no product API — and those, not size, are what would make
+  a fork cheaper. **Re-review the calculus** if the DeepSeek path ever needs
+  changes to shared code (`src/core/**`, shared kernels) rather than new files.
+- **Conditions (the scope is amended, not widened):**
+  1. **Split into two increments, gated on the oracle's own per-layer
+     resolution.** `HO-STRATA-014` = **S4a**: skeleton, tensor mapping, geometry,
+     RMSNorm/rope/MHA, **block 0 dense FFN**, `--dump-layers` plumbing,
+     `--parity-run`, tests, comparison tool. Gate = layer 0 at 4 positions
+     (4 cells). **`HO-STRATA-015`** = **S4b**: the MoE blocks (router, top-6 with
+     **no** renormalisation, 2 shared experts, expert matmuls). Gate = layers
+     1–27 (108 cells) and then the full 112-cell AC-5.
+  2. **`dsref.cu` is out of scope.** llama.cpp's dumps are the reference for S4;
+     a second in-repo implementation would double the parity work with no gate
+     value before any optimisation exists. A reference path is a later, separate
+     work package if the engine is ever optimised.
+  3. **The engine stays deliberately simple:** no expert pooling/cache/streaming,
+     no batching, no MTP, no new fast-path kernels — correctness only. Reuse the
+     existing dequant/GEMM where the arithmetic is identical.
+  4. **The shared-file hunks stay minimal** (dispatch + build + test); each
+     increment re-measures T2 and records the cumulative number.
+  5. **The §12 bound is unchanged** — 5e-3, max over the cells in scope. S4a does
+     not widen it to pass on 4 cells; a single failing cell stops S4a.
+  6. `--parity-run` and the unchanged refusal/`--families` behaviour land in
+     **S4a**, so AC-2/AC-3 hold from the first increment.
+- **Updated scope / criteria / evidence:** `HO-STRATA-014` AC-5 becomes **AC-5a**
+  (layer 0, 4 cells); AC-5b and the MoE §1.1 rows move to `HO-STRATA-015` with
+  this file as an input. Everything else (AC-1…AC-4, AC-6…AC-10, §5 evidence,
+  §6 guard rails) is unchanged.
+- **Recorded:** `DECISIONS.md` DEC-043 (2026-11-23).
 
 ## 7. Consequences
 
