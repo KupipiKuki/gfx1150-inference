@@ -1,0 +1,55 @@
+=== Probe 1: unlisted artifacts/notes-hashes.txt must FAIL B3-unlisted ===
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: bundle/artifact.txt
+PASS B2-hash-verify ok: bundle/manifest.md
+PASS B2-hash-verify ok: bundle/commands.log
+FAIL B3-unlisted bundle/artifacts/notes-hashes.txt
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: FAIL (12 checks, 0 warnings)
+
+PASS: B3 suffix bypass is caught
+
+=== Probe 2: full wrong digest with reworded command must FAIL B6-pins ===
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: bundle/artifact.txt
+PASS B2-hash-verify ok: bundle/manifest.md
+PASS B2-hash-verify ok: bundle/commands.log
+PASS B2-hash-verify ok: bundle/hashes-notes.txt
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+FAIL B6-pins bundle/artifact.txt (recorded 0000000000000000000000000000000000000000000000000000000000000000, actual c3d3c29e549a0dbdbb58aaa89c7b8eff08d0056cc5281796ae1d097b2dec5078)
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: FAIL (14 checks, 0 warnings)
+
+PASS: B6 reworded wrong-digest pin is caught
+
+=== Control: correct pin with reworded command still passes ===
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: bundle/artifact.txt
+PASS B2-hash-verify ok: bundle/manifest.md
+PASS B2-hash-verify ok: bundle/commands.log
+PASS B2-hash-verify ok: bundle/hashes-notes.txt
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B6-pins pin ok: d19d446e7b81854737fe3402914e2712196dee4c:bundle/artifact.txt
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: PASS (14 checks, 0 warnings)
+
+PASS: reworded command with correct digest is accepted
+

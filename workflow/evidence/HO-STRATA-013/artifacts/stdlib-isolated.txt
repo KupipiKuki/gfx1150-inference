@@ -1,0 +1,17 @@
+PASS hash-edited
+PASS extra-artifact
+PASS untracked
+PASS ignored
+PASS bad-pin
+PASS secret
+PASS clean
+PASS bundle-relative
+PASS absolute-external
+PASS prose
+PASS basename-spelling
+PASS malformed-separator
+PASS unlisted-hashes-suffix
+PASS pin-wrong-digest-reworded
+PASS pin-unresolvable-commit-reworded
+PASS pin-divergent-cells
+RESULT: PASS (all fixtures behaved as expected)

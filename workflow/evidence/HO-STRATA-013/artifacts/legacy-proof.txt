@@ -1,0 +1,2 @@
+HO-007 verified from bundle dir: ok=17 problems=0
+HO-001 verified with basename fallback: ok=21 mismatch=0 missing=0

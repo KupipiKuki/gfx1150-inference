@@ -33,6 +33,20 @@ Architect signs  <-  Auditor review  <-  QAQC PASS + report
 - **No audit PASS, no architect approval.**
 - **No architect approval, no merge.**
 
+## check_bundle.py
+
+Before marking any handoff `CODER_DONE`, run the evidence-packaging checker:
+
+```bash
+python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
+python3 workflow/tools/check_bundle.py --all
+```
+
+The first command verifies one bundle; the second checks every
+`workflow/evidence/HO-*` directory and aggregates the result. The tool is
+stdlib-only, read-only, and exits non-zero if any `FAIL` finding is present.
+QAQC re-runs the same command(s) before its review.
+
 ## Roles
 
 | Role | Agent | Writes | Cannot |
