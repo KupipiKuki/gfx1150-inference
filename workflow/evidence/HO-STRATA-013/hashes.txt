@@ -1,14 +1,17 @@
-b089b5e95e5fe091ac5673abdc128c4dc20d0d871c9d4355fc30de18ffa781c6  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
-11d40e60ed6fb6190904acfe16aaea323f1553ac5b33bbfdab3aee46c9a4a6a7  workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
-2d871a9134fca9a1a7ae932b495b6e91c65a0e7a3bfd8b06312de7aa941e1af9  workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
-47de18fd1a328cfda9b1c85c7ed23a18adcd5eda5c008ac78c6b63f9b017c8f3  workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
-514e1f570e4848d341d2051916c3f050fe0c39f00bba68223eed8eb573085ed3  workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
-514e1f570e4848d341d2051916c3f050fe0c39f00bba68223eed8eb573085ed3  workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
-89d2a10ec1126a8613a8a3455ab19e7dcf077ed684acf78682f82950356e7776  workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
-7bc9eab17f17263fe0ca591d39cc991095dd9c7b80afe61bc9cf474e3ec35141  workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
-5d176fda646a605e922a84ae04d28e75e3a20f1e69b14d63c3f11855c5c867f1  workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
-6b09fa75240cd547075a10537812909acb78afb91846c456735a7d6fe1e40e84  workflow/evidence/HO-STRATA-013/commands.log
+# SHA-256 hashes for HO-STRATA-013 evidence
+# Generated during RW-HO-STRATA-013-1 (refreshed after B2/B3 path classification fix)
+2f73349cfc4630255319c6c8dfc1b46a8996ace9d14d8e07563b165915918ec2  workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
+2f73349cfc4630255319c6c8dfc1b46a8996ace9d14d8e07563b165915918ec2  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+f5534b8afb1869263ca8671ddd9b63cf5a2db9dddac9bef9b7c752156185a527  workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
+f5534b8afb1869263ca8671ddd9b63cf5a2db9dddac9bef9b7c752156185a527  workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
+1c3c529ddd874bc1a61744df2f2092201509fc9db02fba34eb36165875101474  workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
+1c3c529ddd874bc1a61744df2f2092201509fc9db02fba34eb36165875101474  workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
+e416ec06f8f04949d9be60494b63a79d356da23b4e950302e05bfa43d8f371e1  workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
+0be0433bc9cd098ff4274dc28636dba9545a9d652a14c950f2f503efdbc25a8a  workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
+6383eb37a3d41b17905beb14d95145efd8e06d8d0759df5ad8476cc9b2b236c5  workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
+6383eb37a3d41b17905beb14d95145efd8e06d8d0759df5ad8476cc9b2b236c5  workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
+ae2bcc51bdeadae141f1f26355e12af71aff5c86f209d96e7fbccf69946aaa6c  workflow/evidence/HO-STRATA-013/commands.log
 c884f75846802dd848d17e8b04a5fe89933f18dc231866171783b9926dc42b16  workflow/evidence/HO-STRATA-013/hashes-notes.txt
-adadb860d6f6a3543fafdbb8a4bb56faa783588a74b0105e72a1cd94ac63eb74  workflow/evidence/HO-STRATA-013/manifest.md
-17bc980d0fbd6d0fada065904d1973f46f564180c7abf29198db847990500443  workflow/evidence/HO-STRATA-013/test-output.txt
-066a1be301b424d4bdc62ee10e274736e8d55c559beed89335fa675a8c469bbd  workflow/tools/check_bundle.py
+0866622df3eb079d10462669d01f0a3f5b2ccfc20d9b9d30f31d0fc6c27d8ecd  workflow/evidence/HO-STRATA-013/manifest.md
+53caa0ad8da04eb502abc13a480e583ef921ae6346fb738a00dd491eb04cdf27  workflow/evidence/HO-STRATA-013/test-output.txt

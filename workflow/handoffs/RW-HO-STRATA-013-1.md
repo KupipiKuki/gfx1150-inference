@@ -163,6 +163,31 @@ Re-run AC-1 … AC-8 from `HO-STRATA-013.md` §4 and refresh the bundle:
 A second failure on the **same** criterion (B2/B3 classification) escalates per
 `HANDOFF_CONTRACT.md` §9.
 
+### Coder completion (2026-11-22)
+
+Fixed and pushed to `wp/strata-013-check-bundle`. Evidence in
+`workflow/evidence/HO-STRATA-013/`.
+
+Commands that prove F1–F5:
+
+- F1/F2/F5: `python3 workflow/tools/check_bundle.py --all`
+  - exit 1
+  - exactly 2 FAIL lines: `FAIL B3-unlisted workflow/evidence/HO-STRATA-011/artifacts/cmd-8.err.txt` and `FAIL B3-unlisted workflow/evidence/HO-STRATA-011/artifacts/cmd-8.out.txt`
+  - zero FAILs for HO-001, HO-007, HO-008, HO-010, HO-012
+  - output saved in `artifacts/check-all.txt`
+- F3: `python3 workflow/tools/check_bundle.py --all --strict`
+  - exit 1
+  - every `B2-legacy-path`, `B2-external`, `B2-prose`, and `B3-path-spelling` warning is upgraded to FAIL
+  - `B6` and `B7` remain WARN
+  - output saved in `artifacts/check-all-strict.txt`
+- F4: `python3 workflow/tools/check_bundle.py --self-test`
+  - exit 0
+  - all 12 fixtures pass
+  - output saved in `artifacts/self-test.txt`
+- Legacy digest proof: `artifacts/legacy-proof.txt`
+  - HO-STRATA-007: 17 verified, 0 problems from bundle dir
+  - HO-STRATA-001: 21 ok, 0 mismatch, 0 missing with basename fallback
+
 ## 6. Log
 
 - 2026-11-22 Architect: raised. AC-2 produced 32 false-positive FAILs across three

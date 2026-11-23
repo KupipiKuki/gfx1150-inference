@@ -1,0 +1,99 @@
+# Legacy path-spelling proof
+
+Generated during RW-HO-STRATA-013-1 to demonstrate that the digests in the
+legacy bundles verify once path resolution follows the bundle-dir and
+basename-fallback rules.
+
+## 1. HO-STRATA-007 — bundle-relative `./` paths
+
+CWD: workflow/evidence/HO-STRATA-007
+Command:
+
+```console
+$ python3 - <<'EOF'
+import hashlib, re
+from pathlib import Path
+bundle = Path('.')
+ok = mismatch = missing = unreadable = 0
+for n, line in enumerate((bundle / 'hashes.txt').read_text().splitlines(), 1):
+    line = line.rstrip()
+    if not line or line.startswith('#'):
+        continue
+    m = re.match(r'^([0-9a-f]{64})\s+(.+)$', line)
+    if not m:
+        continue
+    digest, p = m.groups()
+    target = bundle / p
+    if not target.exists():
+        missing += 1
+        print(f'missing line {n}: {p}')
+        continue
+    if target.is_dir():
+        print(f'dir line {n}: {p}')
+        continue
+    try:
+        actual = hashlib.sha256(target.read_bytes()).hexdigest()
+    except Exception as e:
+        unreadable += 1
+        print(f'unreadable line {n}: {p} ({e})')
+        continue
+    if actual == digest:
+        ok += 1
+    else:
+        mismatch += 1
+        print(f'mismatch line {n}: {p}')
+print(f'verified from bundle dir: {ok} | mismatch: {mismatch} | missing: {missing} | unreadable: {unreadable}')
+EOF
+```
+
+Output:
+
+```
+verified from bundle dir: 17 | mismatch: 0 | missing: 0 | unreadable: 0
+```
+
+## 2. HO-STRATA-001 — basename fallback
+
+CWD: workflow/evidence/HO-STRATA-001
+Command:
+
+```console
+$ python3 - <<'EOF'
+import hashlib, re
+from pathlib import Path
+bundle = Path('.')
+ok = mismatch = missing = 0
+for n, line in enumerate((bundle / 'hashes.txt').read_text().splitlines(), 1):
+    line = line.rstrip()
+    if not line or line.startswith('#'):
+        continue
+    m = re.match(r'^([0-9a-f]{64})\s+(.+)$', line)
+    if not m:
+        continue
+    digest, p = m.groups()
+    target = bundle / p
+    if not target.exists():
+        candidates = list(bundle.rglob(Path(p).name))
+        if not candidates:
+            missing += 1
+            print(f'missing line {n}: {p}')
+            continue
+        target = candidates[0]
+    if target.is_dir():
+        print(f'dir line {n}: {p}')
+        continue
+    actual = hashlib.sha256(target.read_bytes()).hexdigest()
+    if actual == digest:
+        ok += 1
+    else:
+        mismatch += 1
+        print(f'mismatch line {n}: {p} (actual: {actual})')
+print(f'with basename fallback: ok={ok} mismatch={mismatch} missing={missing}')
+EOF
+```
+
+Output:
+
+```
+with basename fallback: ok=21 mismatch=0 missing=0
+```

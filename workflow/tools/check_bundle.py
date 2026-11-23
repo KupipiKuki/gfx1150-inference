@@ -3,7 +3,7 @@
 
 Usage:
     python3 workflow/tools/check_bundle.py <bundle-dir> [--json]
-    python3 workflow/tools/check_bundle.py --all [--json]
+    python3 workflow/tools/check_bundle.py --all [--json] [--strict]
     python3 workflow/tools/check_bundle.py --self-test
 
 Exit codes:
@@ -26,18 +26,35 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 CODES = [
     "B1-structure",
     "B2-hash-verify",
+    "B2-legacy-path",
+    "B2-external",
+    "B2-external-unverifiable",
+    "B2-path-spelling",
+    "B2-hash-mismatch",
+    "B2-missing",
+    "B2-prose",
+    "B2-malformed",
     "B3-hash-coverage",
+    "B3-path-spelling",
+    "B3-unlisted",
     "B4-tracked",
     "B5-not-ignored",
     "B6-pins",
     "B7-secrets",
     "B8-read-only",
 ]
+
+STRICT_UPGRADE_CODES = {
+    "B2-legacy-path",
+    "B2-external",
+    "B2-prose",
+    "B3-path-spelling",
+}
 
 SECRETS_RE = re.compile(
     r"ghp_[A-Za-z0-9_]{36,}|"
@@ -54,6 +71,11 @@ SECRETS_KV_RE = re.compile(
 )
 
 ALLOW_SECRET_RE = re.compile(r"check_bundle:\s*allow-secret\s+(.+)")
+
+# Well-formed sha256sum line: 64 hex lowercase digits followed by exactly two spaces.
+HASH_LINE_RE = re.compile(r"^([0-9a-f]{64})  (.+)$")
+# A line that looks like it wanted to be a hash but has the wrong separator.
+HASH_MALFORMED_RE = re.compile(r"^[0-9a-fA-F]{64}\s*.+$")
 
 
 def run(cmd: List[str], cwd: Optional[Path] = None, check: bool = False) -> subprocess.CompletedProcess:
@@ -86,6 +108,22 @@ def git_status_porcelain(cwd: Optional[Path] = None) -> str:
 def rel_to_repo(path: Path, root: Path) -> str:
     """Return the relative path of `path` from repo `root`, using forward slashes."""
     return path.resolve().relative_to(root.resolve()).as_posix()
+
+
+def normalize_listed_path(fpath: str, bundle_dir: Path, root: Path) -> str:
+    """Return a normalized repo-relative string for a listed path.
+
+    Relative paths keep their POSIX form with leading './' removed.
+    Absolute paths are returned unchanged so they never match a repo-relative
+    disk file path.
+    """
+    p = Path(fpath)
+    if p.is_absolute():
+        return fpath
+    rel = fpath
+    if rel.startswith("./"):
+        rel = rel[2:]
+    return rel
 
 
 def sha256_file(path: Path) -> str:
@@ -124,6 +162,13 @@ def finding_fail(code: str, message: str, path: Optional[str] = None) -> Finding
     return Finding(code, "FAIL", message, path)
 
 
+def apply_strict(findings: List[Finding]) -> None:
+    """Upgrade selected WARN codes to FAIL when --strict is given."""
+    for f in findings:
+        if f.status == "WARN" and f.code in STRICT_UPGRADE_CODES:
+            f.status = "FAIL"
+
+
 def check_b1_structure(bundle_dir: Path, root: Path) -> List[Finding]:
     findings: List[Finding] = []
     rel = rel_to_repo(bundle_dir, root)
@@ -154,63 +199,207 @@ def check_b1_structure(bundle_dir: Path, root: Path) -> List[Finding]:
     return findings
 
 
-def check_b2_hash_verify(bundle_dir: Path, root: Path) -> List[Finding]:
+def check_b2_hash_verify(
+    bundle_dir: Path, root: Path
+) -> Tuple[List[Finding], Set[str], Set[str], Set[str]]:
+    """Verify hashes.txt lines.
+
+    Returns (findings, resolved_paths, exact_paths, listed_basenames).
+    resolved_paths: repo-relative paths of actual files a listed line resolved to.
+    exact_paths: normalized listed path strings that literally match a disk file.
+    listed_basenames: basenames of every listed hash line.
+    """
     findings: List[Finding] = []
     rel = rel_to_repo(bundle_dir, root)
     hashes = bundle_dir / "hashes.txt"
 
-    if not hashes.exists():
-        return findings
+    resolved_paths: Set[str] = set()
+    exact_paths: Set[str] = set()
+    listed_basenames: Set[str] = set()
 
-    for line in hashes.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = line.rstrip()
+    if not hashes.exists():
+        return findings, resolved_paths, exact_paths, listed_basenames
+
+    root_resolved = root.resolve()
+    bundle_resolved = bundle_dir.resolve()
+
+    for raw_line in hashes.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.rstrip()
         if not line or line.startswith("#"):
             continue
-        match = re.match(r"^([0-9a-f]{64})\s+(.+)$", line)
+
+        match = HASH_LINE_RE.match(line)
         if not match:
-            findings.append(finding_fail("B2-hash-verify", f"malformed hashes.txt line: {line!r}", rel))
+            if HASH_MALFORMED_RE.match(line):
+                findings.append(finding_fail("B2-malformed", f"malformed hashes.txt line: {line!r}", rel))
+            else:
+                findings.append(finding_warn("B2-prose", f"not a hash line: {line!r}", rel))
             continue
 
         digest, fpath = match.group(1), match.group(2)
-        target = root / fpath
-        if not target.exists():
-            findings.append(finding_fail("B2-hash-verify", f"missing: {fpath}", rel))
-            continue
-        if target.is_dir():
-            findings.append(finding_fail("B2-hash-verify", f"is a directory: {fpath}", rel))
-            continue
-        actual = sha256_file(target)
-        if actual != digest:
-            findings.append(finding_fail("B2-hash-verify", f"hash mismatch: {fpath}", rel))
-        else:
-            findings.append(finding_pass("B2-hash-verify", f"ok: {fpath}", rel))
+        listed_basenames.add(Path(fpath).name)
+        normalized = normalize_listed_path(fpath, bundle_dir, root)
 
-    return findings
+        target: Optional[Path] = None
+        resolved_repo_path: Optional[str] = None
+        mismatch_at_exact_or_legacy = False
+
+        # a) path exists relative to the repo root (canonical). Absolute paths
+        # that resolve inside the repo are treated as canonical as well.
+        if target is None:
+            if Path(fpath).is_absolute():
+                repo_target = Path(fpath)
+                try:
+                    repo_target.resolve().relative_to(root_resolved)
+                    is_repo_path = True
+                except ValueError:
+                    is_repo_path = False
+            else:
+                repo_target = root / fpath
+                is_repo_path = True
+
+            if is_repo_path and repo_target.exists() and repo_target.is_file():
+                actual = sha256_file(repo_target)
+                if actual == digest:
+                    target = repo_target
+                    resolved_repo_path = rel_to_repo(repo_target, root)
+                    exact_paths.add(normalized)
+                    findings.append(finding_pass("B2-hash-verify", f"ok: {fpath}", rel))
+                else:
+                    findings.append(
+                        finding_fail(
+                            "B2-hash-mismatch",
+                            f"{fpath} (actual: {actual})",
+                            rel,
+                        )
+                    )
+                    mismatch_at_exact_or_legacy = True
+
+        # b) path exists relative to the bundle dir (legacy spelling).
+        if target is None and not mismatch_at_exact_or_legacy and not Path(fpath).is_absolute():
+            bundle_target = bundle_dir / fpath
+            if bundle_target.exists() and bundle_target.is_file():
+                actual = sha256_file(bundle_target)
+                if actual == digest:
+                    target = bundle_target
+                    resolved_repo_path = rel_to_repo(bundle_target, root)
+                    findings.append(
+                        finding_pass("B2-hash-verify", f"ok: {fpath}", rel)
+                    )
+                    findings.append(
+                        finding_warn("B2-legacy-path", f"{fpath}", rel)
+                    )
+                else:
+                    findings.append(
+                        finding_fail(
+                            "B2-hash-mismatch",
+                            f"{fpath} (actual: {actual})",
+                            rel,
+                        )
+                    )
+                    mismatch_at_exact_or_legacy = True
+
+        # c/c') absolute path outside the repo.
+        if target is None and Path(fpath).is_absolute():
+            abs_target = Path(fpath)
+            try:
+                abs_resolved = abs_target.resolve()
+            except (OSError, RuntimeError):
+                abs_resolved = abs_target
+            try:
+                is_inside_repo = abs_resolved.relative_to(root_resolved) is not None
+            except ValueError:
+                is_inside_repo = False
+            if not is_inside_repo:
+                if abs_target.exists() and abs_target.is_file():
+                    try:
+                        actual = sha256_file(abs_target)
+                    except (OSError, PermissionError):
+                        actual = None
+                    if actual == digest:
+                        findings.append(
+                            finding_pass("B2-hash-verify", f"ok: {fpath}", rel)
+                        )
+                        findings.append(
+                            finding_warn("B2-external", f"{fpath}", rel)
+                        )
+                    elif actual is not None:
+                        findings.append(
+                            finding_fail(
+                                "B2-hash-mismatch",
+                                f"{fpath} (actual: {actual})",
+                                rel,
+                            )
+                        )
+                    else:
+                        findings.append(
+                            finding_warn("B2-external-unverifiable", f"{fpath}", rel)
+                        )
+                else:
+                    findings.append(
+                        finding_warn("B2-external-unverifiable", f"{fpath}", rel)
+                    )
+                continue
+
+        # d/d') basename fallback under the bundle dir.
+        if target is None and not mismatch_at_exact_or_legacy:
+            basename = Path(fpath).name
+            candidates = sorted(p for p in bundle_dir.rglob(basename) if p.is_file())
+            if candidates:
+                # Prefer the first candidate whose digest matches; otherwise
+                # report mismatch against the first candidate.
+                matched = None
+                mismatch_actual = None
+                for cand in candidates:
+                    actual = sha256_file(cand)
+                    if actual == digest:
+                        matched = cand
+                        break
+                    if mismatch_actual is None:
+                        mismatch_actual = actual
+                if matched is not None:
+                    target = matched
+                    resolved_repo_path = rel_to_repo(matched, root)
+                    actual_path = rel_to_repo(matched, root)
+                    findings.append(
+                        finding_pass("B2-hash-verify", f"ok: {fpath}", rel)
+                    )
+                    findings.append(
+                        finding_warn(
+                            "B2-path-spelling",
+                            f"{fpath} -> {actual_path}",
+                            rel,
+                        )
+                    )
+                else:
+                    findings.append(
+                        finding_fail(
+                            "B2-hash-mismatch",
+                            f"{fpath} (actual: {mismatch_actual})",
+                            rel,
+                        )
+                    )
+            else:
+                findings.append(finding_fail("B2-missing", f"{fpath}", rel))
+
+        if resolved_repo_path is not None:
+            resolved_paths.add(resolved_repo_path)
+
+    return findings, resolved_paths, exact_paths, listed_basenames
 
 
-def check_b3_hash_coverage(bundle_dir: Path, root: Path) -> List[Finding]:
+def check_b3_hash_coverage(
+    bundle_dir: Path,
+    root: Path,
+    resolved_paths: Set[str],
+    exact_paths: Set[str],
+    listed_basenames: Set[str],
+) -> List[Finding]:
     findings: List[Finding] = []
     rel = rel_to_repo(bundle_dir, root)
-    hashes = bundle_dir / "hashes.txt"
 
-    if not hashes.exists():
-        return findings
-
-    listed: set[str] = set()
-    for line in hashes.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = line.rstrip()
-        if not line or line.startswith("#"):
-            continue
-        match = re.match(r"^([0-9a-f]{64})\s+(.+)$", line)
-        if match:
-            listed.add(match.group(2))
-
-    missing: List[str] = []
-    for fpath in sorted(listed):
-        target = root / fpath
-        if not target.exists():
-            # Already reported by B2; do not double-report as coverage gap.
-            pass
+    coverage_warns: List[Finding] = []
+    coverage_fails: List[Finding] = []
 
     for current in sorted(bundle_dir.rglob("*")):
         if not current.is_file():
@@ -218,13 +407,39 @@ def check_b3_hash_coverage(bundle_dir: Path, root: Path) -> List[Finding]:
         fpath = rel_to_repo(current, root)
         if fpath.endswith("hashes.txt"):
             continue
-        if fpath not in listed:
-            missing.append(fpath)
+        if fpath in exact_paths:
+            continue
+        if fpath in resolved_paths:
+            coverage_warns.append(
+                finding_warn(
+                    "B3-path-spelling",
+                    f"{fpath}",
+                    rel,
+                )
+            )
+            continue
+        basename = current.name
+        if basename in listed_basenames:
+            coverage_warns.append(
+                finding_warn(
+                    "B3-path-spelling",
+                    f"{fpath}",
+                    rel,
+                )
+            )
+        else:
+            coverage_fails.append(
+                finding_fail(
+                    "B3-unlisted",
+                    f"{fpath}",
+                    rel,
+                )
+            )
 
-    if missing:
-        for fpath in missing:
-            findings.append(finding_fail("B3-hash-coverage", f"not listed in hashes.txt: {fpath}", rel))
-    else:
+    findings.extend(coverage_warns)
+    findings.extend(coverage_fails)
+
+    if not coverage_warns and not coverage_fails:
         findings.append(finding_pass("B3-hash-coverage", "all files listed", rel))
 
     return findings
@@ -474,7 +689,7 @@ def check_b8_read_only(before: str, after: str, bundle_dir: Path, root: Path) ->
     return [finding_pass("B8-read-only", "git status unchanged", rel)]
 
 
-def check_bundle(bundle_dir: Path, root: Path, before_status: str) -> List[Finding]:
+def check_bundle(bundle_dir: Path, root: Path, before_status: str, strict: bool = False) -> List[Finding]:
     """Run all checks on a bundle directory and return findings."""
     findings: List[Finding] = []
 
@@ -482,10 +697,13 @@ def check_bundle(bundle_dir: Path, root: Path, before_status: str) -> List[Findi
     findings.extend(b1)
     # If no manifest, the remaining checks are skipped (B1 already warned).
     if not (bundle_dir / "manifest.md").exists():
+        if strict:
+            apply_strict(findings)
         return findings
 
-    findings.extend(check_b2_hash_verify(bundle_dir, root))
-    findings.extend(check_b3_hash_coverage(bundle_dir, root))
+    b2_findings, resolved_paths, exact_paths, listed_basenames = check_b2_hash_verify(bundle_dir, root)
+    findings.extend(b2_findings)
+    findings.extend(check_b3_hash_coverage(bundle_dir, root, resolved_paths, exact_paths, listed_basenames))
     findings.extend(check_b4_tracked(bundle_dir, root))
     findings.extend(check_b5_not_ignored(bundle_dir, root))
     findings.extend(check_b6_pins(bundle_dir, root))
@@ -493,6 +711,9 @@ def check_bundle(bundle_dir: Path, root: Path, before_status: str) -> List[Findi
 
     after_status = git_status_porcelain(root)
     findings.extend(check_b8_read_only(before_status, after_status, bundle_dir, root))
+
+    if strict:
+        apply_strict(findings)
 
     return findings
 
@@ -540,10 +761,10 @@ def findings_to_json(findings: List[Finding], bundle_name: Optional[str] = None)
     }
 
 
-def cmd_single(bundle_dir: Path, json_mode: bool) -> int:
+def cmd_single(bundle_dir: Path, json_mode: bool, strict: bool = False) -> int:
     root = repo_root(cwd=bundle_dir)
     before = git_status_porcelain(root)
-    findings = check_bundle(bundle_dir, root, before)
+    findings = check_bundle(bundle_dir, root, before, strict=strict)
     if json_mode:
         print(json.dumps(findings_to_json(findings, bundle_name=bundle_dir.name), sort_keys=True, indent=2))
     else:
@@ -552,7 +773,7 @@ def cmd_single(bundle_dir: Path, json_mode: bool) -> int:
     return 1 if fails else 0
 
 
-def cmd_all(json_mode: bool) -> int:
+def cmd_all(json_mode: bool, strict: bool = False) -> int:
     root = repo_root()
     before = git_status_porcelain(root)
     evidence_dir = root / "workflow" / "evidence"
@@ -563,7 +784,7 @@ def cmd_all(json_mode: bool) -> int:
     any_fail = False
 
     for bundle in bundles:
-        findings = check_bundle(bundle, root, before)
+        findings = check_bundle(bundle, root, before, strict=strict)
         any_fail = any_fail or any(f.status == "FAIL" for f in findings)
         if json_mode:
             all_json.append(findings_to_json(findings, bundle_name=bundle.name))
@@ -607,9 +828,13 @@ def _write_manifest(bundle: Path) -> None:
     (bundle / "manifest.md").write_text("# Manifest\n\ncommands.log\n", encoding="utf-8")
 
 
-def _run_tool(repo: Path, bundle: Path) -> Tuple[int, str]:
+def _run_tool(repo: Path, bundle: Path, strict: bool = False) -> Tuple[int, str]:
     tool = Path(__file__).resolve()
-    result = run([sys.executable, str(tool), str(bundle)], cwd=repo)
+    cmd = [sys.executable, str(tool)]
+    if strict:
+        cmd.append("--strict")
+    cmd.append(str(bundle))
+    result = run(cmd, cwd=repo)
     return result.returncode, result.stdout
 
 
@@ -619,16 +844,10 @@ def _assert_contains(stdout: str, code: str, status: str) -> None:
         raise AssertionError(f"expected {status} {code} in output:\n{stdout}")
 
 
-def _assert_not_contains(stdout: str, status: str) -> None:
-    if f"{status} " in stdout and "RESULT:" not in stdout.split(f"{status} ")[0].splitlines()[-1] if False else f"{status} " in stdout:
-        # Simplest robust check: look at result line.
-        for line in stdout.splitlines():
-            if line.startswith("RESULT:"):
-                if status == "FAIL" and "RESULT: FAIL" in line:
-                    return
-                if status == "PASS" and "RESULT: PASS" in line:
-                    return
-        raise AssertionError(f"unexpected {status} in output:\n{stdout}")
+def _assert_not_contains(stdout: str, code: str, status: str) -> None:
+    needle = f"{status} {code}"
+    if needle in stdout:
+        raise AssertionError(f"unexpected {status} {code} in output:\n{stdout}")
 
 
 def fixture_hash_edited(repo: Path) -> Tuple[int, str]:
@@ -729,14 +948,101 @@ def fixture_clean(repo: Path) -> Tuple[int, str]:
     return _run_tool(repo, bundle)
 
 
-FIXTURES = [
-    ("hash-edited", fixture_hash_edited, "B2-hash-verify", "FAIL"),
-    ("extra-artifact", fixture_extra_artifact, "B3-hash-coverage", "FAIL"),
+def fixture_bundle_relative(repo: Path) -> Tuple[int, str]:
+    """Listed path uses './' prefix relative to bundle dir."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    _write_manifest(bundle)
+    artifact = bundle / "artifact.txt"
+    artifact.write_text("bundle-relative data\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    _write_hashes(bundle, [(sha256_file(artifact), "./artifact.txt")])
+    _git_commit_all(repo, "hashes")
+    return _run_tool(repo, bundle)
+
+
+def fixture_absolute_external(repo: Path) -> Tuple[int, str]:
+    """Listed paths are absolute and outside the repo."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    _write_manifest(bundle)
+    artifact = bundle / "artifact.txt"
+    artifact.write_text("local data\n", encoding="utf-8")
+    external = repo.parent / "external.txt"
+    external.write_text("external data\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    digest_ext = sha256_file(external)
+    _write_hashes(
+        bundle,
+        [
+            (sha256_file(artifact), "bundle/artifact.txt"),
+            (digest_ext, str(external)),
+            ("0" * 64, str(repo.parent / "missing-external.txt")),
+        ],
+    )
+    _git_commit_all(repo, "hashes")
+    return _run_tool(repo, bundle)
+
+
+def fixture_prose(repo: Path) -> Tuple[int, str]:
+    """hashes.txt contains pin records and an N/A prose line."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    _write_manifest(bundle)
+    artifact = bundle / "artifact.txt"
+    artifact.write_text("data\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    _write_hashes(bundle, [(sha256_file(artifact), "bundle/artifact.txt")])
+    with open(bundle / "hashes.txt", "a", encoding="utf-8") as f:
+        f.write("strata HEAD              abcdef1234…deadbeef   (git -C /path rev-parse HEAD)\n")
+        f.write("N/A — no model, dataset or prompt was used in this handoff.\n")
+    _git_commit_all(repo, "hashes")
+    return _run_tool(repo, bundle)
+
+
+def fixture_basename_spelling(repo: Path) -> Tuple[int, str]:
+    """Listed basename only; actual file lives under artifacts/."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    (bundle / "artifacts").mkdir()
+    _write_manifest(bundle)
+    artifact = bundle / "artifacts" / "artifact.txt"
+    artifact.write_text("nested data\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    _write_hashes(bundle, [(sha256_file(artifact), "artifact.txt")])
+    _git_commit_all(repo, "hashes")
+    return _run_tool(repo, bundle)
+
+
+def fixture_malformed_separator(repo: Path) -> Tuple[int, str]:
+    """A 64-hex line with a broken separator."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    _write_manifest(bundle)
+    artifact = bundle / "artifact.txt"
+    artifact.write_text("data\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    _write_hashes(bundle, [(sha256_file(artifact), "bundle/artifact.txt")])
+    with open(bundle / "hashes.txt", "a", encoding="utf-8") as f:
+        # sha256sum binary-mode marker '*' instead of the text-mode two-space separator.
+        f.write(f"{sha256_file(artifact)} *bundle/artifact.txt\n")
+    _git_commit_all(repo, "hashes")
+    return _run_tool(repo, bundle)
+
+
+FIXTURES: List[Tuple[str, callable, Optional[str], str]] = [
+    ("hash-edited", fixture_hash_edited, "B2-hash-mismatch", "FAIL"),
+    ("extra-artifact", fixture_extra_artifact, "B3-unlisted", "FAIL"),
     ("untracked", fixture_untracked, "B4-tracked", "FAIL"),
     ("ignored", fixture_ignored, "B5-not-ignored", "FAIL"),
     ("bad-pin", fixture_bad_pin, "B6-pins", "FAIL"),
     ("secret", fixture_secret, "B7-secrets", "FAIL"),
     ("clean", fixture_clean, None, "PASS"),
+    ("bundle-relative", fixture_bundle_relative, "B2-legacy-path", "WARN"),
+    ("absolute-external", fixture_absolute_external, "B2-external", "WARN"),
+    ("prose", fixture_prose, "B2-prose", "WARN"),
+    ("basename-spelling", fixture_basename_spelling, "B2-path-spelling", "WARN"),
+    ("malformed-separator", fixture_malformed_separator, "B2-malformed", "FAIL"),
 ]
 
 
@@ -768,6 +1074,19 @@ def cmd_self_test() -> int:
                     failures += 1
                     continue
 
+            # Strict-mode variant for bundle-relative fixture.
+            if name == "bundle-relative":
+                try:
+                    _, strict_stdout = _run_tool(repo, repo / "bundle", strict=True)
+                    _assert_contains(strict_stdout, "B2-legacy-path", "FAIL")
+                    # Under strict the overall result must be FAIL.
+                    if "RESULT: FAIL" not in strict_stdout:
+                        raise AssertionError("expected RESULT: FAIL under --strict")
+                except AssertionError as exc:
+                    print(f"FAIL {name} --strict: {exc}")
+                    failures += 1
+                    continue
+
             print(f"PASS {name}")
 
     if failures:
@@ -786,18 +1105,19 @@ def main(argv: List[str]) -> int:
     parser.add_argument("--all", action="store_true", help="check every workflow/evidence/HO-* bundle")
     parser.add_argument("--self-test", action="store_true", help="run negative-control fixtures")
     parser.add_argument("--json", action="store_true", help="emit stable JSON output")
+    parser.add_argument("--strict", action="store_true", help="upgrade legacy/path-spelling/prose warnings to FAIL")
 
     args = parser.parse_args(argv)
 
     if args.self_test:
-        if args.bundle or args.all or args.json:
+        if args.bundle or args.all or args.json or args.strict:
             parser.error("--self-test takes no other options")
         return cmd_self_test()
 
     if args.all:
         if args.bundle:
             parser.error("cannot combine --all with a bundle path")
-        return cmd_all(json_mode=args.json)
+        return cmd_all(json_mode=args.json, strict=args.strict)
 
     if not args.bundle:
         parser.error("specify a bundle directory, --all, or --self-test")
@@ -807,7 +1127,7 @@ def main(argv: List[str]) -> int:
         print(f"FAIL usage: not a directory: {args.bundle}", file=sys.stderr)
         return 2
 
-    return cmd_single(bundle_path, json_mode=args.json)
+    return cmd_single(bundle_path, json_mode=args.json, strict=args.strict)
 
 
 if __name__ == "__main__":
