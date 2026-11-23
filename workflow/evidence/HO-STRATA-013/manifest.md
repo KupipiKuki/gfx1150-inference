@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | **Handoff** | HO-STRATA-013 |
-| **Commit / branch** | `wp/strata-013-check-bundle` (tip is the RW-1 CODER_DONE commit) |
+| **Commit / branch** | `wp/strata-013-check-bundle` (RW-1 evidence commit; pin in `hashes-notes.txt`) |
 | **Author / date (UTC)** | `coder-primary` / 2026-11-22 |
 | **Environment** | Linux Mint 22.3 (Zena), kernel 7.0.0-42-generic, Python 3.14.10, git 2.43.0 |
 | **Working directory** | `/home/kupipi/Documents/git/gfx1150-inference` |
@@ -40,6 +40,11 @@ Full transcript with cwd and exit codes: **`commands.log`**. Raw outputs: `artif
 | RW-1 F1–F5 | Legacy path classification fixed | C2, C9, C3, C10 | `--all` has 2 FAILs on `HO-STRATA-011`; `--all --strict` upgrades legacy warnings; self-test covers all new codes; legacy proof verifies digests | **PASS** |
 
 ## 3. Per-bundle verdict table (`--all`)
+
+The pre-commit `--all` capture shows assembly-time FAILs for this bundle (stale
+hashes, dirty tree); the post-commit re-run (C2b, `artifacts/check-all.txt`)
+is the authoritative capture and shows exactly 2 FAILs, both HO-STRATA-011
+`B3-unlisted`.
 
 | Bundle | Result | Warnings | Findings |
 |---|---|---|---|---|

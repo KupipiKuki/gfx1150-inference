@@ -1,3 +1,5 @@
+clone cwd: /tmp/cb-fresh
+clone HEAD: d00da6f
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists

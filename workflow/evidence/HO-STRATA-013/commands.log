@@ -1,36 +1,55 @@
-=== C1: python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 ===
+=== C1 ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
 exit: 0
-=== C2: python3 workflow/tools/check_bundle.py --all ===
+
+=== C2 ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all
 exit: 1
-=== C9: python3 workflow/tools/check_bundle.py --all --strict ===
+
+=== C9 ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all --strict
 exit: 1
-=== C3: python3 workflow/tools/check_bundle.py --self-test ===
+
+=== C3 ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --self-test
 exit: 0
-=== C4: python3 -I workflow/tools/check_bundle.py --self-test ===
+
+=== C4 ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 -I workflow/tools/check_bundle.py --self-test
 exit: 0
-=== C5: read-only check ===
+
+=== C4b ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-git status --porcelain > /tmp/git-status-before.txt  (exit: 0)
-python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /dev/null  (exit: 0)
-python3 workflow/tools/check_bundle.py --all > /dev/null  (exit: 1)
-git status --porcelain > /tmp/git-status-after.txt  (exit: 0)
-diff /tmp/git-status-before.txt /tmp/git-status-after.txt > /tmp/git-status-diff.txt  (exit: 0)
-diff output:
-=== C6: fresh clone ===
-cwd: /home/kupipi/Documents/git/gfx1150-inference
-git clone --branch wp/strata-013-check-bundle . /tmp/cb-fresh  (exit: 0)
-cwd: /tmp/cb-fresh
-python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012  (exit: 0)
-=== C7: grep -n check_bundle workflow/README.md ===
-cwd: /home/kupipi/Documents/git/gfx1150-inference
+grep -nE '^(import|from) ' workflow/tools/check_bundle.py
 exit: 0
-=== C8: deterministic output check ===
+
+=== C5 ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-run 1 exit: 0
-run 2 exit: 0
-diff exit: 0
+git status --porcelain > /tmp/gs-before.txt; run C1 and C2; git status --porcelain > /tmp/gs-after.txt; diff -u > artifacts/git-status-diff.txt
+exit: 0
+
+=== C6 ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+rm -rf /tmp/cb-fresh; git clone -q --branch wp/strata-013-check-bundle . /tmp/cb-fresh; cd /tmp/cb-fresh && pwd && python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
+exit: 0
+
+=== C7 ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+grep -n 'check_bundle' workflow/README.md
+exit: 0
+
+=== C8 ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 ... > /tmp/ac8-run1.txt; python3 ... > /tmp/ac8-run2.txt; sha256sum both; diff -u; echo diff_exit
+exit: 0
+
+=== C10 ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 - <<'PY'  (verify HO-007 from the bundle dir; verify HO-001 by basename fallback)
+exit: 0
+
