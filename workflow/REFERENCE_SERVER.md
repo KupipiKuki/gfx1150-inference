@@ -23,6 +23,12 @@ pack. It is a **convenience reference for iteration**, not the authority — see
 (`78e05298…`)**; this server is **`b12607` (`1fdda89a4`)** — 80 builds later. They
 agree on the case below, but they are not the same binary.
 
+**Re-verified 2026-11-23** (pid 308881, started 17:15 local): `/health` 200,
+`/props` `build b12607-1fdda89a4`, and the §2 call reproduced the oracle
+**16/16** on the first request (2.7 s including the lazy load). The server had
+been **down** at the 2026-11-22 resume and came back up without a rebuild, so a
+missing port is "restart it", not "the reference is gone".
+
 ## 2. The call that works
 
 ```bash
@@ -43,6 +49,10 @@ Re-tokenized (the response carries **no** `tokens` array):
 POST /tokenize {"model":"…","content":"<content>"}
 → [8913,13,185,40619,317,254,6077,280,7239,13,185,40619,317,254,6077,280]
 ```
+
+The `model` field is **required** on this router: `/tokenize` without it returns
+`400 invalid_request_error — model name is missing from the request`. That is a
+router requirement, not a tokenizer difference.
 
 Identical to `workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt`
 (`gen:` line, 16/16). Two consecutive calls returned byte-identical content.
