@@ -1,0 +1,475 @@
+From bac859ef91fb0d432eaf9675fc769bc3afe313cf Mon Sep 17 00:00:00 2001
+From: KupipiKuki <masterkookus@gmail.com>
+Date: Fri, 20 Nov 2026 18:24:14 -0500
+Subject: [PATCH] HO-STRATA-012: DeepSeek S1-S3 recognition, geometry, tensor
+ inventory and --inspect
+
+---
+ include/strata/artifact/gguf_reader.hpp  |  18 ++++
+ include/strata/artifact/model_family.hpp |   9 +-
+ include/strata/core/family_layout.hpp    | 121 +++++++++++++++++++++--
+ include/strata/core/geometry.hpp         |   6 ++
+ src/program/generate.cpp                 |  10 ++
+ tests/core/model_family_test.cpp         | 101 ++++++++++++++-----
+ 6 files changed, 234 insertions(+), 31 deletions(-)
+
+diff --git a/include/strata/artifact/gguf_reader.hpp b/include/strata/artifact/gguf_reader.hpp
+index 5800fe94c..123d9c87e 100644
+--- a/include/strata/artifact/gguf_reader.hpp
++++ b/include/strata/artifact/gguf_reader.hpp
+@@ -664,6 +664,23 @@ inline std::string check_architecture_qwen35moe(const GgufFile& g) {
+     return {};
+ }
+ 
++/// DeepSeek-MoE's guard: every key its geometry is read from must be present.
++inline std::string check_architecture_deepseek(const GgufFile& g) {
++    static const char* const keys[] = {
++        "deepseek.block_count", "deepseek.embedding_length", "deepseek.attention.head_count",
++        "deepseek.attention.head_count_kv", "deepseek.expert_count", "deepseek.expert_used_count",
++        "deepseek.expert_shared_count", "deepseek.expert_feed_forward_length", "deepseek.feed_forward_length",
++        "deepseek.leading_dense_block_count", "deepseek.rope.freq_base",
++        "deepseek.attention.layer_norm_rms_epsilon",
++    };
++    for (const char* k : keys) {
++        const MetaValue* v = g.get(k);
++        if (!v) return std::string("missing ") + k;
++        if (!v->is_num()) return std::string(k) + " is not a number";
++    }
++    return {};
++}
++
+ // ---- the model's geometry from its metadata, and the architecture guard (P1.S2).  The engine runs ONE
+ // architecture, qwen4exp.  Its dimensions are read from the file (llama.cpp's key names under the arch prefix)
+ // and then checked against the shape the kernels are compiled for (core/geometry.hpp), so a file of another
+@@ -851,6 +868,7 @@ inline std::string check_architecture(const GgufFile& f) {
+     if (!arch) return "missing general.architecture";
+     const ModelFamily family = model_family_from_arch(arch->s);
+     if (family == ModelFamily::Qwen35Moe) return check_architecture_qwen35moe(f);
++    if (family == ModelFamily::DeepseekMoe) return check_architecture_deepseek(f);
+     core::ModelGeometry g;   // anything else is refused by name by read_geometry
+     std::string err = read_geometry(f, g);
+     if (err.empty()) err = geometry_unsupported(g);
+diff --git a/include/strata/artifact/model_family.hpp b/include/strata/artifact/model_family.hpp
+index a1aaeec3a..6961c7b98 100644
+--- a/include/strata/artifact/model_family.hpp
++++ b/include/strata/artifact/model_family.hpp
+@@ -16,11 +16,13 @@ enum class ModelFamily {
+     Unknown = 0,
+     Qwen4Exp,    ///< Qwen3.8-Flash-Next and its fine-tunes / pruned variants (Swift 1.5, the Coder)
+     Qwen35Moe,   ///< Qwen3.6-35B-A3B (Unsloth's MTP GGUFs): plain pre-norm residual, dense attention, nextn MTP block
++    DeepseekMoe, ///< DeepSeek-MoE-16B-base: dense first block + fine-grained shared-expert MoE
+ };
+ 
+ inline ModelFamily model_family_from_arch(const std::string& arch) {
+     if (arch == "qwen4exp") return ModelFamily::Qwen4Exp;
+     if (arch == "qwen35moe") return ModelFamily::Qwen35Moe;
++    if (arch == "deepseek") return ModelFamily::DeepseekMoe;
+     return ModelFamily::Unknown;
+ }
+ 
+@@ -31,6 +33,8 @@ inline const char* model_family_arch(ModelFamily f) {
+         return "qwen4exp";
+     case ModelFamily::Qwen35Moe:
+         return "qwen35moe";
++    case ModelFamily::DeepseekMoe:
++        return "deepseek";
+     default:
+         return "";
+     }
+@@ -43,6 +47,8 @@ inline const char* model_family_title(ModelFamily f) {
+         return "Qwen3.8-Flash-Next";
+     case ModelFamily::Qwen35Moe:
+         return "Qwen3.6-35B-A3B";
++    case ModelFamily::DeepseekMoe:
++        return "DeepSeek-MoE-16B-base";
+     default:
+         return "an unknown model";
+     }
+@@ -58,8 +64,7 @@ inline std::string model_family_not_supported(ModelFamily f) {
+     if (model_family_runs(f)) return {};
+     if (f == ModelFamily::Unknown) return "this is not a model family Strata knows";
+     return std::string(model_family_title(f)) + " (architecture '" + model_family_arch(f) +
+-           "') runs on the NVIDIA (CUDA) and AMD (HIP) builds of Strata; this build does not run it yet (the Intel "
+-           "Arc / SYCL port is in development). Use a CUDA or HIP build, or a Qwen3.8-Flash-Next model file";
++           "') is recognised by Strata but this build does not run it yet";
+ }
+ 
+ }  // namespace strata
+diff --git a/include/strata/core/family_layout.hpp b/include/strata/core/family_layout.hpp
+index 05d656b8b..29f3bf7c5 100644
+--- a/include/strata/core/family_layout.hpp
++++ b/include/strata/core/family_layout.hpp
+@@ -35,11 +35,54 @@ inline bool geometry_from_gguf(const strata::GgufFile& meta, ModelGeometry& g, i
+     const std::string p = std::string(strata::model_family_arch(family)) + ".";
+     g = ModelGeometry{};
+     g.family = family;
++
++    char buf[256];
++    auto bad = [&](const char* what) {
++        std::snprintf(buf, sizeof buf, "%s: %s", meta.path().c_str(), what);
++        err = buf;
++        return false;
++    };
+     // a key the file carries replaces the default; `required` keys were checked present by the guard
+     auto num = [&](const char* key, int64_t& dst) {
+         if (const strata::MetaValue* v = meta.get(p + key))
+             if (v->is_num()) dst = (int64_t) v->u;
+     };
++    auto fnum = [&](const char* key, double& dst) {
++        if (const strata::MetaValue* v = meta.get(p + key))
++            if (v->is_num()) dst = v->num();
++    };
++
++    if (family == strata::ModelFamily::DeepseekMoe) {
++        num("block_count", g.n_layers);
++        num("embedding_length", g.n_embd);
++        num("attention.head_count", g.n_head);
++        num("attention.head_count_kv", g.n_head_kv);
++        num("expert_count", g.n_expert);
++        top_k = 0;
++        num("expert_used_count", top_k);
++        g.n_expert_used = top_k;
++        num("expert_shared_count", g.n_expert_shared);
++        num("expert_feed_forward_length", g.n_ff);
++        num("feed_forward_length", g.n_ff_dense);
++        num("leading_dense_block_count", g.n_dense_first_blocks);
++        fnum("rope.freq_base", g.rope_freq_base);
++        g.head_dim = g.n_embd / g.n_head;
++        g.n_ff_shexp = g.n_expert_shared * g.n_ff;
++        g.hc = g.hc_lr = g.idx_q_heads = g.idx_key_dim = 0;
++        g.ssm_state_size = g.ssm_k_heads = g.ssm_v_heads = g.ssm_d_conv = 0;
++        g.ssm_conv_channels = g.ssm_value_dim = 0;
++        if (const strata::MetaValue* v = meta.get("tokenizer.ggml.tokens"))
++            if (v->type == strata::MetaType::ARRAY && v->count > 0) g.n_vocab = (int64_t) v->count;
++        if (const strata::MetaValue* v = meta.get(p + "attention.layer_norm_rms_epsilon"))
++            if (v->is_num()) g.rms_eps = v->num();
++        if (g.n_layers <= 0 || g.n_embd <= 0 || g.n_head <= 0 || g.n_head_kv <= 0 || g.n_expert <= 0 ||
++            top_k <= 0 || top_k > g.n_expert || g.n_ff <= 0 || g.n_expert_shared <= 0 || g.n_ff_dense <= 0 ||
++            g.n_dense_first_blocks < 0 || g.n_dense_first_blocks >= g.n_layers)
++            return bad("a geometry key is zero or out of range");
++        if (g.n_head % g.n_head_kv) return bad("attention.head_count is not a multiple of attention.head_count_kv");
++        return true;
++    }
++
+     int64_t block_count = g.n_layers, key_length = g.head_dim, value_length = -1;
+     num("block_count", block_count);
+     num("embedding_length", g.n_embd);
+@@ -75,12 +118,6 @@ inline bool geometry_from_gguf(const strata::GgufFile& meta, ModelGeometry& g, i
+     if (const strata::MetaValue* v = meta.get("tokenizer.ggml.tokens"))
+         if (v->type == strata::MetaType::ARRAY && v->count > 0) g.n_vocab = (int64_t) v->count;
+ 
+-    char buf[256];
+-    auto bad = [&](const char* what) {
+-        std::snprintf(buf, sizeof buf, "%s: %s", meta.path().c_str(), what);
+-        err = buf;
+-        return false;
+-    };
+     if (g.n_layers <= 0 || g.n_embd <= 0 || g.n_head <= 0 || g.n_head_kv <= 0 || g.head_dim <= 0 || g.n_expert <= 0 ||
+         top_k <= 0 || top_k > g.n_expert || g.n_ff <= 0 || g.ssm_state_size <= 0 || g.ssm_k_heads <= 0 ||
+         g.ssm_v_heads <= 0 || g.ssm_d_conv <= 0 || g.qsa_interval < 2)
+@@ -156,6 +193,31 @@ inline std::vector<TensorWant> layer_tensors(const ModelGeometry& g, int64_t lay
+     const int64_t N = g.n_embd, NE = g.n_expert, FF = g.n_ff, FS = g.n_ff_shexp;
+     std::vector<TensorWant> t;
+     auto add = [&](const char* s, std::vector<int64_t> shape) { t.push_back({s, std::move(shape)}); };
++    if (g.family == strata::ModelFamily::DeepseekMoe) {
++        // dense attention on every block
++        add("attn_norm.weight", {N});
++        add("attn_q.weight", {N, N});
++        add("attn_k.weight", {N, N});
++        add("attn_v.weight", {N, N});
++        add("attn_output.weight", {N, N});
++        add("ffn_norm.weight", {N});
++        if (layer < g.n_dense_first_blocks) {
++            // dense FFN in the leading blocks
++            add("ffn_gate.weight", {N, g.n_ff_dense});
++            add("ffn_up.weight", {N, g.n_ff_dense});
++            add("ffn_down.weight", {g.n_ff_dense, N});
++        } else {
++            // fine-grained shared-expert MoE
++            add("ffn_gate_inp.weight", {N, NE});
++            add("ffn_gate_shexp.weight", {N, FS});
++            add("ffn_up_shexp.weight", {N, FS});
++            add("ffn_down_shexp.weight", {FS, N});
++            add("ffn_gate_exps.weight", {N, FF, NE});
++            add("ffn_up_exps.weight", {N, FF, NE});
++            add("ffn_down_exps.weight", {FF, N, NE});
++        }
++        return t;
++    }
+     // MoE, every layer (the MTP block's too)
+     add("ffn_gate_inp.weight", {N, NE});
+     add("ffn_gate_inp_shexp.weight", {N});
+@@ -234,7 +296,9 @@ inline std::vector<TensorWant> global_tensors(const ModelGeometry& g) {
+ }
+ 
+ /// Whether the family's table names every blk.* tensor its files carry (then an unnamed one is an error).
+-inline bool layout_table_complete(const ModelGeometry& g) { return g.family == strata::ModelFamily::Qwen35Moe; }
++inline bool layout_table_complete(const ModelGeometry& g) {
++    return g.family == strata::ModelFamily::Qwen35Moe || g.family == strata::ModelFamily::DeepseekMoe;
++}
+ 
+ /// Checks the model `m` (all shards) against the layout table of `g`.  `checked` counts the tensors found.
+ inline bool check_gguf_layout(const strata::GgufModel& m, const ModelGeometry& g, std::string& err,
+@@ -282,4 +346,47 @@ inline bool check_gguf_layout(const strata::GgufModel& m, const ModelGeometry& g
+     return true;
+ }
+ 
++/// Read-only inspection: prints the detected family, every geometry field, and every tensor name+shape.
++/// Returns true on a consistent file; sets `err` and returns false on refusal or mismatch.
++inline bool inspect_gguf(const std::string& path, std::string& err) {
++    const strata::GgufModel model = strata::GgufModel::open(path);
++    err = strata::check_architecture(model.meta());
++    if (!err.empty()) return false;
++    strata::core::ModelGeometry g;
++    int64_t top_k = 0;
++    if (!geometry_from_gguf(model.meta(), g, top_k, err)) return false;
++    size_t checked = 0;
++    if (!check_gguf_layout(model, g, err, &checked)) return false;
++    std::printf("family: %s (architecture '%s')\n", strata::model_family_title(g.family),
++                strata::model_family_arch(g.family));
++    if (g.family == strata::ModelFamily::DeepseekMoe) {
++        auto pi = [](const char* k, int64_t v) { std::printf("%s: %lld\n", k, (long long)v); };
++        auto pd = [](const char* k, double v) { std::printf("%s: %g\n", k, v); };
++        pi("deepseek.block_count", g.n_layers);
++        pi("deepseek.embedding_length", g.n_embd);
++        pi("deepseek.attention.head_count", g.n_head);
++        pi("deepseek.attention.head_count_kv", g.n_head_kv);
++        pi("deepseek.expert_count", g.n_expert);
++        pi("deepseek.expert_used_count", top_k);
++        pi("deepseek.expert_shared_count", g.n_expert_shared);
++        pi("deepseek.expert_feed_forward_length", g.n_ff);
++        pi("deepseek.feed_forward_length", g.n_ff_dense);
++        pi("deepseek.leading_dense_block_count", g.n_dense_first_blocks);
++        pd("deepseek.rope.freq_base", g.rope_freq_base);
++        pd("deepseek.attention.layer_norm_rms_epsilon", g.rms_eps);
++    } else {
++        std::printf("geometry: family-specific summary not implemented in --inspect\n");
++    }
++    size_t n_tensors = 0;
++    for (size_t s = 0; s < model.size(); ++s) n_tensors += model.shard(s).tensors().size();
++    std::printf("tensors: %zu\n", n_tensors);
++    for (size_t s = 0; s < model.size(); ++s)
++        for (const strata::TensorInfo& t : model.shard(s).tensors()) {
++            std::string shape;
++            for (uint64_t d : t.shape) shape += (shape.empty() ? "" : ", ") + std::to_string(d);
++            std::printf("%s [%s]\n", t.name.c_str(), shape.c_str());
++        }
++    return true;
++}
++
+ }  // namespace strata::core
+diff --git a/include/strata/core/geometry.hpp b/include/strata/core/geometry.hpp
+index 7d24bf882..dc05ab909 100644
+--- a/include/strata/core/geometry.hpp
++++ b/include/strata/core/geometry.hpp
+@@ -59,6 +59,12 @@ struct ModelGeometry {
+     ModelFamily family = ModelFamily::Qwen4Exp;
+     int64_t n_mtp_layers = 0;       ///< MTP blocks inside the model file, after the trunk (qwen35moe: blk.40)
+ 
++    // DeepSeek-MoE fields, read from GGUF metadata (not inferred)
++    int64_t n_expert_shared = 0;    ///< expert_shared_count
++    int64_t n_dense_first_blocks = 0; ///< leading_dense_block_count (block 0 is a dense FFN)
++    int64_t n_ff_dense = 0;         ///< feed_forward_length (the dense first blocks' FFN width)
++    double rope_freq_base = 10000.0; ///< rope.freq_base
++
+     constexpr bool has_indexer() const { return idx_q_heads > 0; }              ///< false: dense attention only
+     constexpr bool has_hyper_connections() const { return hc > 0; }             ///< false: plain pre-norm residual
+     constexpr int64_t hc_dim() const { return hc * n_embd; }
+diff --git a/src/program/generate.cpp b/src/program/generate.cpp
+index 76ea52373..baa157397 100644
+--- a/src/program/generate.cpp
++++ b/src/program/generate.cpp
+@@ -3578,6 +3578,16 @@ int main(int argc, char** argv) {
+             std::printf("%s\n", strata::core::kGeometryName);
+             return 0;
+         }
++        // `strata --inspect <gguf>`: read-only inventory of family, geometry and tensors; no GPU, no forward.
++        if (std::strcmp(argv[i], "--inspect") == 0) {
++            if (i + 1 >= argc) { std::fprintf(stderr, "--inspect needs a GGUF file\n"); return 2; }
++            std::string err;
++            if (!strata::core::inspect_gguf(argv[i + 1], err)) {
++                std::fprintf(stderr, "strata inspect: %s\n", err.c_str());
++                return 2;
++            }
++            return 0;
++        }
+     }
+ #if (defined(STRATA_USE_HIP) || defined(STRATA_HIP_GFX906)) && !defined(_WIN32)
+     // AMD, a file-backed arena (STRATA_ARENA_MMAP): ROCclr copies a pageable source of 1 MiB or more by locking its
+diff --git a/tests/core/model_family_test.cpp b/tests/core/model_family_test.cpp
+index 479340d63..3de6f2560 100644
+--- a/tests/core/model_family_test.cpp
++++ b/tests/core/model_family_test.cpp
+@@ -14,6 +14,7 @@
+ #include "strata/core/family_layout.hpp"
+ 
+ #include <chrono>
++#include <cmath>
+ #include <cstdio>
+ #include <filesystem>
+ #include <string>
+@@ -48,13 +49,18 @@ const uint32_t F32 = 0;
+ struct Dims {
+     uint64_t block_count, embd, heads, heads_kv, key_len, experts, used, ff, ff_sh, conv, state, groups, v_heads,
+         inner, interval, nextn, hc, hc_lr, idx_heads, idx_key;
++    uint64_t expert_shared = 0, ff_dense = 0, dense_blocks = 0;
++    double rope_freq_base = 10000.0;
+ };
+ // Qwen3.6-35B-A3B (unsloth/Qwen3.6-35B-A3B-MTP-GGUF, every quant) and Qwen3.8-Flash-Next, as their files say
+ const Dims kQwen36 = {41, 2048, 16, 2, 256, 256, 8, 512, 512, 4, 128, 16, 32, 4096, 4, 1, 0, 0, 0, 0};
+ const Dims kFlashNext = {48, 2560, 24, 2, 256, 512, 10, 640, 640, 4, 128, 16, 48, 6144, 4, 0, 4, 320, 4, 128};
++// DeepSeek-MoE-16B-base (verified geometry, §2 of HO-STRATA-012)
++const Dims kDeepseek = {28, 2048, 16, 16, 128, 64, 6, 1408, 2816, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 10944, 1, 10000.0};
+ // tiny models of each family for the layout checks (every tensor F32, a few KB)
+ const Dims kTiny36 = {5, 64, 2, 1, 16, 4, 2, 32, 32, 4, 8, 2, 4, 32, 4, 1, 0, 0, 0, 0};
+ const Dims kTinyFlash = {8, 64, 2, 1, 16, 4, 2, 32, 32, 4, 8, 2, 4, 32, 4, 0, 2, 8, 2, 8};
++const Dims kTinyDeepseek = {4, 64, 2, 2, 32, 8, 3, 32, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 96, 1, 10000.0};
+ 
+ std::vector<Kv> metadata(const char* arch, const Dims& d, uint64_t vocab) {
+     const std::string p = std::string(arch) + ".";
+@@ -63,25 +69,33 @@ std::vector<Kv> metadata(const char* arch, const Dims& d, uint64_t vocab) {
+                           fixture::u32(p + "embedding_length", d.embd),
+                           fixture::u32(p + "attention.head_count", d.heads),
+                           fixture::u32(p + "attention.head_count_kv", d.heads_kv),
+-                          fixture::u32(p + "attention.key_length", d.key_len),
+-                          fixture::u32(p + "attention.value_length", d.key_len),
+                           fixture::u32(p + "expert_count", d.experts),
+                           fixture::u32(p + "expert_used_count", d.used),
+-                          fixture::u32(p + "expert_feed_forward_length", d.ff),
+-                          fixture::u32(p + "expert_shared_feed_forward_length", d.ff_sh),
+-                          fixture::u32(p + "ssm.conv_kernel", d.conv),
+-                          fixture::u32(p + "ssm.state_size", d.state),
+-                          fixture::u32(p + "ssm.group_count", d.groups),
+-                          fixture::u32(p + "ssm.time_step_rank", d.v_heads),
+-                          fixture::u32(p + "ssm.inner_size", d.inner),
+-                          fixture::u32(p + "full_attention_interval", d.interval)};
+-    if (std::string(arch) == "qwen35moe") {
+-        kv.push_back(fixture::u32(p + "nextn_predict_layers", d.nextn));
++                          fixture::u32(p + "expert_feed_forward_length", d.ff)};
++    if (std::string(arch) == "deepseek") {
++        kv.push_back(fixture::u32(p + "expert_shared_count", d.expert_shared));
++        kv.push_back(fixture::u32(p + "feed_forward_length", d.ff_dense));
++        kv.push_back(fixture::u32(p + "leading_dense_block_count", d.dense_blocks));
++        kv.push_back(fixture::f32(p + "rope.freq_base", (float)d.rope_freq_base));
++        kv.push_back(fixture::f32(p + "attention.layer_norm_rms_epsilon", 1e-6f));
+     } else {
+-        kv.push_back(fixture::u32(p + "hyper_connection.count", d.hc));
+-        kv.push_back(fixture::u32(p + "hyper_connection.low_rank", d.hc_lr));
+-        kv.push_back(fixture::u32(p + "attention.indexer.head_count", d.idx_heads));
+-        kv.push_back(fixture::u32(p + "attention.indexer.key_length", d.idx_key));
++        kv.push_back(fixture::u32(p + "attention.key_length", d.key_len));
++        kv.push_back(fixture::u32(p + "attention.value_length", d.key_len));
++        kv.push_back(fixture::u32(p + "expert_shared_feed_forward_length", d.ff_sh));
++        kv.push_back(fixture::u32(p + "ssm.conv_kernel", d.conv));
++        kv.push_back(fixture::u32(p + "ssm.state_size", d.state));
++        kv.push_back(fixture::u32(p + "ssm.group_count", d.groups));
++        kv.push_back(fixture::u32(p + "ssm.time_step_rank", d.v_heads));
++        kv.push_back(fixture::u32(p + "ssm.inner_size", d.inner));
++        kv.push_back(fixture::u32(p + "full_attention_interval", d.interval));
++        if (std::string(arch) == "qwen35moe") {
++            kv.push_back(fixture::u32(p + "nextn_predict_layers", d.nextn));
++        } else {
++            kv.push_back(fixture::u32(p + "hyper_connection.count", d.hc));
++            kv.push_back(fixture::u32(p + "hyper_connection.low_rank", d.hc_lr));
++            kv.push_back(fixture::u32(p + "attention.indexer.head_count", d.idx_heads));
++            kv.push_back(fixture::u32(p + "attention.indexer.key_length", d.idx_key));
++        }
+     }
+     std::vector<std::string> tokens;
+     for (uint64_t i = 0; i < vocab; ++i) tokens.push_back("t" + std::to_string(i));
+@@ -115,7 +129,7 @@ std::string layout_error(const fs::path& dir, const char* arch, const Dims& d, u
+     strata::core::ModelGeometry g;
+     int64_t k = 0;
+     std::string err;
+-    if (std::string(arch) == "qwen35moe") {
++    if (std::string(arch) == "qwen35moe" || std::string(arch) == "deepseek") {
+         if (!geometry_of(meta, g, k, err)) return "geometry: " + err;
+     } else {
+         // the qwen4exp guard pins Flash-Next's own block count and widths, so the tiny model's geometry is set here
+@@ -193,21 +207,28 @@ int main(int argc, char** argv) {
+     TempDir d;
+     {
+         // the guards
+-        const fs::path q36 = d.path / "q36.gguf", fn = d.path / "fn.gguf", other = d.path / "other.gguf";
++        const fs::path q36 = d.path / "q36.gguf", fn = d.path / "fn.gguf", ds = d.path / "ds.gguf",
++                       other = d.path / "other.gguf";
+         fixture::write(q36, metadata("qwen35moe", kQwen36, 8), {});
+         fixture::write(fn, metadata("qwen4exp", kFlashNext, 8), {});
++        fixture::write(ds, metadata("deepseek", kDeepseek, 8), {});
+         fixture::write(other, {fixture::str("general.architecture", "llama")}, {});
+-        const strata::GgufFile a(q36.string()), b(fn.string()), c(other.string());
++        const strata::GgufFile a(q36.string()), b(fn.string()), c(ds.string()), x(other.string());
+         check(strata::model_family(a) == strata::ModelFamily::Qwen35Moe &&
+                   strata::model_family(b) == strata::ModelFamily::Qwen4Exp &&
+-                  strata::model_family(c) == strata::ModelFamily::Unknown,
+-              "model_family: qwen35moe, qwen4exp, unknown");
++                  strata::model_family(c) == strata::ModelFamily::DeepseekMoe &&
++                  strata::model_family(x) == strata::ModelFamily::Unknown,
++              "model_family: qwen35moe, qwen4exp, deepseek, unknown");
+         check(strata::check_architecture(a).empty(), "the architecture guard accepts qwen35moe");
+         check(strata::check_architecture(b).empty(), "the architecture guard accepts qwen4exp");
+-        check(strata::check_architecture(c).find("'llama'") != std::string::npos, "and refuses llama, naming it");
++        check(strata::check_architecture(c).empty(), "the architecture guard accepts deepseek");
++        check(strata::check_architecture(x).find("'llama'") != std::string::npos, "and refuses llama, naming it");
+         const std::string e = strata::check_engine_architecture(a);
+         check(e.find("Qwen3.6-35B-A3B") != std::string::npos && e.find("does not run it yet") != std::string::npos,
+               "the engine guard refuses Qwen3.6: recognised, not supported yet");
++        const std::string ds_e = strata::check_engine_architecture(c);
++        check(ds_e.find("DeepSeek-MoE-16B-base") != std::string::npos && ds_e.find("does not run it yet") != std::string::npos,
++              "the engine guard refuses DeepSeek: recognised, not supported yet");
+         check(strata::check_engine_architecture(b).empty(), "the engine guard runs qwen4exp");
+         std::vector<Kv> kv = metadata("qwen35moe", kQwen36, 8);
+         for (auto it = kv.begin(); it != kv.end(); ++it)
+@@ -257,6 +278,22 @@ int main(int argc, char** argv) {
+         fixture::write(wp, metadata("qwen35moe", wrong, 8), {});
+         check(!geometry_of(wp, f, k, err) && err.find("ssm.inner_size") != std::string::npos,
+               "an inconsistent ssm.inner_size is refused");
++        // DeepSeek-MoE geometry, from the §2 metadata values
++        const fs::path dsg = d.path / "dsg.gguf";
++        fixture::write(dsg, metadata("deepseek", kDeepseek, 102400), {});
++        strata::core::ModelGeometry ds;
++        const bool okds = geometry_of(dsg, ds, k, err);
++        check(okds, "DeepSeek geometry reads" + (okds ? std::string() : ": " + err));
++        check(ds.family == strata::ModelFamily::DeepseekMoe && ds.n_layers == 28 && ds.n_embd == 2048,
++              "DeepSeek: 28 layers, hidden 2048");
++        check(ds.n_head == 16 && ds.n_head_kv == 16 && ds.head_dim == 128,
++              "DeepSeek attention: 16 Q / 16 KV x 128 (MHA)");
++        check(ds.n_expert == 64 && k == 6 && ds.n_ff == 1408 && ds.n_expert_shared == 2 && ds.n_ff_shexp == 2816 &&
++                  ds.n_ff_dense == 10944 && ds.n_dense_first_blocks == 1,
++              "DeepSeek MoE: 64 experts top-6, shared 2 x FF 1408 = 2816, dense FF 10944, 1 dense leading block");
++        check(std::abs(ds.rope_freq_base - 10000.0) < 1e-6 && std::abs(ds.rms_eps - 1e-6) < 1e-9,
++              "DeepSeek rope base and rms epsilon read from metadata");
++        check(ds.n_vocab == 102400, "DeepSeek vocab 102400");
+     }
+     {
+         // the layout tables
+@@ -286,6 +323,26 @@ int main(int argc, char** argv) {
+                 if (it->name == "blk.3.indexer.k_proj.weight") { ts.erase(it); break; }
+         });
+         check(e == "missing blk.3.indexer.k_proj.weight", "Flash-Next: a missing indexer tensor is refused (" + e + ")");
++        // DeepSeek-MoE layout: complete file, dense first block, shape mismatch, extra tensor
++        const std::string ds_ok = layout_error(d.path, "deepseek", kTinyDeepseek, 16, nullptr);
++        check(ds_ok.empty(), "a complete deepseek file passes its layout" + (ds_ok.empty() ? std::string() : ": " + ds_ok));
++        std::string ds_e = layout_error(d.path, "deepseek", kTinyDeepseek, 16, [](std::vector<Tensor>& ts) {
++            for (auto it = ts.begin(); it != ts.end(); ++it)
++                if (it->name == "blk.0.ffn_gate.weight") { ts.erase(it); break; }
++        });
++        check(ds_e == "missing blk.0.ffn_gate.weight",
++              "DeepSeek: a missing dense-first-block tensor is refused (" + ds_e + ")");
++        ds_e = layout_error(d.path, "deepseek", kTinyDeepseek, 16, [](std::vector<Tensor>& ts) {
++            for (auto& t : ts)
++                if (t.name == "blk.1.ffn_gate_exps.weight") t.shape[2] += 1;
++        });
++        check(ds_e.find("blk.1.ffn_gate_exps.weight") != std::string::npos && ds_e.find("wants") != std::string::npos,
++              "DeepSeek: a wrong expert shape is refused");
++        ds_e = layout_error(d.path, "deepseek", kTinyDeepseek, 16, [](std::vector<Tensor>& ts) {
++            ts.push_back({"blk.0.attn_q_norm.weight", {64}, F32, 99});
++        });
++        check(ds_e.find("blk.0.attn_q_norm.weight") != std::string::npos && ds_e.find("not in the") != std::string::npos,
++              "DeepSeek: a tensor the layout does not name is refused");
+     }
+     std::printf(g_fail ? "FAILED (%d)\n" : "ALL PASSED\n", g_fail);
+     return g_fail ? 1 : 0;
+-- 
+2.43.0
+

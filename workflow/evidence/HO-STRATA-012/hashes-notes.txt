@@ -1,0 +1,43 @@
+# Hashes notes — HO-STRATA-012
+
+Per DEC-024, mutable shared files are pinned by commit rather than hashed.
+Immutable artifacts in this bundle are listed in `hashes.txt`.
+
+## Commit pins
+
+| File / tree | Repository | Commit | Command | Digest (git show <commit>:<path> | sha256sum) |
+|---|---|---|---|---|
+| `workflow/handoffs/HO-STRATA-012.md` | gfx1150-inference | `66267d2` | `git show 66267d2:workflow/handoffs/HO-STRATA-012.md \| sha256sum` | digest below; the handoff is signed after this bundle, so pin the assembly commit |
+| `workflow/DECISIONS.md` | gfx1150-inference | `66267d2` | `git show 66267d2:workflow/DECISIONS.md \| sha256sum` | `843ed7c0…d8aa` |
+| `planning/strata-engine/13-family-support-test-plan.md` | gfx1150-inference | `66267d2` | `git show 66267d2:planning/strata-engine/13-family-support-test-plan.md \| sha256sum` | `023a37de…0bec` |
+| Strata source tree | strata | `bac859ef9` | `git -C /home/kupipi/Documents/git/strata rev-parse bac859ef9` | patch exported in `patches/0001-deepseek-family.patch` |
+| Strata base commit | strata | `baf16363b4403ef0ed4f538f5d5ed11c43fb9535` | `git -C /home/kupipi/Documents/git/strata rev-parse baf16363` | baseline for patch stat |
+| `build-hip/strata` (signed binary) | strata | N/A — untracked build artifact | `sha256sum /home/kupipi/Documents/git/strata/build-hip/strata` | `d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858` |
+
+## Input digests
+
+| Input | Path / source | SHA256 |
+|---|---|---|
+| DeepSeek-MoE-16B-base Q4_K_M GGUF | `/home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf` | `f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5` |
+| Qwen3.6-35B-A3B UD-Q4_K_XL GGUF | `/home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` | `55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1` |
+| Reference token IDs (HO-007) | `workflow/evidence/HO-STRATA-007/artifacts/generated-token-ids.txt` | `d66cf4606974589d85738a7e9aa1b32741d7c5809e4eb1ba5d8a9e6f7b46d49e` |
+
+## Patch stat
+
+```text
+ include/strata/artifact/gguf_reader.hpp  |  18 +++++
+ include/strata/artifact/model_family.hpp |   9 ++-
+ include/strata/core/family_layout.hpp    | 121 +++++++++++++++++++++++++++++--
+ include/strata/core/geometry.hpp         |   6 ++
+ src/program/generate.cpp                 |  10 ++++
+ tests/core/model_family_test.cpp         | 101 ++++++++++++++++++++------
+ 6 files changed, 234 insertions(+), 31 deletions(-)
+```
+
+## Digests at the assembly commit `66267d2` (added at the architect gate, C1)
+
+```text
+1883c62b5052e36316fc31f48ccfb4b3912ef0d14540170475c4c79071f6e10b  workflow/MODELS.md
+843ed7c02b532de548e60a1c3f9051249ad00a9893c27eee56f486ec6fcbd8aa  workflow/DECISIONS.md
+023a37de06e785f96f94890fc16cec9279ca000513c1d2eedb6d779f28450bec  planning/strata-engine/13-family-support-test-plan.md
+```
