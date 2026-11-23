@@ -197,6 +197,11 @@ before its review). No other README edits.
   - `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-013` → `RESULT: PASS` (45 checks, 17 warnings)
   - `python3 workflow/tools/check_bundle.py --all` → exit `1`, exactly 2 FAILs (`B3-unlisted` on `HO-STRATA-011/artifacts/cmd-8.err.txt` and `.out.txt`)
   - `python3 workflow/tools/check_bundle.py --self-test` → `RESULT: PASS` (all 12 fixtures behaved as expected)
+- 2026-11-22 Primary Coder: RW-1 closure — fixed-point evidence verified and pushed:
+  - `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-013` → `RESULT: PASS` (29 checks, 0 warnings)
+  - `python3 workflow/tools/check_bundle.py --all` → exit `1`, exactly 2 FAILs both `HO-STRATA-011` (`B3-unlisted workflow/evidence/HO-STRATA-011/artifacts/cmd-8.err.txt` and `cmd-8.out.txt`)
+  - `python3 workflow/tools/check_bundle.py --self-test` → `RESULT: PASS` (12/12 fixtures)
+  - Fixed-point proof: `python3 workflow/tools/check_bundle.py --all` output is byte-identical to `workflow/evidence/HO-STRATA-013/artifacts/check-all.txt`; `git status --porcelain` empty before and after.
 
 ## 12. CODER_TO_QAQC
 

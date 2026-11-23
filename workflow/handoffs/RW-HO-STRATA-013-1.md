@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | **ID** | RW-HO-STRATA-013-1 |
-| **State** | OPEN |
+| **State** | CLOSED |
 | **Created (UTC)** | 2026-11-22 |
 | **From → To** | Architect (reviewer) → Primary Coder |
 | **Original handoff** | `workflow/handoffs/HO-STRATA-013.md` @ `7715f68` |
@@ -63,6 +63,23 @@ verified from bundle dir: 17 | problems: 0
   `hashes.txt` omits them. Report it, do not fix it (the bundle is signed).
 - `HO-STRATA-010` PASS, `HO-STRATA-005`/`DEC-039` skipped — correct.
 - The seven existing negative controls — correct.
+
+### 1.4 Capture-procedure findings (not bundle defects)
+
+During review of the RW-1 evidence capture, two ordering bugs in the capture
+procedure itself were found and fixed:
+
+1. The `--all` run initially redirected output into `artifacts/check-all.txt`
+   while the tool was still reading the bundle, causing an empty-file hash and a
+   leaked absolute path in `hashes.txt`. The capture was re-run with the artifact
+   written only after the checker finished.
+2. The `find` command used to build `hashes.txt` was run on an absolute path,
+   writing absolute paths into `hashes.txt`. This was fixed in pass 2 by making
+   `hashes.txt` repo-relative; the tool now exits 4 if `hashes.txt` contains an
+   absolute path.
+
+These were capture-procedure errors, not defects in the bundles being checked,
+and both are now fixed.
 
 ## 2. Required fix (and nothing else)
 
@@ -189,10 +206,14 @@ commits):
     - `hash-edited`, `extra-artifact`, `untracked`, `ignored`, `bad-pin`, `secret`, `clean`, `bundle-relative`, `absolute-external`, `prose`, `basename-spelling`, `malformed-separator`
   - output saved in `workflow/evidence/HO-STRATA-013/artifacts/self-test.txt`
 - Self-bundle verification: `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-013`
-  - exit 0, `RESULT: PASS` (45 checks, 17 warnings)
+  - exit 0, `RESULT: PASS` (29 checks, 0 warnings)
 - Legacy digest proof: `workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt`
   - HO-STRATA-007: 17 verified, 0 problems from bundle dir
   - HO-STRATA-001: 21 ok, 0 mismatch, 0 missing with basename fallback
+- Fixed-point proof (run after the authoritative capture commit):
+  - `python3 workflow/tools/check_bundle.py --all > /tmp/stability.txt 2>&1; echo "exit=$?"` → `exit=1`
+  - `diff /tmp/stability.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt && echo "IDENTICAL"` → `IDENTICAL`
+  - `git status --porcelain` → empty
 
 ## 6. Log
 
