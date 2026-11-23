@@ -919,3 +919,61 @@ this file did not happen.
   durable part.
 - **Affected:** HO-STRATA-013 (`DONE`), DEC-018, DEC-030, DEC-034, the S4 handoff,
   `workflow/README.md`.
+
+## DEC-042 — S4 is prepared and pre-registered; the support flag waits for S5
+
+- **Date:** 2026-11-23
+- **Context:** S1–S3 (DEC-037) recognised DeepSeek and made the refusal honest, but
+  the pack still does not run, so OT-STRATA-001 checkpoint 4 has no number.
+  `planning/strata-engine/13` §4 makes S4 the next stage, and DEC-034 conditioned
+  the next kernel-touching increment on a fresh review. S4 was not authorised
+  (DEC-016, DEC-037), so the architect prepared the handoff without starting work.
+  Two things had to be fixed **before** any run, or they would be chosen after a
+  measurement: the parity bound, and what "runs" means while the flag is still
+  false.
+- **Options considered:**
+  - (a) flip `model_family_runs()` when S4 layer parity passes — simple, but it
+    would advertise support for a family whose tokens are unproven, which is the
+    silent-wrong-path success the project has refused since DEC-026.
+  - (b) leave the flag false and give the parity work an explicit diagnostic entry
+    point (`--parity-run`, only with `--dump-layers`, prints a "not supported"
+    line) — the refusal stays true, and S5 is the only thing that can flip it.
+  - (c) write HO-STRATA-015/016 now — rejected: their prompt set and KL bound
+    depend on an engine that reaches the last block; a guessed contract is worse
+    than a pending one.
+- **Decision:**
+  1. **`HO-STRATA-014` is written as `PROPOSED`**, one DoR item open: the owner's
+     authorization (lift DEC-016 for S4). No coder is launched before it.
+  2. **Option (b):** S4 adds `--parity-run` as a diagnostic mode. `model_family_runs()`,
+     the refusal text and `--families` are **unchanged in S4**; the flip is S5
+     (HO-STRATA-015) after exact token parity.
+  3. **The layer-parity bound is pre-registered in the handoff** (HO-014 §12):
+     per-cell relative L2, max over 28 blocks × 4 positions ≤ **5e-3**, finite,
+     shape-checked, deterministic, worst cell named. A failed cell is a finding;
+     widening the bound is a deviation, not a rework fix.
+  4. **Arithmetic's source of truth** is the oracle's llama.cpp `deepseek` graph at
+     `78e05298…`, cited file:line into the evidence — not recollection, not the
+     removed V4.1-Flash engine (`docs/DEEPSEEK41.md` is prior art only).
+  5. **DEC-008 relaxation, HO-014 only** (extends DEC-033): Strata edits on branch
+     `strata-014-deepseek-s4` cut from `bac859ef9`, never `main`, patch exported;
+     `build-hip/` is never rebuilt. The relaxation takes effect when the owner
+     authorises S4, and expires with the handoff.
+  6. **T2 is reviewed at the plan, not at the end:** the overlay is 6 files / 234
+     lines; since S4 touches kernels and will pass 300 lines, AC-10 requires the
+     approach, file list and line estimate **before** the code, with the Route 3
+     comparison on the table (DEC-034).
+  7. **DEC-041 is the gate:** `check_bundle.py … --strict` PASS before
+     `CODER_DONE`, capture ordering per DEC-041 §2.
+  8. **Authorised by the owner on 2026-11-23** (this session): DEC-016 is lifted
+     for **HO-STRATA-014 only**, and the DEC-008 relaxation in item 5 is in force
+     for that handoff (Strata branch `strata-014-deepseek-s4` @ `bac859ef9`,
+     exported patch, `build-hip/` never rebuilt). The authorization does **not**
+     cover S5, a support claim, or any other family. HO-014 went
+     `PROPOSED → READY` on that basis.
+- **Consequences:** the cost is bounded and the claim is deferred: S4 can pass and
+  the family still not be supported. This is the first handoff whose gate value is
+  fixed in the handoff text before the run, so a failing number cannot be
+  renegotiated by the role that produced it. HO-STRATA-015 and `-016` stay
+  unwritten until their inputs exist.
+- **Affected:** HO-STRATA-014 (PROPOSED), DEC-016, DEC-033, DEC-034, DEC-037,
+  DEC-038, DEC-041, `workflow/STATUS.md`, `planning/strata-engine/13`.
