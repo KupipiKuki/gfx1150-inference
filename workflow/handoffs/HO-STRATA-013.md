@@ -338,3 +338,17 @@ completed C17–C20 and the convergence pass C21–C23, logged verbatim, with no
 tool change. The auditor ruled such an evidence-only completion acceptable *if*
 reproducible, logged and re-derived — that condition is what QAQC and the
 auditor now test.
+
+## 17. QAQC round 3 (2026-11-23) — PASS
+
+Reproduced R2-1 (the logged `C17` command now actually moves the artifact from a
+fresh clone — inode changes, `/tmp/ca.txt` gone) and R2-4 (File column verified;
+divergent Command cell WARNs; wrong File digest FAILs). Fixed points hold for
+both aggregates; `test-output.txt` matches every artifact section; 21/21 hashes;
+C23 reproduces `hashes.txt`.
+
+Two doc findings closed before the audit: QAQC F1 (manifest §1 abbreviated the
+rehash heredocs and stopped at C19 — the table is now **generated from
+`commands.log`**, and the historical `C16` block carries an erratum because its
+closing `PY` was missing and it is superseded by `C20`/`C23`) and F2 (§3 check
+counts corrected to 32/319).
