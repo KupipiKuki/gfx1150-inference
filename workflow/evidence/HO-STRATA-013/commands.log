@@ -61,3 +61,13 @@ exit: 1
 cwd: /home/kupipi/Documents/git/gfx1150-inference
 python3 workflow/tools/check_bundle.py --all --strict
 exit: 1
+=== C2d (authoritative capture, clean tree, post-hash) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt && mv /tmp/ca.txt artifacts/check-all.txt
+exit: 1
+
+=== C9d (authoritative strict capture, clean tree, post-hash) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all --strict > /tmp/cas.txt && mv /tmp/cas.txt artifacts/check-all-strict.txt
+exit: 1
+

@@ -300,47 +300,31 @@ PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
 PASS B2-hash-verify ok: workflow/tools/check_bundle.py
-FAIL B2-hash-mismatch /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt (actual: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)
-FAIL B2-hash-mismatch /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/check-all.txt (actual: 9f814312416fa26c3ab677a6c7d19bd149230fd3179c28a91eac22a738d52df5)
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/git-status-diff.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
-FAIL B2-hash-mismatch /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/commands.log (actual: 3d11b0def72b12c32651685a7e9774d99bd94a49972785fb53d69224a62fad24)
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/hashes-notes.txt
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/manifest.md
-PASS B2-hash-verify ok: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/test-output.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/git-status-diff.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/commands.log
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/hashes-notes.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/manifest.md
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-diff.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/commands.log
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/hashes-notes.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/manifest.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/test-output.txt
+PASS B3-hash-coverage all files listed
 PASS B4-tracked all files tracked
-FAIL B4-tracked git status not clean for bundle
+PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
 PASS B6-pins pin ok: 315030e:workflow/DECISIONS.md
 PASS B6-pins pin ok: 315030e:workflow/README.md
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-HO-STRATA-013: RESULT: FAIL (45 checks, 0 warnings)
+HO-STRATA-013: RESULT: PASS (29 checks, 0 warnings)
 
-RESULT: FAIL (329 checks, 20 warnings)
+RESULT: FAIL (313 checks, 20 warnings)
