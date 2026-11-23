@@ -8,7 +8,7 @@
 | **Created / updated (UTC)** | 2026-11-22 / 2026-11-22 |
 | **From → To** | Primary Coder (`coder-primary`) → QAQC (`qaqc`) |
 | **Work package** | `check-bundle` |
-| **Branch / base commit** | `wp/strata-013-check-bundle` / `5080ef6` |
+| **Branch / base commit** | `wp/strata-013-check-bundle` / `21ab798` (after RW-1) |
 | **Priority / timebox** | P1 · 1 working day |
 
 ## 1. Scope (in)
@@ -19,8 +19,11 @@ Independently review HO-STRATA-013 and its evidence bundle:
 - Re-run the acceptance commands in `workflow/evidence/HO-STRATA-013/commands.log`.
 - Verify `workflow/tools/check_bundle.py` is stdlib-only and has no network calls at runtime.
 - Verify the eight check codes (B1–B8) are implemented with the semantics in the handoff table.
-- Verify `--self-test` demonstrates all seven negative-control fixtures plus the clean PASS.
-- Verify `--all` processes every `workflow/evidence/HO-*` directory and reports pre-existing defects in HO-001/007/008/011 without modifying anything.
+- Verify `--self-test` demonstrates all **twelve** negative-control fixtures plus the clean PASS (seven from the original scope, five added by RW-1).
+- Verify `--all` processes every `workflow/evidence/HO-*` directory and reports pre-existing defects in HO-001/007/008/011 without modifying anything. Expected: exit 1 with exactly two FAILs, both `B3-unlisted` on `HO-STRATA-011`.
+- **RW-1 checks:** verify the ordered B2 resolution (repo root → bundle dir → absolute/external → basename) matches `RW-HO-STRATA-013-1.md` §2 F1, that a digest mismatch at the canonical path cannot fall through to a basename match, that `B3-path-spelling` is a WARN and `B3-unlisted` a FAIL, and that `--strict` upgrades exactly `B2-legacy-path`, `B2-external`, `B2-prose`, `B3-path-spelling` (and not B6/B7).
+- Verify `artifacts/legacy-proof.txt` really reproduces the claim: HO-007 `ok=17 problems=0`, HO-001 `ok=21 mismatch=0 missing=0`.
+- Verify `hashes.txt` is repo-relative (no `/home/`), and that a fresh `--all` reproduces `artifacts/check-all.txt` byte for byte (fixed point).
 - Verify the README section includes both commands and the "run before CODER_DONE" rule.
 - Write the QAQC report in `workflow/reports/qaqc/HO-STRATA-013-qaqc.md`.
 
