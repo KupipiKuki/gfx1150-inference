@@ -267,6 +267,8 @@ files = sorted(
     p for p in bundle.rglob("*")
     if p.is_file() and p.name != "hashes.txt"
 )
+# The immutable tool is also part of this bundle's evidence.
+files.append(Path("workflow/tools/check_bundle.py"))
 print("# SHA-256 hashes — HO-STRATA-013 evidence bundle")
 print("# Generated after the RW-2 evidence refresh.")
 print("# hashes.txt excludes itself. Paths are repo-root relative.")
