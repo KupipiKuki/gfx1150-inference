@@ -307,3 +307,34 @@ fails at the unresolvable-path branch before reaching the digest comparison —
 it still proves the row is not skipped, and `bypass-proof.txt` covers the
 digest branch directly) and F2 (the pin parser prefers `<commit>:<path>` from
 the Command cell when present).
+
+## 16. RW-3 closure (2026-11-23)
+
+R2-4 is fixed: B6 verifies the **File/Path** column and never lets the Command
+cell decide what is verified; divergent cells emit
+`WARN B6-pins command path differs from File column`. `--self-test` is **16/16**.
+
+The probes moved into `workflow/evidence/HO-STRATA-013/scripts/`
+(`legacy_proof.py`, `bypass_probe.py`), so `commands.log` records one runnable
+line per probe instead of an un-copyable heredoc.
+
+Capture ordering, which failed twice, is now explicit: aggregates are captured
+to `/tmp` and moved with `;` (the tool exits 1 — `&&` would skip the move, cause
+of R2-1), `test-output.txt` is rebuilt **after** the final capture (cause of
+R2-2), and the rehash runs last. Entries C17–C23 record the cycle verbatim.
+
+Final state, verified on a clean tree:
+
+```text
+--all              exit 1, 2 FAILs (both HO-STRATA-011 B3-unlisted)   IDENTICAL to stored artifact
+--all --strict     exit 1, 93 FAILs (legacy upgrades), bundle PASSes  IDENTICAL to stored artifact
+--self-test        16/16
+--all on HO-STRATA-012  PASS
+hashes.txt         21 entries, 21/21 OK, no absolute path
+```
+
+**Process note:** the coder hit its step budget at the recapture; the architect
+completed C17–C20 and the convergence pass C21–C23, logged verbatim, with no
+tool change. The auditor ruled such an evidence-only completion acceptable *if*
+reproducible, logged and re-derived — that condition is what QAQC and the
+auditor now test.

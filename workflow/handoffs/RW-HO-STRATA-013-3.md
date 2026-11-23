@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | **ID** | RW-HO-STRATA-013-3 |
-| **State** | OPEN |
+| **State** | CLOSED (coder + architect completion) |
 | **Created (UTC)** | 2026-11-23 |
 | **From → To** | Auditor (round-2 findings) → Architect (scope) → Primary Coder |
 | **Original handoff** | `workflow/handoffs/HO-STRATA-013.md` |
@@ -126,3 +126,19 @@ tuned away; do not edit any signed bundle.
   lines at `test-output.txt:672-691`) directly; scoped this rework; R2-4 fixed
   rather than deferred because "a check that can be satisfied without doing the
   work" is the exact defect this tool exists to prevent.
+
+## 7. Completion
+
+| Item | State |
+|---|---|
+| R2-1 (`&&` after exit 1) | fixed — aggregates use `;`, entries C17/C18 record it |
+| R2-2 (`test-output.txt` stale) | fixed — rebuilt after the final capture (C19, C22) |
+| R2-3 (manifest over-claim, `...`) | fixed — §1 lists every command run, §3 claims only what the artifacts show |
+| R2-4 (Command cell precedence) | fixed — File/Path column authoritative + WARN on divergence; 16th fixture |
+| Reproducible probes | `scripts/legacy_proof.py`, `scripts/bypass_probe.py` committed |
+| Fixed point | both aggregates reproduce byte for byte; `git status` empty |
+| Hashes | 21 entries, 21/21 OK, repo-relative |
+
+Completed by the coder through the code fix and artifact regeneration, and by
+the architect for C17–C23 after the coder's step budget ran out. No tool logic
+was changed by the architect.
