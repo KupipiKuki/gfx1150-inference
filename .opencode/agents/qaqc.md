@@ -2,7 +2,7 @@
 description: QAQC — independent review, reports only, no code modifications
 mode: subagent
 steps: 50
-model: opencode/claude-sonnet-5-5
+model: opencode-go/gemini-4-argon#high
 permissions:
   - action: edit
     resource: "*"

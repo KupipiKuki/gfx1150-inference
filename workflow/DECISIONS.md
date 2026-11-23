@@ -831,3 +831,91 @@ this file did not happen.
   be mistaken for an engine bug.
 - **Affected:** `workflow/REFERENCE_SERVER.md`, `SESSION_HANDOFF_2026-11-22.md` §4.1,
   the S4 handoff when written.
+
+## DEC-039 — Gemini billing restored: QAQC returns to Argon; DEC-036 closed
+
+- **Date:** 2026-11-22
+- **Context:** DEC-036 moved QAQC to `opencode/claude-sonnet-5-5` because
+  `opencode-go/gemini-4-argon` returned `429 — billing account has exceeded its
+  monthly spending cap`. The resume checklist (SESSION_HANDOFF §4.2) requires the
+  seat to be decided before S4. The owner asked to use Argon if it was restored and
+  to fall back to `opencode/gemini-4-neon` if it was not.
+- **Evidence:** two independent `opencode run` calls on
+  `opencode-go/gemini-4-argon#high` returned `OK`, exit 0, on 2026-11-22
+  (`workflow/evidence/DEC-039/gemini-argon-probe.txt`). No 429. The billing cap
+  is lifted.
+- **Decision:** revert `.opencode/agents/qaqc.md` to
+  `opencode-go/gemini-4-argon#high`. **DEC-036 is closed** — its expiry clause is
+  satisfied, not waived. The `opencode/gemini-4-neon` fallback is **not** used and
+  is not recorded as a seat.
+- **Why not stay on Sonnet:** it is ~10× the rate (DEC-036 cost note) and its only
+  justification was the Gemini outage. Argon is the policy seat in
+  `MODEL_POLICY.md` and needs no substitution note.
+- **Consequences:** `check_model_policy.py --strict` still reports `RESULT: WAIVED`
+  (exit 0) — WAIVER-001 is the remaining exception and is unaffected. Family
+  coverage is architect `deepseek`, coder-primary `kimi`, coder-secondary
+  `qwen3.8`, QAQC `gemini`, auditor `deepseek` (waived). R4/R5 hold without a
+  waiver.
+- **Affected:** `.opencode/agents/qaqc.md`, `MODEL_POLICY.md`, DEC-036,
+  HO-STRATA-012 (the Sonnet gate that DEC-036 covered stays valid — it ran, it was
+  disclosed, and the substitution was recorded).
+
+## DEC-040 — `main` is branch-protected: the architect publishes through a PR branch
+
+- **Date:** 2026-11-22
+- **Context:** the HO-012 merge (DEC-037) was committed locally as `115ca02` on
+  2026-11-21 but never reached `origin/main`. The 2026-11-22 resume tried to push
+  `main` directly and GitHub rejected it:
+  `push declined due to repository rule violations` — *4 of 4 required status checks
+  are expected*. Direct pushes to `main` are no longer possible, and `gh` is not
+  authenticated on this machine.
+- **Decision:**
+  1. The architect still merges (ENGINEERING_WORKFLOW §9), but the **mechanism** is
+     a PR from a `merge/*` branch onto `main`, merged **with a merge commit** so the
+     signed work-package commits stay reachable by SHA.
+  2. A merge is not "done" until `origin/main` contains it. The 2026-11-22 state is
+     the counter-example: `STATUS.md` said "merge via PR" while the merge sat in a
+     local commit, and `origin/main` was 16 commits behind.
+  3. Branch protection is not bypassed (no admin push, no force-push). The required
+     checks are the gate.
+- **Consequences:** the architect's final approval now produces a `merge/*` branch
+  and a PR, not a push; `STATUS.md` distinguishes `MERGE IN PR` from `MERGED #n`;
+  local and remote `main` are checked at every resume (`git status --branch`).
+- **Affected:** `ENGINEERING_WORKFLOW.md` §9 (mechanism, not authority),
+  `STATUS.md`, HO-STRATA-012, all future merges.
+
+## DEC-041 — `check_bundle.py` is the evidence gate; capture ordering is a rule
+
+- **Date:** 2026-11-23
+- **Context:** HO-STRATA-013 delivered `workflow/tools/check_bundle.py` after three
+  QAQC rounds and three audit rounds. The tool itself converged quickly; what kept
+  failing was **evidence packaging** — the same class that produced every rework
+  since HO-008 (DEC-026, DEC-030). Two of the six blocking findings were defects
+  in the evidence *procedure*, not in the code: a capture that redirected output
+  into the file the run was inspecting (the tool hashed an empty file,
+  `e3b0c442…`), and a logged capture written as `tool … && mv` where the tool
+  legitimately exits 1, so the `mv` never ran.
+- **Decision:**
+  1. **Adopt** `workflow/tools/check_bundle.py` as the project's evidence gate:
+     run it on the bundle **before `CODER_DONE`**, and QAQC runs it before
+     review. Eight codes (B1 structure, B2 hash-verify, B3 coverage, B4 tracked,
+     B5 not-ignored, B6 commit pins, B7 secrets, B8 read-only), 16
+     negative-control fixtures, `--strict` for new bundles.
+  2. **Capture ordering is a rule, not a preference:**
+     - never redirect a capture into a file the run inspects — write to `/tmp`,
+       then move;
+     - after a command that may exit non-zero, use `;` and capture the code,
+       never `&&`;
+     - rebuild derived artifacts (`test-output.txt`) **after** the final capture;
+     - rehash **last**; a second convergence pass is normal when an artifact
+       contains its own verification line.
+  3. **QAQC report materialisation:** QAQC cannot push; the architect commits the
+     report verbatim and says so (extends DEC-018). Content is never edited.
+  4. `--all` staying red while `HO-STRATA-011` has two unlisted artifacts is
+     **correct**; the tool is not tuned green (carried with DEC-030's B-class).
+- **Consequences:** S4 is the first bundle to be gated by the tool; a "PASS" from
+  a reviewer now means the packaging invariants were checked mechanically. The
+  cost of the learning was high (three gate cycles); the rules above are the
+  durable part.
+- **Affected:** HO-STRATA-013 (`DONE`), DEC-018, DEC-030, DEC-034, the S4 handoff,
+  `workflow/README.md`.
