@@ -320,6 +320,7 @@ PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/commands.log
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/hashes-notes.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/manifest.md
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/test-output.txt
+PASS B2-hash-verify ok: workflow/tools/check_bundle.py
 PASS B3-hash-coverage all files listed
 PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
@@ -328,6 +329,6 @@ PASS B6-pins pin ok: 315030e:workflow/DECISIONS.md
 PASS B6-pins pin ok: 315030e:workflow/README.md
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-HO-STRATA-013: RESULT: PASS (29 checks, 0 warnings)
+HO-STRATA-013: RESULT: PASS (30 checks, 0 warnings)
 
-RESULT: FAIL (316 checks, 114 warnings)
+RESULT: FAIL (317 checks, 114 warnings)
