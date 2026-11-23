@@ -542,6 +542,14 @@ def check_b6_pins(bundle_dir: Path, root: Path) -> List[Finding]:
         commit_ref = row.get("commit", "").strip()
         fpath = row.get("path", "").strip()
         digest = row.get("digest", "").strip()
+        cmd = row.get("command", "")
+
+        # Warn if the Command cell names a different path than the File/Path column.
+        m = re.search(r"git\s+show\s+([0-9a-fA-F]+):(\S+)", cmd)
+        if m:
+            cmd_path = m.group(2)
+            if cmd_path and cmd_path != fpath:
+                findings.append(finding_warn("B6-pins", "command path differs from File column", rel))
 
         # Verify every row that carries a commit and a path. The Command column
         # is documentation only; tree/binary pins with no usable commit/path are
@@ -650,18 +658,20 @@ def _parse_commit_pins_table(text: str) -> List[Dict[str, str]]:
 
         row: Dict[str, str] = {}
         cmd = cells[cmd_idx] if cmd_idx is not None else ""
-        m = re.search(r"git\s+show\s+([0-9a-fA-F]+):(\S+)", cmd)
-        if m:
-            row["commit"] = m.group(1)
-            row["path"] = m.group(2)
+        # The File/Path column is authoritative for the path; the Command cell
+        # is documentation only.  Commit comes from the Commit column, with the
+        # Command cell only as a fallback when the Commit column is empty.
+        row["commit"] = cells[commit_idx] if commit_idx is not None else ""
+        if not row["commit"]:
+            m_commit = re.search(r"git\s+show\s+([0-9a-fA-F]+):(\S+)", cmd)
+            if m_commit:
+                row["commit"] = m_commit.group(1)
+        if path_idx is not None:
+            row["path"] = cells[path_idx]
+        elif file_idx is not None:
+            row["path"] = cells[file_idx]
         else:
-            row["commit"] = cells[commit_idx] if commit_idx is not None else ""
-            if path_idx is not None:
-                row["path"] = cells[path_idx]
-            elif file_idx is not None:
-                row["path"] = cells[file_idx]
-            else:
-                row["path"] = ""
+            row["path"] = ""
         row["digest"] = cells[digest_idx] if digest_idx is not None else ""
         row["repository"] = cells[repo_idx] if repo_idx is not None else ""
         row["command"] = cmd
@@ -1123,6 +1133,61 @@ def fixture_pin_unresolvable_commit_reworded(repo: Path) -> Tuple[int, str]:
     return _run_tool(repo, bundle)
 
 
+def fixture_pin_divergent_cells(repo: Path) -> Tuple[int, str]:
+    """Command cell names a different path than the File column."""
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    _write_manifest(bundle)
+    (bundle / "commands.log").write_text("log\n", encoding="utf-8")
+    pinned = bundle / "pinned.txt"
+    pinned.write_text("pinned data\n", encoding="utf-8")
+    _git_commit_all(repo, "initial")
+    commit = run(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip()
+    digest_correct = sha256_file(pinned)
+    notes = bundle / "hashes-notes.txt"
+    notes.write_text(
+        "## Commit pins\n\n"
+        "| File | Repository | Commit | Command | Digest |\n"
+        "|---|---|---|---|---|\n"
+        f"| bundle/pinned.txt | gfx1150-inference | {commit} | "
+        f"git show {commit}:bundle/other.txt \\| sha256sum | "
+        f"{digest_correct} |\n",
+        encoding="utf-8",
+    )
+    _git_commit_all(repo, "notes")
+    _write_hashes(
+        bundle,
+        [
+            (sha256_file(pinned), "bundle/pinned.txt"),
+            (sha256_file(bundle / "manifest.md"), "bundle/manifest.md"),
+            (sha256_file(bundle / "commands.log"), "bundle/commands.log"),
+            (sha256_file(notes), "bundle/hashes-notes.txt"),
+        ],
+    )
+    _git_commit_all(repo, "hashes")
+    exitcode, stdout = _run_tool(repo, bundle)
+    assert "PASS B6-pins" in stdout, f"expected B6-pins PASS on File column, got:\n{stdout}"
+    assert "WARN B6-pins command path differs from File column" in stdout, (
+        f"expected WARN about command path differing, got:\n{stdout}"
+    )
+    # Negative control: wrong File digest must FAIL because the File column is
+    # authoritative, regardless of what the Command cell points at.
+    notes.write_text(
+        "## Commit pins\n\n"
+        "| File | Repository | Commit | Command | Digest |\n"
+        "|---|---|---|---|---|\n"
+        f"| bundle/pinned.txt | gfx1150-inference | {commit} | "
+        f"git show {commit}:bundle/other.txt \\| sha256sum | "
+        f"{'0' * 64} |\n",
+        encoding="utf-8",
+    )
+    _, stdout2 = _run_tool(repo, bundle)
+    assert "FAIL B6-pins" in stdout2, (
+        f"expected B6-pins FAIL with wrong File digest, got:\n{stdout2}"
+    )
+    return exitcode, stdout
+
+
 FIXTURES: List[Tuple[str, callable, Optional[str], str]] = [
     ("hash-edited", fixture_hash_edited, "B2-hash-mismatch", "FAIL"),
     ("extra-artifact", fixture_extra_artifact, "B3-unlisted", "FAIL"),
@@ -1139,6 +1204,7 @@ FIXTURES: List[Tuple[str, callable, Optional[str], str]] = [
     ("unlisted-hashes-suffix", fixture_unlisted_hashes_suffix, "B3-unlisted", "FAIL"),
     ("pin-wrong-digest-reworded", fixture_pin_wrong_digest_reworded, "B6-pins", "FAIL"),
     ("pin-unresolvable-commit-reworded", fixture_pin_unresolvable_commit_reworded, "B6-pins", "FAIL"),
+    ("pin-divergent-cells", fixture_pin_divergent_cells, "B6-pins", "PASS"),
 ]
 
 # Fixtures that must also report a FAIL under --strict (B6/B3 are not upgraded,
