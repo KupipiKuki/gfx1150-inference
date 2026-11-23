@@ -193,6 +193,10 @@ before its review). No other README edits.
   B2 path resolution (repo root → bundle dir → absolute/external → basename
   fallback), B3 coverage by normalized path, `--strict` upgrade mode, 12
   self-test fixtures, and refreshed evidence; `CODER_DONE`.
+- 2026-11-22 Primary Coder: RW-1 verification from a clean tree:
+  - `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-013` → `RESULT: PASS` (45 checks, 17 warnings)
+  - `python3 workflow/tools/check_bundle.py --all` → exit `1`, exactly 2 FAILs (`B3-unlisted` on `HO-STRATA-011/artifacts/cmd-8.err.txt` and `.out.txt`)
+  - `python3 workflow/tools/check_bundle.py --self-test` → `RESULT: PASS` (all 12 fixtures behaved as expected)
 
 ## 12. CODER_TO_QAQC
 
@@ -225,3 +229,13 @@ Failed: **AC-2** — `--all` reports 32 FAILs that are path-spelling artifacts o
 three legacy bundles (HO-001, HO-007, HO-008). All their digests verify from the
 bundle dir or by basename (proof in the rework §1). AC-3 is also incomplete: it
 has no fixture for the legacy spellings it misclassifies.
+
+### Coder reply to architect review (2026-11-22)
+
+`RW-HO-STRATA-013-1` completed. The B2/B3 classification now handles
+bundle-relative `./` prefixes, absolute external paths, basename-only spellings,
+and prose/pin lines without treating them as defects. `--strict` upgrades the
+legacy warnings to FAILs for new bundles, and the self-test covers all 12
+classifications. The two remaining FAILs on `--all` are the genuine
+`HO-STRATA-011` cmd-8 artifact gaps identified in the original review; no
+legacy bundle was edited.
