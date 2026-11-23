@@ -262,3 +262,16 @@ Carried to the auditor, not fixed: `manifest.md` §3's HO-STRATA-013 row still
 lists 2 B6 warnings; `artifacts/check-all.txt` is authoritative and shows
 `PASS (29 checks, 0 warnings)` after the digests became full 64-hex. Editing the
 manifest now would invalidate the hashes QAQC verified.
+
+## 14. Audit verdict (2026-11-22) — REWORK
+
+`workflow/reports/audit/HO-STRATA-013-audit.md` reproduced AC-1…AC-8 and the
+RW-1 fixes, confirmed 18/18 hashes, raw (not curated) evidence, clean scope, and
+the seat waiver (WAIVER-001). It then found two blocking defects that QAQC did
+not: **B3** (`check_bundle.py:408`) exempts every `*hashes.txt`, not only the
+bundle's own file, and **B6** (`:~533`) silently skips any pin row whose Command
+cell is not spelled exactly — so a wrong full digest and an unresolvable commit
+both PASS. The architect confirmed both in the source and scoped
+`RW-HO-STRATA-013-2`. The audit's other findings (commands.log not copy-paste
+reproducible; manifest §3 warning count; the AC-2 DEC-039 wording) are folded in
+as F3/F4.
