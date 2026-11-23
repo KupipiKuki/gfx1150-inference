@@ -671,7 +671,7 @@ PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/check-all.txt (actual: 61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd)
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
@@ -690,15 +690,15 @@ PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/scripts/bypass_probe.py
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/scripts/legacy_proof.py
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/test-output.txt
 PASS B2-hash-verify ok: workflow/tools/check_bundle.py
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+PASS B3-hash-coverage all files listed
 PASS B4-tracked all files tracked
-FAIL B4-tracked git status not clean for bundle
+PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
 PASS B6-pins pin ok: 315030e:workflow/DECISIONS.md
 PASS B6-pins pin ok: 315030e:workflow/README.md
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-HO-STRATA-013: RESULT: FAIL (32 checks, 0 warnings)
+HO-STRATA-013: RESULT: PASS (32 checks, 0 warnings)
 
 RESULT: FAIL (319 checks, 23 warnings)
 

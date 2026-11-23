@@ -2,7 +2,7 @@
 # Generated after the RW-3 evidence refresh.
 # hashes.txt excludes itself. Paths are repo-root relative.
 c8cffe1b803dcb7f0415be6d590aa3ec74b9ccaf346e959ba0eb209daf7e90bc  workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt
-afd412fca055b8d632888b8446dcd6eea5a051a8a4f904ff333696f88fadfc24  workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
+d94c30243b2a0fab241d16ac631a08c28f75ba89faaa9e12812a5c8f5dbc9ebe  workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
 61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
 2604843c0ed08e3a74d2d6428a3929df51b5c184dd5bfe5cf77e72f2bc355bee  workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
 f1af39b9073c6fd49ac4ceeacc9b45b7f23b5d1166fb0d79b4d3340fa88ca489  workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
@@ -15,10 +15,10 @@ e524293044eabd03052710e38cb623339b3ab4cbdd616d0f94bb9bb7329ae2cf  workflow/evide
 ac252c889e19e1ac84b2c22fa50ddf5115351cce3b20d6b3d74030313932d035  workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
 8f5923b2d1f1d9e1b37d4c2506402fbdfb98215a34f6a33acef7101236606ecf  workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
 ac252c889e19e1ac84b2c22fa50ddf5115351cce3b20d6b3d74030313932d035  workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
-bdf9ed4522e458130b5e7b9a84af0c5162a12beb5578b3ed565774e774643e82  workflow/evidence/HO-STRATA-013/commands.log
+dd5b7600b36771231de2e22eac9d1ce058ce5b7f87d32f71e9da68f8f0b941f2  workflow/evidence/HO-STRATA-013/commands.log
 bf0d43e978a8674dfd16590402386ff3397aa1f54451b6f4d4f58710e22bd549  workflow/evidence/HO-STRATA-013/hashes-notes.txt
 04591b53fb092774c73f0f827f84bb6365beb42fc21c82aec228edc5178bcb2a  workflow/evidence/HO-STRATA-013/manifest.md
 dbf006f406019728c37adc4c71dbd14ff32bed7dcdf1084327aecaeaf19764f7  workflow/evidence/HO-STRATA-013/scripts/bypass_probe.py
 b6d140afac4b7c1c4c04065b9ed935c4828ed7b2cc49753bd7e979444a45d05c  workflow/evidence/HO-STRATA-013/scripts/legacy_proof.py
-d1fbd5f890351e7756cf8bcde775bdca428f195709c6b4a0708b757653bec0c9  workflow/evidence/HO-STRATA-013/test-output.txt
+fa2eb258c625551d4bd19904da5f4517fcfef6f3897e98bb42adc2db728274bf  workflow/evidence/HO-STRATA-013/test-output.txt
 f81e51da27ca813df81190c120371bb4d8f1e829174de4ea6e364846e8c9addc  workflow/tools/check_bundle.py
