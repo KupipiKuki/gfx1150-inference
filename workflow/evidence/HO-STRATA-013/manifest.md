@@ -49,7 +49,7 @@ Full transcript with cwd and exit codes: **`commands.log`**. Raw outputs: `artif
 
 ## 3. Per-bundle verdict table (`--all`)
 
-The authoritative aggregate capture (`C2d`) was taken from a clean tree with valid hashes: output to /tmp, moved into place, log appended afterwards. It shows exactly 2 FAILs, both `HO-STRATA-011` `B3-unlisted`; the `HO-STRATA-013` line in the artifact reflects the self-check before the final hash commit and is replaced by the fixed-point run in C2f.
+The authoritative aggregate capture (`C2d`) was taken from a clean tree with valid hashes: output to /tmp, moved into place, log appended afterwards, and verified byte-identical by the fixed-point run (`C2f`). It shows exactly 2 FAILs, both `HO-STRATA-011` `B3-unlisted`.
 
 | Bundle | Result | Warnings | Findings |
 |---|---|---|---|---|
