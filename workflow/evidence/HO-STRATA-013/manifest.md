@@ -15,14 +15,14 @@ Full transcript with cwd and exit codes: **`commands.log`**. Raw outputs: `artif
 | # | Command (copy-paste) | CWD | Exit | Output file |
 |---|---|---|---|---|
 | C1 | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012` | repo root | 0 | `artifacts/check-ho012.txt` |
-| C2 | `python3 workflow/tools/check_bundle.py --all` | repo root | 1 | `artifacts/check-all.txt` |
+| C2d | `python3 workflow/tools/check_bundle.py --all` | repo root | 1 | `artifacts/check-all.txt` — authoritative capture: output written to /tmp then moved; log appended after the run |
 | C3 | `python3 workflow/tools/check_bundle.py --self-test` | repo root | 0 | `artifacts/self-test.txt` |
 | C4 | `python3 -I workflow/tools/check_bundle.py --self-test` | repo root | 0 | `artifacts/stdlib-isolated.txt` |
 | C5 | `git status --porcelain > /tmp/git-status-before.txt; run C1 and C2; git status --porcelain > /tmp/git-status-after.txt; diff` | repo root | 0 | `artifacts/git-status-before.txt`, `artifacts/git-status-after.txt` |
 | C6 | `git clone --branch wp/strata-013-check-bundle . /tmp/cb-fresh; python3 /tmp/cb-fresh/workflow/tools/check_bundle.py /tmp/cb-fresh/workflow/evidence/HO-STRATA-012` | repo root | 0 | `artifacts/fresh-clone.txt` |
 | C7 | `grep -n "check_bundle" workflow/README.md` | repo root | 0 | `artifacts/readme-section.txt` |
 | C8 | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run1.txt; ... > /tmp/ac8-run2.txt; diff` | repo root | 0 | `artifacts/deterministic.txt` |
-| C9 | `python3 workflow/tools/check_bundle.py --all --strict` | repo root | 1 | `artifacts/check-all-strict.txt` |
+| C9d | `python3 workflow/tools/check_bundle.py --all --strict` | repo root | 1 | `artifacts/check-all-strict.txt` — authoritative capture: output written to /tmp then moved; log appended after the run |
 | C10 | `python3 - <<'EOF' ... verify HO-STRATA-007 and HO-STRATA-001 ...` | bundle dirs | 0 | `artifacts/legacy-proof.txt` |
 
 ## 2. Acceptance criteria ↔ evidence
@@ -41,10 +41,7 @@ Full transcript with cwd and exit codes: **`commands.log`**. Raw outputs: `artif
 
 ## 3. Per-bundle verdict table (`--all`)
 
-The pre-commit `--all` capture shows assembly-time FAILs for this bundle (stale
-hashes, dirty tree); the post-commit re-run (C2b, `artifacts/check-all.txt`)
-is the authoritative capture and shows exactly 2 FAILs, both HO-STRATA-011
-`B3-unlisted`.
+The authoritative aggregate capture (`C2d`, `C9d`) was taken from a clean tree with valid hashes: output to /tmp, moved into place, log appended afterwards. It shows exactly 2 FAILs, both `HO-STRATA-011` `B3-unlisted`; the earlier assembly-time capture is superseded.
 
 | Bundle | Result | Warnings | Findings |
 |---|---|---|---|---|

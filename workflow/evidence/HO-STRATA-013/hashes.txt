@@ -17,5 +17,5 @@ e524293044eabd03052710e38cb623339b3ab4cbdd616d0f94bb9bb7329ae2cf  /home/kupipi/D
 6383eb37a3d41b17905beb14d95145efd8e06d8d0759df5ad8476cc9b2b236c5  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
 71d6d6a195df61d122aee930c8505f397e32556a8c5392e7a594c899a5679325  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/commands.log
 bf0d43e978a8674dfd16590402386ff3397aa1f54451b6f4d4f58710e22bd549  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/hashes-notes.txt
-f6069861d04e4d1128d6fe82120dff8c98bc72e112a830cf40e7fecde41eb14e  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/manifest.md
+ca835e87f9576dd4e985c7958e98888b256adfd8a982905eabfbd97612331bf2  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/manifest.md
 02f2f9c69a3568985f8c0c9ae5f5dd8af51ad42789ba411554f66697e3396466  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013/test-output.txt
