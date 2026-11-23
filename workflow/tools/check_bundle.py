@@ -509,6 +509,22 @@ def _repo_for_pin(repository: str, root: Path) -> Optional[Path]:
     return None
 
 
+def _is_path_pin(commit_ref: str, fpath: str) -> bool:
+    """Return True if the row looks like a verifiable commit:path pin.
+
+    Tree/binary pins and prose rows (e.g. "Strata source tree",
+    "N/A — untracked build artifact") are excluded by requiring a hex-only
+    commit and a whitespace-free path.
+    """
+    if not commit_ref or not fpath:
+        return False
+    if not re.fullmatch(r"[0-9a-fA-F]{4,}", commit_ref):
+        return False
+    if re.search(r"\s", fpath):
+        return False
+    return True
+
+
 def check_b6_pins(bundle_dir: Path, root: Path) -> List[Finding]:
     findings: List[Finding] = []
     rel = rel_to_repo(bundle_dir, root)
@@ -528,9 +544,9 @@ def check_b6_pins(bundle_dir: Path, root: Path) -> List[Finding]:
         digest = row.get("digest", "").strip()
 
         # Verify every row that carries a commit and a path. The Command column
-        # is documentation only; tree/binary pins with no commit/path are warned
-        # rather than silently skipped.
-        if not fpath or not commit_ref:
+        # is documentation only; tree/binary pins with no usable commit/path are
+        # warned rather than silently skipped.
+        if not _is_path_pin(commit_ref, fpath):
             findings.append(finding_warn("B6-pins", "not a path pin", rel))
             continue
 
@@ -628,6 +644,7 @@ def _parse_commit_pins_table(text: str) -> List[Dict[str, str]]:
         cmd_idx = _column_index(header, "command")
         digest_idx = _column_index(header, "digest")
         file_idx = _column_index(header, "file")
+        path_idx = _column_index(header, "path")
         repo_idx = _column_index(header, "repository")
         commit_idx = _column_index(header, "commit")
 
@@ -639,7 +656,12 @@ def _parse_commit_pins_table(text: str) -> List[Dict[str, str]]:
             row["path"] = m.group(2)
         else:
             row["commit"] = cells[commit_idx] if commit_idx is not None else ""
-            row["path"] = cells[file_idx] if file_idx is not None else ""
+            if path_idx is not None:
+                row["path"] = cells[path_idx]
+            elif file_idx is not None:
+                row["path"] = cells[file_idx]
+            else:
+                row["path"] = ""
         row["digest"] = cells[digest_idx] if digest_idx is not None else ""
         row["repository"] = cells[repo_idx] if repo_idx is not None else ""
         row["command"] = cmd

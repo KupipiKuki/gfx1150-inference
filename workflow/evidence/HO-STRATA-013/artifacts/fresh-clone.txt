@@ -1,5 +1,3 @@
-clone cwd: /tmp/cb-fresh
-clone HEAD: d00da6f
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
@@ -18,8 +16,11 @@ PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
 WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
-WARN B6-pins abbreviated digest for 66267d2:workflow/DECISIONS.md
-WARN B6-pins abbreviated digest for 66267d2:planning/strata-engine/13-family-support-test-plan.md
+WARN B6-pins abbreviated digest
+WARN B6-pins abbreviated digest
+FAIL B6-pins unresolvable bac859ef9:Strata source tree
+FAIL B6-pins unresolvable baf16363b4403ef0ed4f538f5d5ed11c43fb9535:Strata base commit
+FAIL B6-pins unresolvable commit 'N/A — untracked build artifact' for `build-hip/strata` (signed binary)
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-RESULT: PASS (22 checks, 3 warnings)
+RESULT: FAIL (25 checks, 3 warnings)

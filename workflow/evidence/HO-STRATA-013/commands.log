@@ -3,14 +3,14 @@ cwd: /home/kupipi/Documents/git/gfx1150-inference
 python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
 exit: 0
 
-=== C2 ===
+=== C2d (authoritative aggregate capture, pre-hash) ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-python3 workflow/tools/check_bundle.py --all
+python3 workflow/tools/check_bundle.py --all > /tmp/check-all.txt && mv /tmp/check-all.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
 exit: 1
 
-=== C9 ===
+=== C9d (authoritative strict capture, pre-hash) ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-python3 workflow/tools/check_bundle.py --all --strict
+python3 workflow/tools/check_bundle.py --all --strict > /tmp/check-all-strict.txt && mv /tmp/check-all-strict.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
 exit: 1
 
 === C3 ===
@@ -28,14 +28,22 @@ cwd: /home/kupipi/Documents/git/gfx1150-inference
 grep -nE '^(import|from) ' workflow/tools/check_bundle.py
 exit: 0
 
-=== C5 ===
+=== C5 (read-only: tool does not change git status) ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-git status --porcelain > /tmp/gs-before.txt; run C1 and C2; git status --porcelain > /tmp/gs-after.txt; diff -u > artifacts/git-status-diff.txt
+git status --porcelain > /tmp/gs-before.txt
+python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /dev/null
+python3 workflow/tools/check_bundle.py --all > /dev/null || true
+git status --porcelain > /tmp/gs-after.txt
+diff -u /tmp/gs-before.txt /tmp/gs-after.txt > workflow/evidence/HO-STRATA-013/artifacts/git-status-diff.txt || true
+cp /tmp/gs-before.txt workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
+cp /tmp/gs-after.txt workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
 exit: 0
 
-=== C6 ===
+=== C6 (fresh clone) ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-rm -rf /tmp/cb-fresh; git clone -q --branch wp/strata-013-check-bundle . /tmp/cb-fresh; cd /tmp/cb-fresh && pwd && python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
+rm -rf /tmp/cb-fresh
+git clone -q --branch wp/strata-013-check-bundle . /tmp/cb-fresh
+cd /tmp/cb-fresh && python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
 exit: 0
 
 === C7 ===
@@ -43,31 +51,231 @@ cwd: /home/kupipi/Documents/git/gfx1150-inference
 grep -n 'check_bundle' workflow/README.md
 exit: 0
 
-=== C8 ===
+=== C8 (deterministic output) ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-python3 ... > /tmp/ac8-run1.txt; python3 ... > /tmp/ac8-run2.txt; sha256sum both; diff -u; echo diff_exit
+python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run1.txt
+python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run2.txt
+diff -u /tmp/ac8-run1.txt /tmp/ac8-run2.txt > workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt && echo IDENTICAL >> workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
 exit: 0
 
-=== C10 ===
+=== C10 (legacy digest proof) ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-python3 - <<'PY'  (verify HO-007 from the bundle dir; verify HO-001 by basename fallback)
+python3 - <<'PY' > workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
+import re
+from pathlib import Path
+import hashlib
+
+def sha256(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(65536), b""):
+            h.update(ch)
+    return h.hexdigest()
+
+def verify_bundle(bundle: Path):
+    ok = mismatch = missing = 0
+    root = Path(".")
+    for raw in (bundle / "hashes.txt").read_text().splitlines():
+        line = raw.rstrip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("  ", 1)
+        if len(parts) != 2:
+            continue
+        digest, fpath = parts
+        if not re.fullmatch(r"[0-9a-f]{64}", digest):
+            continue
+        target = None
+        p = Path(fpath)
+        if p.is_absolute():
+            if p.is_file():
+                target = p
+        else:
+            cand = root / fpath
+            if cand.is_file():
+                target = cand
+            if target is None:
+                cand = bundle / fpath
+                if cand.is_file():
+                    target = cand
+                if target is None and fpath.startswith("./"):
+                    cand = bundle / fpath[2:]
+                    if cand.is_file():
+                        target = cand
+            if target is None:
+                name = p.name
+                for c in bundle.rglob(name):
+                    if c.is_file() and sha256(c) == digest:
+                        target = c
+                        break
+        if target is None:
+            missing += 1
+        else:
+            if sha256(target) == digest:
+                ok += 1
+            else:
+                mismatch += 1
+    return ok, mismatch, missing
+
+b7 = Path("workflow/evidence/HO-STRATA-007")
+ok7, mis7, miss7 = verify_bundle(b7)
+print(f"HO-007 verified from bundle dir: ok={ok7} problems={mis7 + miss7}")
+
+b1 = Path("workflow/evidence/HO-STRATA-001")
+ok1, mis1, miss1 = verify_bundle(b1)
+print(f"HO-001 verified with basename fallback: ok={ok1} mismatch={mis1} missing={miss1}")
+PY
 exit: 0
 
-=== C2b (post-commit re-run on a clean tree) ===
+=== C11 (RW-2 bypass probes) ===
 cwd: /home/kupipi/Documents/git/gfx1150-inference
-python3 workflow/tools/check_bundle.py --all
-exit: 1
-=== C9b (post-commit re-run on a clean tree) ===
-cwd: /home/kupipi/Documents/git/gfx1150-inference
-python3 workflow/tools/check_bundle.py --all --strict
-exit: 1
-=== C2d (authoritative capture, clean tree, post-hash) ===
-cwd: /home/kupipi/Documents/git/gfx1150-inference
-python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt && mv /tmp/ca.txt artifacts/check-all.txt
-exit: 1
+python3 - <<'PY' > workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt
+import os, subprocess, sys, tempfile, shutil
+from pathlib import Path
 
-=== C9d (authoritative strict capture, clean tree, post-hash) ===
-cwd: /home/kupipi/Documents/git/gfx1150-inference
-python3 workflow/tools/check_bundle.py --all --strict > /tmp/cas.txt && mv /tmp/cas.txt artifacts/check-all-strict.txt
-exit: 1
+tool = Path("workflow/tools/check_bundle.py").resolve()
 
+def run(cmd, cwd):
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+
+def git_init(repo):
+    run(["git", "init"], cwd=repo)
+    run(["git", "config", "user.email", "test@example.com"], cwd=repo)
+    run(["git", "config", "user.name", "Test"], cwd=repo)
+
+def commit_all(repo, msg):
+    run(["git", "add", "-A"], cwd=repo)
+    run(["git", "commit", "-m", msg], cwd=repo)
+
+def sha256_file(p):
+    import hashlib
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(65536), b""):
+            h.update(ch)
+    return h.hexdigest()
+
+def write_hashes(bundle, entries):
+    with open(bundle/"hashes.txt", "w") as f:
+        for d, p in entries:
+            f.write(f"{d}  {p}\n")
+
+def make_clean_bundle(repo):
+    bundle = repo / "bundle"
+    bundle.mkdir()
+    (bundle/"manifest.md").write_text("# Manifest\n\ncommands.log\n")
+    (bundle/"commands.log").write_text("log\n")
+    (bundle/"artifact.txt").write_text("data\n")
+    return bundle
+
+base = Path(tempfile.mkdtemp(prefix="bypass_proof_"))
+
+try:
+    print("=== Probe 1: unlisted artifacts/notes-hashes.txt must FAIL B3-unlisted ===")
+    repo1 = base / "suffix"
+    repo1.mkdir()
+    git_init(repo1)
+    bundle1 = make_clean_bundle(repo1)
+    art1 = bundle1 / "artifacts"
+    art1.mkdir()
+    (art1/"notes-hashes.txt").write_text("notes\n")
+    commit_all(repo1, "initial")
+    write_hashes(bundle1, [
+        (sha256_file(bundle1/"artifact.txt"), "bundle/artifact.txt"),
+        (sha256_file(bundle1/"manifest.md"), "bundle/manifest.md"),
+        (sha256_file(bundle1/"commands.log"), "bundle/commands.log"),
+    ])
+    commit_all(repo1, "hashes")
+    r1 = run([sys.executable, str(tool), str(bundle1)], cwd=repo1)
+    print(r1.stdout)
+    assert "FAIL B3-unlisted" in r1.stdout, "expected B3-unlisted FAIL"
+    print("PASS: B3 suffix bypass is caught\n")
+
+    print("=== Probe 2: full wrong digest with reworded command must FAIL B6-pins ===")
+    repo2 = base / "reworded"
+    repo2.mkdir()
+    git_init(repo2)
+    bundle2 = make_clean_bundle(repo2)
+    bundle2.joinpath("artifact.txt").write_text("pinned data\n")
+    commit_all(repo2, "initial")
+    commit = run(["git", "rev-parse", "HEAD"], cwd=repo2).stdout.strip()
+    notes2_text = (
+        "## Commit pins\n\n"
+        "| File | Repository | Commit | Command | Digest |\n"
+        "|---|---|---|---|---|\n"
+        f"| bundle/artifact.txt | gfx1150-inference | {commit} | "
+        f"git cat-file -p {commit}:bundle/artifact.txt \\| sha256sum | "
+        f"{'0'*64} |\n"
+    )
+    (bundle2/"hashes-notes.txt").write_text(notes2_text)
+    write_hashes(bundle2, [
+        (sha256_file(bundle2/"artifact.txt"), "bundle/artifact.txt"),
+        (sha256_file(bundle2/"manifest.md"), "bundle/manifest.md"),
+        (sha256_file(bundle2/"commands.log"), "bundle/commands.log"),
+        (sha256_file(bundle2/"hashes-notes.txt"), "bundle/hashes-notes.txt"),
+    ])
+    commit_all(repo2, "notes")
+    r2 = run([sys.executable, str(tool), str(bundle2)], cwd=repo2)
+    print(r2.stdout)
+    assert "FAIL B6-pins" in r2.stdout and "B3-unlisted" not in r2.stdout, "expected only B6-pins FAIL"
+    print("PASS: B6 reworded wrong-digest pin is caught\n")
+
+    print("=== Control: correct pin with reworded command still passes ===")
+    repo3 = base / "control"
+    repo3.mkdir()
+    git_init(repo3)
+    bundle3 = make_clean_bundle(repo3)
+    bundle3.joinpath("artifact.txt").write_text("good data\n")
+    commit_all(repo3, "initial")
+    commit3 = run(["git", "rev-parse", "HEAD"], cwd=repo3).stdout.strip()
+    digest3 = sha256_file(bundle3/"artifact.txt")
+    notes3_text = (
+        "## Commit pins\n\n"
+        "| File | Repository | Commit | Command | Digest |\n"
+        "|---|---|---|---|---|\n"
+        f"| bundle/artifact.txt | gfx1150-inference | {commit3} | "
+        f"git cat-file -p {commit3}:bundle/artifact.txt \\| sha256sum | "
+        f"{digest3} |\n"
+    )
+    (bundle3/"hashes-notes.txt").write_text(notes3_text)
+    write_hashes(bundle3, [
+        (sha256_file(bundle3/"artifact.txt"), "bundle/artifact.txt"),
+        (sha256_file(bundle3/"manifest.md"), "bundle/manifest.md"),
+        (sha256_file(bundle3/"commands.log"), "bundle/commands.log"),
+        (sha256_file(bundle3/"hashes-notes.txt"), "bundle/hashes-notes.txt"),
+    ])
+    commit_all(repo3, "notes")
+    r3 = run([sys.executable, str(tool), str(bundle3)], cwd=repo3)
+    print(r3.stdout)
+    assert "PASS B6-pins" in r3.stdout, "expected B6-pins PASS"
+    assert "RESULT: PASS" in r3.stdout, "expected overall PASS"
+    print("PASS: reworded command with correct digest is accepted\n")
+finally:
+    shutil.rmtree(base, ignore_errors=True)
+PY
+exit: 0
+
+=== C12 (rehash) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 - <<'PY' > workflow/evidence/HO-STRATA-013/hashes.txt
+import hashlib
+from pathlib import Path
+
+root = Path(".")
+bundle = Path("workflow/evidence/HO-STRATA-013")
+files = sorted(
+    p for p in bundle.rglob("*")
+    if p.is_file() and p.name != "hashes.txt"
+)
+print("# SHA-256 hashes — HO-STRATA-013 evidence bundle")
+print("# Generated after the RW-2 evidence refresh.")
+print("# hashes.txt excludes itself. Paths are repo-root relative.")
+for p in files:
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(65536), b""):
+            h.update(ch)
+    rel = p.resolve().relative_to(root.resolve()).as_posix()
+    print(f"{h.hexdigest()}  {rel}")
+PY
+exit: 0

@@ -75,8 +75,9 @@ procedure itself were found and fixed:
    written only after the checker finished.
 2. The `find` command used to build `hashes.txt` was run on an absolute path,
    writing absolute paths into `hashes.txt`. This was fixed in pass 2 by making
-   `hashes.txt` repo-relative; the tool now exits 4 if `hashes.txt` contains an
-   absolute path.
+   `hashes.txt` repo-relative; the evidence-generation script now exits 4 if
+   `hashes.txt` contains an absolute path, and the checker reports such a path
+   as `B2-external`.
 
 These were capture-procedure errors, not defects in the bundles being checked,
 and both are now fixed.

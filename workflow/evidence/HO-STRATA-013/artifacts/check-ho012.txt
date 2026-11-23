@@ -16,8 +16,11 @@ PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
 WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
-WARN B6-pins abbreviated digest for 66267d2:workflow/DECISIONS.md
-WARN B6-pins abbreviated digest for 66267d2:planning/strata-engine/13-family-support-test-plan.md
+WARN B6-pins abbreviated digest
+WARN B6-pins abbreviated digest
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-RESULT: PASS (22 checks, 3 warnings)
+RESULT: PASS (25 checks, 6 warnings)

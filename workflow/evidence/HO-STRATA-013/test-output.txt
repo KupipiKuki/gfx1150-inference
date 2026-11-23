@@ -1,4 +1,4 @@
-===== artifacts/check-ho012.txt =====
+=== C1: python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 ===
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
@@ -17,13 +17,16 @@ PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
 WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
-WARN B6-pins abbreviated digest for 66267d2:workflow/DECISIONS.md
-WARN B6-pins abbreviated digest for 66267d2:planning/strata-engine/13-family-support-test-plan.md
+WARN B6-pins abbreviated digest
+WARN B6-pins abbreviated digest
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-RESULT: PASS (22 checks, 3 warnings)
+RESULT: PASS (25 checks, 6 warnings)
 
-===== artifacts/check-all.txt =====
+=== C2d: python3 workflow/tools/check_bundle.py --all ===
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
@@ -316,46 +319,52 @@ PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
 WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
-WARN B6-pins abbreviated digest for 66267d2:workflow/DECISIONS.md
-WARN B6-pins abbreviated digest for 66267d2:planning/strata-engine/13-family-support-test-plan.md
+WARN B6-pins abbreviated digest
+WARN B6-pins abbreviated digest
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-HO-STRATA-012: RESULT: PASS (22 checks, 3 warnings)
+HO-STRATA-012: RESULT: PASS (25 checks, 6 warnings)
 
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
-PASS B2-hash-verify ok: workflow/tools/check_bundle.py
+FAIL B2-hash-mismatch workflow/tools/check_bundle.py (actual: 160e7256dbf49e27a30844ffed7e6a0de1bfb236684c64c31d7e6467ac98af59)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt (actual: 2604843c0ed08e3a74d2d6428a3929df51b5c184dd5bfe5cf77e72f2bc355bee)
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt (actual: 1e00073b48fe3b36fc839da3b74b515bbecc9def677e059553835bb86bde8c55)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-diff.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/self-test.txt (actual: b9b1f5c29114168b14c99d4490d7418f2844dab82450f389bb71ece8a032ea49)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt (actual: b9b1f5c29114168b14c99d4490d7418f2844dab82450f389bb71ece8a032ea49)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/commands.log
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/hashes-notes.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/manifest.md
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/test-output.txt
-PASS B3-hash-coverage all files listed
+WARN B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
+WARN B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
+WARN B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
+WARN B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
 PASS B4-tracked all files tracked
-PASS B4-tracked git status clean
+FAIL B4-tracked git status not clean for bundle
 PASS B5-not-ignored no bundle file ignored
 PASS B6-pins pin ok: 315030e:workflow/DECISIONS.md
 PASS B6-pins pin ok: 315030e:workflow/README.md
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-HO-STRATA-013: RESULT: PASS (29 checks, 0 warnings)
+HO-STRATA-013: RESULT: FAIL (32 checks, 4 warnings)
 
-RESULT: FAIL (313 checks, 111 warnings)
+RESULT: FAIL (319 checks, 118 warnings)
 
-===== artifacts/check-all-strict.txt =====
+=== C9d: python3 workflow/tools/check_bundle.py --all --strict ===
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
@@ -648,46 +657,53 @@ PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
 WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
-WARN B6-pins abbreviated digest for 66267d2:workflow/DECISIONS.md
-WARN B6-pins abbreviated digest for 66267d2:planning/strata-engine/13-family-support-test-plan.md
+WARN B6-pins abbreviated digest
+WARN B6-pins abbreviated digest
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-HO-STRATA-012: RESULT: PASS (22 checks, 3 warnings)
+HO-STRATA-012: RESULT: PASS (25 checks, 6 warnings)
 
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
-PASS B2-hash-verify ok: workflow/tools/check_bundle.py
+FAIL B2-hash-mismatch workflow/tools/check_bundle.py (actual: 160e7256dbf49e27a30844ffed7e6a0de1bfb236684c64c31d7e6467ac98af59)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/check-all.txt (actual: 117dd964abbd864a76be6e3c5ee24e13cd74b12d73dafa52d07675c12b039662)
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt (actual: 2604843c0ed08e3a74d2d6428a3929df51b5c184dd5bfe5cf77e72f2bc355bee)
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt (actual: 1e00073b48fe3b36fc839da3b74b515bbecc9def677e059553835bb86bde8c55)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-diff.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/self-test.txt (actual: b9b1f5c29114168b14c99d4490d7418f2844dab82450f389bb71ece8a032ea49)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
-PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt (actual: b9b1f5c29114168b14c99d4490d7418f2844dab82450f389bb71ece8a032ea49)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/commands.log
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/hashes-notes.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/manifest.md
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/test-output.txt
-PASS B3-hash-coverage all files listed
+FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
+FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
+FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
+FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
 PASS B4-tracked all files tracked
-PASS B4-tracked git status clean
+FAIL B4-tracked git status not clean for bundle
 PASS B5-not-ignored no bundle file ignored
 PASS B6-pins pin ok: 315030e:workflow/DECISIONS.md
 PASS B6-pins pin ok: 315030e:workflow/README.md
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-HO-STRATA-013: RESULT: PASS (29 checks, 0 warnings)
+HO-STRATA-013: RESULT: FAIL (33 checks, 0 warnings)
 
-RESULT: FAIL (313 checks, 20 warnings)
+RESULT: FAIL (320 checks, 23 warnings)
 
-===== artifacts/self-test.txt =====
+=== C3: python3 workflow/tools/check_bundle.py --self-test ===
 PASS hash-edited
 PASS extra-artifact
 PASS untracked
@@ -700,9 +716,12 @@ PASS absolute-external
 PASS prose
 PASS basename-spelling
 PASS malformed-separator
+PASS unlisted-hashes-suffix
+PASS pin-wrong-digest-reworded
+PASS pin-unresolvable-commit-reworded
 RESULT: PASS (all fixtures behaved as expected)
 
-===== artifacts/stdlib-isolated.txt =====
+=== C4: python3 -I workflow/tools/check_bundle.py --self-test ===
 PASS hash-edited
 PASS extra-artifact
 PASS untracked
@@ -715,57 +734,12 @@ PASS absolute-external
 PASS prose
 PASS basename-spelling
 PASS malformed-separator
+PASS unlisted-hashes-suffix
+PASS pin-wrong-digest-reworded
+PASS pin-unresolvable-commit-reworded
 RESULT: PASS (all fixtures behaved as expected)
 
-===== artifacts/stdlib-imports.txt =====
-17:from __future__ import annotations
-19:import argparse
-20:import hashlib
-21:import json
-22:import os
-23:import re
-24:import shutil
-25:import subprocess
-26:import sys
-27:import tempfile
-28:from pathlib import Path
-29:from typing import Dict, List, Optional, Set, Tuple
-
-===== artifacts/git-status-before.txt =====
- M workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
- M workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
- D workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
- D workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
- D workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
- D workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
- D workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
- D workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
- M workflow/evidence/HO-STRATA-013/commands.log
- M workflow/evidence/HO-STRATA-013/hashes.txt
- M workflow/evidence/HO-STRATA-013/test-output.txt
-?? workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
-
-===== artifacts/git-status-after.txt =====
- M workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
- M workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
- D workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
- D workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
- D workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
- D workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
- D workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
- D workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
- M workflow/evidence/HO-STRATA-013/commands.log
- M workflow/evidence/HO-STRATA-013/hashes.txt
- M workflow/evidence/HO-STRATA-013/test-output.txt
-?? workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
-
-===== artifacts/git-status-diff.txt =====
-snapshot_cmp_exit: 0 (0 = the tool wrote nothing)
-(no lines above: before and after are identical)
-
-===== artifacts/fresh-clone.txt =====
-clone cwd: /tmp/cb-fresh
-clone HEAD: d00da6f
+=== C6: fresh-clone HO-012 check ===
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
@@ -784,23 +758,71 @@ PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
 WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
-WARN B6-pins abbreviated digest for 66267d2:workflow/DECISIONS.md
-WARN B6-pins abbreviated digest for 66267d2:planning/strata-engine/13-family-support-test-plan.md
+WARN B6-pins abbreviated digest
+WARN B6-pins abbreviated digest
+FAIL B6-pins unresolvable bac859ef9:Strata source tree
+FAIL B6-pins unresolvable baf16363b4403ef0ed4f538f5d5ed11c43fb9535:Strata base commit
+FAIL B6-pins unresolvable commit 'N/A — untracked build artifact' for `build-hip/strata` (signed binary)
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-RESULT: PASS (22 checks, 3 warnings)
+RESULT: FAIL (25 checks, 3 warnings)
 
-===== artifacts/readme-section.txt =====
-36:## check_bundle.py
-41:python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012
-42:python3 workflow/tools/check_bundle.py --all
+=== C8: deterministic output diff ===
+IDENTICAL
 
-===== artifacts/deterministic.txt =====
-run1 sha256: f5534b8afb1869263ca8671ddd9b63cf5a2db9dddac9bef9b7c752156185a527
-run2 sha256: f5534b8afb1869263ca8671ddd9b63cf5a2db9dddac9bef9b7c752156185a527
-diff_exit: 0
+=== C11: RW-2 bypass probes ===
+=== Probe 1: unlisted artifacts/notes-hashes.txt must FAIL B3-unlisted ===
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: bundle/artifact.txt
+PASS B2-hash-verify ok: bundle/manifest.md
+PASS B2-hash-verify ok: bundle/commands.log
+FAIL B3-unlisted bundle/artifacts/notes-hashes.txt
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: FAIL (12 checks, 0 warnings)
 
-===== artifacts/legacy-proof.txt =====
-HO-007 verified from bundle dir: ok=17 problems=0
-HO-001 verified with basename fallback: ok=21 mismatch=0 missing=0
+PASS: B3 suffix bypass is caught
+
+=== Probe 2: full wrong digest with reworded command must FAIL B6-pins ===
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: bundle/artifact.txt
+PASS B2-hash-verify ok: bundle/manifest.md
+PASS B2-hash-verify ok: bundle/commands.log
+PASS B2-hash-verify ok: bundle/hashes-notes.txt
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+FAIL B6-pins bundle/artifact.txt (recorded 0000000000000000000000000000000000000000000000000000000000000000, actual c3d3c29e549a0dbdbb58aaa89c7b8eff08d0056cc5281796ae1d097b2dec5078)
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: FAIL (14 checks, 0 warnings)
+
+PASS: B6 reworded wrong-digest pin is caught
+
+=== Control: correct pin with reworded command still passes ===
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: bundle/artifact.txt
+PASS B2-hash-verify ok: bundle/manifest.md
+PASS B2-hash-verify ok: bundle/commands.log
+PASS B2-hash-verify ok: bundle/hashes-notes.txt
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B6-pins pin ok: 90be36f45023092015d7ad020c12420b9e416845:bundle/artifact.txt
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: PASS (14 checks, 0 warnings)
+
+PASS: reworded command with correct digest is accepted
 

@@ -1,2 +1,0 @@
-snapshot_cmp_exit: 0 (0 = the tool wrote nothing)
-(no lines above: before and after are identical)
