@@ -287,3 +287,8 @@ cwd: /home/kupipi/Documents/git/gfx1150-inference
 python3 workflow/tools/check_bundle.py --all > /tmp/check-all-fp.txt 2>&1
 diff -u /tmp/check-all-fp.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt && echo IDENTICAL
 exit: 0
+
+=== C9e (QAQC round 2, finding F3: recapture check-all-strict from the clean tree) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all --strict > /tmp/cas.txt 2>&1 && mv /tmp/cas.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
+exit: 1
