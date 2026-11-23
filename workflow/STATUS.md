@@ -15,19 +15,21 @@ row is invisible.
 | HO-STRATA-008 | family probe: engine behaviour on unsupported GGUFs (Mixtral, DeepSeek) | **DONE (SIGNED 2026-11-18) · MERGED #20** · DEC-026 | Architect | `main` | owner decides whether to open HO-006 with the sharpened question (DEC-016 hold) | — | `workflow/evidence/HO-STRATA-008/` · `workflow/handoffs/HO-STRATA-008-APPROVAL.md` |
 | HO-STRATA-006 | model-support investigation (read-only) | **DEFERRED** (owner hold) | Architect | `wp/strata-006-model-support` @ `750dd2f` | restart only on the owner's go-ahead (DEC-016) | owner hold; OT decisions 2–5 | `workflow/evidence/HO-STRATA-006/` |
 | HO-STRATA-007 | qwen35moe low-tier baseline (Qwen3.6-35B-A3B) | **DONE (SIGNED 2026-11-16) · MERGED #15** | Architect | `main` @ `a18f12f` | HO-005 route decision | — | `workflow/evidence/HO-STRATA-007/` · `workflow/reports/qaqc/HO-STRATA-007-qaqc.md` · `workflow/reports/audit/HO-STRATA-007-audit.md` · `workflow/handoffs/HO-STRATA-007-APPROVAL.md` |
-| HO-STRATA-012 | DeepSeek S1–S3: recognition, geometry, tensor inventory | **DONE (SIGNED 2026-11-20) · MERGE IN PR** · DEC-037 | Architect | `merge/ho-012-2026-11-22` @ `381b148` (merge of `wp/strata-012-deepseek-s1` @ `135989a`) | merge the PR (branch-protected `main`); S4 (forward) needs a separate authorization | — | `workflow/evidence/HO-STRATA-012/` · `workflow/handoffs/HO-STRATA-012-APPROVAL.md` |
+| HO-STRATA-012 | DeepSeek S1–S3: recognition, geometry, tensor inventory | **DONE (SIGNED 2026-11-20) · MERGED #24** · DEC-037 | Architect | `main` @ `59e8c89` | — ; S4 (forward) needs a separate authorization | — | `workflow/evidence/HO-STRATA-012/` · `workflow/handoffs/HO-STRATA-012-APPROVAL.md` |
 | — | family-support test plan (planning 13) | **PREPARED (execution held, DEC-027) · MERGED #21** | Architect | `main` | owner decides: S0 only / Mixtral S0–S7 / keep hold | DEC-016 | `planning/strata-engine/13-family-support-test-plan.md` |
 | HO-STRATA-010 | reference oracle + parity harness (S0) | **DONE (SIGNED 2026-11-19) · MERGED #22** · DEC-030 | Architect | `main` | — | B-1/B-2/B-4 carried to S1 | `workflow/evidence/HO-STRATA-010/` · `workflow/handoffs/HO-STRATA-010-APPROVAL.md` |
 | HO-STRATA-011 | OLMoE oracle extension (S0b) | **DONE (SIGNED 2026-11-19) · MERGED #23** · DEC-032 | Architect | `main` | — | — | `workflow/evidence/HO-STRATA-011/` · `workflow/handoffs/HO-STRATA-011-APPROVAL.md` |
-| HO-STRATA-013 | `check_bundle.py`: evidence-packaging invariants | **DONE (SIGNED 2026-11-23)** · DEC-041 | Architect | `wp/strata-013-check-bundle` @ `d89cf08` | merge via PR; adopted as the evidence gate for S4 | base `91eac12` not yet on `origin/main` (DEC-040) | `workflow/handoffs/HO-STRATA-013.md` |
+| HO-STRATA-013 | `check_bundle.py`: evidence-packaging invariants | **DONE (SIGNED 2026-11-23) · MERGED #26** · DEC-041 | Architect | `main` @ `3329e4b` | adopted as the evidence gate; S4 is the first bundle it gates | base `91eac12` not yet on `origin/main` (DEC-040) | `workflow/handoffs/HO-STRATA-013.md` |
 
-**Project state (2026-11-22):** the signed baseline stands — `qwen35moe` loads
+**Project state (2026-11-23):** the signed baseline stands — `qwen35moe` loads
 and generates 32 deterministic tokens on gfx1150 (#15). DeepSeek S1–S3
 (recognition, geometry, `--inspect`, named refusal) is **DONE, SIGNED and merged
 locally** (DEC-037); the model still does **not** run, and **S4 (the forward
 pass) is not authorized**. The oracle chain S0/S0b is merged (#22, #23). HO-002/003/004
 remain BLOCKED by DEC-016; HO-006 is DEFERRED. QAQC is back on Gemini Argon
-(DEC-039; DEC-036 expired). The live llama.cpp reference server on `:9931` was
+(DEC-039; DEC-036 expired). `check_bundle.py` is merged and is the evidence
+gate for S4 (DEC-041): `--all` is red only on HO-011's two unlisted artifacts,
+which is correct and deliberately not tuned green. The live llama.cpp reference server on `:9931` was
 **not running** at the 2026-11-22 resume — S4 iteration needs either that server
 or the CLI oracle rebuilt from `HO-STRATA-010` §4.
 
