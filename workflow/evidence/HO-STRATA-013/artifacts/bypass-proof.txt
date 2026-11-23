@@ -46,7 +46,7 @@ PASS B3-hash-coverage all files listed
 PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
-PASS B6-pins pin ok: 90be36f45023092015d7ad020c12420b9e416845:bundle/artifact.txt
+PASS B6-pins pin ok: d19d446e7b81854737fe3402914e2712196dee4c:bundle/artifact.txt
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
 RESULT: PASS (14 checks, 0 warnings)

@@ -1,8 +1,11 @@
- M workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
- M workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
- M workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
+ M workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt
+ D workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
+ D workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
  M workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
+ M workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
+ M workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
+ M workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
  M workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
  M workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
- M workflow/handoffs/RW-HO-STRATA-013-1.md
- M workflow/tools/check_bundle.py
+ M workflow/evidence/HO-STRATA-013/commands.log
+ D workflow/evidence/HO-STRATA-013/test-output.txt

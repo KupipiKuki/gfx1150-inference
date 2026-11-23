@@ -18,9 +18,9 @@ PASS B5-not-ignored no bundle file ignored
 WARN B6-pins no comparable digest for 66267d2:workflow/handoffs/HO-STRATA-012.md
 WARN B6-pins abbreviated digest
 WARN B6-pins abbreviated digest
-FAIL B6-pins unresolvable bac859ef9:Strata source tree
-FAIL B6-pins unresolvable baf16363b4403ef0ed4f538f5d5ed11c43fb9535:Strata base commit
-FAIL B6-pins unresolvable commit 'N/A — untracked build artifact' for `build-hip/strata` (signed binary)
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
+WARN B6-pins not a path pin
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-RESULT: FAIL (25 checks, 3 warnings)
+RESULT: PASS (25 checks, 6 warnings)
