@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | **ID** | RW-HO-STRATA-013-2 |
-| **State** | OPEN |
+| **State** | CLOSED |
 | **Created (UTC)** | 2026-11-22 |
 | **From → To** | Auditor (finding) → Architect (scope) → Primary Coder |
 | **Original handoff** | `workflow/handoffs/HO-STRATA-013.md` |
@@ -146,3 +146,6 @@ log appended after the run; hashes last):
 - 2026-11-22 Architect: confirmed both bugs in the source (`:408`, `:~533`),
   scoped this rework, folded the auditor's A3/A4/A6 (log reproducibility,
   manifest wording) in.
+- 2026-11-22 Primary Coder: A1/A2 fixed, F3/F4/F5 implemented, 15 self-test
+  fixtures pass, evidence refreshed, fixed-point proof verified; state
+  `CODER_DONE`.

@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-013 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | CODER_DONE (RW-HO-STRATA-013-1 completed) |
+| **State** | CODER_DONE (RW-HO-STRATA-013-2 completed) |
 | **Created / updated (UTC)** | 2026-11-22 / 2026-11-22 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `check-bundle` |
@@ -202,6 +202,15 @@ before its review). No other README edits.
   - `python3 workflow/tools/check_bundle.py --all` → exit `1`, exactly 2 FAILs both `HO-STRATA-011` (`B3-unlisted workflow/evidence/HO-STRATA-011/artifacts/cmd-8.err.txt` and `cmd-8.out.txt`)
   - `python3 workflow/tools/check_bundle.py --self-test` → `RESULT: PASS` (12/12 fixtures)
   - Fixed-point proof: `python3 workflow/tools/check_bundle.py --all` output is byte-identical to `workflow/evidence/HO-STRATA-013/artifacts/check-all.txt`; `git status --porcelain` empty before and after.
+- 2026-11-22 Primary Coder: RW-2 closure — A1 (B3 exact `hashes.txt` exemption) and
+  A2 (B6 verifies every path pin) fixed; three new negative controls added
+  (15/15 fixtures); `commands.log` and `manifest.md` made reproducible/correct;
+  evidence refreshed and fixed-point verified:
+  - `python3 workflow/tools/check_bundle.py --self-test` → `RESULT: PASS` (15/15 fixtures)
+  - `python3 workflow/tools/check_bundle.py --all` → exit `1`, exactly 2 FAILs
+    (`HO-STRATA-011` `B3-unlisted`); `HO-STRATA-012` remains `PASS`
+  - `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-013` → `RESULT: PASS` (30 checks, 0 warnings)
+  - Fixed-point proof: fresh `--all` output byte-identical to `artifacts/check-all.txt`; `git status --porcelain` empty.
 
 ## 12. CODER_TO_QAQC
 
