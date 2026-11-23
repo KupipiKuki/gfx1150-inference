@@ -302,36 +302,28 @@ HO-STRATA-012: RESULT: PASS (25 checks, 6 warnings)
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt (actual: c8cffe1b803dcb7f0415be6d590aa3ec74b9ccaf346e959ba0eb209daf7e90bc)
-FAIL B2-missing workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/check-all.txt (actual: 2bbfcca2fe509f39b303cd2f435c00432f7ec9c75d15dddf799f362577276a16)
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/check-all.txt (actual: 6f9b93faa2014d03f5436197e29c128d035a3a0f33d4eec8ecc7b84dab4bcf52)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt (actual: f1af39b9073c6fd49ac4ceeacc9b45b7f23b5d1166fb0d79b4d3340fa88ca489)
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt (actual: 2604843c0ed08e3a74d2d6428a3929df51b5c184dd5bfe5cf77e72f2bc355bee)
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt (actual: 58bfbdeba8a00f165c2003afdd67a9e9a3eebaf88aac8622da1920edfa2e4ca4)
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt (actual: 58bfbdeba8a00f165c2003afdd67a9e9a3eebaf88aac8622da1920edfa2e4ca4)
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/git-status-diff.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/self-test.txt (actual: ac252c889e19e1ac84b2c22fa50ddf5115351cce3b20d6b3d74030313932d035)
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt (actual: ac252c889e19e1ac84b2c22fa50ddf5115351cce3b20d6b3d74030313932d035)
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/commands.log (actual: 9c0ff47077a3882b33a9662c9b957f11259ede386900d403f5a77336a648d6d4)
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/commands.log
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/hashes-notes.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/manifest.md
-FAIL B2-missing workflow/evidence/HO-STRATA-013/test-output.txt
-FAIL B2-hash-mismatch workflow/tools/check_bundle.py (actual: f81e51da27ca813df81190c120371bb4d8f1e829174de4ea6e364846e8c9addc)
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/scripts/bypass_probe.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/scripts/legacy_proof.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/test-output.txt
+PASS B2-hash-verify ok: workflow/tools/check_bundle.py
 FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/self-test.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt
-FAIL B3-path-spelling workflow/evidence/HO-STRATA-013/commands.log
-FAIL B3-unlisted workflow/evidence/HO-STRATA-013/scripts/bypass_probe.py
-FAIL B3-unlisted workflow/evidence/HO-STRATA-013/scripts/legacy_proof.py
 PASS B4-tracked all files tracked
 FAIL B4-tracked git status not clean for bundle
 PASS B5-not-ignored no bundle file ignored
@@ -339,6 +331,6 @@ PASS B6-pins pin ok: 315030e:workflow/DECISIONS.md
 PASS B6-pins pin ok: 315030e:workflow/README.md
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-HO-STRATA-013: RESULT: FAIL (40 checks, 0 warnings)
+HO-STRATA-013: RESULT: FAIL (32 checks, 0 warnings)
 
-RESULT: FAIL (327 checks, 23 warnings)
+RESULT: FAIL (319 checks, 23 warnings)

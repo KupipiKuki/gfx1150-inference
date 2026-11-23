@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | **Handoff** | HO-STRATA-013 |
-| **Commit / branch** | `wp/strata-013-check-bundle` (RW-2 evidence refresh; pin in `hashes-notes.txt`) |
-| **Author / date (UTC)** | `coder-primary` / 2026-11-22 |
+| **Commit / branch** | `wp/strata-013-check-bundle` (RW-3 evidence refresh; pin in `hashes-notes.txt`) |
+| **Author / date (UTC)** | `coder-primary` / 2026-11-23 |
 | **Environment** | Linux Mint 22.3 (Zena), kernel 7.0.0-42-generic, Python 3.14.10, git 2.43.0 |
 | **Working directory** | `/home/kupipi/Documents/git/gfx1150-inference` |
 
@@ -14,53 +14,59 @@ Full transcript with cwd and exit codes: **`commands.log`**. Raw outputs: `artif
 
 | # | Command (copy-paste) | CWD | Exit | Output file |
 |---|---|---|---|---|
-| C1 | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012` | repo root | 0 | `artifacts/check-ho012.txt` |
-| C2d | `python3 workflow/tools/check_bundle.py --all > /tmp/check-all.txt && mv /tmp/check-all.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt` | repo root | 1 | `artifacts/check-all.txt` — authoritative capture: output written to /tmp then moved; log appended after the run |
-| C9d | `python3 workflow/tools/check_bundle.py --all --strict > /tmp/check-all-strict.txt && mv /tmp/check-all-strict.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt` | repo root | 1 | `artifacts/check-all-strict.txt` — authoritative strict capture |
-| C3 | `python3 workflow/tools/check_bundle.py --self-test` | repo root | 0 | `artifacts/self-test.txt` |
-| C4 | `python3 -I workflow/tools/check_bundle.py --self-test` | repo root | 0 | `artifacts/stdlib-isolated.txt` |
-| C4b | `grep -nE '^(import\|from) ' workflow/tools/check_bundle.py` | repo root | 0 | `artifacts/stdlib-imports.txt` |
-| C5 | `git status --porcelain > /tmp/gs-before.txt; python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /dev/null; python3 workflow/tools/check_bundle.py --all > /dev/null; git status --porcelain > /tmp/gs-after.txt; diff -u /tmp/gs-before.txt /tmp/gs-after.txt > artifacts/git-status-diff.txt` | repo root | 0 | `artifacts/git-status-before.txt`, `artifacts/git-status-after.txt`, `artifacts/git-status-diff.txt` |
-| C6 | `rm -rf /tmp/cb-fresh; git clone -q --branch wp/strata-013-check-bundle . /tmp/cb-fresh; cd /tmp/cb-fresh && python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012` | repo root | 0 | `artifacts/fresh-clone.txt` |
-| C7 | `grep -n 'check_bundle' workflow/README.md` | repo root | 0 | `artifacts/readme-section.txt` |
-| C8 | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run1.txt; python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run2.txt; diff -u /tmp/ac8-run1.txt /tmp/ac8-run2.txt > artifacts/deterministic.txt && echo IDENTICAL >> artifacts/deterministic.txt` | repo root | 0 | `artifacts/deterministic.txt` |
-| C10 | `python3 - <<'PY' ... verify HO-001 by basename fallback and HO-007 from bundle dir ...` | repo root | 0 | `artifacts/legacy-proof.txt` |
-| C11 | `python3 - <<'PY' ... RW-2 bypass probes (notes-hashes.txt; wrong digest with reworded command; control) ...` | repo root | 0 | `artifacts/bypass-proof.txt` |
-| C12 | `python3 - <<'PY' ... rehash all files in the bundle into hashes.txt ...` | repo root | 0 | `hashes.txt` |
-| C2f | `python3 workflow/tools/check_bundle.py --all > /tmp/check-all-fp.txt; diff -u /tmp/check-all-fp.txt artifacts/check-all.txt && echo IDENTICAL` | repo root | 0 | fixed-point proof (appended to `commands.log` after C12) |
+| C1 | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/check-ho012.txt 2>&1; rc=$?; mv /tmp/check-ho012.txt workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt; echo 'exit: '$rc` | repo root | 0 | `artifacts/check-ho012.txt` |
+| C2 | `python3 workflow/tools/check_bundle.py --self-test > /tmp/self-test.txt 2>&1; rc=$?; mv /tmp/self-test.txt workflow/evidence/HO-STRATA-013/artifacts/self-test.txt; echo 'exit: '$rc` | repo root | 0 | `artifacts/self-test.txt` |
+| C3 | `python3 -I workflow/tools/check_bundle.py --self-test > /tmp/stdlib-isolated.txt 2>&1; rc=$?; mv /tmp/stdlib-isolated.txt workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt; echo 'exit: '$rc` | repo root | 0 | `artifacts/stdlib-isolated.txt` |
+| C4 | `grep -nE '^(import\|from) ' workflow/tools/check_bundle.py > /tmp/stdlib-imports.txt 2>&1; rc=$?; mv /tmp/stdlib-imports.txt workflow/evidence/HO-STRATA-013/artifacts/stdlib-imports.txt; echo 'exit: '$rc` | repo root | 0 | `artifacts/stdlib-imports.txt` |
+| C5 | `git status --porcelain > /tmp/gs-before.txt; python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /dev/null; python3 workflow/tools/check_bundle.py --all > /dev/null; git status --porcelain > /tmp/gs-after.txt; diff -u /tmp/gs-before.txt /tmp/gs-after.txt > workflow/evidence/HO-STRATA-013/artifacts/git-status-diff.txt; rc=$?; cp /tmp/gs-before.txt workflow/evidence/HO-STRATA-013/artifacts/git-status-before.txt; cp /tmp/gs-after.txt workflow/evidence/HO-STRATA-013/artifacts/git-status-after.txt; echo 'exit: '$rc` | repo root | 0 | `artifacts/git-status-before.txt`, `artifacts/git-status-after.txt`, `artifacts/git-status-diff.txt` |
+| C6 | `rm -rf /tmp/cb-fresh; git clone -q --branch wp/strata-013-check-bundle . /tmp/cb-fresh; (cd /tmp/cb-fresh && python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/fresh-clone.txt 2>&1; rc=$?; echo 'exit: '$rc); mv /tmp/fresh-clone.txt workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt` | repo root | 0 | `artifacts/fresh-clone.txt` |
+| C7 | `grep -n 'check_bundle' workflow/README.md > /tmp/readme-section.txt 2>&1; rc=$?; mv /tmp/readme-section.txt workflow/evidence/HO-STRATA-013/artifacts/readme-section.txt; echo 'exit: '$rc` | repo root | 0 | `artifacts/readme-section.txt` |
+| C8 | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run1.txt 2>&1; python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/ac8-run2.txt 2>&1; sha256sum /tmp/ac8-run1.txt /tmp/ac8-run2.txt > workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt; diff -u /tmp/ac8-run1.txt /tmp/ac8-run2.txt >> workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt; rc=$?; echo 'exit: '$rc` | repo root | 0 | `artifacts/deterministic.txt` |
+| C9 | `python3 workflow/evidence/HO-STRATA-013/scripts/legacy_proof.py > /tmp/legacy-proof.txt 2>&1; rc=$?; mv /tmp/legacy-proof.txt workflow/evidence/HO-STRATA-013/artifacts/legacy-proof.txt; echo 'exit: '$rc` | repo root | 0 | `artifacts/legacy-proof.txt` |
+| C10 | `python3 workflow/evidence/HO-STRATA-013/scripts/bypass_probe.py > /tmp/bypass-proof.txt 2>&1; rc=$?; mv /tmp/bypass-proof.txt workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt; echo 'exit: '$rc` | repo root | 0 | `artifacts/bypass-proof.txt` |
+| C11a | `python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt 2>&1; rc=$?; mv /tmp/ca.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt; echo 'exit: '$rc` | repo root | 1 | `artifacts/check-all.txt` |
+| C11b | `python3 workflow/tools/check_bundle.py --all --strict > /tmp/cas.txt 2>&1; rc2=$?; mv /tmp/cas.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt; echo 'exit: '$rc2` | repo root | 1 | `artifacts/check-all-strict.txt` |
+| C12 | `python3 - <<'PY' > workflow/evidence/HO-STRATA-013/hashes.txt ...` | repo root | 0 | `hashes.txt` |
+| C13 | `rm -f test-output.txt; for f in $(ls artifacts/*.txt | sort); do name=$(basename "$f"); echo "===== $f =====" >> test-output.txt; cat "$f" >> test-output.txt; echo "" >> test-output.txt; done` | `workflow/evidence/HO-STRATA-013` | 0 | `test-output.txt` |
+| C16 | `python3 - <<'PY' > workflow/evidence/HO-STRATA-013/hashes.txt ...` | repo root | 0 | `hashes.txt` |
+| C17 | `python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt 2>&1; rc=$?; mv /tmp/ca.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt; echo 'exit: '$rc` | repo root | 1 | `artifacts/check-all.txt` |
+| C18 | `python3 workflow/tools/check_bundle.py --all --strict > /tmp/cas.txt 2>&1; rc2=$?; mv /tmp/cas.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt; echo 'exit: '$rc2` | repo root | 1 | `artifacts/check-all-strict.txt` |
+| C19 | `python3 - <<'PY' > workflow/evidence/HO-STRATA-013/hashes.txt ...` | repo root | 0 | `hashes.txt` |
+| C14 | `python3 workflow/tools/check_bundle.py --all > /tmp/fp1.txt 2>&1; diff -q /tmp/fp1.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt; echo "fp1 diff exit: $?"` | repo root | 0 | fixed-point proof (not an artifact) |
+| C15 | `python3 workflow/tools/check_bundle.py --all --strict > /tmp/fp2.txt 2>&1; diff -q /tmp/fp2.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt; git status --porcelain; echo "fp2/status exit: $?"` | repo root | 0 | fixed-point proof (not an artifact) |
 
 ## 2. Acceptance criteria ↔ evidence
 
 | # | Criterion | Command | Observed | Pass? |
 |---|---|---|---|---|
 | AC-1 | Runs on a real, signed bundle | C1 | exit 0, `RESULT: PASS` (25 checks, 6 warnings) | **PASS** |
-| AC-2 | Aggregate run over every bundle | C2d | all `HO-*` processed; `DEC-039` is `WARN skipped` only on a direct invocation; `--all` globs `HO-*` and never visits it; exactly 2 FAILs (`HO-STRATA-011` cmd-8 out/err); exit 1 | **PASS** |
-| AC-3 | Negative controls | C3 | exit 0; all 15 fixtures behaved as expected | **PASS** |
-| AC-4 | Stdlib only, isolated interpreter | C4 / C4b | exit 0 under `-I`; imports stdlib only | **PASS** |
-| AC-5 | Read-only | C5 | no diff between before/after status | **PASS** |
+| AC-2 | Aggregate run over every bundle | C11a / C17 | all `HO-*` processed; `DEC-039` is `WARN skipped` only on a direct invocation; `--all` globs `HO-*` and never visits it; exactly 2 FAILs (`HO-STRATA-011` cmd-8 out/err); exit 1 | **PASS** |
+| AC-3 | Negative controls | C2 | exit 0; all **16** fixtures behaved as expected | **PASS** |
+| AC-4 | Stdlib only, isolated interpreter | C3 / C4 | exit 0 under `-I`; imports stdlib only | **PASS** |
+| AC-5 | Read-only | C5 | no diff between before/after status (snapshots taken mid-assembly are identical; the tool wrote nothing) | **PASS** |
 | AC-6 | Works from a fresh clone | C6 | same exit code and verdict as AC-1 | **PASS** |
 | AC-7 | Documented | C7 | README section present with both commands and rule | **PASS** |
-| AC-8 | Deterministic output | C8 | two runs byte-identical | **PASS** |
-| RW-2 A1 | B3 exempts only the bundle's own `hashes.txt` | C3 / C11 | unlisted `artifacts/notes-hashes.txt` now `FAIL B3-unlisted` in default and `--strict` | **PASS** |
-| RW-2 A2 | B6 verifies every path pin regardless of Command spelling | C3 / C11 | wrong full digest and unresolvable commit under reworded commands now `FAIL B6-pins`; tree/binary pins now `WARN B6-pins not a path pin` | **PASS** |
-| RW-2 F3 | `commands.log` copy-paste reproducible | commands.log | exact commands, repo-relative paths, no `...` elisions | **PASS** |
-| RW-2 F4 | Manifest corrections | manifest.md | `HO-STRATA-013` row shows `0 warnings`; AC-2 states `DEC-039` is direct-invocation only | **PASS** |
-| RW-2 F5 | Three new negative controls | C3 / C11 | 12 → 15 fixtures; bypass probes FAIL as required | **PASS** |
+| AC-8 | Deterministic output | C8 | two runs byte-identical (same SHA256) | **PASS** |
+| RW-3 R2-1 | Logged aggregate capture uses `;` not `&&` | C11a / C11b / C17 / C18 | `mv` runs even though the tool exits 1; real exit codes recorded | **PASS** |
+| RW-3 R2-2 | `test-output.txt` rebuilt from final artifacts | C13 | mechanical concatenation in fixed alphabetical order, no curation | **PASS** |
+| RW-3 R2-3 | Manifest commands and claims match artifacts | §1 / §3 | every command verbatim with cwd/exit code; no `...`; status snapshots mid-assembly; per-bundle numbers from the final aggregate | **PASS** |
+| RW-3 R2-4 | B6 verifies the File/Path column, not the Command cell | C2 / C10 / C11a | `pin-divergent-cells` fixture PASSes with WARN; wrong File digest FAILs; no signed bundle edited for the new strictness | **PASS** |
 
 ## 3. Per-bundle verdict table (`--all`)
 
-The authoritative aggregate capture (`C2d`) was taken from a clean tree with valid hashes: output to /tmp, moved into place, log appended afterwards, and verified byte-identical by the fixed-point run (`C2f`). It shows exactly 2 FAILs, both `HO-STRATA-011` `B3-unlisted`.
+The authoritative aggregate capture (`C17`) was taken from a clean tree after the final rehash (`C19`): output to `/tmp`, moved into place, log appended afterwards, and verified byte-identical by the fixed-point runs (`C14`/`C15`). It shows exactly 2 FAILs, both `HO-STRATA-011` `B3-unlisted`.
 
-| Bundle | Result | Warnings | Findings |
+| Bundle | Result | Checks | Warnings | Findings |
 |---|---|---|---|---|
-| `HO-STRATA-001` | PASS | 43 | B2-legacy-path (3 top-level files), B2-path-spelling (16 artifact basenames), B2-external (2 absolute paths), B2-prose (3 lines), B3-path-spelling (19 files) |
-| `HO-STRATA-005` | PASS | 1 | B1: no manifest.md; skipped |
-| `HO-STRATA-007` | PASS | 32 | B2-legacy-path (15 `./` paths), B2-external (2 absolute paths), B3-path-spelling (15 files) |
-| `HO-STRATA-008` | PASS | 31 | B2-legacy-path (14 `./` paths), B2-external (3 absolute paths), B3-path-spelling (14 files) |
-| `HO-STRATA-010` | PASS | 0 | all checks pass |
-| `HO-STRATA-011` | **FAIL** | 1 | B3-unlisted: `artifacts/cmd-8.err.txt` and `artifacts/cmd-8.out.txt`; B2-external (1 model file) |
-| `HO-STRATA-012` | PASS | 6 | B6: 3 abbreviated/no-comparable commit pins, 3 `not a path pin` warnings for tree/binary pins |
-| `HO-STRATA-013` | PASS | 0 | all checks pass after the fixed-point rehash |
+| `HO-STRATA-001` | PASS | 72 | 43 | B2-legacy-path (3 top-level files), B2-path-spelling (16 artifact basenames), B2-external (2 absolute paths), B2-prose (3 lines), B3-path-spelling (19 files) |
+| `HO-STRATA-005` | PASS | 1 | 1 | B1: no manifest.md; skipped |
+| `HO-STRATA-007` | PASS | 57 | 32 | B2-legacy-path (15 `./` paths), B2-external (2 absolute paths), B3-path-spelling (15 files) |
+| `HO-STRATA-008` | PASS | 56 | 31 | B2-legacy-path (14 `./` paths), B2-external (3 absolute paths), B3-path-spelling (14 files) |
+| `HO-STRATA-010` | PASS | 24 | 0 | all checks pass |
+| `HO-STRATA-011` | **FAIL** | 52 | 1 | B3-unlisted: `artifacts/cmd-8.err.txt` and `artifacts/cmd-8.out.txt`; B2-external (1 model file) |
+| `HO-STRATA-012` | PASS | 25 | 6 | B6: 3 abbreviated/no-comparable commit pins, 3 `not a path pin` warnings for tree/binary pins |
+| `HO-STRATA-013` | PASS | 30 | 0 | all checks pass after the final rehash and clean-tree recapture |
+| **Total** | **FAIL** | **317** | **114** | 2 FAILs total, both pre-existing in `HO-STRATA-011` |
 
 `DEC-039` is `WARN skipped` only when the tool is invoked directly on `workflow/evidence/DEC-039/`; `--all` globs `HO-*` and never visits it, as required by the handoff.
 
@@ -74,6 +80,7 @@ The authoritative aggregate capture (`C2d`) was taken from a clean tree with val
 | `--all --strict` check | `artifacts/check-all-strict.txt` | in `hashes.txt` |
 | self-test | `artifacts/self-test.txt` | in `hashes.txt` |
 | stdlib/isolated | `artifacts/stdlib-isolated.txt` | in `hashes.txt` |
+| stdlib imports | `artifacts/stdlib-imports.txt` | in `hashes.txt` |
 | fresh-clone | `artifacts/fresh-clone.txt` | in `hashes.txt` |
 | git status before | `artifacts/git-status-before.txt` | in `hashes.txt` |
 | git status after | `artifacts/git-status-after.txt` | in `hashes.txt` |
@@ -82,6 +89,8 @@ The authoritative aggregate capture (`C2d`) was taken from a clean tree with val
 | deterministic | `artifacts/deterministic.txt` | in `hashes.txt` |
 | legacy proof | `artifacts/legacy-proof.txt` | in `hashes.txt` |
 | bypass proof | `artifacts/bypass-proof.txt` | in `hashes.txt` |
+| legacy probe script | `scripts/legacy_proof.py` | in `hashes.txt` |
+| bypass probe script | `scripts/bypass_probe.py` | in `hashes.txt` |
 | commands log | `commands.log` | in `hashes.txt` |
 | test output | `test-output.txt` | in `hashes.txt` |
 | manifest | `manifest.md` | in `hashes.txt` |
@@ -91,12 +100,18 @@ The authoritative aggregate capture (`C2d`) was taken from a clean tree with val
 - The `--all` run returns exit 1 because of two pre-existing packaging gaps in
   `HO-STRATA-011` (`artifacts/cmd-8.err.txt` and `artifacts/cmd-8.out.txt` are
   not listed in `hashes.txt`). These are **not fixed** per the handoff guard rail.
-- `HO-STRATA-012` now reports 6 B6 warnings: 3 abbreviated/no-comparable
+- `HO-STRATA-012` reports 6 B6 warnings: 3 abbreviated/no-comparable
   digests on real path pins, and 3 `not a path pin` warnings for tree/binary
   pins that were previously silently skipped. The bundle remains `PASS`.
 - `--all --strict` upgrades `B2-legacy-path`, `B2-external`, `B2-prose`, and
   `B3-path-spelling` warnings to FAILs, proving the strict mode works without
   changing `B6` or `B7`.
+- The `C5` status snapshots were taken mid-assembly while artifacts were being
+  regenerated; they are identical before and after the tool runs, which proves
+  AC-5 (the tool wrote nothing). They do **not** prove the whole tree was clean.
+- The `C12`/`C16`/`C19` rehash blocks each reproduce `hashes.txt` with 21+ entries
+  covering every bundle file plus the tool; no absolute `/home/...` paths are
+  emitted.
 - No signed bundle was edited; no check was weakened to restore a count.
 - No model, pack, or engine run is involved; the only "profile" is the host
   toolchain.

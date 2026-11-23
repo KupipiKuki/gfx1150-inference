@@ -58,3 +58,70 @@ cwd: /home/kupipi/Documents/git/gfx1150-inference
 python3 workflow/tools/check_bundle.py --all --strict > /tmp/cas.txt 2>&1; rc2=$?; mv /tmp/cas.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt; echo 'exit: '$rc2
 exit: 1
 
+=== C12 (rehash after non-aggregate artifacts) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 - <<'PY' > workflow/evidence/HO-STRATA-013/hashes.txt
+import hashlib
+from pathlib import Path
+
+root = Path(".")
+bundle = Path("workflow/evidence/HO-STRATA-013")
+files = sorted(
+    p for p in bundle.rglob("*")
+    if p.is_file() and p.name != "hashes.txt"
+)
+# The immutable tool is also part of this bundle's evidence.
+files.append(Path("workflow/tools/check_bundle.py"))
+print("# SHA-256 hashes — HO-STRATA-013 evidence bundle")
+print("# Generated after the RW-3 evidence refresh.")
+print("# hashes.txt excludes itself. Paths are repo-root relative.")
+for p in files:
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(65536), b""):
+            h.update(ch)
+    rel = p.resolve().relative_to(root.resolve()).as_posix()
+    print(f"{h.hexdigest()}  {rel}")
+PY
+exit: 0
+
+=== C13 (rebuild test-output.txt) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-013
+rm -f test-output.txt; for f in $(ls artifacts/*.txt | sort); do name=$(basename "$f"); echo "===== $f =====" >> test-output.txt; cat "$f" >> test-output.txt; echo "" >> test-output.txt; done
+exit: 0
+
+=== C14 (fixed-point: --all) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all > /tmp/fp1.txt 2>&1; diff -q /tmp/fp1.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt; echo "fp1 diff exit: $?"
+exit: 0
+
+=== C15 (fixed-point: --all --strict and git status) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all --strict > /tmp/fp2.txt 2>&1; diff -q /tmp/fp2.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt; git status --porcelain; echo "fp2/status exit: $?"
+exit: 0
+=== C16 (rehash after test-output and manifest updates) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 - <<'PY' > workflow/evidence/HO-STRATA-013/hashes.txt
+import hashlib
+from pathlib import Path
+
+root = Path(".")
+bundle = Path("workflow/evidence/HO-STRATA-013")
+files = sorted(
+    p for p in bundle.rglob("*")
+    if p.is_file() and p.name != "hashes.txt"
+)
+# The immutable tool is also part of this bundle's evidence.
+files.append(Path("workflow/tools/check_bundle.py"))
+print("# SHA-256 hashes — HO-STRATA-013 evidence bundle")
+print("# Generated after the RW-3 evidence refresh.")
+print("# hashes.txt excludes itself. Paths are repo-root relative.")
+for p in files:
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(65536), b""):
+            h.update(ch)
+    rel = p.resolve().relative_to(root.resolve()).as_posix()
+    print(f"{h.hexdigest()}  {rel}")
+exit: 0
+
