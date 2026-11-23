@@ -53,3 +53,11 @@ cwd: /home/kupipi/Documents/git/gfx1150-inference
 python3 - <<'PY'  (verify HO-007 from the bundle dir; verify HO-001 by basename fallback)
 exit: 0
 
+=== C2b (post-commit re-run on a clean tree) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all
+exit: 1
+=== C9b (post-commit re-run on a clean tree) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all --strict
+exit: 1
