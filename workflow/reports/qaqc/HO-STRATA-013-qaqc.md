@@ -1,47 +1,40 @@
-# QAQC report — HO-STRATA-013 (Round 2)
+# QAQC report — HO-STRATA-013 (Round 3)
 
 | Field | Value |
 |---|---|
-| **Handoff** | HO-STRATA-013 (`check_bundle.py`: automate the evidence-packaging invariants), Reworks `RW-HO-STRATA-013-1` and `RW-HO-STRATA-013-2`, QAQC handoff `HO-STRATA-013-QAQC` |
+| **Handoff** | HO-STRATA-013 (`check_bundle.py`: automate the evidence-packaging invariants), Reworks `RW-HO-STRATA-013-1`, `RW-HO-STRATA-013-2`, `RW-HO-STRATA-013-3` |
 | **Reviewer** | QAQC (`opencode-go/gemini-4-argon`, DEC-039) |
-| **Date (UTC)** | 2026-11-22 |
+| **Date (UTC)** | 2026-11-23 |
 | **Verdict** | **PASS** |
-| **Scope reviewed** | Branch `wp/strata-013-check-bundle`, base `91eac12`, tip `429ad4d` (27 files changed, 4642 insertions, 0 deletions): `workflow/tools/check_bundle.py`, `workflow/README.md`, `workflow/evidence/HO-STRATA-013/**`, `workflow/handoffs/HO-STRATA-013*.md`, `workflow/handoffs/RW-HO-STRATA-013-{1,2}.md`, `workflow/reports/**` |
+| **Scope reviewed** | Branch `wp/strata-013-check-bundle`, base `91eac12`, tip `830b6bf` (clean tree): `workflow/tools/check_bundle.py`, `workflow/README.md`, `workflow/evidence/HO-STRATA-013/**`, `workflow/handoffs/HO-STRATA-013*.md`, `workflow/handoffs/RW-HO-STRATA-013-{1,2,3}.md`, `workflow/reports/**` |
 
 **Profile:** Host tooling only — Linux Mint 22.3 (Zena), kernel `7.0.0-42-generic`, Python `3.14.10`, git `2.43.0`. Hardware: AMD Radeon 890M (`gfx1150`) host (no GPU, model, quantization, or engine workload is invoked or claimed by this work package).
 
----
-
-## 0. Round 1 outcome
-
-Round 1 QAQC (`2800d64`) issued an erroneous **PASS** that missed two blocking tool-contract bypasses subsequently caught by the Auditor (`workflow/reports/audit/HO-STRATA-013-audit.md` §2.3, §4):
-
-1. **A1 (`B3-hash-coverage` suffix bypass):** `check_bundle.py:408` used `if fpath.endswith("hashes.txt"): continue` instead of comparing against the bundle's own `hashes.txt`, allowing any unlisted file ending in `hashes.txt` (e.g., `artifacts/notes-hashes.txt`) to pass both default and `--strict` runs. **Which check would have caught it:** an adversarial boundary probe on the B3 self-exemption rule placing an unlisted `*hashes.txt` file inside `artifacts/` (now Check 1 below and self-test fixture `unlisted-hashes-suffix`).
-2. **A2 (`B6-pins` silent skip on non-matching Command cell):** `check_bundle.py:533` gated pin verification on `re.search(r"git\s+show\s+[0-9a-fA-F]+:\S+\s*\\?\|\s*sha256sum", cmd)`, silently skipping any commit-pin row whose `Command` column used a different spelling (e.g., `git cat-file -p <sha>:<path> | sha256sum`) even when the row carried a wrong 64-hex digest or an unresolvable commit (`deadbeef`). **Which check would have caught it:** an adversarial B6 probe varying the `Command` phrasing on a wrong-digest and an unresolvable-commit row (now Check 2 below and self-test fixtures `pin-wrong-digest-reworded` / `pin-unresolvable-commit-reworded`).
-
-Round 1 also misstated `sha256sum -c` as `17/17` instead of `18/18` (omitting the `workflow/tools/check_bundle.py` entry; in Round 2 the bundle has **19/19** entries including `artifacts/bypass-proof.txt`) and treated the `commands.log` path/elision defects (A6) and `manifest.md` warning-count/DEC-039 wording discrepancies (A4) as non-blocking without requiring an evidence refresh.
+**Rounds 1–2:** Round 1 (`2800d64`) passed AC-1…AC-8 and RW-1 but missed the B3 `*hashes.txt` suffix exemption (A1) and the B6 non-standard Command-cell skip (A2), which were fixed in RW-2. Round 2 (`429ad4d`) verified A1/A2 fixed, after which the Auditor (`9b85e33`) identified R2-1 (`&& mv` short-circuiting after exit 1), R2-2 (stale strict section in `test-output.txt`), R2-3 (manifest over-claims/paths/`...`), and R2-4 (B6 Command cell overriding the `File` column); all four were scoped into `RW-HO-STRATA-013-3`.
 
 ---
 
-## 1. Round 2 checks and acceptance criteria re-run
+## 1. Acceptance criteria and RW-3 check results
 
-All seven required Round 2 checks (covering `RW-HO-STRATA-013-2` A1, A2, F3, F4, F5 and `HO-STRATA-013` AC-1…AC-8) were executed independently on clean tree `429ad4d`.
+All nine Round 3 checks (covering `RW-HO-STRATA-013-3` R2-1…R2-4, fixed-point convergence, hashes, reproducibility, regression AC-1…AC-8, and process verification) were executed independently on clean tree `830b6bf`.
 
 | # | Check / Criterion | Command / Probe | Observed | Pass? |
 |---|---|---|---|---|
-| **1 (A1)** | **B3 suffix bypass** | Temp git repo `/tmp/opencode/qaqc-r2/repo_a1` with tracked `bundle/{manifest.md,commands.log,hashes.txt}` (covering `manifest.md` and `commands.log`) and UNLISTED `bundle/artifacts/notes-hashes.txt`; run `check_bundle.py` default and `--strict` | Default: exit `1`, `FAIL B3-unlisted bundle/artifacts/notes-hashes.txt`, `RESULT: FAIL (11 checks, 0 warnings)`. `--strict`: exit `1`, `FAIL B3-unlisted bundle/artifacts/notes-hashes.txt`, `RESULT: FAIL (11 checks, 0 warnings)`. The bundle's own `bundle/hashes.txt` is **not** reported as unlisted (`check_bundle.py:404,409` compares `fpath == own_hashes`). | **PASS** |
-| **2 (A2)** | **B6 silent skip** | Temp git repos `/tmp/opencode/qaqc-r2/repo_a2{a,b,c}` with `pinned.txt` at HEAD (`6f3be4af…`, actual sha256 `dd432658…`) and `hashes-notes.txt` `## Commit pins` row using `git cat-file -p <sha>:pinned.txt \| sha256sum`: (2a) wrong 64-hex digest `a`×64; (2b) unresolvable commit `deadbeef`; (2c) control with correct 64-hex digest | **2a (wrong digest):** exit `1`, `FAIL B6-pins pinned.txt (recorded aaaa…aaaa, actual dd4326581f6b940a68f39de43cf25d594476d1a825573ffb5aaf7b24f6348cac)`. **2b (`deadbeef`):** exit `1`, `FAIL B6-pins unresolvable commit 'deadbeef' for pinned.txt`. **2c (control):** exit `0`, `PASS B6-pins pin ok: 6f3be4afc10bf7168fcffd1be8f62c2f4ffa1fae:pinned.txt`, `RESULT: PASS (13 checks, 0 warnings)`. | **PASS** |
-| **3 (AC-3 / F5)** | **Fixtures (15 negative controls)** | `python3 workflow/tools/check_bundle.py --self-test` (`and python3 -I ...`) + code inspection of `check_bundle.py:1054-1151` | Exit `0` under default and `-I`; 15/15 fixtures print `PASS`, `RESULT: PASS (all fixtures behaved as expected)`. `fixture_unlisted_hashes_suffix` and `fixture_pin_unresolvable_commit_reworded` construct the exact defects and assert `FAIL B3-unlisted` and `FAIL B6-pins` (default + `--strict`). See Minor finding **F1** regarding `fixture_pin_wrong_digest_reworded`. | **PASS** |
-| **4 (AC-1 / AC-2)** | **Regression (`HO-STRATA-012`, `--all`, `HO-STRATA-013`)** | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012`; `python3 workflow/tools/check_bundle.py --all`; `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-013` | **AC-1 (`HO-STRATA-012`):** exit `0`, `RESULT: PASS (25 checks, 6 warnings)` (3 abbreviated/no-comparable pin warnings + 3 `WARN B6-pins not a path pin` on tree/binary rows), byte-identical to `artifacts/check-ho012.txt`. **AC-2 (`--all`):** exit `1`, `RESULT: FAIL (317 checks, 114 warnings)`, byte-identical to `artifacts/check-all.txt`; **exactly 2 FAIL lines**, both `B3-unlisted` on `HO-STRATA-011` (`artifacts/cmd-8.err.txt`, `artifacts/cmd-8.out.txt`); `HO-STRATA-012` and all other `HO-*` bundles `PASS`. **Self-bundle (`HO-STRATA-013`):** exit `0`, `RESULT: PASS (30 checks, 0 warnings)`. (See Minor finding **F3** on `artifacts/check-all-strict.txt`.) | **PASS** |
-| **5** | **Evidence integrity (`hashes.txt` & C12)** | `sha256sum -c workflow/evidence/HO-STRATA-013/hashes.txt`; `grep -n '/home/' workflow/evidence/HO-STRATA-013/hashes.txt`; run C12 script from `commands.log` into `/tmp` and `diff -u` against `hashes.txt` | `sha256sum -c`: **19/19 OK**, exit `0` (0 failures). `grep '/home/'`: 0 matches. C12 script output diff against `workflow/evidence/HO-STRATA-013/hashes.txt`: exit `0` (**byte-identical**). | **PASS** |
-| **6 (F3)** | **Reproducibility (`commands.log`)** | Inspect `workflow/evidence/HO-STRATA-013/commands.log` (`lines 1-289`) | Zero `...` elisions anywhere in `commands.log`; `C8`, `C10`, `C11`, and `C12` are recorded in full. `C2d` (`line 8`) and `C9d` (`line 13`) move `/tmp/check-all*.txt` to `workflow/evidence/HO-STRATA-013/artifacts/check-all*.txt`, which resolves directly from `cwd: /home/kupipi/Documents/git/gfx1150-inference` (repo root). | **PASS** |
-| **7 (F4)** | **Documentation & manifest accuracy** | Inspect `manifest.md` §2, §3 and `RW-HO-STRATA-013-1.md` §1.4 | `manifest.md` §3 (`line 63`) row for `HO-STRATA-013` states `PASS | 0 | all checks pass after the fixed-point rehash`. `manifest.md` §2 AC-2 (`line 37`) and §3 (`line 65`) state `DEC-039` is `WARN skipped` only on a direct invocation and `--all` globs `HO-*` and never visits it. `RW-HO-STRATA-013-1.md` §1.4 (`lines 78-80`) attributes the exit-4 absolute-path guard to the evidence-generation script, not `check_bundle.py`. | **PASS** |
+| **1 (R2-4)** | **B6 `File` column precedence over `Command` cell** | Throwaway git repo `/tmp/opencode/qaqc-r3/r2_4/repo` with committed `pinned.txt` (sha256 `60e5f7a59112…`) and `other.txt` (sha256 `e6bd09f449e9…`) at HEAD `baff9fb1…`; `hashes-notes.txt` row has `File` = `pinned.txt`, `Commit` = `baff9fb1…`, `Command` = `git show baff9fb1…:other.txt \| sha256sum`: (1a) digest = `pinned.txt`; (1b) digest = `other.txt`; (1c) digest = `f`×64 | **1a (correct `pinned.txt` digest):** exit `0`, `WARN B6-pins command path differs from File column`, `PASS B6-pins pin ok: baff9fb1c1e3e351aa24239aa4ac2dbbe3d20703:pinned.txt`, `RESULT: PASS (14 checks, 1 warnings)`. **1b (`other.txt` digest):** exit `1`, `WARN B6-pins command path differs from File column`, `FAIL B6-pins pinned.txt (recorded e6bd09f4…, actual 60e5f7a5…)`. **1c (`f`×64 digest):** exit `1`, `FAIL B6-pins pinned.txt (recorded ffff…ffff, actual 60e5f7a5…)`. `File` column is authoritative. | **PASS** |
+| **2 (AC-3 / R2-4)** | **Fixtures (16 negative controls)** | `python3 workflow/tools/check_bundle.py --self-test` and code review of 16th fixture `fixture_pin_divergent_cells` (`check_bundle.py:1136-1188`) | Exit `0`; 16/16 fixtures print `PASS`, `RESULT: PASS (all fixtures behaved as expected)`. The 16th fixture (`pin-divergent-cells`) pins `File` = `bundle/pinned.txt` with `Command` = `git show <sha>:bundle/other.txt \| sha256sum`, asserts `PASS B6-pins` + `WARN B6-pins command path differs from File column` when `pinned.txt`'s digest is recorded, then overwrites the digest with `'0'*64` and asserts `FAIL B6-pins`. | **PASS** |
+| **3 (R2-1)** | **Logged C17 capture works verbatim despite exit 1** | Clone branch into `/tmp/opencode/qaqc-r3/clone`; test C17 (`python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt 2>&1; rc=$?; mv /tmp/ca.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt`) both after seeding a sentinel into `artifacts/check-all.txt` and on a clean checkout | **Sentinel test:** pre-C17 sha `52bd8eca…` → C17 runs (`rc=1`, `mv` exit `0`, `/tmp/ca.txt` removed) → post-C17 sha updated to `63d07c1a…`. **Clean clone test:** pre-C17 sha `61f34497…` (inode `4595832`) → C17 runs (`rc=1`, `/tmp/ca.txt` moved) → post-C17 sha `61f34497…` (new inode `2097265`, byte-identical to committed artifact). | **PASS** |
+| **4 (R2-2)** | **`test-output.txt` matches final artifacts only** | Inspect `workflow/evidence/HO-STRATA-013/test-output.txt` for stale failure strings and compare all 14 `===== artifacts/<name>.txt =====` sections against `artifacts/*.txt` | `actual: e0063b4e`: `False`; `B4-tracked git status not clean`: `False`; `HO-STRATA-013: RESULT: FAIL`: `False`. All **14/14** embedded sections match their final files in `artifacts/` byte-for-byte, including `artifacts/check-all-strict.txt` (21,909 bytes, showing `HO-STRATA-013: RESULT: PASS (32 checks, 0 warnings)`). | **PASS** |
+| **5 (Fixed point / AC-5)** | **Clean-tree fixed point for `--all` and `--all --strict`** | Run `--all` and `--all --strict` on clean tree `830b6bf`, diff against `artifacts/check-all.txt` and `artifacts/check-all-strict.txt`, check `git status --porcelain` | `--all` (exit `1`) is byte-identical to `artifacts/check-all.txt` (`61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd`). `--all --strict` (exit `1`) is byte-identical to `artifacts/check-all-strict.txt` (`d94c30243b2a0fab241d16ac631a08c28f75ba89faaa9e12812a5c8f5dbc9ebe`). `git status --porcelain` is empty (0 lines) before and after. | **PASS** |
+| **6 (Evidence)** | **`hashes.txt` verification, coverage, and C23 reproduction** | `sha256sum -c workflow/evidence/HO-STRATA-013/hashes.txt`; check `/home/`; verify coverage; run C23 rehash block from `commands.log` verbatim into `/tmp` and diff | `sha256sum -c`: **21/21 OK** (exit `0`, 0 failures). Zero `/home/` lines. Entries equal all 20 files in `workflow/evidence/HO-STRATA-013/` (excluding `hashes.txt`) + `workflow/tools/check_bundle.py`. C23 script output into `/tmp` diffs byte-identical (`exit 0`) to `hashes.txt`. | **PASS** |
+| **7 (Reproducibility)** | **`commands.log` and committed `scripts/*.py` probes** | `grep -n '\.\.\.' workflow/evidence/HO-STRATA-013/commands.log`; check C5/C8 paths; run `scripts/legacy_proof.py` and `scripts/bypass_probe.py` | Zero `...` in `commands.log`. C5 and C8 write to repo-root-relative `workflow/evidence/HO-STRATA-013/artifacts/…` in both `commands.log` and `manifest.md`. Both `scripts/legacy_proof.py` and `scripts/bypass_probe.py` are committed, hashed, and exit `0` (see Minor finding **F1** on `manifest.md` table cells). | **PASS** |
+| **8 (Regression)** | **AC-1 (`HO-012`), AC-2 (`--all`), AC-4 (`-I`), self-bundle** | Run `check_bundle.py` on `HO-STRATA-012`, `--all`, `-I --self-test`, and `HO-STRATA-013` | `HO-STRATA-012`: exit `0`, `RESULT: PASS (25 checks, 6 warnings)`. `--all`: exit `1`, `RESULT: FAIL (319 checks, 114 warnings)` with **exactly two FAILs**, both `B3-unlisted` on `HO-STRATA-011` (`artifacts/cmd-8.err.txt`, `cmd-8.out.txt`). `python3 -I … --self-test`: exit `0` (16/16). `HO-STRATA-013`: exit `0`, `RESULT: PASS (32 checks, 0 warnings)`. | **PASS** |
+| **9 (Process)** | **Independent verifiability of Architect C17–C23 completion** | `git log --stat 9b85e33..HEAD -- workflow/tools/check_bundle.py` and full re-derivation of C17–C23 artifacts | `workflow/tools/check_bundle.py` was modified only in coder commit `679b774`; commits `d48466a`, `cc0eeeb`, `830b6bf` are strictly deterministic evidence regeneration (`C17`–`C23`). Every artifact produced by `C17`–`C23` was independently re-derived byte-for-byte by QAQC on `830b6bf`. | **PASS** |
 
 ---
 
-## 2. Probe commands and verbatim outputs
+## 2. Commands and verbatim outputs
 
-### 2.1 Check 1 (A1 — B3 suffix bypass) and Check 2 (A2 — B6 silent skip)
+### 2.1 Check 1 (R2-4 — B6 `File` column precedence probe)
 
 ```text
 $ python3 - <<'PY'
@@ -49,125 +42,67 @@ import hashlib, shutil, subprocess, sys
 from pathlib import Path
 
 tool = Path("workflow/tools/check_bundle.py").resolve()
-base = Path("/tmp/opencode/qaqc-r2")
+base = Path("/tmp/opencode/qaqc-r3/r2_4")
 shutil.rmtree(base, ignore_errors=True)
 base.mkdir(parents=True, exist_ok=True)
 
 def run(cmd, cwd):
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
 
-def git_init(repo):
-    repo.mkdir(parents=True, exist_ok=True)
-    run(["git", "init"], cwd=repo)
-    run(["git", "config", "user.email", "qaqc@example.com"], cwd=repo)
-    run(["git", "config", "user.name", "QAQC"], cwd=repo)
-
-def commit_all(repo, msg):
-    run(["git", "add", "-A"], cwd=repo)
-    run(["git", "commit", "-m", msg], cwd=repo)
-
 def sha256_file(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
-# CHECK 1: A1 B3 suffix bypass
-repo_a1 = base / "repo_a1"
-git_init(repo_a1)
-bundle_a1 = repo_a1 / "bundle"
-(bundle_a1 / "artifacts").mkdir(parents=True)
-(bundle_a1 / "manifest.md").write_text("# Manifest\ncommands.log\n")
-(bundle_a1 / "commands.log").write_text("cmd\n")
-(bundle_a1 / "artifacts" / "notes-hashes.txt").write_text("unlisted notes\n")
-(bundle_a1 / "hashes.txt").write_text(
-    f"{sha256_file(bundle_a1/'manifest.md')}  bundle/manifest.md\n"
-    f"{sha256_file(bundle_a1/'commands.log')}  bundle/commands.log\n"
-)
-commit_all(repo_a1, "a1 setup")
+repo = base / "repo"
+repo.mkdir()
+run(["git", "init"], cwd=repo)
+run(["git", "config", "user.email", "qaqc@example.com"], cwd=repo)
+run(["git", "config", "user.name", "QAQC"], cwd=repo)
 
-r_a1_def = run([sys.executable, str(tool), str(bundle_a1)], cwd=repo_a1)
-r_a1_str = run([sys.executable, str(tool), "--strict", str(bundle_a1)], cwd=repo_a1)
-print("=== CHECK 1 (A1 default) exit:", r_a1_def.returncode)
-print(r_a1_def.stdout.strip())
-print("=== CHECK 1 (A1 --strict) exit:", r_a1_str.returncode)
-print(r_a1_str.stdout.strip())
+(repo / "pinned.txt").write_text("authoritative pinned content\n")
+(repo / "other.txt").write_text("decoy other content\n")
+run(["git", "add", "-A"], cwd=repo)
+run(["git", "commit", "-m", "initial"], cwd=repo)
 
-# CHECK 2: A2 B6 silent skip
-def make_a2_bundle(repo, commit_val, digest_val):
-    b = repo / "bundle"
-    b.mkdir(parents=True, exist_ok=True)
-    (b / "manifest.md").write_text("# Manifest\ncommands.log\n")
-    (b / "commands.log").write_text("cmd\n")
-    (b / "hashes-notes.txt").write_text(
+sha = run(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip()
+pinned_digest = sha256_file(repo / "pinned.txt")
+other_digest = sha256_file(repo / "other.txt")
+
+bundle = repo / "bundle"
+bundle.mkdir()
+(bundle / "manifest.md").write_text("# Manifest\n\ncommands.log\n")
+(bundle / "commands.log").write_text("cmd\n")
+
+def write_bundle_notes(digest_val):
+    (bundle / "hashes-notes.txt").write_text(
         "## Commit pins\n\n"
         "| File | Repository | Commit | Command | Digest |\n"
         "|---|---|---|---|---|\n"
-        f"| pinned.txt | gfx1150-inference | {commit_val} | git cat-file -p {commit_val}:pinned.txt \\| sha256sum | {digest_val} |\n"
+        f"| pinned.txt | gfx1150-inference | {sha} | git show {sha}:other.txt \\| sha256sum | {digest_val} |\n"
     )
-    (b / "hashes.txt").write_text(
-        f"{sha256_file(b/'manifest.md')}  bundle/manifest.md\n"
-        f"{sha256_file(b/'commands.log')}  bundle/commands.log\n"
-        f"{sha256_file(b/'hashes-notes.txt')}  bundle/hashes-notes.txt\n"
+    (bundle / "hashes.txt").write_text(
+        f"{sha256_file(bundle/'manifest.md')}  bundle/manifest.md\n"
+        f"{sha256_file(bundle/'commands.log')}  bundle/commands.log\n"
+        f"{sha256_file(bundle/'hashes-notes.txt')}  bundle/hashes-notes.txt\n"
     )
-    commit_all(repo, "bundle")
-    return b
+    run(["git", "add", "-A"], cwd=repo)
+    run(["git", "commit", "-m", f"notes {digest_val[:8]}"], cwd=repo)
 
-repo_a2a = base / "repo_a2a"
-git_init(repo_a2a)
-(repo_a2a / "pinned.txt").write_text("real file content\n")
-commit_all(repo_a2a, "initial file")
-sha_head = run(["git", "rev-parse", "HEAD"], cwd=repo_a2a).stdout.strip()
-real_digest = sha256_file(repo_a2a / "pinned.txt")
-b_a2a = make_a2_bundle(repo_a2a, sha_head, "a" * 64)
-r_a2a = run([sys.executable, str(tool), str(b_a2a)], cwd=repo_a2a)
-print("\n=== CHECK 2a (A2 wrong digest, git cat-file -p) exit:", r_a2a.returncode)
-print(r_a2a.stdout.strip())
+write_bundle_notes(pinned_digest)
+r1 = run([sys.executable, str(tool), str(bundle)], cwd=repo)
+print(f"=== R2-4 Probe 1a (File=pinned.txt, Command=...:other.txt, digest=pinned.txt [{pinned_digest[:12]}...]) exit: {r1.returncode} ===")
+print(r1.stdout.strip())
 
-repo_a2b = base / "repo_a2b"
-git_init(repo_a2b)
-(repo_a2b / "pinned.txt").write_text("real file content\n")
-commit_all(repo_a2b, "initial file")
-b_a2b = make_a2_bundle(repo_a2b, "deadbeef", real_digest)
-r_a2b = run([sys.executable, str(tool), str(b_a2b)], cwd=repo_a2b)
-print("\n=== CHECK 2b (A2 unresolvable commit deadbeef) exit:", r_a2b.returncode)
-print(r_a2b.stdout.strip())
+write_bundle_notes(other_digest)
+r2 = run([sys.executable, str(tool), str(bundle)], cwd=repo)
+print(f"\n=== R2-4 Probe 1b (File=pinned.txt, Command=...:other.txt, digest=other.txt [{other_digest[:12]}...]) exit: {r2.returncode} ===")
+print(r2.stdout.strip())
 
-repo_a2c = base / "repo_a2c"
-git_init(repo_a2c)
-(repo_a2c / "pinned.txt").write_text("real file content\n")
-commit_all(repo_a2c, "initial file")
-sha_head_c = run(["git", "rev-parse", "HEAD"], cwd=repo_a2c).stdout.strip()
-b_a2c = make_a2_bundle(repo_a2c, sha_head_c, real_digest)
-r_a2c = run([sys.executable, str(tool), str(b_a2c)], cwd=repo_a2c)
-print("\n=== CHECK 2c (A2 control: correct digest, git cat-file -p) exit:", r_a2c.returncode)
-print(r_a2c.stdout.strip())
+write_bundle_notes("f" * 64)
+r3 = run([sys.executable, str(tool), str(bundle)], cwd=repo)
+print(f"\n=== R2-4 Probe 1c (File=pinned.txt, Command=...:other.txt, digest=ffff...ffff) exit: {r3.returncode} ===")
+print(r3.stdout.strip())
 PY
-=== CHECK 1 (A1 default) exit: 1
-PASS B1-structure manifest.md exists
-PASS B1-structure hashes.txt exists
-PASS B1-structure commands.log exists
-PASS B2-hash-verify ok: bundle/manifest.md
-PASS B2-hash-verify ok: bundle/commands.log
-FAIL B3-unlisted bundle/artifacts/notes-hashes.txt
-PASS B4-tracked all files tracked
-PASS B4-tracked git status clean
-PASS B5-not-ignored no bundle file ignored
-PASS B7-secrets no credential-shaped strings
-PASS B8-read-only git status unchanged
-RESULT: FAIL (11 checks, 0 warnings)
-=== CHECK 1 (A1 --strict) exit: 1
-PASS B1-structure manifest.md exists
-PASS B1-structure hashes.txt exists
-PASS B1-structure commands.log exists
-PASS B2-hash-verify ok: bundle/manifest.md
-PASS B2-hash-verify ok: bundle/commands.log
-FAIL B3-unlisted bundle/artifacts/notes-hashes.txt
-PASS B4-tracked all files tracked
-PASS B4-tracked git status clean
-PASS B5-not-ignored no bundle file ignored
-PASS B7-secrets no credential-shaped strings
-PASS B8-read-only git status unchanged
-RESULT: FAIL (11 checks, 0 warnings)
-
-=== CHECK 2a (A2 wrong digest, git cat-file -p) exit: 1
+=== R2-4 Probe 1a (File=pinned.txt, Command=...:other.txt, digest=pinned.txt [60e5f7a59112...]) exit: 0 ===
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
@@ -178,12 +113,13 @@ PASS B3-hash-coverage all files listed
 PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
-FAIL B6-pins pinned.txt (recorded aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, actual dd4326581f6b940a68f39de43cf25d594476d1a825573ffb5aaf7b24f6348cac)
+WARN B6-pins command path differs from File column
+PASS B6-pins pin ok: baff9fb1c1e3e351aa24239aa4ac2dbbe3d20703:pinned.txt
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-RESULT: FAIL (13 checks, 0 warnings)
+RESULT: PASS (14 checks, 1 warnings)
 
-=== CHECK 2b (A2 unresolvable commit deadbeef) exit: 1
+=== R2-4 Probe 1b (File=pinned.txt, Command=...:other.txt, digest=other.txt [e6bd09f449e9...]) exit: 1 ===
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
@@ -194,12 +130,13 @@ PASS B3-hash-coverage all files listed
 PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
-FAIL B6-pins unresolvable commit 'deadbeef' for pinned.txt
+WARN B6-pins command path differs from File column
+FAIL B6-pins pinned.txt (recorded e6bd09f449e958ca646ee9a5a5fcaceffb0bf8ea0ee45c7b6c27447536ab60b6, actual 60e5f7a59112db62bad6b3a633de3f845e583696c4529ebfe49685e53e1a5bb7)
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-RESULT: FAIL (13 checks, 0 warnings)
+RESULT: FAIL (14 checks, 1 warnings)
 
-=== CHECK 2c (A2 control: correct digest, git cat-file -p) exit: 0
+=== R2-4 Probe 1c (File=pinned.txt, Command=...:other.txt, digest=ffff...ffff) exit: 1 ===
 PASS B1-structure manifest.md exists
 PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
@@ -210,13 +147,38 @@ PASS B3-hash-coverage all files listed
 PASS B4-tracked all files tracked
 PASS B4-tracked git status clean
 PASS B5-not-ignored no bundle file ignored
-PASS B6-pins pin ok: 6f3be4afc10bf7168fcffd1be8f62c2f4ffa1fae:pinned.txt
+WARN B6-pins command path differs from File column
+FAIL B6-pins pinned.txt (recorded ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, actual 60e5f7a59112db62bad6b3a633de3f845e583696c4529ebfe49685e53e1a5bb7)
 PASS B7-secrets no credential-shaped strings
 PASS B8-read-only git status unchanged
-RESULT: PASS (13 checks, 0 warnings)
+RESULT: FAIL (14 checks, 1 warnings)
 ```
 
-### 2.2 Check 3 (Self-test), Check 4 (Regression), and Check 5 (Hashes & C12)
+### 2.2 Check 3 (R2-1 — C17 verbatim execution in a fresh clone)
+
+```text
+=== Clone HEAD: 830b6bf ===
+=== Original committed SHA of artifacts/check-all.txt ===
+61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+=== Sentinel SHA before running C17 ===
+52bd8eca9a095240477276275c4c86af721bcc2421463d43ffab22ed479e3424  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+=== Running C17 verbatim from commands.log ===
+$ python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt 2>&1; rc=$?; mv /tmp/ca.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+C17 tool exit (rc): 1, mv exit: 0
+=== SHA after running C17 ===
+63d07c1a64873715046db66eae6ac63ab33dcf78d44fb42c7194ebef3eae6fc8  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+/tmp/ca.txt moved cleanly (does not remain in /tmp)
+
+=== Clean clone C17 run ===
+61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+before inode=4595832 mtime=1795431328
+$ python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt 2>&1; rc=$?; mv /tmp/ca.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+C17 exit: 1, /tmp/ca.txt exists: no
+after  inode=2097265 mtime=1795431355
+61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+```
+
+### 2.3 Checks 2, 4, 5, 6, 7, 8 (`--self-test`, `test-output.txt`, Fixed Point, Hashes, Regression)
 
 ```text
 $ python3 workflow/tools/check_bundle.py --self-test
@@ -235,32 +197,31 @@ PASS malformed-separator
 PASS unlisted-hashes-suffix
 PASS pin-wrong-digest-reworded
 PASS pin-unresolvable-commit-reworded
+PASS pin-divergent-cells
 RESULT: PASS (all fixtures behaved as expected)
-(exit: 0)
+self-test exit: 0
+isolated -I exit: 0
 
-$ python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-012 > /tmp/opencode/qaqc-r2/ho012.txt
-(exit: 0)
-$ diff -u /tmp/opencode/qaqc-r2/ho012.txt workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
-(exit: 0 — byte-identical; RESULT: PASS (25 checks, 6 warnings))
+# Check 4 (R2-2 — test-output.txt integrity)
+test-output.txt contains 'actual: e0063b4e': False
+test-output.txt contains 'B4-tracked git status not clean': False
+test-output.txt contains 'HO-STRATA-013: RESULT: FAIL': False
+Sections in test-output.txt: 14
+check-all-strict section matches artifacts/check-all-strict.txt: True (len=21909 bytes)
+All 14 sections in test-output.txt match final artifacts: True
 
-$ python3 workflow/tools/check_bundle.py --all > /tmp/opencode/qaqc-r2/all.txt
-(exit: 1)
-$ diff -u /tmp/opencode/qaqc-r2/all.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
-(exit: 0 — byte-identical)
-$ grep -n "^FAIL " /tmp/opencode/qaqc-r2/all.txt
+# Check 5 & 8 (Fixed point & Regression)
+fp --all exit: 1, diff exit: 0
+fp --all --strict exit: 1, diff exit: 0
+61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd  /tmp/opencode/qaqc-r3/fp-all.txt
+d94c30243b2a0fab241d16ac631a08c28f75ba89faaa9e12812a5c8f5dbc9ebe  workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
+d94c30243b2a0fab241d16ac631a08c28f75ba89faaa9e12812a5c8f5dbc9ebe  /tmp/opencode/qaqc-r3/fp-strict.txt
 266:FAIL B3-unlisted workflow/evidence/HO-STRATA-011/artifacts/cmd-8.err.txt
 267:FAIL B3-unlisted workflow/evidence/HO-STRATA-011/artifacts/cmd-8.out.txt
-$ grep -n "RESULT:" /tmp/opencode/qaqc-r2/all.txt
-73:HO-STRATA-001: RESULT: PASS (72 checks, 43 warnings)
-76:HO-STRATA-005: RESULT: PASS (1 checks, 1 warnings)
-135:HO-STRATA-007: RESULT: PASS (57 checks, 32 warnings)
-193:HO-STRATA-008: RESULT: PASS (56 checks, 31 warnings)
-219:HO-STRATA-010: RESULT: PASS (24 checks, 0 warnings)
-273:HO-STRATA-011: RESULT: FAIL (52 checks, 1 warnings)
-300:HO-STRATA-012: RESULT: PASS (25 checks, 6 warnings)
-332:HO-STRATA-013: RESULT: PASS (30 checks, 0 warnings)
-334:RESULT: FAIL (317 checks, 114 warnings)
+git status lines after fixed-point runs: 0
 
+# Check 6 (sha256sum -c & C23 reproduction)
 $ sha256sum -c workflow/evidence/HO-STRATA-013/hashes.txt
 workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt: OK
 workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt: OK
@@ -279,21 +240,26 @@ workflow/evidence/HO-STRATA-013/artifacts/stdlib-isolated.txt: OK
 workflow/evidence/HO-STRATA-013/commands.log: OK
 workflow/evidence/HO-STRATA-013/hashes-notes.txt: OK
 workflow/evidence/HO-STRATA-013/manifest.md: OK
+workflow/evidence/HO-STRATA-013/scripts/bypass_probe.py: OK
+workflow/evidence/HO-STRATA-013/scripts/legacy_proof.py: OK
 workflow/evidence/HO-STRATA-013/test-output.txt: OK
 workflow/tools/check_bundle.py: OK
-(exit: 0 — 19/19 OK; grep '/home/' returns 0 matches; C12 output into /tmp diffs byte-identical to hashes.txt)
+sha256sum -c exit: 0 (21/21 OK)
+No /home/ in hashes.txt
+C23 reproduces hashes.txt byte-for-byte (diff exit 0)
+No ... in commands.log
 ```
 
 ---
 
-## 3. Diff and guard-rail review
+## 3. Diff, guard-rail, and process review
 
-- [x] Diff (`git diff 91eac12..429ad4d --stat`) is within scope; no unrelated files.
+- [x] Diff (`git diff 91eac12..830b6bf`) is strictly within scope; no unrelated files.
 - [x] No existing signed evidence bundle (`HO-001` through `HO-012` or `DEC-039`) was modified.
 - [x] `workflow/DECISIONS.md`, `workflow/STATUS.md`, `.opencode/**`, `.github/**`, and `/home/kupipi/Documents/git/strata` were not touched.
-- [x] No new dependencies without approval (stdlib only, verified with `python3 -I` and import grep; no network calls).
-- [x] No secrets/tokens in the diff, logs, or evidence (`PASS B7-secrets` across all bundles).
-- [x] Both blocking defects from `RW-HO-STRATA-013-2` (A1 B3 suffix bypass and A2 B6 silent skip) are genuinely fixed in `workflow/tools/check_bundle.py` and verified by independent probes.
+- [x] No new dependencies (stdlib only, verified with `python3 -I` and import grep; no network calls).
+- [x] No secrets/tokens in the diff, logs, or evidence (`PASS B7-secrets`).
+- [x] **Process judgment (Check 9):** The coder exhausted its step budget at `c59a4db` after completing the `check_bundle.py` R2-4 code change (`679b774`), the probe helper scripts (`cad4c85`), and the initial artifact regeneration (`e91d901`). The architect then completed the clean-tree aggregate recapture and fixed-point convergence pass (`C17`–`C23` in commits `d48466a`, `cc0eeeb`, `830b6bf`) with zero changes to `workflow/tools/check_bundle.py`. Because every step in `C17`–`C23` is logged verbatim in `commands.log` and QAQC independently re-ran the commands from the clean tree `830b6bf` and reproduced `artifacts/check-all.txt`, `artifacts/check-all-strict.txt`, `test-output.txt`, and `hashes.txt` byte-for-byte, **the evidence is completely independently verifiable and verified**.
 
 ---
 
@@ -301,11 +267,10 @@ workflow/tools/check_bundle.py: OK
 
 | # | Severity | Finding | File:line / evidence | Required action |
 |---|---|---|---|---|
-| F1 | Minor | In `fixture_pin_wrong_digest_reworded` (`workflow/tools/check_bundle.py:1079-1100`), the file is committed in the throwaway repo at `bundle/artifact.txt`, but the `## Commit pins` table row writes `File` as `artifact.txt` (`git cat-file -p <commit>:artifact.txt \| sha256sum`). Consequently, inside `--self-test`, that fixture triggers `FAIL B6-pins unresolvable <commit>:artifact.txt` (`check_bundle.py:568`) before reaching the digest-mismatch branch (`check_bundle.py:578`). Note that: (1) the fixture still proves the reworded `git cat-file -p` row is no longer silently skipped by `_parse_commit_pins_table`, and (2) the wrong-digest branch at `check_bundle.py:578` works properly and is verified both by `commands.log` C11 (`artifacts/bypass-proof.txt` Probe 2, which uses `bundle/artifact.txt`) and by QAQC Check 2a above. Also, `_write_hashes` is omitted in `fixture_pin_wrong_digest_reworded` and `fixture_pin_unresolvable_commit_reworded` (just as in `fixture_bad_pin`). | `workflow/tools/check_bundle.py:1085-1100` | None required for gate (the production B6 check at `:577-579` and `artifacts/bypass-proof.txt` Probe 2 are both verified). |
-| F2 | Minor | In `_parse_commit_pins_table` (`workflow/tools/check_bundle.py:652-664`), the parser checks `re.search(r"git\s+show\s+([0-9a-fA-F]+):(\S+)", cmd)` first and falls back to the `Commit` and `File`/`Path` columns when `Command` is not `git show <hex>:<path>`. This satisfies all `HO-*` tables and all A2 probes, though if a future row had a `git show` command whose `<sha>:<path>` disagreed with the `Commit`/`File` columns, `cmd` would take precedence. | `workflow/tools/check_bundle.py:652-664` | None (documented for Auditor awareness). |
-| F3 | Minor | While `artifacts/check-all.txt` was re-verified after the final C12 rehash (`C2f`) and is a byte-exact fixed point on clean tree `429ad4d`, `artifacts/check-all-strict.txt` (and `artifacts/git-status-before.txt` / `after.txt`) was captured during the pre-commit refresh sequence (`C9d`/`C5`), so the `HO-STRATA-013` section inside `artifacts/check-all-strict.txt` records the pre-rehash state of `check-all.txt` (`FAIL B2-hash-mismatch`, `FAIL B3-path-spelling`, `FAIL B4-tracked`). Running `check_bundle.py --all --strict` on the committed clean tree `429ad4d` produces identical results for `HO-001`..`HO-012` and `HO-STRATA-013: RESULT: PASS (30 checks, 0 warnings)`. | `workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt:307-332` | None (authoritative `--all` fixed point `artifacts/check-all.txt` and `sha256sum -c` 19/19 are clean). |
+| F1 | Minor | While `commands.log` contains zero `...` elisions and records the full 22-line Python heredocs for `C12`, `C20`, and `C23` verbatim (plus `C19`/`C22` for `test-output.txt`), `manifest.md` §1 (`lines 29, 31, 34`) summarizes those multi-line heredocs inside its single-line Markdown table cells as `` `python3 - <<'PY' > workflow/evidence/HO-STRATA-013/hashes.txt ...` `` and stops its table at `C19` (referring to `commands.log` on line 13 for the full transcript). Also in `commands.log:126`, the intermediate superseded rehash block `C16` is missing the closing `PY` line before `exit: 0` (the final `C20` and `C23` blocks are complete and run verbatim). | `workflow/evidence/HO-STRATA-013/manifest.md:29,31,34`; `commands.log:126` | None (all commands and full scripts are verbatim and runnable in `commands.log` `C1`–`C15`, `C17`–`C23`). |
+| F2 | Minor | In `manifest.md` §3 (`lines 68-69`), the per-bundle verdict table lists `HO-STRATA-013` as `30` checks (`Total` `317`), whereas the authoritative `artifacts/check-all.txt` (`line 334, 336`) and live `--all` report `32` checks (`Total` `319` checks, `114` warnings) after the addition of `scripts/bypass_probe.py` and `scripts/legacy_proof.py`. | `workflow/evidence/HO-STRATA-013/manifest.md:68-69` vs `artifacts/check-all.txt:334-336` | None (verdict `PASS` and `0` warnings for `HO-STRATA-013` and `2` FAILs total in `HO-STRATA-011` are accurate). |
 
-No Blocker or Major findings.
+No Blocker or Major findings. All four Auditor Round 2 blocking findings (R2-1, R2-2, R2-3, R2-4) are closed.
 
 ---
 
@@ -317,16 +282,16 @@ No Blocker or Major findings.
 
 | Field | Value |
 |---|---|
-| **ID** | HO-STRATA-013-AUDIT-R2 (embedded in `HO-STRATA-013-qaqc.md`) |
+| **ID** | HO-STRATA-013-AUDIT-R3 (embedded in `HO-STRATA-013-qaqc.md`) |
 | **Type** | QAQC_TO_AUDITOR |
 | **State** | AUDIT_REVIEW |
-| **Date (UTC)** | 2026-11-22 |
+| **Date (UTC)** | 2026-11-23 |
 | **From → To** | QAQC (`opencode-go/gemini-4-argon`) → Auditor (`opencode-go/deepseek-v4.1-flash`, WAIVER-001) |
-| **Handoff** | `workflow/handoffs/HO-STRATA-013.md` (with `RW-HO-STRATA-013-1.md`, `RW-HO-STRATA-013-2.md`, and `HO-STRATA-013-QAQC.md`) |
-| **Branch / commit** | `wp/strata-013-check-bundle` @ `429ad4d` (base `91eac12`) |
+| **Handoff** | `workflow/handoffs/HO-STRATA-013.md` (with `RW-HO-STRATA-013-1.md`, `RW-HO-STRATA-013-2.md`, `RW-HO-STRATA-013-3.md`) |
+| **Branch / commit** | `wp/strata-013-check-bundle` @ `830b6bf` (base `91eac12`) |
 | **QAQC report** | `workflow/reports/qaqc/HO-STRATA-013-qaqc.md` |
-| **Evidence bundle** | `workflow/evidence/HO-STRATA-013/` (19/19 hashes verified via `sha256sum -c`; C12 rehash script reproduces `hashes.txt` byte-identically; `check_bundle.py` self-check `RESULT: PASS (30 checks, 0 warnings)`) |
-| **Summary** | All 7 Round 2 verification checks (A1 B3 suffix bypass probe, A2 B6 silent skip probes + control, 15 `--self-test` fixtures, AC-1/AC-2 regression + `--all` fixed-point diff, 19/19 `sha256sum -c` + C12 reproduction, `commands.log` copy-paste reproducibility, and `manifest.md`/`RW-1` doc corrections) passed on clean tree `429ad4d`. Three Minor findings (F1–F3), zero Blockers/Majors. |
+| **Evidence bundle** | `workflow/evidence/HO-STRATA-013/` (21/21 hashes verified via `sha256sum -c`; C23 rehash script reproduces `hashes.txt` byte-identically; `--all` and `--all --strict` are byte-exact fixed points; `test-output.txt` matches all 14 final artifacts; `check_bundle.py` self-check `RESULT: PASS (32 checks, 0 warnings)`) |
+| **Summary** | All 9 Round 3 checks passed on clean tree `830b6bf`: R2-4 B6 `File`-column precedence verified by positive/negative probes and the 16th self-test fixture (`16/16` pass); R2-1 C17 `;` capture verified verbatim in a fresh clone; R2-2 `test-output.txt` matches all 14 final artifacts with no stale self-bundle failure lines; both aggregate artifacts are byte-exact fixed points; 21/21 `sha256sum -c` OK and C23 reproduces `hashes.txt`; architect's evidence-only completion of C17–C23 is independently re-derived and verified. Two Minor findings (F1–F2), zero Blockers/Majors. |
 
 ---
 
