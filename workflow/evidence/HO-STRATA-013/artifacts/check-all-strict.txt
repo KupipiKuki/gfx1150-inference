@@ -304,7 +304,7 @@ PASS B1-structure hashes.txt exists
 PASS B1-structure commands.log exists
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/bypass-proof.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
-FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/check-all.txt (actual: 6f9b93faa2014d03f5436197e29c128d035a3a0f33d4eec8ecc7b84dab4bcf52)
+FAIL B2-hash-mismatch workflow/evidence/HO-STRATA-013/artifacts/check-all.txt (actual: 61f34497111985cb4bef2a18e8ee4c02819fe1e31c91e064f6e4ba708cb2b9bd)
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/check-ho012.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/deterministic.txt
 PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-013/artifacts/fresh-clone.txt

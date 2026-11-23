@@ -125,3 +125,57 @@ for p in files:
     print(f"{h.hexdigest()}  {rel}")
 exit: 0
 
+
+=== C17 (clean-tree recapture: --all; note the ';' — the tool exits 1) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all > /tmp/ca.txt 2>&1; rc=$?; mv /tmp/ca.txt workflow/evidence/HO-STRATA-013/artifacts/check-all.txt
+exit: 1
+
+=== C18 (clean-tree recapture: --all --strict) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 workflow/tools/check_bundle.py --all --strict > /tmp/cas.txt 2>&1; rc2=$?; mv /tmp/cas.txt workflow/evidence/HO-STRATA-013/artifacts/check-all-strict.txt
+exit: 1
+
+=== C19 (rebuild test-output.txt from the final artifacts, after C17/C18) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 - <<'PY' > workflow/evidence/HO-STRATA-013/test-output.txt
+from pathlib import Path
+a = Path("workflow/evidence/HO-STRATA-013/artifacts")
+order = ["check-ho012","check-all","check-all-strict","self-test","stdlib-isolated",
+         "stdlib-imports","git-status-before","git-status-after","git-status-diff",
+         "fresh-clone","readme-section","deterministic","legacy-proof","bypass-proof"]
+for name in order:
+    p = a / f"{name}.txt"
+    if not p.exists():
+        continue
+    print(f"===== artifacts/{name}.txt =====")
+    print(p.read_text(errors="replace"))
+PY
+exit: 0
+
+=== C20 (final rehash, after C17/C18/C19) ===
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+python3 - <<'PY' > workflow/evidence/HO-STRATA-013/hashes.txt
+import hashlib
+from pathlib import Path
+
+root = Path(".")
+bundle = Path("workflow/evidence/HO-STRATA-013")
+files = sorted(
+    p for p in bundle.rglob("*")
+    if p.is_file() and p.name != "hashes.txt"
+)
+# The immutable tool is also part of this bundle's evidence.
+files.append(Path("workflow/tools/check_bundle.py"))
+print("# SHA-256 hashes — HO-STRATA-013 evidence bundle")
+print("# Generated after the RW-3 evidence refresh.")
+print("# hashes.txt excludes itself. Paths are repo-root relative.")
+for p in files:
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(65536), b""):
+            h.update(ch)
+    rel = p.resolve().relative_to(root.resolve()).as_posix()
+    print(f"{h.hexdigest()}  {rel}")
+PY
+exit: 0
