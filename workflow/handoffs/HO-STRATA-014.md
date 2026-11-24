@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-014 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **CODER_DONE** (S4a) — READY → IN_PROGRESS → DEVIATION (DR-HO-STRATA-014-1 **APPROVED**, DEC-043: split into S4a/S4b, `dsref.cu` cut) → IN_PROGRESS → CODER_DONE 2026-11-24. First gate AC-5a PASS (layer 0, 4 cells, max rel L2 9.76e-5 ≤ 5e-3) |
+| **State** | **AUDIT_REVIEW** (S4a) — READY → IN_PROGRESS → DEVIATION (DR-HO-STRATA-014-1 **APPROVED**, DEC-043: split into S4a/S4b, `dsref.cu` cut) → IN_PROGRESS → CODER_DONE 2026-11-24 → QAQC_REVIEW → **AUDIT_REVIEW** (QAQC PASS, 2026-11-24). Gate: AC-5a PASS (layer 0, 4 cells, max rel L2 9.76e-5 ≤ 5e-3) |
 | **Created / updated (UTC)** | 2026-11-23 / 2026-11-24 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `deepseek-s4a` |
@@ -449,3 +449,34 @@ All commands run from `/home/kupipi/Documents/git/strata` with `LD_LIBRARY_PATH=
 | 7 | `./build-deepseek/strata --native /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024` | exit 0; generated token line begins `gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919` (32 IDs, HO-012 C8 regression) |
 | 8 | `./build-deepseek/model_family_test && ./build-deepseek/gguf_geometry_test` | both exit 0; `ALL PASSED` / `all passed` |
 | 9 | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-014 --strict` (from `/home/kupipi/Documents/git/gfx1150-inference`) | exit 0; `RESULT: PASS (31 checks, 0 warnings)`; `git status --porcelain` clean for the bundle directory |
+
+## 15. QAQC review (architect mirrors the transition, DEC-018)
+
+| Field | Value |
+|---|---|
+| Reviewer | QAQC, `opencode-go/gemini-4-argon#high`, DEC-039 |
+| Verdict | **PASS** |
+| Report | `workflow/reports/qaqc/HO-STRATA-014-qaqc.md` (committed verbatim, DEC-041 §3) |
+| Reproduced | AC-1…AC-10 on a clean tree, plus a **fresh regeneration** of the DEC-044 f32 oracle dump |
+| Findings | **F1** `hashes-notes.txt` inlines only two of three pin digests and uses flat lines, so `B6-pins` table parsing does not run (all three pins verified by hand) · **F2** `--parity-run` without `--dump-layers` is refused only for a `deepseek` file; on a supported model the flag would be silently ignored · **F3** `upload_weight()` keeps both the raw quantized payload and the f32 matrix, which must be pruned before S4b loads all 28 blocks |
+| Blockers | none · **Majors** none · three **Minors**, all carried to HO-STRATA-015 |
+
+What QAQC independently established, beyond re-running the commands:
+
+1. **The reference is the same weights.** `blk.0.attn_q.weight` (Q4_K) and
+   `blk.0.attn_v.weight` (Q6_K) in the f32 GGUF equal llama.cpp's
+   `dequantize_row_q4_K` / `dequantize_row_q6_K` of the Q4_K_M pack
+   **byte-for-byte**, so DEC-044's conversion changes the arithmetic, not the
+   model.
+2. **Both oracle dumps regenerate exactly** — the new f32 dump (`a4c56b9d…`) and
+   HO-010's signed Q4_K dump (`db6eccb3…`) — from a freshly compiled harness at
+   the pinned commit.
+3. **Two fresh engine runs** reproduce `dump-run-1.bin` byte-for-byte
+   (`d534fdcb…`), so the gate value is not a stored-file artefact.
+
+State `CODER_DONE → QAQC_REVIEW → AUDIT_REVIEW`, recorded here because QAQC writes
+only its report. Next: auditor review.
+
+The three Minors are **not** fixed in S4a: the bundle is a verified fixed point
+and editing `hashes.txt`/`hashes-notes.txt` now would invalidate the digests QAQC
+checked. They become explicit acceptance criteria in HO-STRATA-015.
