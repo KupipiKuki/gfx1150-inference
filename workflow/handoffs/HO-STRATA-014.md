@@ -168,7 +168,8 @@ and one that `--parity-run` without `--dump-layers` is refused. Keep
 | Input | Path / hash | Status |
 |---|---|---|
 | Pack, DeepSeek-MoE-16B-base Q4_K_M | `~/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397c…/deepseek-moe-16b-base-q4_k_m.gguf`, 10,850,181,856 B, `f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5`, 363 tensors | available |
-| **Oracle layer dump (the gate)** | `workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin`, `db6eccb3e8a949827c5c961fc732159daa1a0a9d52f7f88156d669845e0c7c73`, shape `[4][28][2048]` f32 | committed |
+| **Oracle layer dump (the gate)** | **exact-arithmetic reference, DEC-044**: `artifacts/runs/deepseek_f32_p1_4_layers.bin` — same pack converted with `llama-quantize --outtype f32`, same llama.cpp pin, same harness, shape `[4][28][2048]` f32 (hash recorded when produced) | to produce |
+| Oracle layer dump (Q4_K, **informative floor only**) | `workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin`, `db6eccb3e8a949827c5c961fc732159daa1a0a9d52f7f88156d669845e0c7c73`, `[4][28][2048]` | committed — **not** the layer gate (DEC-044) |
 | Oracle prompt for the dump | tokens `549,6077,280,7239` (4 positions) | committed |
 | Oracle logits dump (S5 only) | `…/runs/deepseek_p1_logits.bin`, `5334baef…`, `[16][2][2]` | committed |
 | Oracle token line (S5 only) | `gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280` | committed |
@@ -196,7 +197,7 @@ gate.
 | **AC-2** | Normal runs still refuse, unchanged | `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native <pack> --tokens 1,2,3 --max-new 32 --max-context 1024`; `--families` | exit 2; the HO-012 C6 refusal line **verbatim**; `--families` prints exactly `qwen4exp qwen35moe` |
 | **AC-3** | The diagnostic mode is explicit and cannot be reached by accident | `--parity-run` **without** `--dump-layers`; `--parity-run` on an unknown-arch GGUF; `--parity-run --native <pack> --dump-layers /tmp/opencode/s4-dump.bin --tokens 549,6077,280,7239` | first two exit ≠ 0 with a usage/refusal line; the third exits 0 and prints the one-line "not supported; parity only" warning on stderr |
 | **AC-4** | Dump obeys the layout contract | `stat -c%s` the dump; the run's `layers dumped` stdout line; `compare_layers.py --shape-only` | size is `k × (N+1) × 2048 × 4` B with `k ≥ 4` and `N` = blocks computed (**1 in S4a** → 16,384 B per position); the line reads `1 layer + the input x 1 streams x 2048`; zero NaN/Inf in every dumped slot. The comparison uses the **first 4 records** (the prompt positions) — if the CLI cannot express "no generation", run `--max-new 1` and ignore the 5th record; never trim the dump file |
-| **AC-5a** | **Layer parity, block 0** (S4a's gate) | `python3 workflow/evidence/HO-STRATA-014/scripts/compare_layers.py --oracle workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin --dump <engine dump>` | `RESULT: PASS`; **N = 1, 4 cells** (`l=0`, `p=0…3`); max relative L2 **≤ 5e-3**; every cell finite; median and max reported; every cell's value printed; **no cell above the bound** (§12). AC-5b (layers 1–27, 108 cells, then all 112) is **HO-STRATA-015**, not this handoff |
+| **AC-5a** | **Layer parity, block 0** (S4a's gate) | `python3 workflow/evidence/HO-STRATA-014/scripts/compare_layers.py --oracle workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin --dump <engine dump>` | `RESULT: PASS`; **N = 1, 4 cells** (`l=0`, `p=0…3`); max relative L2 **≤ 5e-3**; every cell finite; median and max reported; every cell's value printed; **no cell above the bound** (§12). The Q4_K oracle (`HO-STRATA-010` `deepseek_p1_4_layers.bin`) is run as an **informative floor** and reported, not gated (DEC-044). AC-5b (layers 1–27, 108 cells, then all 112) is **HO-STRATA-015** |
 | **AC-6** | Deterministic | run AC-3 twice to two paths; `cmp` the two dumps | identical (byte-for-byte) |
 | **AC-7** | Qwen regression exact, tests green | the HO-012 C8 command on `build-deepseek/strata`; `./build-deepseek/model_family_test`; `./build-deepseek/gguf_geometry_test` | the 32 HO-007 IDs identical, in order; both tests exit 0 |
 | **AC-8** | Patch measured, exported, applies cleanly | `git -C strata diff --stat bac859ef9..HEAD`; cumulative `git diff --stat baf16363..HEAD`; `format-patch` → `workflow/evidence/HO-STRATA-014/patches/0002-s4-forward.patch`; `git apply --check` in a clean `baf16363` worktree **with `0001-…` applied** | both stats recorded verbatim; patch applies; the T2 number (cumulative files/lines) stated explicitly in the manifest |
@@ -340,6 +341,15 @@ another quant, family or host.
   simplicity condition, T2 re-measured per increment. This handoff is now **S4a**
   (`IN_PROGRESS`); AC-5 becomes **AC-5a**; the MoE blocks and the full 112-cell
   gate move to HO-STRATA-015.
+- 2026-11-23 Coder + Architect: AC-5a **FAIL** at 1.83e-2 … 1.23e-1, bisected to a
+  **reference** defect, not an engine defect: `attn_norm-0` matches to 4.0e-8;
+  the engine matches llama.cpp's own Q6_K dequant + f32 dot to 6.4e-7; and
+  llama.cpp's q8_K-activation dot reproduces the oracle's `Qcur-0`/`Vcur-0` to
+  1.2e-7 / 3.3e-7. The Q4_K oracle's per-layer tensors are *not* the exact
+  product. **DEC-044**: AC-5a compares against an exact-arithmetic f32 reference
+  of the same pack; **the 5e-3 bound is unchanged**; the Q4_K dumps remain the
+  token authority for S5 and are reported here as an informative floor only.
+  Bisection evidence: `artifacts/diagnosis.md`, `scripts/oracle_nodes.cpp`.
 - 2026-11-23 Coder (`coder-primary`, `opencode-go/kimi-k2.7-code`): **READY → IN_PROGRESS**. AC-10: produced `artifacts/llama-ref-graph.md` and `artifacts/plan.md`; raising `DR-HO-STRATA-014-1` because the chosen shape crosses DEC-021 T2 and the alternative shape crosses T1.
 - 2026-11-23 Coder: **checkpoint commit**. Strata `ad214242a` now contains the block-0 engine, `--parity-run` wiring, and temporary diagnostic dumps; workflow `34b35e43` adds `compare_layers.py` and `artifacts/diagnosis.md`. AC-5a FAIL: 4 cell relative L2 values are pos0 `1.9295e-02`, pos1 `5.3505e-02`, pos2 `5.8345e-02`, pos3 `1.2275e-01` (max `1.2275e-01`, bound `5e-3`). Embedding gather is exact; a Q6_K reference bug in the Python diagnostic was fixed. Next: re-run the corrected per-node reference at `p=0` to decide between Q8_1 activation quantization and an attention/orientation error.
 
@@ -384,6 +394,16 @@ residual) and for nothing after it.
   outputs; 5e-3 is that floor, widened once for a 28-block chain with no measured
   noise floor of its own (the CPU oracle is bit-reproducible, so it supplies
   none — llama.cpp CPU vs HIP is measured in S5, not here).
+
+**Amended 2026-11-23 (DEC-044) — the reference, not the bound.** The first AC-5a
+run measured 1.83e-2 … 1.23e-1, and the bisection proved why: the Q4_K oracle
+computes its matmuls with **q8_K-quantized activations** (reproduced to 1.2e-7 /
+3.3e-7 for `Qcur-0` / `Vcur-0`), so it is 4.4e-3 (Q4_K) to 5.8e-2 (Q6_K) away
+from the exact product. Comparing an exact engine to that reference measures the
+reference's rounding. The gate therefore compares against an **exact-arithmetic**
+reference (f32 conversion of the same pack, same pin, same harness), and **5e-3
+is unchanged**. The Q4_K dumps stay the authority for **tokens** (S5), never for
+layers. See `artifacts/diagnosis.md` for the measurements.
 
 **What a failure means:** a failed cell is a **finding**, not a tuning problem.
 Name the first failing layer; that layer's arithmetic (norm placement, rope,

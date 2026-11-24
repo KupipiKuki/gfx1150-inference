@@ -1034,3 +1034,59 @@ this file did not happen.
 - **Affected:** HO-STRATA-014 (now S4a, `IN_PROGRESS`), DR-HO-STRATA-014-1
   (APPROVED), HO-STRATA-015/016/017 (numbering + scope), DEC-021 (T1/T2),
   DEC-033, DEC-034, DEC-042, `workflow/STATUS.md`.
+
+## DEC-044 — The layer gate needs an arithmetic-exact reference; the Q4_K dumps stay the token authority
+
+- **Date:** 2026-11-23
+- **Context:** S4a's first AC-5a run failed at 1.83e-2 … 1.23e-1 against the
+  pre-registered 5e-3. The bisection (HO-014 `artifacts/diagnosis.md`) then
+  established, in this order: `attn_norm-0` matches the oracle to **4.0e-8**
+  (embedding + RMSNorm correct); the identity head ordering is best, so no
+  permutation bug; the engine matches **llama.cpp's own** `dequantize_row_q6_K`
+  plus an f32 dot to **6.4e-7**; and, decisively, llama.cpp's
+  **q8_K-activation** dot product reproduces the oracle's `Qcur-0` to **1.2e-7**
+  and `Vcur-0` to **3.3e-7**, while the exact f32 product is 4.4e-3 and **5.8e-2**
+  away respectively.
+- **Finding:** the oracle's per-layer tensors are llama.cpp's **CPU quantized-activation
+  arithmetic**, not the exact product of the dequantised weights. Comparing an
+  exact engine against that reference gives a floor around 1e-1 by the end of
+  block 0 — 20× the gate. AC-5a was therefore measuring the reference's rounding,
+  and to "pass" it the gate would have to be loosened to ~1e-1, which cannot
+  separate a subtle semantic error from noise. **This is the architect's error**:
+  5e-3 was chosen assuming a like-for-like arithmetic that the Q4_K pack does not
+  provide. The pre-registered bound did its job — it produced this evidence
+  instead of being quietly widened.
+- **Options:**
+  - (a) make the engine reproduce llama.cpp's q8_K arithmetic — passes, but makes
+    the engine deliberately **less accurate** than the model in order to match
+    another implementation's rounding, and couples the gate to llama.cpp internals.
+    Rejected.
+  - (b) keep the Q4_K reference and raise the bound to the measured floor
+    (~1e-1) — passes, and destroys the gate's diagnostic power. Rejected.
+  - (c) **gate against an arithmetic-exact reference** — same pack, same weights,
+    converted to f32 so llama.cpp takes its f32 dot path. Approved.
+- **Decision:**
+  1. The S4 **layer** gate compares against an **exact-arithmetic** reference:
+     `llama-quantize --outtype f32` of the same pack, same llama.cpp pin
+     `78e05298…`, same harness, same 4-token prompt. New dump lives in
+     `workflow/evidence/HO-STRATA-014/artifacts/runs/`, hashed, with the
+     conversion command and the resulting pack hash in the manifest. If the f32
+     conversion is refused, `f16` is the fallback **only** with its floor
+     measured and recorded at ≤1e-3.
+  2. **The 5e-3 bound is unchanged.** It now means "our implementation against
+     the model", which is what it was always meant to mean.
+  3. **HO-010's Q4_K dumps remain valid and unedited.** They are the authority for
+     **token** parity (S5, HO-016) on the **shipped** pack — which is what plan
+     A3 and DEC-038 require. The two references have different jobs and are never
+     interchanged.
+  4. The Q4_K per-layer comparison is kept as an **informative floor** in
+     `diagnosis.md`; it is not gating.
+  5. **The engine stays exact f32.** If S5 later shows a token mismatch, the f32
+     reference is the adjudicator: a Q4_K token that differs at a ~1e-3 margin is
+     the reference's rounding, and that is now provable rather than arguable.
+- **Consequences:** one large throwaway artefact (~66 GB at f32; 231 GiB free) and
+  a few minutes of conversion; no engine change, no shared-kernel change, no
+  edit to signed evidence. The gate's ability to catch a 5% semantic error in one
+  layer is preserved — which is the whole reason S4 exists before S5.
+- **Affected:** HO-STRATA-014 (AC-5a, §3 inputs, §12 basis), DEC-038, DEC-041,
+  `planning/strata-engine/13` §3 (tolerance policy), HO-STRATA-016 when written.
