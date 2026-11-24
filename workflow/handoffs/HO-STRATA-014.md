@@ -341,6 +341,7 @@ another quant, family or host.
   (`IN_PROGRESS`); AC-5 becomes **AC-5a**; the MoE blocks and the full 112-cell
   gate move to HO-STRATA-015.
 - 2026-11-23 Coder (`coder-primary`, `opencode-go/kimi-k2.7-code`): **READY → IN_PROGRESS**. AC-10: produced `artifacts/llama-ref-graph.md` and `artifacts/plan.md`; raising `DR-HO-STRATA-014-1` because the chosen shape crosses DEC-021 T2 and the alternative shape crosses T1.
+- 2026-11-23 Coder: **checkpoint commit**. Strata `ad214242a` now contains the block-0 engine, `--parity-run` wiring, and temporary diagnostic dumps; workflow `34b35e43` adds `compare_layers.py` and `artifacts/diagnosis.md`. AC-5a FAIL: 4 cell relative L2 values are pos0 `1.9295e-02`, pos1 `5.3505e-02`, pos2 `5.8345e-02`, pos3 `1.2275e-01` (max `1.2275e-01`, bound `5e-3`). Embedding gather is exact; a Q6_K reference bug in the Python diagnostic was fixed. Next: re-run the corrected per-node reference at `p=0` to decide between Q8_1 activation quantization and an attention/orientation error.
 
 ## 12. Pre-registered tolerance (fixed 2026-11-23, before any S4 run)
 
