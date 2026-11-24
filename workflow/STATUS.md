@@ -20,7 +20,7 @@ row is invisible.
 | HO-STRATA-010 | reference oracle + parity harness (S0) | **DONE (SIGNED 2026-11-19) · MERGED #22** · DEC-030 | Architect | `main` | — | B-1/B-2/B-4 carried to S1 | `workflow/evidence/HO-STRATA-010/` · `workflow/handoffs/HO-STRATA-010-APPROVAL.md` |
 | HO-STRATA-011 | OLMoE oracle extension (S0b) | **DONE (SIGNED 2026-11-19) · MERGED #23** · DEC-032 | Architect | `main` | — | — | `workflow/evidence/HO-STRATA-011/` · `workflow/handoffs/HO-STRATA-011-APPROVAL.md` |
 | HO-STRATA-013 | `check_bundle.py`: evidence-packaging invariants | **DONE (SIGNED 2026-11-23) · MERGED #26** · DEC-041 | Architect | `main` @ `3329e4b` | adopted as the evidence gate; S4 is the first bundle it gates | base `91eac12` not yet on `origin/main` (DEC-040) | `workflow/handoffs/HO-STRATA-013.md` |
-| HO-STRATA-014 | DeepSeek **S4a**: forward skeleton + block-0 layer parity | **CODER_DONE** (2026-11-24) — AC-5a PASS 9.76e-5 ≤ 5e-3 | QAQC | `wp/strata-014-deepseek-s4` @ `55122b3`; Strata `strata-014-deepseek-s4` @ `db087d511` | QAQC review of the bundle, then audit | Actions billing (merge only) | `workflow/evidence/HO-STRATA-014/` · `DR-HO-STRATA-014-1.md` |
+| HO-STRATA-014 | DeepSeek **S4a**: forward skeleton + block-0 layer parity | **AUDIT_REVIEW** — CODER_DONE → QAQC PASS (2026-11-24) → AUDIT_REVIEW | Auditor | `wp/strata-014-deepseek-s4` @ `db4974e`; Strata `strata-014-deepseek-s4` @ `db087d511` | auditor verdict; then architect signoff | Actions billing (merge only) | `workflow/evidence/HO-STRATA-014/` · `reports/qaqc/HO-STRATA-014-qaqc.md` |
 
 **Project state (2026-11-23):** the signed baseline stands — `qwen35moe` loads
 and generates 32 deterministic tokens on gfx1150 (#15). DeepSeek S1–S3
