@@ -258,9 +258,65 @@ Quick test: switch only the Q/K/V projections back to the engine's native Q8_1 m
 
 The native Q8_1 path is slightly closer to the oracle, which supports the activation-quantization hypothesis, but the residual is still large. The exact quantization path used by the CPU backend (Q8_1 vs Q8_K, scale computation, summation order) needs to be identified and matched.
 
+## Step 9 — permutation test on Q/K/V outputs
+
+Because `Vcur-0` error (5.8e-2) is ~10× larger than `Qcur-0` (4.4e-3) and `Kcur-0` (6.9e-3) despite the same `attn_norm-0` input, a layout/permutation bug was tested. The engine dump is reshaped as `[n_head=16][head_dim=128]` and compared to the oracle `Vcur-0/Kcur-0/Qcur-0[p=0]` under several explicit orderings.
+
+Permutation rel L2 table (engine vs oracle, p=0):
+
+| ordering | Qcur-0 | Kcur-0 | Vcur-0 |
+|---|---|---|---|
+| identity (head-major) | 4.19e-03 | 6.30e-03 | 5.34e-02 |
+| element-major transposed | 1.42e+00 | 1.42e+00 | 1.43e+00 |
+| reverse head order | 1.43e+00 | 1.42e+00 | 1.45e+00 |
+| shift heads +1 | 1.40e+00 | 1.40e+00 | 1.38e+00 |
+| shift within-head +1 | 1.39e+00 | 1.42e+00 | 1.42e+00 |
+
+No tested ordering collapses the error. Identity is the best ordering for all three projections. The error is therefore not a simple head-ordering bug.
+
+## Step 10 — weight type audit
+
+GGML types from the pack header (`tools/gguf_reader.py`):
+
+| tensor | type | shape |
+|---|---|---|
+| `token_embd.weight` | Q4_K | [2048, 102400] |
+| `blk.0.attn_q.weight` | Q4_K | [2048, 2048] |
+| `blk.0.attn_k.weight` | Q4_K | [2048, 2048] |
+| `blk.0.attn_v.weight` | **Q6_K** | [2048, 2048] |
+| `blk.0.attn_output.weight` | Q4_K | [2048, 2048] |
+| `blk.0.ffn_gate.weight` | Q4_K | [2048, 10944] |
+| `blk.0.ffn_up.weight` | Q4_K | [2048, 10944] |
+| `blk.0.ffn_down.weight` | Q8_0 | [10944, 2048] |
+
+`attn_v.weight` is the **only Q6_K** tensor among Q/K/V/output. This explains why V diverges more than Q/K: the V projection uses a different quantized type whose dequantisation or block-layout path is suspect, not the activation path.
+
+## Step 11 — cross-check: Python f32 matvec from oracle's own `attn_norm-0`
+
+To separate "engine input path" from "weight read/dequant/layout", we recomputed Q/K/V in Python from the pack's quantized weights using the oracle's own `attn_norm-0[p=0]` vector as input. No engine tensors were used.
+
+| node | Python f32 (from oracle input) vs oracle |
+|---|---|
+| `Qcur-0` | 4.44e-03 |
+| `Kcur-0` | 6.89e-03 |
+| `Vcur-0` | 5.78e-02 |
+
+These numbers match the engine-vs-oracle divergence almost exactly. Therefore:
+
+- The engine's staging of `attn_norm-0` is **not** the problem (`attn_norm-0` already matched).
+- The engine's f32 matvec arithmetic is **not** the problem (Python's independent f32 dot product gives the same divergence).
+- The problem is in how the **weights are read/dequantised/laid out** from the GGUF, especially for the **Q6_K** `attn_v.weight`.
+
+The earlier "activation-quantization" hypothesis is rejected: a matmul-precision floor would affect Q/K/V alike, but V (Q6_K) is 10× worse than Q/K (Q4_K).
+
 ## Current conclusion
 
-- The engine is **not bugged** in the embedding, RMSNorm, or f32-weight/f32-activation reference arithmetic.
-- The AC-5a failure is caused by the oracle using a quantized-activation matmul that differs from a pure f32 dot product.
-- The first diverging node is **`Qcur-0`** (relative L2 ≈ 4.4e-3).
-- To pass AC-5a, the engine must reproduce llama.cpp's exact quantized-activation arithmetic for the Q/K/V/FFN projections, or the bound must be revisited as a deviation.
+- `attn_norm-0` matches exactly; the divergence starts at `Qcur-0`.
+- No simple head-permutation bug was found.
+- The f32 Python reference, run from the oracle's own input, reproduces the engine's divergence, ruling out the engine activation/input path.
+- The surviving cause is **weight read/dequantisation/layout**, concentrated in the **Q6_K** `attn_v.weight` path.
+- The next action is to verify the engine's Q6_K block layout against the GGUF spec and the llama.cpp `ggml_vec_dot_q6_K_q8_K`/`dequantize_row_q6_K` reference.
+
+## Next action
+
+Audit and fix the Q6_K dequantisation/block-layout implementation used by the engine for `attn_v.weight` and any other Q6_K tensors; do not change Q4_K/Q8_0 paths, shared kernels, or the 5e-3 bound.
