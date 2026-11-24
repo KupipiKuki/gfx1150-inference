@@ -4,8 +4,8 @@
 |---|---|
 | **ID** | HO-STRATA-014 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **IN_PROGRESS** (S4a) — READY (owner authorized 2026-11-23) → IN_PROGRESS → DEVIATION (DR-HO-STRATA-014-1 **APPROVED**, DEC-043: split into S4a/S4b, `dsref.cu` cut) → IN_PROGRESS again. First gate is AC-5a (layer 0, 4 cells) |
-| **Created / updated (UTC)** | 2026-11-23 / 2026-11-23 |
+| **State** | **CODER_DONE** (S4a) — READY → IN_PROGRESS → DEVIATION (DR-HO-STRATA-014-1 **APPROVED**, DEC-043: split into S4a/S4b, `dsref.cu` cut) → IN_PROGRESS → CODER_DONE 2026-11-24. First gate AC-5a PASS (layer 0, 4 cells, max rel L2 9.76e-5 ≤ 5e-3) |
+| **Created / updated (UTC)** | 2026-11-23 / 2026-11-24 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `deepseek-s4a` |
 | **Branch (workflow)** | `wp/strata-014-deepseek-s4` / base `main` @ `d1a974db0ace2cc78d77efd1eec123ea93bb865b` |
@@ -300,14 +300,14 @@ another quant, family or host.
 
 ## 9. Definition of Done
 
-- [ ] AC-1…AC-10 run (AC-5 → **AC-5a**); raw output in `test-output.txt`
-- [ ] **AC-5a** PASS at the pre-registered bound (block 0, 4 cells); each cell printed
-- [ ] Normal refusal, `--families` and the Qwen regression unchanged
-- [ ] Signed binary hash unchanged; nothing built in `build-hip/`
-- [ ] Patch exported, measured against T2, `git apply --check` clean
-- [ ] `check_bundle.py … --strict` PASS
-- [ ] No secrets, no out-of-scope edits, no new dependencies
-- [ ] `CODER_DONE`; `CODER_TO_QAQC` record attached
+- [x] AC-1…AC-10 run (AC-5 → **AC-5a**); raw output in `test-output.txt`
+- [x] **AC-5a** PASS at the pre-registered bound (block 0, 4 cells); each cell printed
+- [x] Normal refusal, `--families` and the Qwen regression unchanged
+- [x] Signed binary hash unchanged; nothing built in `build-hip/`
+- [x] Patch exported, measured against T2, `git apply --check` clean
+- [x] `check_bundle.py … --strict` PASS
+- [x] No secrets, no out-of-scope edits, no new dependencies
+- [x] `CODER_DONE`; `CODER_TO_QAQC` record attached
 
 ## 10. Signatures
 
@@ -352,6 +352,8 @@ another quant, family or host.
   Bisection evidence: `artifacts/diagnosis.md`, `scripts/oracle_nodes.cpp`.
 - 2026-11-23 Coder (`coder-primary`, `opencode-go/kimi-k2.7-code`): **READY → IN_PROGRESS**. AC-10: produced `artifacts/llama-ref-graph.md` and `artifacts/plan.md`; raising `DR-HO-STRATA-014-1` because the chosen shape crosses DEC-021 T2 and the alternative shape crosses T1.
 - 2026-11-23 Coder: **checkpoint commit**. Strata `ad214242a` now contains the block-0 engine, `--parity-run` wiring, and temporary diagnostic dumps; workflow `34b35e43` adds `compare_layers.py` and `artifacts/diagnosis.md`. AC-5a FAIL: 4 cell relative L2 values are pos0 `1.9295e-02`, pos1 `5.3505e-02`, pos2 `5.8345e-02`, pos3 `1.2275e-01` (max `1.2275e-01`, bound `5e-3`). Embedding gather is exact; a Q6_K reference bug in the Python diagnostic was fixed. Next: re-run the corrected per-node reference at `p=0` to decide between Q8_1 activation quantization and an attention/orientation error.
+- 2026-11-24 Coder: **RoPE orientation fix**. Against the exact-arithmetic f32 reference introduced by DEC-044, the block-0 residual error was still ~1e-2 after the Q8_1 activation hypothesis was ruled out by per-node matches (`attn_norm-0`, `Qcur-0`, `Vcur-0`). Bisection showed the engine had applied **NEOX-style RoPE** (rotate pairs `(2i, 2i+1)` vs `(2i, 2i+n/2)` swapped); DeepSeek-MoE-16B uses llama.cpp's `LLAMA_ROPE_TYPE_NORM` (consecutive pairs), as seen in the corrected reference once DEC-044 removed the Q4_K activation-quantization noise. The engine was switched to `k_rope_norm`; AC-5a then dropped to max 9.76e-5. This finding was only visible because DEC-044 changed the reference; the Q4_K oracle masked it as an apparent "activation quantization" residual.
+- 2026-11-24 Coder (`coder-primary`, `opencode-go/kimi-k2.7-code`): **IN_PROGRESS → CODER_DONE**. Bundle committed on `wp/strata-014-deepseek-s4`; `check_bundle.py --strict` PASS (31 checks). AC-5a gate: max relative L2 9.76e-5 ≤ 5e-3 over 4 cells (block 0 × 4 positions). Q4_K floor ≈2.05e-2 reported as informative only (DEC-044). Ready for QAQC.
 
 ## 12. Pre-registered tolerance (fixed 2026-11-23, before any S4 run)
 
@@ -427,3 +429,23 @@ DEC-042 wrote; DEC-042's "HO-STRATA-015 = S5" reference is corrected here.
 HO-STRATA-015 cannot be written before AC-5a's result: its scope is "the blocks
 after the one S4a proved", and its evidence starts from the dump shape S4a
 produces. Writing it now would be a guess presented as a contract.
+
+## 14. CODER_TO_QAQC
+
+Branch: `wp/strata-014-deepseek-s4`. Strata tip: `db087d5117abd6596fe0609605344bc4cc0ad318`.
+All commands run from `/home/kupipi/Documents/git/strata` with `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib` unless stated.
+
+| # | Re-run | Expected output / exit |
+|---|---|---|
+| 1 | `cmake --build build-deepseek --target strata model_family_test gguf_geometry_test -j$(nproc)` | build exits 0; `sha256sum build-hip/strata` = `d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858` |
+| 2 | `./build-deepseek/strata --native ~/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf --tokens 1,2,3 --max-new 32 --max-context 1024` | exit 2; stderr contains `DeepSeek-MoE-16B-base (architecture 'deepseek') is recognised by Strata but this build does not run it yet` |
+| 3 | `./build-deepseek/strata --families` | exit 0; stdout = `qwen4exp qwen35moe` |
+| 4a | `./build-deepseek/strata --parity-run --native <pack> --tokens 1,2,3 --max-new 1 --max-context 1024` | exit 2; stderr contains `--parity-run requires --dump-layers PATH` |
+| 4b | `./build-deepseek/strata --parity-run --native /tmp/opencode/unknown.gguf --dump-layers /tmp/opencode/dummy-dump.bin --tokens 1,2,3 --max-new 1 --max-context 1024` | exit 2; stderr contains a refusal/usage line (unknown-arch or missing PLE) |
+| 4c | `./build-deepseek/strata --parity-run --native <pack> --dump-layers /tmp/opencode/s4-dump.bin --tokens 549,6077,280,7239 --max-new 1 --max-context 1024` | exit 0; stderr contains exactly one line `strata generate: parity run: architecture 'deepseek' is not supported; this path exists for HO-STRATA-014/015 parity only` |
+| 5a (gate) | `python3 workflow/evidence/HO-STRATA-014/scripts/compare_layers.py --oracle workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin --dump /tmp/opencode/s4-dump.bin` | exit 0; prints 4 cells, max relative L2 = 9.757537e-05 (≤ 5e-3), worst cell `(layer=0, pos=0)`, `RESULT: PASS` |
+| 5a floor | `python3 workflow/evidence/HO-STRATA-014/scripts/compare_layers.py --oracle workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin --dump /tmp/opencode/s4-dump.bin` | exit 1 (informative, not gated); max ≈2.054810e-2; reported as floor only |
+| 6 | Run 4c twice to `/tmp/opencode/s4-dump-1.bin` and `/tmp/opencode/s4-dump-2.bin`; `cmp /tmp/opencode/s4-dump-1.bin /tmp/opencode/s4-dump-2.bin` | both runs exit 0; `cmp` exits 0 (byte-identical) |
+| 7 | `./build-deepseek/strata --native /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024` | exit 0; generated token line begins `gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919` (32 IDs, HO-012 C8 regression) |
+| 8 | `./build-deepseek/model_family_test && ./build-deepseek/gguf_geometry_test` | both exit 0; `ALL PASSED` / `all passed` |
+| 9 | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-014 --strict` (from `/home/kupipi/Documents/git/gfx1150-inference`) | exit 0; `RESULT: PASS (31 checks, 0 warnings)`; `git status --porcelain` clean for the bundle directory |

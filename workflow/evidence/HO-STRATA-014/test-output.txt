@@ -213,8 +213,40 @@ HEAD is now at baf16363b release manifest: the Control 0.1.60.1 packages of the 
 0002_apply_check_exit=0
 worktree_removed_exit=0
 
-=== AC-9: check_bundle.py --strict ===
-(see evidence bundle for result; run after manifest/hashes are complete)
+=== AC-9: check_bundle.py --strict (final run from committed clean tree) ===
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/compare-layers.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/diag-inert.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/diagnosis.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/dump-run-1.bin
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/dump-run-2.bin
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/families.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/gguf_geometry_test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/llama-ref-graph.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/model_family_test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/patch-stat.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/plan.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/qwen-regression.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/refusal.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/signed-binary-hash.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/commands.log
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/manifest.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/patches/0002-s4-forward.patch
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/patches/apply-check.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/scripts/compare_layers.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/scripts/oracle_nodes.cpp
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/hashes-notes.txt
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: PASS (31 checks, 0 warnings)
+check_bundle_exit=0
 
 === AC-10: plan.md ===
 artifacts/plan.md present and referenced

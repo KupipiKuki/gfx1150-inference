@@ -19,5 +19,5 @@ a6a944e3a608d7e81be33d7a04df17d54416fbaeb9b3e4eb15a289d486d7a4f5  workflow/evide
 3a267793275ae7fd55e543edfbf224cfc074e74fc9f7d856bceb2f3792aeeae6  workflow/evidence/HO-STRATA-014/patches/apply-check.txt
 80e153523e8f8f100c4e5aa812da1af5ccd1f467c1c7bedcf036ab02b6b6e0a8  workflow/evidence/HO-STRATA-014/scripts/compare_layers.py
 25fe94526644c24bed527c02b25c1cff30247e3ceeafc741b7f6eaaa733942ca  workflow/evidence/HO-STRATA-014/scripts/oracle_nodes.cpp
-826462ba6b7573988f701130e7c9c819bd78184f22ed1e8c2b6a2e63e25c0ca9  workflow/evidence/HO-STRATA-014/test-output.txt
+f46f613e101ccbafc493c576cb3d644fe00238bb8435364a9ac93c6b91e0cba1  workflow/evidence/HO-STRATA-014/test-output.txt
 4469b197e5aa01b46fcb6dba9d1643595169042e17ad8abc689592061096f45f  workflow/evidence/HO-STRATA-014/hashes-notes.txt
