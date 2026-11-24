@@ -305,18 +305,78 @@ These numbers match the engine-vs-oracle divergence almost exactly. Therefore:
 
 - The engine's staging of `attn_norm-0` is **not** the problem (`attn_norm-0` already matched).
 - The engine's f32 matvec arithmetic is **not** the problem (Python's independent f32 dot product gives the same divergence).
-- The problem is in how the **weights are read/dequantised/laid out** from the GGUF, especially for the **Q6_K** `attn_v.weight`.
+- The problem is either in how the **weights are read/dequantised/laid out** from the GGUF, especially for the **Q6_K** `attn_v.weight`, or in the oracle's own quantized-activation matmul.
 
-The earlier "activation-quantization" hypothesis is rejected: a matmul-precision floor would affect Q/K/V alike, but V (Q6_K) is 10× worse than Q/K (Q4_K).
+## Step 12 — adjudicate with llama.cpp's own `dequantize_row_q6_K`
+
+We copied `dequantize_row_q6_K` verbatim from `/tmp/opencode/llama-ref/ggml/src/ggml-quants.c` (commit `78e05298…`) into `/tmp/opencode/ref_q6k_llama.c`, compiled it with gcc, and dequantised the entire `blk.0.attn_v.weight` matrix from the raw GGUF bytes. The same was done for `blk.0.attn_q.weight` (Q4_K) as a control, using `dequantize_row_q4_K`.
+
+Commands:
+
+```bash
+gcc -O2 -o /tmp/opencode/ref_q6k_llama /tmp/opencode/ref_q6k_llama.c -lm
+/tmp/opencode/ref_q6k_llama /path/to/deepseek-moe-16b-base-q4_k_m.gguf 301085408 4194304 \
+  > /tmp/opencode/ref_q6k_llama_wv.bin
+
+gcc -O2 -o /tmp/opencode/ref_q4k_llama /tmp/opencode/ref_q4k_llama.c -lm
+/tmp/opencode/ref_q4k_llama /path/to/deepseek-moe-16b-base-q4_k_m.gguf 298726112 4194304 \
+  > /tmp/opencode/ref_q4k_llama_wq.bin
+```
+
+The dequantised matrices were then matveced with the oracle's own `attn_norm-0[p=0]` vector and compared with the engine's `diag_q.bin` / `diag_v.bin` and the oracle's `Qcur-0` / `Vcur-0`.
+
+### Q4_K Qcur-0 3×3 rel L2 table
+
+| | oracle | engine | python | llama.cpp |
+|---|---|---|---|---|
+| oracle | 0.000000e+00 | 4.442250e-03 | 4.442188e-03 | 4.442188e-03 |
+| engine | 4.451740e-03 | 0.000000e+00 | 7.488521e-07 | 7.488521e-07 |
+| python | 4.451678e-03 | 7.488521e-07 | 0.000000e+00 | 0.000000e+00 |
+| llama.cpp | 4.451678e-03 | 7.488521e-07 | 0.000000e+00 | 0.000000e+00 |
+
+### Q6_K Vcur-0 3×3 rel L2 table
+
+| | oracle | engine | python | llama.cpp |
+|---|---|---|---|---|
+| oracle | 0.000000e+00 | 5.777347e-02 | 5.777344e-02 | 5.777344e-02 |
+| engine | 5.771256e-02 | 0.000000e+00 | 6.440568e-07 | 6.440568e-07 |
+| python | 5.771254e-02 | 6.440569e-07 | 0.000000e+00 | 0.000000e+00 |
+| llama.cpp | 5.771254e-02 | 6.440569e-07 | 0.000000e+00 | 0.000000e+00 |
+
+### Interpretation
+
+- **Engine, Python, and llama.cpp dequant all agree to machine precision** for both Q4_K and Q6_K. The engine's weight read/dequantisation is **correct**.
+- The divergence from the oracle is **not** in the weight bytes, dequantisation, or f32 matvec arithmetic.
+- The Q4_K control (`Qcur-0`) shows ~4.4e-3 divergence even with a perfect f32 reference. This is the oracle's own matmul precision floor for Q4_K weights.
+- The Q6_K `Vcur-0` divergence is ~5.8e-2, an order of magnitude larger. Because the weight and input are identical, the difference must come from the oracle's quantized-activation matmul path, which is type-dependent (Q4_K vs Q6_K use different CPU kernels and different activation-quantization behaviour).
+
+## Step 13 — what `Vcur-0` actually is in the oracle graph
+
+Read `src/models/deepseek.cpp` and `src/llama-graph.cpp` at the pinned commit `78e05298…`:
+
+- `src/models/deepseek.cpp` graph (block 0): `cur = build_norm(inpL, attn_norm, ..., LLM_NORM_RMS, il); cb(cur, "attn_norm", il);` then `auto [Qcur, Kcur, Vcur] = build_qkv(..., cur, ...); cb(Vcur, "Vcur", il);`
+- `src/llama-graph.cpp` `build_qkv` (separate Q/K/V path, because this GGUF has no fused `attn_qkv.weight`): `Vcur = build_lora_mm(layer.wv, cur, layer.wv_s);`
+- `build_lora_mm`: `cur_mm = build_hadamard_input(w, cur); res = ggml_mul_mat(ctx0, w, cur_mm); if (w_s) res = ggml_mul(ctx0, res, w_s);`
+- For this model there is **no** `prism.hadamard` metadata and **no** `blk.0.attn_v.scale` tensor, so `build_hadamard_input` returns `cur` unchanged and `wv_s` is null.
+- Therefore `Vcur-0` is exactly `attn_v.weight × attn_norm-0`, with no extra scale, bias, Hadamard transform, or permutation before the callback. The later `ggml_reshape_3d(..., 128, 16, n_tokens)` is a view on the same data and does not reorder elements.
+
+This rules out the "Vcur is not the projection we assume" hypothesis.
 
 ## Current conclusion
 
 - `attn_norm-0` matches exactly; the divergence starts at `Qcur-0`.
-- No simple head-permutation bug was found.
-- The f32 Python reference, run from the oracle's own input, reproduces the engine's divergence, ruling out the engine activation/input path.
-- The surviving cause is **weight read/dequantisation/layout**, concentrated in the **Q6_K** `attn_v.weight` path.
-- The next action is to verify the engine's Q6_K block layout against the GGUF spec and the llama.cpp `ggml_vec_dot_q6_K_q8_K`/`dequantize_row_q6_K` reference.
+- No permutation or layout bug was found.
+- The engine's weight dequantisation matches llama.cpp's reference exactly.
+- The engine's f32 matvec matches a Python/llama.cpp f32 reference exactly.
+- `Vcur-0` is exactly `attn_v.weight × attn_norm-0` (no hidden scale/transform).
+- The remaining divergence from the oracle (~4.4e-3 for Q4_K Q/K, ~5.8e-2 for Q6_K V) is in the oracle's own quantized-activation matmul, whose error is strongly dependent on weight type.
+- The 5e-3 AC-5a bound cannot be met for the Q6_K `attn_v.weight` path by fixing dequantisation or f32 arithmetic alone.
 
 ## Next action
 
-Audit and fix the Q6_K dequantisation/block-layout implementation used by the engine for `attn_v.weight` and any other Q6_K tensors; do not change Q4_K/Q8_0 paths, shared kernels, or the 5e-3 bound.
+Raise a deviation request (or architect decision) to choose between:
+
+1. **Implement llama.cpp's exact quantized-activation matmul for Q4_K/Q6_K/Q8_0 inside `src/deepseek/`** (local to the parity engine, no shared-kernel edits), so the engine reproduces the oracle's CPU-backend arithmetic.
+2. **Revisit the 5e-3 bound** for AC-5a, since the oracle's own Q6_K matmul has a ~5.8e-2 precision floor relative to a f32 reference on this pack.
+
+No code change was made in this diagnostic round; the Strata branch remains at `2ace4d3f8`.
