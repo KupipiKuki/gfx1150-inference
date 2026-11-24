@@ -362,21 +362,67 @@ Read `src/models/deepseek.cpp` and `src/llama-graph.cpp` at the pinned commit `7
 
 This rules out the "Vcur is not the projection we assume" hypothesis.
 
+## Step 14 — prove the q8_K activation-quantization hypothesis
+
+We copied `quantize_row_q8_K_ref`, `ggml_vec_dot_q4_K_q8_K_generic`, and `ggml_vec_dot_q6_K_q8_K_generic` verbatim from `/tmp/opencode/llama-ref/ggml/src/ggml-quants.c` and `/tmp/opencode/llama-ref/ggml/src/ggml-cpu/quants.c` at commit `78e05298…` into `/tmp/opencode/ref_q8k_dot.c`. The program:
+
+1. Reads the oracle's own `attn_norm-0[p=0]` (2048 f32 values).
+2. Quantizes it to one Q8_K block with `quantize_row_q8_K_ref`.
+3. For each output row of `attn_q.weight` (Q4_K) or `attn_v.weight` (Q6_K), reads the raw quantized row from the GGUF and calls the matching `ggml_vec_dot_*_q8_K_generic`.
+
+This is exactly what llama.cpp's CPU backend does inside `ggml_compute_forward_mul_mat`.
+
+Compile and run commands:
+
+```bash
+gcc -O2 -o /tmp/opencode/ref_q8k_dot /tmp/opencode/ref_q8k_dot.c -lm
+
+# V (Q6_K): offset=301085408 row_bytes=1680
+OFFSET=301085408 ROW_BYTES=1680 N_OUT=2048 N_IN=2048 QTYPE=6 \
+/tmp/opencode/ref_q8k_dot \
+  /path/to/deepseek-moe-16b-base-q4_k_m.gguf v \
+  /tmp/opencode/attn_norm_p0.bin /tmp/opencode/ref_q8k_v.bin
+
+# Q (Q4_K): offset=298726112 row_bytes=1152
+OFFSET=298726112 ROW_BYTES=1152 N_OUT=2048 N_IN=2048 QTYPE=4 \
+/tmp/opencode/ref_q8k_dot \
+  /path/to/deepseek-moe-16b-base-q4_k_m.gguf q \
+  /tmp/opencode/attn_norm_p0.bin /tmp/opencode/ref_q8k_q.bin
+```
+
+### Reproduction table (p=0)
+
+| comparison | rel L2 |
+|---|---|
+| Q4_K `Qcur-0`: llama.cpp q8_K-dot vs oracle | **1.24e-07** |
+| Q4_K `Qcur-0`: exact-f32 vs oracle | 4.44e-03 |
+| Q6_K `Vcur-0`: llama.cpp q8_K-dot vs oracle | **3.30e-07** |
+| Q6_K `Vcur-0`: exact-f32 vs oracle | 5.78e-02 |
+
+### Verdict
+
+**Yes: the oracle's `Vcur-0` is fully explained by Q8_K activation quantization.** The same is true for `Qcur-0`.
+
+- llama.cpp's own dequant + f32 dot reproduces the engine/Python f32 reference to ~1e-6.
+- llama.cpp's own Q8_K activation quantization + quantized dot reproduces the oracle's `Qcur-0` and `Vcur-0` to ~1e-7.
+- Therefore the engine's exact-f32 matmul is **more accurate** than the oracle, not less. AC-5a is failing because the oracle is comparing against its own Q8_K-quantized-activation arithmetic, not against a true f32 reference.
+
+### Whole-block-0 "floor"
+
+The quantity "oracle vs an exact-f32 block-0" is already measured: it is the current engine-exact-f32 vs oracle residual (1.83e-2 at p=0, rising to 1.23e-1 at p=3).
+
+The quantity "oracle vs a block-0 that uses Q8_K activations on every matmul" is **not cleanly computable** without reimplementing the entire block (Rope, Softmax, all Q4_K/Q6_K/Q8_0 matmuls, SiLU, residuals) in Python/C. The per-node proof above shows that if every matmul used llama.cpp's exact Q8_K activation path, the block-0 residual would collapse from ~1e-2–1e-1 down to the accumulated Q8_K rounding noise (expected ~1e-6–1e-5), but this is an inference from the Q/K/V node matches, not a directly computed number.
+
 ## Current conclusion
 
 - `attn_norm-0` matches exactly; the divergence starts at `Qcur-0`.
-- No permutation or layout bug was found.
-- The engine's weight dequantisation matches llama.cpp's reference exactly.
-- The engine's f32 matvec matches a Python/llama.cpp f32 reference exactly.
-- `Vcur-0` is exactly `attn_v.weight × attn_norm-0` (no hidden scale/transform).
-- The remaining divergence from the oracle (~4.4e-3 for Q4_K Q/K, ~5.8e-2 for Q6_K V) is in the oracle's own quantized-activation matmul, whose error is strongly dependent on weight type.
-- The 5e-3 AC-5a bound cannot be met for the Q6_K `attn_v.weight` path by fixing dequantisation or f32 arithmetic alone.
+- No permutation, layout, dequant, or f32-arithmetic bug exists in the engine.
+- `Vcur-0` is exactly `attn_v.weight × attn_norm-0`.
+- The oracle's `Qcur-0` and `Vcur-0` are reproduced to machine precision only when activations are quantized to Q8_K the way llama.cpp's CPU backend does it.
+- The AC-5a failure is therefore **by construction**: the oracle is a Q8_K-activation reference, the engine is an exact-f32 reference, and the two diverge at the level of llama.cpp's own quantization noise.
 
 ## Next action
 
-Raise a deviation request (or architect decision) to choose between:
-
-1. **Implement llama.cpp's exact quantized-activation matmul for Q4_K/Q6_K/Q8_0 inside `src/deepseek/`** (local to the parity engine, no shared-kernel edits), so the engine reproduces the oracle's CPU-backend arithmetic.
-2. **Revisit the 5e-3 bound** for AC-5a, since the oracle's own Q6_K matmul has a ~5.8e-2 precision floor relative to a f32 reference on this pack.
+Implement llama.cpp's Q8_K activation quantization and the matching Q4_K/Q6_K/Q8_0 `ggml_vec_dot_*_q8_K` paths **locally in `src/deepseek/`** so the parity engine reproduces the oracle's CPU-backend arithmetic, or raise a deviation if that implementation is out of scope.
 
 No code change was made in this diagnostic round; the Strata branch remains at `2ace4d3f8`.
