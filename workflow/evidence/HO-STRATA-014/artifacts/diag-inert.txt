@@ -1,0 +1,9 @@
+=== Diagnostic dump inertness check (STRATA_DEEPSEEK_DIAG undefined) ===
+--- before run ---
+ls: cannot access '/tmp/opencode/diag_*': No such file or directory
+no /tmp/opencode/diag_* files
+--- run once with --parity-run --dump-layers ---
+run_exit=0
+--- after run ---
+ls: cannot access '/tmp/opencode/diag_*': No such file or directory
+no /tmp/opencode/diag_* files
