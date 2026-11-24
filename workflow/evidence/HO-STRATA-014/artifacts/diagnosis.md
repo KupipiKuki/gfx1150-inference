@@ -191,16 +191,76 @@ The 1.94e-2 difference between the f32 reference and the oracle must come from o
 - **FFN down-projection orientation or dequant** (Q8_0 row layout).
 - **An arithmetic step the oracle performs that the reference omits** (e.g., a scale factor, residual scaling, or a second norm).
 
-## Next command
+## Step 6 — per-node oracle harness
 
-Build the per-node oracle dump harness and capture `attn_norm-0`, `attn_out-0` (or q/k/v/attention-output family), `ffn_norm-0`, `ffn_out-0`, and `l_out-0` from the pinned llama.cpp tree `78e05298…`:
+Derived `workflow/evidence/HO-STRATA-014/scripts/oracle_nodes.cpp` from the signed HO-STRATA-010 harness:
 
 ```bash
-# copy HO-STRATA-010 oracle_harness.cpp to workflow/evidence/HO-STRATA-014/scripts/oracle_nodes.cpp
-# add --dump-node NAME[,NAME] support using the existing tensor-callback filter
-# build into /tmp/opencode/oracle_nodes and run on the pack with the same 4-token prompt
-cd /tmp/opencode/llama-ref && g++ ... -o /tmp/opencode/oracle_nodes
-/tmp/opencode/oracle_nodes <pack> --dump-node attn_norm-0,attn_out-0,ffn_norm-0,ffn_out-0,l_out-0
+cp workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp \
+   workflow/evidence/HO-STRATA-014/scripts/oracle_nodes.cpp
+sha256sum workflow/evidence/HO-STRATA-010/artifacts/oracle_harness.cpp
+# bdc9303d6d884452175e199fff3a894836409543ef6f5f390a4e7eb9ab9b8f33
 ```
 
-Compare the first node where engine/oracle relative L2 exceeds the f32-reference-vs-engine noise floor (~1e-6). That node names the remaining arithmetic mismatch.
+Added `--dump-node NAME[,NAME]` that uses the existing `graph_get_cb` filter (`cparams.cb_eval`) to capture any named tensor, not just `l_out-<il>`. The HO-STRATA-010 bundle was not modified.
+
+Build commands (copied from HO-STRATA-010 §1, adapted to `/tmp/opencode/llama-ref`):
+
+```bash
+cmake -S /tmp/opencode/llama-ref -B /tmp/opencode/llama-ref/build \
+  -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=ON -DLLAMA_BUILD_TESTS=OFF \
+  -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/opencode/llama-ref/build -j$(nproc)
+g++ -O2 -std=c++17 workflow/evidence/HO-STRATA-014/scripts/oracle_nodes.cpp \
+  -o /tmp/opencode/oracle_nodes \
+  -I/tmp/opencode/llama-ref/include -I/tmp/opencode/llama-ref/ggml/include \
+  -L/tmp/opencode/llama-ref/build/bin -lllama -lggml -lggml-base -lggml-cpu -lpthread
+```
+
+Note: the `llama` app target fails to link (`-lllama-server-impl` / `-lllama-cli-impl` missing because examples/server are disabled), but the shared libraries `libllama.so`, `libggml.so`, `libggml-base.so`, `libggml-cpu.so` are built and sufficient for the harness.
+
+## Step 7 — engine-vs-oracle node table at p=0
+
+Oracle command:
+
+```bash
+cd /tmp/opencode
+LD_LIBRARY_PATH=/tmp/opencode/llama-ref/build/bin ./oracle_nodes \
+  --model <pack> --tokens 549,6077,280,7239 --n 0 \
+  --dump-node Qcur-0,Kcur-0,Vcur-0,ffn_inp-0,ffn_norm-0,ffn_out-0,l_out-0
+```
+
+Engine diagnostic dumps are from commit `2ace4d3f8` (local f32 matvec). `ffn_out-0` is computed as `l_out-0 - ffn_inp-0` for both sides.
+
+| node | engine vs oracle rel L2 (p=0) | verdict |
+|---|---|---|
+| `attn_norm-0` | 4.03e-08 | **match** — embedding and norm are correct |
+| `Qcur-0` | 4.44e-03 | **first diverge** |
+| `Kcur-0` | 6.89e-03 | diverge |
+| `Vcur-0` | 5.78e-02 | diverge |
+| `ffn_inp-0` (post-attn residual) | 3.64e-02 | downstream of attention |
+| `ffn_out-0` | 2.64e-02 | downstream |
+| `l_out-0` / block0 | 1.94e-02 | downstream |
+
+`attn_norm-0` first 10 values and norms agree to machine precision, so the divergence starts **inside the Q/K/V projections**, not before them.
+
+## Step 8 — checking the activation-quantization hypothesis
+
+Because the f32 reference and the f32-matvec engine agree to ~1e-6, they share the same reading of the weights and the input. The divergence from the oracle must therefore be in how llama.cpp evaluates the matmul itself. A plausible explanation is that the CPU oracle quantizes activations to Q8_1/Q8_K for its quantized matmuls, even though the weights are the same bytes.
+
+Quick test: switch only the Q/K/V projections back to the engine's native Q8_1 matvec (`K::native_mmvq`) and compare again:
+
+| node | f32 matvec | native Q8_1 q/k/v only |
+|---|---|---|
+| `Qcur-0` | 4.44e-03 | 4.19e-03 |
+| `Kcur-0` | 6.89e-03 | 6.30e-03 |
+| `Vcur-0` | 5.78e-02 | 5.34e-02 |
+
+The native Q8_1 path is slightly closer to the oracle, which supports the activation-quantization hypothesis, but the residual is still large. The exact quantization path used by the CPU backend (Q8_1 vs Q8_K, scale computation, summation order) needs to be identified and matched.
+
+## Current conclusion
+
+- The engine is **not bugged** in the embedding, RMSNorm, or f32-weight/f32-activation reference arithmetic.
+- The AC-5a failure is caused by the oracle using a quantized-activation matmul that differs from a pure f32 dot product.
+- The first diverging node is **`Qcur-0`** (relative L2 ≈ 4.4e-3).
+- To pass AC-5a, the engine must reproduce llama.cpp's exact quantized-activation arithmetic for the Q/K/V/FFN projections, or the bound must be revisited as a deviation.
