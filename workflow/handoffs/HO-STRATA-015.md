@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-015 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** (2026-11-25) — S4b is the second half of the owner-authorised S4 (DEC-042 §8); no new authorization needed |
+| **State** | **IN_PROGRESS** (2026-11-25) — accepted by coder-primary; DoR verified |
 | **Created / updated (UTC)** | 2026-11-25 / 2026-11-25 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `deepseek-s4b` |
@@ -238,7 +238,7 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | `architect` (`opencode-go/deepseek-v4-pro#max`) | 2026-11-25 | **READY** |
-| Receiver (Coder) | `coder-primary` (`opencode-go/kimi-k2.7-code`) | | |
+| Receiver (Coder) | `coder-primary` (`opencode-go/kimi-k2.7-code`) | 2026-11-25 | **IN_PROGRESS** |
 
 ## 11. Log
 
@@ -246,6 +246,9 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
   skeleton; the gate and the reference are **unchanged** from S4a (5e-3, exact-f32
   reference, same prompt), and the nine carried audit/QAQC items are acceptance
   criteria (AC-3, AC-8, AC-12) so they cannot be deferred again.
+- 2026-11-25 Coder-primary: accepted; switched Strata checkout to
+  `strata-015-deepseek-s4b` @ `db087d511`. Starting with the tool fix and memory
+  refactor before adding MoE blocks.
 
 ## 12. Tolerance (inherited, unchanged — HO-014 §12)
 
