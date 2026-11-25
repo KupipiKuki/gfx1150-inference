@@ -1090,3 +1090,52 @@ this file did not happen.
   layer is preserved — which is the whole reason S4 exists before S5.
 - **Affected:** HO-STRATA-014 (AC-5a, §3 inputs, §12 basis), DEC-038, DEC-041,
   `planning/strata-engine/13` §3 (tolerance policy), HO-STRATA-016 when written.
+
+## DEC-045 — Repository back to public: the runbook's exit condition is satisfied in code
+
+- **Date:** 2026-11-25 (owner decision, 2026-11-24 session)
+- **Context:** `main` carries the `release-gates` ruleset (id `26990297`) with four
+  required status checks. Three run on GitHub-hosted runners and stopped starting
+  on 2026-11-23 — *"recent account payments have failed or your spending limit
+  needs to be increased"* — so **nothing could merge** (PR #28 and HO-014 stalled;
+  HO-014 is `DONE/SIGNED` but unpublished).
+- **Why the repo was private (found, not guessed):**
+  `PHASE7_7F1_RUNNER_RUNBOOK.md` (2026-11-09) chose Option A — *"the repository is
+  made **private** during the runner phase"* — because *"a self-hosted runner on a
+  public repository can execute arbitrary fork-PR code on this host"*, and this
+  host holds the home directory, SSH keys and the checkout. Its own exit
+  condition: *"Revisit visibility after the release; if you make it public again,
+  remove the runner or enable the fork-approval gate first."*
+- **The exit condition is met in code:** `.github/workflows/ci-gpu.yml` gates the
+  self-hosted job with
+  `if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository`,
+  commented *"Never run untrusted fork code on the host, even if the repository
+  goes public."* Fork PRs cannot reach the GPU host at all — stronger than the
+  runbook's approval-only Option B.
+- **Pre-flight before disclosure:** full-history scan of **1,980 blobs** for
+  credential shapes — only the scanner's own fixtures (`ghp_123456789…`,
+  `github_pat_fake0000…`); repository is **not a fork**, licence **GPL-3.0** (the
+  owner's own work); the exported Strata patches come from an **MIT** upstream
+  with the pin and attribution in every bundle. GitHub secret scanning and push
+  protection are enabled on the repository.
+- **Decision (owner):**
+  1. **Set the repository public** (`PATCH /repos/… {"private": false}`,
+     2026-11-25T00:23Z). Public repositories get unlimited standard
+     GitHub-hosted minutes, which removes the block without touching the gate.
+  2. **Apply the runbook's Option-B hardening** alongside it:
+     `fork-pr-contributor-approval = all_external_contributors`;
+     `default_workflow_permissions = read`;
+     `can_approve_pull_request_reviews = false`.
+  3. **Keep the ruleset unchanged** — all four checks remain required, including
+     the free self-hosted GPU lane. No bypass actor, no disabled rule
+     (DEC-040 §3 holds).
+- **Accepted consequences:** the full history is public, including absolute
+  paths (`/home/kupipi/…`), the username, host details (Ryzen AI 9 HX 370 /
+  Radeon 890M, kernel, ROCm) and the prior project's audit trail; `audit/evidence/`
+  contains derived model outputs (`.logits.f32`), whose redistribution some model
+  licences constrain. Fork PR workflows now need owner approval, and fork code
+  never runs on the GPU host. Reverting to private is possible but cannot recall
+  what has already been fetched.
+- **Affected:** repository settings (visibility, Actions permissions),
+  `PHASE7_7F1_RUNNER_RUNBOOK.md` §2 (exit condition discharged, not amended),
+  DEC-040 (mechanism unchanged), `workflow/STATUS.md`, PR #28, HO-STRATA-014.
