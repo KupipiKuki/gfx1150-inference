@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-014 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **AUDIT_REVIEW** (S4a) — READY → IN_PROGRESS → DEVIATION (DR-HO-STRATA-014-1 **APPROVED**, DEC-043: split into S4a/S4b, `dsref.cu` cut) → IN_PROGRESS → CODER_DONE 2026-11-24 → QAQC_REVIEW → **AUDIT_REVIEW** (QAQC PASS, 2026-11-24). Gate: AC-5a PASS (layer 0, 4 cells, max rel L2 9.76e-5 ≤ 5e-3) |
+| **State** | **DONE (SIGNED 2026-11-24)** (S4a) — READY → IN_PROGRESS → DEVIATION (DR-HO-STRATA-014-1 APPROVED, DEC-043) → IN_PROGRESS → CODER_DONE → QAQC PASS → AUDIT PASS → **DONE** (DEC-044). Gate: AC-5a max rel L2 9.76e-5 ≤ 5e-3. Merge blocked on Actions billing (DEC-040) |
 | **Created / updated (UTC)** | 2026-11-23 / 2026-11-24 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `deepseek-s4a` |
@@ -314,7 +314,8 @@ another quant, family or host.
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | `architect` (`opencode-go/deepseek-v4-pro#max`) | 2026-11-23 | **READY** (owner authorized S4) |
-| Receiver (Coder) | `coder-primary` (`opencode-go/kimi-k2.7-code`) | | launched with this file |
+| Receiver (Coder) | `coder-primary` (`opencode-go/kimi-k2.7-code`) | 2026-11-23 | accepted `IN_PROGRESS` (A5: recorded at signoff, per the audit) |
+| Architect (final) | `architect` | 2026-11-24 | **SIGNED** — `HO-STRATA-014-APPROVAL.md` |
 
 ## 11. Log
 
@@ -480,3 +481,40 @@ only its report. Next: auditor review.
 The three Minors are **not** fixed in S4a: the bundle is a verified fixed point
 and editing `hashes.txt`/`hashes-notes.txt` now would invalidate the digests QAQC
 checked. They become explicit acceptance criteria in HO-STRATA-015.
+
+## 16. Audit verdict (2026-11-24) — PASS, then architect signoff
+
+| Field | Value |
+|---|---|
+| Auditor | `opencode-go/deepseek-v4.1-flash` (**WAIVER-001**, disclosed) |
+| Verdict | **PASS** — no blocker, no scope expansion, no unsupported claim |
+| Report | `workflow/reports/audit/HO-STRATA-014-audit.md` (auditor's content; materialised by the architect after a step-budget stop, as with the QAQC report) |
+
+The auditor did not accept the QAQC report on trust. It regenerated **both**
+oracle dumps from the committed harness and the pinned llama.cpp tree
+(`a4c56b9d…` and HO-010's `db6eccb3…`, `cmp` identical), ran the engine twice
+itself (`d534fdcb…`), verified **15 tensors** across all three quant types are
+byte-identical between the Q4_K_M pack and the f32 conversion (so DEC-044 changes
+the arithmetic, not the model), proved from git history that **the 5e-3 bound did
+not move**, and showed the NEOX/NORM fix is exactly a rope-pairing change: with
+NEOX the same f32 oracle gives `p1..p3 = 5.25e-2 / 5.81e-2 / 1.26e-1`, with NORM
+`9.76e-5` at `p0` (unchanged) and `5.9e-5`…`5.7e-5` after.
+
+Carried (all become HO-STRATA-015 acceptance criteria; none touches the claim):
+**A1** the gate reference's generating command is missing from the bundle;
+**A2** `B6-pins` does not run on this `hashes-notes.txt` (flat lines, one digest
+not inlined) so "31 checks" overstates coverage; **A3** `compare_layers.py`
+accepts a caller-supplied `--bound`; **A4** the slot/`N` derivation picks the
+smallest divisor, which for an S4b-shaped dump would compare **block 0 only and
+print PASS** — architect-confirmed, and why A4 is blocking for S4b; **A5** the
+receiver signature row (filled at signoff); **A6–A8** observations (f32 GEMV vs
+the production quantized GEMM, the extra `strata-deepseek` target, a manifest
+label). QAQC's F2 (`--parity-run` ignored on a supported model without
+`--dump-layers`) and F3 (`upload_weight` dual allocation, ~76 GB at 28 blocks)
+are HO-015 criteria too.
+
+**SIGNED** — `workflow/handoffs/HO-STRATA-014-APPROVAL.md`. State `DONE` for
+**S4a only**: `model_family_runs()` is still `false`, the named refusal and
+`--families` are unchanged, and no support claim is made. Merge per DEC-040 is
+authorised but **blocked** while 3 of the 4 required checks cannot start (GitHub
+Actions billing).
