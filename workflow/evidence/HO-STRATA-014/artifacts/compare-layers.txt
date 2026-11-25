@@ -1,0 +1,12 @@
+=== AC-5a: compare_layers.py vs f32 oracle ===
+engine dump: 5 records, 2 slots/record, N=1 blocks computed
+oracle: 4 records, 28 blocks
+non-finite values in kept dump: 0
+  cell (layer=0, pos=0): rel L2 = 9.757537e-05
+  cell (layer=0, pos=1): rel L2 = 5.944078e-05
+  cell (layer=0, pos=2): rel L2 = 6.385591e-05
+  cell (layer=0, pos=3): rel L2 = 5.652541e-05
+median rel L2 = 6.164835e-05
+max rel L2    = 9.757537e-05 at (layer=0, pos=0)
+RESULT: PASS
+compare_exit=0

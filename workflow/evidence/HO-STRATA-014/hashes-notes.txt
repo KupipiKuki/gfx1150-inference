@@ -1,0 +1,32 @@
+# hashes-notes.txt — HO-STRATA-014
+# Pins for mutable/shared inputs and code branches (DEC-024).
+# Format: <commit>:<path>  <sha256>
+
+# Mutable shared file: decision log as it exists on the work-package branch.
+4c29e9458ffcf2bf268f3cd3191f1f26f1beee18:workflow/DECISIONS.md  a717e14341aeb9f6a50e12296c121844d7e926c86516d926cb6394157703981b
+
+# Signed oracle from HO-STRATA-010 (Q4_K, token authority and informative floor).
+4c29e9458ffcf2bf268f3cd3191f1f26f1beee18:workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin  db6eccb3e8a949827c5c961fc732159daa1a0a9d52f7f88156d669845e0c7c73
+
+# S1–S3 patch from HO-STRATA-012 (base for AC-8 apply check).
+4c29e9458ffcf2bf268f3cd3191f1f26f1beee18:workflow/evidence/HO-STRATA-012/patches/0001-deepseek-family.patch  (see HO-STRATA-012 hashes.txt)
+
+# Code branch pins (mutable by definition; not hashed as artifacts).
+workflow branch: wp/strata-014-deepseek-s4 @ 4c29e9458ffcf2bf268f3cd3191f1f26f1beee18
+Strata branch:   strata-014-deepseek-s4 @ db087d5117abd6596fe0609605344bc4cc0ad318
+Strata base:     bac859ef91fb0d432eaf9675fc769bc3afe313cf (S1–S3)
+Strata pin:      baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+
+# External model packs (not in repo; hashes recorded for reproducibility).
+# DeepSeek-MoE-16B-base Q4_K_M pack:
+#   /home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+#   sha256: f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5
+# f32 conversion of the same pack (throwaway artifact, stays outside repo):
+#   /tmp/opencode/deepseek-moe-16b-f32.gguf
+#   sha256: 8cd778a7fd6a077fe2d64aa7a7d47fe628c044f9e6439e53a258fd4d9e591f27
+# Qwen3.6-35B-A3B-UD-Q4_K_XL pack (HO-007 regression):
+#   /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+#   sha256: 55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1
+
+# llama.cpp pin used for the oracle harness and f32 conversion.
+llama.cpp: 78e05298f0d68abff41d08d79fa7469264b2aff0 (tag b12527)

@@ -1,0 +1,34 @@
+=== AC-8: S4 patch stat (bac859ef9..HEAD) ===
+ cmake/strata_gpu_engine.cmake      |  12 +
+ include/strata/deepseek/engine.hpp |  10 +
+ src/deepseek/ds_engine.cu          | 474 +++++++++++++++++++++++++++++++++++++
+ src/deepseek/ds_f32_matvec.cu      | 129 ++++++++++
+ src/deepseek/ds_f32_matvec.cuh     |  28 +++
+ src/deepseek/ds_kernels.cu         |  81 +++++++
+ src/deepseek/ds_kernels.cuh        |  24 ++
+ src/deepseek/ds_main.cpp           |   4 +
+ src/program/generate.cpp           |  37 +++
+ tests/core/model_family_test.cpp   |  40 ++++
+ 10 files changed, 839 insertions(+)
+=== AC-8: cumulative patch stat (baf16363..HEAD) ===
+ cmake/strata_gpu_engine.cmake            |  12 +
+ include/strata/artifact/gguf_reader.hpp  |  18 ++
+ include/strata/artifact/model_family.hpp |   9 +-
+ include/strata/core/family_layout.hpp    | 121 +++++++-
+ include/strata/core/geometry.hpp         |   6 +
+ include/strata/deepseek/engine.hpp       |  10 +
+ src/deepseek/ds_engine.cu                | 474 +++++++++++++++++++++++++++++++
+ src/deepseek/ds_f32_matvec.cu            | 129 +++++++++
+ src/deepseek/ds_f32_matvec.cuh           |  28 ++
+ src/deepseek/ds_kernels.cu               |  81 ++++++
+ src/deepseek/ds_kernels.cuh              |  24 ++
+ src/deepseek/ds_main.cpp                 |   4 +
+ src/program/generate.cpp                 |  47 +++
+ tests/core/model_family_test.cpp         | 141 +++++++--
+ 14 files changed, 1073 insertions(+), 31 deletions(-)
+=== AC-8: apply --check in clean baf16363 worktree with 0001 applied ===
+Preparing worktree (detached HEAD baf16363b)
+HEAD is now at baf16363b release manifest: the Control 0.1.60.1 packages of the 0.2.14.1 update
+0001_apply_exit=0
+0002_apply_check_exit=0
+worktree_removed_exit=0

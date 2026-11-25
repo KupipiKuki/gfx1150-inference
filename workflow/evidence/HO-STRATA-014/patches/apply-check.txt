@@ -1,0 +1,6 @@
+=== AC-8: apply --check in clean baf16363 worktree with 0001 applied ===
+Preparing worktree (detached HEAD baf16363b)
+HEAD is now at baf16363b release manifest: the Control 0.1.60.1 packages of the 0.2.14.1 update
+0001_apply_exit=0
+0002_apply_check_exit=0
+worktree_removed_exit=0
