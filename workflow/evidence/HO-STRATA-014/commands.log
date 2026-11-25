@@ -1,0 +1,108 @@
+# commands.log — HO-STRATA-014 (S4a) acceptance runs
+# Cwd: /home/kupipi/Documents/git/strata
+# Env: LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib
+# Date: 2026-11-24
+
+# Common paths:
+# PACK=/home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+# F32PACK=/tmp/opencode/deepseek-moe-16b-f32.gguf
+# QWEN=/home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+# F32_ORACLE=/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
+# Q4K_ORACLE=/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-010/artifacts/runs/deepseek_p1_4_layers.bin
+# COMPARE=/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/scripts/compare_layers.py
+
+# AC-1: build and signed binary hash
+$ sha256sum build-hip/strata
+  d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+$ cmake --build build-deepseek --target strata model_family_test gguf_geometry_test -j$(nproc)
+  exit=0
+$ sha256sum build-hip/strata
+  d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+
+# AC-2a: normal run still refuses
+$ ./build-deepseek/strata --native $PACK --tokens 1,2,3 --max-new 32 --max-context 1024
+  strata generate: ...: DeepSeek-MoE-16B-base (architecture 'deepseek') is recognised by Strata but this build does not run it yet
+  exit=2
+
+# AC-2b: --families unchanged
+$ ./build-deepseek/strata --families
+  qwen4exp qwen35moe
+  exit=0
+
+# AC-3a: --parity-run without --dump-layers refused
+$ ./build-deepseek/strata --parity-run --native $PACK --tokens 1,2,3 --max-new 1 --max-context 1024
+  strata generate: --parity-run requires --dump-layers PATH
+  exit=2
+
+# AC-3b: --parity-run on unknown-arch GGUF refused
+$ ./build-deepseek/strata --parity-run --native /tmp/opencode/unknown.gguf --dump-layers /tmp/opencode/dummy-dump.bin --tokens 1,2,3 --max-new 1 --max-context 1024
+  strata generate: --native requires --ple-gguf ...
+  exit=2
+
+# AC-3c: --parity-run with --dump-layers accepted (DeepSeek pack)
+$ ./build-deepseek/strata --parity-run --native $PACK --dump-layers /tmp/opencode/s4-dump.bin --tokens 549,6077,280,7239 --max-new 1 --max-context 1024
+  strata generate: parity run: architecture 'deepseek' is not supported; this path exists for HO-STRATA-014/015 parity only
+  layers dumped: /tmp/opencode/s4-dump.bin (1 layer + the input x 1 streams x 2048)
+  exit=0
+
+# AC-4: dump shape and finiteness
+$ stat -c%s /tmp/opencode/s4-dump.bin
+  81920
+$ python3 $COMPARE --shape-only --oracle $F32_ORACLE --dump /tmp/opencode/s4-dump.bin
+  RESULT: PASS (shape only)
+  exit=0
+
+# AC-5a: layer parity vs exact-arithmetic f32 oracle (gate)
+$ python3 $COMPARE --oracle $F32_ORACLE --dump /tmp/opencode/s4-dump.bin
+  max rel L2 = 9.757537e-05 at (layer=0, pos=0)
+  RESULT: PASS
+  exit=0
+
+# AC-5a: Q4_K informative floor (not gated)
+$ python3 $COMPARE --oracle $Q4K_ORACLE --dump /tmp/opencode/s4-dump.bin
+  max rel L2 = 2.054810e-02 at (layer=0, pos=2)
+  RESULT: FAIL (expected; floor only)
+  exit=1
+
+# AC-6: determinism
+$ ./build-deepseek/strata --parity-run --native $PACK --dump-layers /tmp/opencode/s4-dump-1.bin --tokens 549,6077,280,7239 --max-new 1 --max-context 1024
+  exit=0
+$ ./build-deepseek/strata --parity-run --native $PACK --dump-layers /tmp/opencode/s4-dump-2.bin --tokens 549,6077,280,7239 --max-new 1 --max-context 1024
+  exit=0
+$ cmp /tmp/opencode/s4-dump-1.bin /tmp/opencode/s4-dump-2.bin
+  dumps identical
+  exit=0
+
+# AC-7a: Qwen regression (HO-007 32 token IDs)
+$ ./build-deepseek/strata --native $QWEN --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
+  gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+  exit=0
+
+# AC-7b/c: unit tests
+$ ./build-deepseek/model_family_test
+  ALL PASSED
+  exit=0
+$ ./build-deepseek/gguf_geometry_test
+  gguf_geometry_test: all passed
+  exit=0
+
+# AC-8: patch stats and apply check
+$ git diff --stat bac859ef9..HEAD
+  10 files changed, 839 insertions(+)
+$ git diff --stat baf16363..HEAD
+  14 files changed, 1073 insertions(+), 31 deletions(-)
+$ git worktree add /tmp/opencode/strata-apply-check-ac8 baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+$ git apply --check workflow/evidence/HO-STRATA-012/patches/0001-deepseek-family.patch && git apply workflow/evidence/HO-STRATA-012/patches/0001-deepseek-family.patch
+  exit=0
+$ git apply --check workflow/evidence/HO-STRATA-014/patches/0002-s4-forward.patch
+  exit=0
+$ git worktree remove --force /tmp/opencode/strata-apply-check-ac8
+  exit=0
+
+# Diagnostic inertness (STRATA_DEEPSEEK_DIAG undefined)
+$ ls -la /tmp/opencode/diag_* 2>&1 || echo 'no /tmp/opencode/diag_* files'
+  no /tmp/opencode/diag_* files
+$ LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --parity-run --native $PACK --dump-layers /tmp/opencode/s4-dump-inert.bin --tokens 549,6077,280,7239 --max-new 1 --max-context 1024
+  exit=0
+$ ls -la /tmp/opencode/diag_* 2>&1 || echo 'no /tmp/opencode/diag_* files'
+  no /tmp/opencode/diag_* files

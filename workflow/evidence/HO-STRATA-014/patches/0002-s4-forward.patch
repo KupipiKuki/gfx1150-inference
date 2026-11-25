@@ -1,0 +1,942 @@
+diff --git a/cmake/strata_gpu_engine.cmake b/cmake/strata_gpu_engine.cmake
+index 945ca0e5b..58bb03916 100644
+--- a/cmake/strata_gpu_engine.cmake
++++ b/cmake/strata_gpu_engine.cmake
+@@ -543,6 +543,18 @@ if(STRATA_ENABLE_CUDA OR STRATA_ENABLE_HIP)
+   target_link_libraries(strata-q36 PRIVATE strata_qwen35 ${_strata_gpu_runtime_target})
+   target_link_libraries(strata PRIVATE strata_qwen35)
+   target_compile_definitions(strata PRIVATE STRATA_HAVE_QWEN35=1)
++
++  # DeepSeek-MoE-16B parity engine (S4a: block 0 only; S4b will add the MoE blocks).  Not on gfx906 for the same
++  # warp-width / cuBLAS reasons as qwen35 (the engine uses Strata kernels and simple custom kernels, but the build
++  # plumbing is kept identical).  main() guards every use with STRATA_HAVE_DEEPSEEK.
++  add_library(strata_deepseek STATIC src/deepseek/ds_engine.cu src/deepseek/ds_kernels.cu src/deepseek/ds_f32_matvec.cu)
++  target_include_directories(strata_deepseek PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${_strata_gpu_include_directories})
++  target_link_libraries(strata_deepseek PRIVATE strata_kernels strata_warnings ${_strata_gpu_runtime_target})
++  add_executable(strata-deepseek src/deepseek/ds_main.cpp)
++  strata_utf8_manifest(strata-deepseek)
++  target_link_libraries(strata-deepseek PRIVATE strata_deepseek ${_strata_gpu_runtime_target})
++  target_link_libraries(strata PRIVATE strata_deepseek)
++  target_compile_definitions(strata PRIVATE STRATA_HAVE_DEEPSEEK=1)
+   endif()
+ 
+   if(STRATA_ENABLE_HIP)
+diff --git a/include/strata/deepseek/engine.hpp b/include/strata/deepseek/engine.hpp
+new file mode 100644
+index 000000000..ef5ac2ef3
+--- /dev/null
++++ b/include/strata/deepseek/engine.hpp
+@@ -0,0 +1,10 @@
++// include/strata/deepseek/engine.hpp - DeepSeek-MoE-16B dedicated parity engine entry point.
++// Dispatched from src/program/generate.cpp only under --parity-run; normal runs refuse.
++#pragma once
++
++namespace strata::deepseek {
++
++/// Run the DeepSeek parity engine.  Returns the process exit code.
++int run(int argc, char** argv);
++
++}  // namespace strata::deepseek
+diff --git a/src/deepseek/ds_engine.cu b/src/deepseek/ds_engine.cu
+new file mode 100644
+index 000000000..239d3ef92
+--- /dev/null
++++ b/src/deepseek/ds_engine.cu
+@@ -0,0 +1,474 @@
++// src/deepseek/ds_engine.cu - DeepSeek-MoE-16B parity engine (S4a: block 0 only).
++// Built from Strata kernels; no captured graphs, no expert cache, no MoE code.
++#include "strata/artifact/gguf_reader.hpp"
++#include "strata/core/family_layout.hpp"
++#include "strata/deepseek/engine.hpp"
++#include "strata/kernels/bf16_bits.hpp"
++#include "strata/kernels/elementwise.hpp"
++#include "strata/kernels/f16_bits.hpp"
++#include "strata/kernels/iq_kernels.hpp"
++#include "strata/kernels/native_mmvq.hpp"
++#include "strata/kernels/quantize_act.hpp"
++#include "strata/kernels/rope.hpp"
++#include "strata/kernels/rope_scaling.hpp"
++
++#include "ds_f32_matvec.cuh"
++#include "ds_kernels.cuh"
++
++#include <cuda_runtime.h>
++
++#include <cmath>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <string>
++#include <vector>
++
++namespace {
++
++#define CK(x)                                                                                              \
++    do {                                                                                                   \
++        cudaError_t e_ = (x);                                                                              \
++        if (e_ != cudaSuccess) {                                                                           \
++            std::fprintf(stderr, "strata-deepseek: %s failed: %s (%s:%d)\n", #x, cudaGetErrorString(e_),   \
++                         __FILE__, __LINE__);                                                              \
++            std::exit(1);                                                                                  \
++        }                                                                                                  \
++    } while (0)
++
++namespace K = strata::kernels;
++
++// ------------------------------------------------------------------------------------------------ small kernels
++
++namespace D = strata::deepseek;
++
++// ------------------------------------------------------------------------------------------------ weight helper
++
++struct Weight {
++    int ggml_type = 0;
++    int n_in = 0;   // contiguous dimension
++    int n_out = 0;  // number of rows
++    void* d = nullptr;
++    strata::deepseek::F32Weight f32;  // parity-only f32 copy (Q8_1 activation bypass)
++};
++
++static float* upload_f32(const strata::GgufModel& gm, const std::string& name) {
++    size_t shard = 0;
++    const strata::TensorInfo* tp = gm.find(name, &shard);
++    if (!tp) {
++        std::fprintf(stderr, "strata-deepseek: missing %s\n", name.c_str());
++        std::exit(1);
++    }
++    const strata::TensorInfo& t = *tp;
++    const uint64_t n = t.elements();
++    std::vector<float> h(n);
++    const uint8_t* src = gm.shard(shard).tensor_data(t);
++    if (t.type == 0) {
++        std::memcpy(h.data(), src, n * 4);
++    } else if (t.type == 1) {
++        for (uint64_t i = 0; i < n; ++i) h[i] = K::f32_from_f16(((const uint16_t*) src)[i]);
++    } else if (t.type == 30) {
++        for (uint64_t i = 0; i < n; ++i) h[i] = K::f32_from_bf16(((const uint16_t*) src)[i]);
++    } else if (t.type == 8 && n % 32 == 0) {
++        K::dequant_q8_0(src, h.data(), (int64_t) n, nullptr);
++    } else {
++        std::fprintf(stderr, "strata-deepseek: %s is %s, expected F32/F16/BF16/Q8_0\n", t.name.c_str(),
++                     t.type_name());
++        std::exit(1);
++    }
++    float* d = nullptr;
++    CK(cudaMalloc(&d, n * 4));
++    CK(cudaMemcpy(d, h.data(), n * 4, cudaMemcpyHostToDevice));
++    return d;
++}
++
++static Weight upload_weight(const strata::GgufModel& gm, const std::string& name) {
++    size_t shard = 0;
++    const strata::TensorInfo* t = gm.find(name, &shard);
++    if (!t) {
++        std::fprintf(stderr, "strata-deepseek: missing %s\n", name.c_str());
++        std::exit(1);
++    }
++    Weight w;
++    w.ggml_type = (int) t->type;
++    w.n_in = (int) t->shape[0];
++    w.n_out = (int) t->shape[1];
++    if (!K::native_mmvq_supported(w.ggml_type)) {
++        std::fprintf(stderr, "strata-deepseek: %s is %s, native MMVQ does not take it\n", name.c_str(),
++                     t->type_name());
++        std::exit(1);
++    }
++    const uint64_t nb = strata::tensor_payload_bytes(*t);
++    void* d = nullptr;
++    CK(cudaMalloc(&d, nb));
++    CK(cudaMemcpy(d, gm.shard(shard).tensor_data(*t), nb, cudaMemcpyHostToDevice));
++    w.d = d;
++    // For the parity path we keep an f32 copy so matvecs can run with f32 activations
++    // and bypass the Q8_1 quantization error.
++    w.f32 = strata::deepseek::upload_weight_f32(gm, name);
++    return w;
++}
++
++static void matvec(const Weight& w, const float* x_f32, float* y, void* stream) {
++    // Parity build: use the local f32 matvec to match the CPU oracle's f32 activations.
++    strata::deepseek::f32_matvec(w.f32, x_f32, y, stream);
++}
++
++// ------------------------------------------------------------------------------------------------ engine state
++
++struct Layer0 {
++    float* attn_norm = nullptr;
++    Weight wq, wk, wv, wo;
++    float* ffn_norm = nullptr;
++    Weight ffn_gate, ffn_up, ffn_down;
++};
++
++struct Model {
++    strata::core::ModelGeometry g;
++    float* token_embd = nullptr;  // [n_vocab, n_embd] f32 (dequantized on device)
++    float* output_norm = nullptr;
++    Weight output;  // may be unused if tied
++    bool output_tied = false;
++    Layer0 layer0;
++};
++
++struct Buffers {
++    float* residual = nullptr;
++    float* norm_out = nullptr;
++    float* q = nullptr;
++    float* k = nullptr;
++    float* v = nullptr;
++    float* attn_out = nullptr;
++    float* ffn_gate = nullptr;
++    float* ffn_up = nullptr;
++    float* kcache = nullptr;
++    float* vcache = nullptr;
++    void* q8_1_scratch = nullptr;
++    int* pos_dev = nullptr;
++    float* dump = nullptr;
++};
++
++// ------------------------------------------------------------------------------------------------ load
++
++static bool load_model(const std::string& path, Model& m, std::string& err) {
++    strata::GgufModel gm = strata::GgufModel::open(path);
++    int64_t top_k = 0;
++    if (!strata::core::geometry_from_gguf(gm.meta(), m.g, top_k, err)) return false;
++    if (m.g.family != strata::ModelFamily::DeepseekMoe) {
++        err = "strata-deepseek runs DeepSeek-MoE-16B (deepseek) files only";
++        return false;
++    }
++    if (m.g.n_embd != 2048 || m.g.n_head != 16 || m.g.n_head_kv != 16 || m.g.n_ff_dense != 10944) {
++        err = "strata-deepseek S4a: this driver is built for DeepSeek-MoE-16B base";
++        return false;
++    }
++
++    // token embedding: dequantize the whole table on the device for simple gather
++    {
++        size_t shard = 0;
++        const strata::TensorInfo* t = gm.find("token_embd.weight", &shard);
++        if (!t) { err = "missing token_embd.weight"; return false; }
++        if (!K::embed_type_supported((int) t->type)) {
++            err = std::string("token_embd.weight is ") + t->type_name() + ", which the embedding kernels do not take";
++            return false;
++        }
++        const uint64_t n = t->elements();
++        const uint64_t nb = strata::tensor_payload_bytes(*t);
++        void* raw = nullptr;
++        CK(cudaMalloc(&raw, nb));
++        CK(cudaMemcpy(raw, gm.shard(shard).tensor_data(*t), nb, cudaMemcpyHostToDevice));
++        CK(cudaMalloc(&m.token_embd, n * 4));
++        K::iq_dequant_f32((int) t->type, raw, (int64_t) n, m.token_embd, nullptr);
++        CK(cudaFree(raw));
++    }
++
++    m.output_norm = upload_f32(gm, "output_norm.weight");
++
++    {
++        size_t shard = 0;
++        const strata::TensorInfo* t = gm.find("output.weight", &shard);
++        if (t) m.output = upload_weight(gm, "output.weight");
++        else m.output_tied = true;
++    }
++
++    Layer0& l = m.layer0;
++    l.attn_norm = upload_f32(gm, "blk.0.attn_norm.weight");
++    l.wq = upload_weight(gm, "blk.0.attn_q.weight");
++    l.wk = upload_weight(gm, "blk.0.attn_k.weight");
++    l.wv = upload_weight(gm, "blk.0.attn_v.weight");
++    l.wo = upload_weight(gm, "blk.0.attn_output.weight");
++    l.ffn_norm = upload_f32(gm, "blk.0.ffn_norm.weight");
++    l.ffn_gate = upload_weight(gm, "blk.0.ffn_gate.weight");
++    l.ffn_up = upload_weight(gm, "blk.0.ffn_up.weight");
++    l.ffn_down = upload_weight(gm, "blk.0.ffn_down.weight");
++
++    return true;
++}
++
++static void alloc_buffers(const Model& m, Buffers& b, int max_context) {
++    const int64_t N = m.g.n_embd;
++    const int64_t FF = m.g.n_ff_dense;
++    CK(cudaMalloc(&b.residual, N * 4));
++    CK(cudaMalloc(&b.norm_out, N * 4));
++    CK(cudaMalloc(&b.q, N * 4));
++    CK(cudaMalloc(&b.k, N * 4));
++    CK(cudaMalloc(&b.v, N * 4));
++    CK(cudaMalloc(&b.attn_out, N * 4));
++    CK(cudaMalloc(&b.ffn_gate, FF * 4));
++    CK(cudaMalloc(&b.ffn_up, FF * 4));
++    CK(cudaMalloc(&b.kcache, (size_t) max_context * N * 4));
++    CK(cudaMalloc(&b.vcache, (size_t) max_context * N * 4));
++    CK(cudaMalloc(&b.q8_1_scratch, K::native_q8_1_bytes((int) std::max(N, FF))));
++    CK(cudaMalloc(&b.pos_dev, (size_t) m.g.n_head * sizeof(int)));
++    // dump: 2 slots (input + block 0) per position, contiguous [position][slot][n_embd]
++    CK(cudaMalloc(&b.dump, (size_t) max_context * 2 * N * 4));
++}
++
++// ------------------------------------------------------------------------------------------------ forward
++
++#ifdef STRATA_DEEPSEEK_DIAG
++static void dump_f32(const char* path, const float* d, size_t n, cudaStream_t stream) {
++    std::vector<float> h(n);
++    CK(cudaMemcpyAsync(h.data(), d, n * 4, cudaMemcpyDeviceToHost, stream));
++    CK(cudaStreamSynchronize(stream));
++    std::FILE* f = std::fopen(path, "wb");
++    if (!f) { std::fprintf(stderr, "dump_f32: cannot write %s\n", path); std::exit(1); }
++    std::fwrite(h.data(), 4, n, f);
++    std::fclose(f);
++}
++#define DIAG_DUMP(path, ptr, n) dump_f32(path, ptr, n, (cudaStream_t)stream)
++#else
++#define DIAG_DUMP(path, ptr, n) do {} while(0)
++#endif
++
++static void run_block0(const Model& m, Buffers& b, int pos, int n_kv, const float* cos_tab, const float* sin_tab,
++                       void* stream) {
++    const int64_t N = m.g.n_embd;
++    const int64_t FF = m.g.n_ff_dense;
++    const int n_head = (int) m.g.n_head;
++    const int head_dim = (int) (N / m.g.n_head);
++    const float attn_scale = 1.0f / std::sqrt((float) head_dim);
++    const Layer0& l = m.layer0;
++
++    // pre-norm RMSNorm: residual -> norm_out
++    CK(cudaMemcpyAsync(b.norm_out, b.residual, N * 4, cudaMemcpyDeviceToDevice, (cudaStream_t) stream));
++    K::rms_norm_weighted(b.norm_out, l.attn_norm, 1, N, (float) m.g.rms_eps, stream);
++    DIAG_DUMP((std::string("/tmp/opencode/diag_attnnorm_p") + std::to_string(pos) + ".bin").c_str(), b.norm_out, (size_t) N);
++
++    // Q/K/V projections (norm_out -> q/k/v)
++    matvec(l.wq, b.norm_out, b.q, stream);
++    matvec(l.wk, b.norm_out, b.k, stream);
++    matvec(l.wv, b.norm_out, b.v, stream);
++    DIAG_DUMP((std::string("/tmp/opencode/diag_q_p") + std::to_string(pos) + ".bin").c_str(), b.q, (size_t) N);
++    DIAG_DUMP((std::string("/tmp/opencode/diag_k_p") + std::to_string(pos) + ".bin").c_str(), b.k, (size_t) N);
++    DIAG_DUMP((std::string("/tmp/opencode/diag_v_p") + std::to_string(pos) + ".bin").c_str(), b.v, (size_t) N);
++
++    // RoPE on Q and K (full head_dim = n_rot for DeepSeek); pos is per-row.
++    // DeepSeek uses llama.cpp's NORM-style RoPE (consecutive pairs), not NEOX.
++    {
++        std::vector<int> pos_h(n_head, pos);
++        CK(cudaMemcpyAsync(b.pos_dev, pos_h.data(), (size_t) n_head * sizeof(int), cudaMemcpyHostToDevice,
++                           (cudaStream_t) stream));
++    }
++    D::k_rope_norm<<<1, n_head, 0, (cudaStream_t) stream>>>(b.q, b.q, n_head, head_dim, head_dim, cos_tab, sin_tab,
++                                                             b.pos_dev);
++    D::k_rope_norm<<<1, n_head, 0, (cudaStream_t) stream>>>(b.k, b.k, n_head, head_dim, head_dim, cos_tab, sin_tab,
++                                                             b.pos_dev);
++
++    // append K/V to cache
++    CK(cudaMemcpyAsync(b.kcache + (size_t) pos * N, b.k, N * 4, cudaMemcpyDeviceToDevice, (cudaStream_t) stream));
++    CK(cudaMemcpyAsync(b.vcache + (size_t) pos * N, b.v, N * 4, cudaMemcpyDeviceToDevice, (cudaStream_t) stream));
++
++    // attention: q/k/vcache -> attn_out
++    D::k_mha_decode<<<1, n_head, 0, (cudaStream_t) stream>>>(
++        b.q, b.kcache, b.vcache, b.attn_out, n_head, head_dim, n_kv, attn_scale);
++
++    // output projection
++    matvec(l.wo, b.attn_out, b.norm_out, stream);
++
++    // residual add: residual += norm_out (which holds attention output)
++    {
++        const int threads = 256;
++        const int blocks = (int) ((N + threads - 1) / threads);
++        D::k_add<<<blocks, threads, 0, (cudaStream_t) stream>>>(b.norm_out, b.residual, N);
++    }
++    DIAG_DUMP((std::string("/tmp/opencode/diag_postattn_p") + std::to_string(pos) + ".bin").c_str(), b.residual, (size_t) N);
++
++    // pre-FFN RMSNorm: residual -> norm_out
++    CK(cudaMemcpyAsync(b.norm_out, b.residual, N * 4, cudaMemcpyDeviceToDevice, (cudaStream_t) stream));
++    K::rms_norm_weighted(b.norm_out, l.ffn_norm, 1, N, (float) m.g.rms_eps, stream);
++
++    // dense SwiGLU FFN
++    matvec(l.ffn_gate, b.norm_out, b.ffn_gate, stream);
++    matvec(l.ffn_up, b.norm_out, b.ffn_up, stream);
++    {
++        const int threads = 256;
++        const int blocks = (int) ((FF + threads - 1) / threads);
++        D::k_swiglu_mul<<<blocks, threads, 0, (cudaStream_t) stream>>>(b.ffn_gate, b.ffn_up, FF);
++    }
++    matvec(l.ffn_down, b.ffn_up, b.norm_out, stream);
++
++    // residual add: residual += norm_out (which holds FFN output)
++    {
++        const int threads = 256;
++        const int blocks = (int) ((N + threads - 1) / threads);
++        D::k_add<<<blocks, threads, 0, (cudaStream_t) stream>>>(b.norm_out, b.residual, N);
++    }
++    DIAG_DUMP((std::string("/tmp/opencode/diag_block0_p") + std::to_string(pos) + ".bin").c_str(), b.residual, (size_t) N);
++}
++
++// ------------------------------------------------------------------------------------------------ run
++
++struct Options {
++    std::string native;
++    std::string dump_layers;
++    std::vector<int64_t> tokens;
++    int64_t max_new = 1;
++    int64_t max_context = 1024;
++};
++
++static bool parse_i64_list(const char* s, std::vector<int64_t>& out, std::string& err) {
++    out.clear();
++    std::string cur;
++    auto flush = [&]() -> bool {
++        if (cur.empty()) return true;
++        char* end = nullptr;
++        long long v = std::strtoll(cur.c_str(), &end, 10);
++        if (*end != '\0') { err = "expected integer list"; return false; }
++        out.push_back(v);
++        cur.clear();
++        return true;
++    };
++    for (; *s; ++s) {
++        if (*s == ',') { if (!flush()) return false; }
++        else if ((*s >= '0' && *s <= '9') || *s == '-' || *s == '+') cur.push_back(*s);
++        else { err = "unexpected character in integer list"; return false; }
++    }
++    return flush();
++}
++
++}  // namespace
++
++namespace strata::deepseek {
++
++int run(int argc, char** argv) {
++    Options o;
++    for (int i = 1; i < argc; ++i) {
++        const std::string a = argv[i];
++        auto next = [&](const char* what) -> const char* {
++            if (i + 1 >= argc) {
++                std::fprintf(stderr, "strata-deepseek: %s needs a value\n", what);
++                std::exit(2);
++            }
++            return argv[++i];
++        };
++        if (a == "--native") o.native = next("--native");
++        else if (a == "--model") o.native = next("--model");
++        else if (a == "--tokens") {
++            std::string e;
++            if (!parse_i64_list(next("--tokens"), o.tokens, e)) {
++                std::fprintf(stderr, "strata-deepseek: %s\n", e.c_str());
++                return 2;
++            }
++        } else if (a == "--max-new") o.max_new = std::atoll(next("--max-new"));
++        else if (a == "--max-context") o.max_context = std::atoll(next("--max-context"));
++        else if (a == "--dump-layers") o.dump_layers = next("--dump-layers");
++        // ignore other flags silently (temperature, etc.)
++    }
++
++    if (o.native.empty()) {
++        std::fprintf(stderr, "strata-deepseek: --native / --model is required\n");
++        return 2;
++    }
++    if (o.dump_layers.empty()) {
++        std::fprintf(stderr, "strata-deepseek: --dump-layers is required\n");
++        return 2;
++    }
++    if (o.tokens.empty()) {
++        std::fprintf(stderr, "strata-deepseek: --tokens is required\n");
++        return 2;
++    }
++
++    // The caller (generate.cpp) has already verified the family and printed the parity warning.
++    std::fprintf(stderr,
++                 "strata generate: parity run: architecture 'deepseek' is not supported; this path exists for "
++                 "HO-STRATA-014/015 parity only\n");
++
++    // Set rope scaling: DeepSeek base 1e4, no scaling.
++    K::RopeScaling rs;
++    rs.type = K::RopeScalingType::None;
++    rs.freq_base = 10000.0;
++    K::rope_scaling_set(rs);
++
++    Model m;
++    std::string err;
++    if (!load_model(o.native, m, err)) {
++        std::fprintf(stderr, "strata-deepseek: %s\n", err.c_str());
++        return 1;
++    }
++
++    const int max_context = (int) std::min<int64_t>(o.max_context, 4096);
++    Buffers b;
++    alloc_buffers(m, b, max_context);
++
++    // RoPE table for full head_dim (128) at DeepSeek base.
++    const int head_dim = (int) (m.g.n_embd / m.g.n_head);
++    std::vector<float> cos_tab((size_t) max_context * (head_dim / 2));
++    std::vector<float> sin_tab((size_t) max_context * (head_dim / 2));
++    K::build_rope_table(head_dim, K::rope_scaling(), max_context, cos_tab.data(), sin_tab.data());
++    float* d_cos = nullptr, * d_sin = nullptr;
++    CK(cudaMalloc(&d_cos, cos_tab.size() * 4));
++    CK(cudaMalloc(&d_sin, sin_tab.size() * 4));
++    CK(cudaMemcpy(d_cos, cos_tab.data(), cos_tab.size() * 4, cudaMemcpyHostToDevice));
++    CK(cudaMemcpy(d_sin, sin_tab.data(), sin_tab.size() * 4, cudaMemcpyHostToDevice));
++
++    cudaStream_t stream;
++    CK(cudaStreamCreate(&stream));
++
++    const int n_prompt = (int) o.tokens.size();
++    const int n_total = n_prompt + (int) o.max_new;
++    const int64_t N = m.g.n_embd;
++
++    for (int pos = 0; pos < n_total; ++pos) {
++        if (pos < n_prompt) {
++            const int tok_id = (int) o.tokens[pos];
++            CK(cudaMemcpyAsync(b.residual, m.token_embd + (size_t) tok_id * N, N * 4,
++                               cudaMemcpyDeviceToDevice, stream));
++        }
++
++        // dump slot 0 = input residual
++        CK(cudaMemcpyAsync(b.dump + (size_t) pos * 2 * N, b.residual, N * 4, cudaMemcpyDeviceToDevice, stream));
++
++        // run block 0
++        run_block0(m, b, pos, pos + 1, d_cos, d_sin, stream);
++
++        // dump slot 1 = after block 0
++        CK(cudaMemcpyAsync(b.dump + ((size_t) pos * 2 + 1) * N, b.residual, N * 4, cudaMemcpyDeviceToDevice, stream));
++    }
++
++    CK(cudaStreamSynchronize(stream));
++
++    // write dump file
++    {
++        std::FILE* f = std::fopen(o.dump_layers.c_str(), "wb");
++        if (!f) {
++            std::fprintf(stderr, "strata-deepseek: cannot write %s\n", o.dump_layers.c_str());
++            return 1;
++        }
++        std::vector<float> h((size_t) n_total * 2 * N);
++        CK(cudaMemcpy(h.data(), b.dump, h.size() * 4, cudaMemcpyDeviceToHost));
++        if (std::fwrite(h.data(), 4, h.size(), f) != h.size()) {
++            std::fprintf(stderr, "strata-deepseek: short write on %s\n", o.dump_layers.c_str());
++            std::fclose(f);
++            return 1;
++        }
++        std::fclose(f);
++        std::printf("layers dumped: %s (1 layer + the input x 1 streams x %lld)\n", o.dump_layers.c_str(),
++                    (long long) N);
++    }
++
++    CK(cudaStreamDestroy(stream));
++    return 0;
++}
++
++}  // namespace strata::deepseek
+diff --git a/src/deepseek/ds_f32_matvec.cu b/src/deepseek/ds_f32_matvec.cu
+new file mode 100644
+index 000000000..0bf38f5de
+--- /dev/null
++++ b/src/deepseek/ds_f32_matvec.cu
+@@ -0,0 +1,129 @@
++// src/deepseek/ds_f32_matvec.cu — local f32 matvec for the DeepSeek parity path.
++// Dequantizes the supported GGUF types to f32 on the host, uploads the row-major
++// matrix, and provides a simple f32 GEMV kernel.  This lives only in
++// strata_deepseek; no shared kernels are edited.
++
++#include "ds_f32_matvec.cuh"
++
++#include "strata/artifact/dequant.hpp"
++#include "strata/artifact/gguf_reader.hpp"
++#include "strata/core/weights.hpp"
++
++#include <cuda_runtime.h>
++
++#include <cstdio>
++#include <cstdlib>
++#include <string>
++#include <vector>
++
++namespace strata::deepseek {
++
++namespace {
++
++#define CK(x)                                                                                              \
++    do {                                                                                                   \
++        cudaError_t e_ = (x);                                                                              \
++        if (e_ != cudaSuccess) {                                                                           \
++            std::fprintf(stderr, "strata-deepseek: %s failed: %s (%s:%d)\n", #x, cudaGetErrorString(e_),   \
++                         __FILE__, __LINE__);                                                              \
++            std::exit(1);                                                                                  \
++        }                                                                                                  \
++    } while (0)
++
++// Quantized type ids used by the DeepSeek-MoE-16B Q4_K_M pack for block 0.
++enum GgmlType : int {
++    Q8_0 = 8,
++    Q4_K = 12,
++    Q6_K = 14,
++};
++
++__global__ void k_f32_matvec(const float* __restrict__ W, const float* __restrict__ x, float* __restrict__ y,
++                             int n_in, int n_out) {
++    const int o = blockIdx.x * blockDim.x + threadIdx.x;
++    if (o >= n_out) return;
++    const float* row = W + static_cast<size_t>(o) * n_in;
++    float sum = 0.0f;
++    for (int i = 0; i < n_in; ++i) {
++        sum += row[i] * x[i];
++    }
++    y[o] = sum;
++}
++
++} // namespace
++
++F32Weight upload_weight_f32(const strata::GgufModel& gm, const std::string& name) {
++    size_t shard = 0;
++    const strata::TensorInfo* t = gm.find(name, &shard);
++    if (!t) {
++        std::fprintf(stderr, "strata-deepseek: upload_weight_f32: missing %s\n", name.c_str());
++        std::exit(1);
++    }
++    if (t->shape.size() != 2) {
++        std::fprintf(stderr, "strata-deepseek: upload_weight_f32: %s is not 2-D\n", name.c_str());
++        std::exit(1);
++    }
++    int block_elems = 0, block_bytes = 0;
++    if (!strata::block_geometry(t->type, block_elems, block_bytes)) {
++        std::fprintf(stderr, "strata-deepseek: upload_weight_f32: %s has unknown type %d\n", name.c_str(), (int)t->type);
++        std::exit(1);
++    }
++    const int64_t n_in = static_cast<int64_t>(t->shape[0]);
++    const int64_t n_out = static_cast<int64_t>(t->shape[1]);
++    if (n_in % block_elems != 0) {
++        std::fprintf(stderr, "strata-deepseek: upload_weight_f32: %s n_in %% block_elems != 0\n", name.c_str());
++        std::exit(1);
++    }
++    const int64_t row_bytes = (n_in / block_elems) * block_bytes;
++    const int64_t total_bytes = strata::tensor_payload_bytes(*t);
++    if (total_bytes != row_bytes * n_out) {
++        std::fprintf(stderr, "strata-deepseek: upload_weight_f32: %s payload mismatch (%ld vs %ld)\n", name.c_str(),
++                     (long)total_bytes, (long)(row_bytes * n_out));
++        std::exit(1);
++    }
++
++    const uint8_t* src = static_cast<const uint8_t*>(gm.shard(shard).tensor_data(*t));
++    std::vector<float> host(static_cast<size_t>(n_in * n_out));
++
++    for (int64_t o = 0; o < n_out; ++o) {
++        const uint8_t* row_src = src + o * row_bytes;
++        float* row_dst = host.data() + o * n_in;
++        switch ((int)t->type) {
++        case Q8_0:
++            for (int64_t b = 0; b < n_in / 32; ++b) {
++                strata::dequantize_q8_0(row_src + b * 34, row_dst + b * 32);
++            }
++            break;
++        case Q4_K:
++            for (int64_t b = 0; b < n_in / 256; ++b) {
++                strata::dequantize_q4_K(row_src + b * 144, row_dst + b * 256);
++            }
++            break;
++        case Q6_K:
++            for (int64_t b = 0; b < n_in / 256; ++b) {
++                strata::dequantize_q6_K(row_src + b * 210, row_dst + b * 256);
++            }
++            break;
++        default:
++            std::fprintf(stderr, "strata-deepseek: upload_weight_f32: %s type %d not supported for f32 path\n",
++                         name.c_str(), (int)t->type);
++            std::exit(1);
++        }
++    }
++
++    F32Weight w;
++    w.n_in = static_cast<int>(n_in);
++    w.n_out = static_cast<int>(n_out);
++    CK(cudaMalloc(&w.d, host.size() * sizeof(float)));
++    CK(cudaMemcpy(w.d, host.data(), host.size() * sizeof(float), cudaMemcpyHostToDevice));
++    return w;
++}
++
++void f32_matvec(const F32Weight& w, const float* x, float* y, void* stream) {
++    if (w.n_out <= 0 || w.n_in <= 0) return;
++    const int threads = 256;
++    const int blocks = (w.n_out + threads - 1) / threads;
++    k_f32_matvec<<<blocks, threads, 0, static_cast<cudaStream_t>(stream)>>>(w.d, x, y, w.n_in, w.n_out);
++    CK(cudaGetLastError());
++}
++
++} // namespace strata::deepseek
+diff --git a/src/deepseek/ds_f32_matvec.cuh b/src/deepseek/ds_f32_matvec.cuh
+new file mode 100644
+index 000000000..949e81b84
+--- /dev/null
++++ b/src/deepseek/ds_f32_matvec.cuh
+@@ -0,0 +1,28 @@
++#pragma once
++// src/deepseek/ds_f32_matvec.cuh — local f32 matvec for the DeepSeek parity path.
++// No shared-kernel edits: this file is only compiled into strata_deepseek.
++
++#include <cstdint>
++#include <string>
++
++namespace strata {
++class GgufModel;
++}
++
++namespace strata::deepseek {
++
++struct F32Weight {
++    float* d = nullptr;   // row-major [n_out][n_in]
++    int n_in = 0;
++    int n_out = 0;
++};
++
++// Dequantize a GGUF tensor to an f32 row-major matrix on the device.
++// Supports the quantized types used by DeepSeek-MoE-16B block 0 in this pack:
++// Q4_K, Q6_K, Q8_0.  Exits on unsupported type or allocation failure.
++F32Weight upload_weight_f32(const strata::GgufModel& gm, const std::string& name);
++
++// y[o] = sum_i W[o][i] * x[i], in f32.
++void f32_matvec(const F32Weight& w, const float* x, float* y, void* stream);
++
++} // namespace strata::deepseek
+diff --git a/src/deepseek/ds_kernels.cu b/src/deepseek/ds_kernels.cu
+new file mode 100644
+index 000000000..9a57f1821
+--- /dev/null
++++ b/src/deepseek/ds_kernels.cu
+@@ -0,0 +1,81 @@
++// src/deepseek/ds_kernels.cu - small device kernels for the DeepSeek parity engine (S4a).
++#include "ds_kernels.cuh"
++
++namespace strata::deepseek {
++
++__global__ void k_swiglu_mul(const float* x, float* y, int64_t n) {
++    const int64_t i = (int64_t) blockIdx.x * blockDim.x + threadIdx.x;
++    if (i >= n) return;
++    const float v = x[i];
++    y[i] = (v / (1.0f + expf(-v))) * y[i];
++}
++
++__global__ void k_add(const float* x, float* y, int64_t n) {
++    const int64_t i = (int64_t) blockIdx.x * blockDim.x + threadIdx.x;
++    if (i >= n) return;
++    y[i] = x[i] + y[i];
++}
++
++__global__ void k_mha_decode(const float* q, const float* kcache, const float* vcache, float* out,
++                             int n_head, int head_dim, int n_kv, float scale) {
++    const int h = blockIdx.x * blockDim.x + threadIdx.x;
++    if (h >= n_head) return;
++
++    const float* qh = q + (size_t) h * head_dim;
++    float scores[256];
++
++    float max_s = -INFINITY;
++    for (int p = 0; p < n_kv; ++p) {
++        const float* kh = kcache + ((size_t) p * n_head + h) * head_dim;
++        float s = 0.0f;
++        for (int d = 0; d < head_dim; ++d) s = fmaf(qh[d], kh[d], s);
++        s *= scale;
++        scores[p] = s;
++        max_s = fmaxf(max_s, s);
++    }
++
++    float sum = 0.0f;
++    for (int p = 0; p < n_kv; ++p) {
++        scores[p] = expf(scores[p] - max_s);
++        sum += scores[p];
++    }
++    const float inv_sum = 1.0f / sum;
++    for (int p = 0; p < n_kv; ++p) scores[p] *= inv_sum;
++
++    float* oh = out + (size_t) h * head_dim;
++    for (int d = 0; d < head_dim; ++d) {
++        float acc = 0.0f;
++        for (int p = 0; p < n_kv; ++p) {
++            const float* vh = vcache + ((size_t) p * n_head + h) * head_dim;
++            acc = fmaf(scores[p], vh[d], acc);
++        }
++        oh[d] = acc;
++    }
++}
++
++__global__ void k_rope_norm(const float* __restrict__ x, float* __restrict__ out, int n_head, int head_dim,
++                            int n_rot, const float* __restrict__ cos_tab, const float* __restrict__ sin_tab,
++                            const int* __restrict__ pos) {
++    const int h = blockIdx.x * blockDim.x + threadIdx.x;
++    if (h >= n_head) return;
++
++    const float* xh = x + (size_t) h * head_dim;
++    float* oh = out + (size_t) h * head_dim;
++    const int half = n_rot / 2;
++    const int p = pos[h];
++    const size_t toff = (size_t) p * half;
++
++    for (int i = 0; i < half; ++i) {
++        const float a = xh[2 * i + 0];
++        const float b = xh[2 * i + 1];
++        const float c = cos_tab[toff + i];
++        const float s = sin_tab[toff + i];
++        oh[2 * i + 0] = a * c - b * s;
++        oh[2 * i + 1] = a * s + b * c;
++    }
++    for (int d = n_rot; d < head_dim; ++d) {
++        oh[d] = xh[d];
++    }
++}
++
++}  // namespace strata::deepseek
+diff --git a/src/deepseek/ds_kernels.cuh b/src/deepseek/ds_kernels.cuh
+new file mode 100644
+index 000000000..df321bd5e
+--- /dev/null
++++ b/src/deepseek/ds_kernels.cuh
+@@ -0,0 +1,24 @@
++// src/deepseek/ds_kernels.cuh - small device kernels for the DeepSeek parity engine (S4a).
++#pragma once
++
++#include <cuda_runtime.h>
++#include <cstdint>
++
++namespace strata::deepseek {
++
++// y[i] = silu(x[i]) * y[i]   (in-place on y)
++__global__ void k_swiglu_mul(const float* x, float* y, int64_t n);
++
++// y[i] = x[i] + y[i]   (in-place on y)
++__global__ void k_add(const float* x, float* y, int64_t n);
++
++// MHA decode: one query position, n_kv cached positions, causal already satisfied.
++__global__ void k_mha_decode(const float* q, const float* kcache, const float* vcache, float* out,
++                             int n_head, int head_dim, int n_kv, float scale);
++
++// NORM-style RoPE (llama.cpp LLAMA_ROPE_TYPE_NORM): rotate consecutive pairs (2i, 2i+1).
++// cos_tab/sin_tab are [max_pos][n_rot/2]; pos is one integer per head.
++__global__ void k_rope_norm(const float* x, float* out, int n_head, int head_dim, int n_rot,
++                            const float* cos_tab, const float* sin_tab, const int* pos);
++
++}  // namespace strata::deepseek
+diff --git a/src/deepseek/ds_main.cpp b/src/deepseek/ds_main.cpp
+new file mode 100644
+index 000000000..faae8ce1e
+--- /dev/null
++++ b/src/deepseek/ds_main.cpp
+@@ -0,0 +1,4 @@
++// src/deepseek/ds_main.cpp - stand-alone deepseek parity entry point.
++#include "strata/deepseek/engine.hpp"
++
++int main(int argc, char** argv) { return strata::deepseek::run(argc, argv); }
+diff --git a/src/program/generate.cpp b/src/program/generate.cpp
+index baa157397..7c462ce2c 100644
+--- a/src/program/generate.cpp
++++ b/src/program/generate.cpp
+@@ -160,6 +160,9 @@
+ #if defined(STRATA_HAVE_QWEN35)
+ #include "strata/qwen35/engine.hpp"
+ #endif
++#if defined(STRATA_HAVE_DEEPSEEK)
++#include "strata/deepseek/engine.hpp"
++#endif
+ #if defined(_WIN32)
+ #include <windows.h>
+ #include <psapi.h>
+@@ -813,6 +816,7 @@ struct Options {
+     /// for the reference, so the first layer whose `sum` diverges is the layer that holds the bug.  It needs the
+     /// captured path (the expert pool only exists there), so it is refused with `--no-capture`.
+     std::string dump_layers;
++    bool parity_run = false;          ///< HO-STRATA-014/015: run a recognised-but-not-supported family for parity only
+     /// `2 * n_embd + 2 * hc` floats per layer per position: the attention half's block output, the MoE half's,
+     /// and the two injection vectors.  It separates `linear_attn_out-<l>` from `ffn_out-<l>`, which the residual
+     /// ladder cannot.  **CAPTURED INTO THE LAYER GRAPHS**, so it must be armed before `session_capture`.
+@@ -3667,6 +3671,38 @@ int main(int argc, char** argv) {
+         break;
+     }
+ #endif
++#if defined(STRATA_HAVE_DEEPSEEK)
++    // HO-STRATA-014/015: DeepSeek-MoE-16B is recognised but not supported for normal runs; --parity-run
++    // reaches its dedicated parity engine, but only together with --dump-layers and only for deepseek files.
++    {
++        bool parity_run = false;
++        for (int j = 1; j < argc; ++j)
++            if (std::strcmp(argv[j], "--parity-run") == 0) parity_run = true;
++        if (parity_run) {
++            bool deepseek = false;
++            std::string dump_path;
++            for (int j = 1; j + 1 < argc; ++j) {
++                if (std::strcmp(argv[j], "--native") != 0 && std::strcmp(argv[j], "--model") != 0) continue;
++                try {
++                    const strata::GgufFile meta(strata::gguf_split_paths(argv[j + 1]).front());
++                    deepseek = strata::model_family(meta) == strata::ModelFamily::DeepseekMoe;
++                } catch (const std::exception&) {
++                    // not readable here: the normal path below reports it
++                }
++                break;
++            }
++            for (int j = 1; j + 1 < argc; ++j)
++                if (std::strcmp(argv[j], "--dump-layers") == 0) dump_path = argv[j + 1];
++            if (deepseek) {
++                if (dump_path.empty()) {
++                    std::fprintf(stderr, "strata generate: --parity-run requires --dump-layers PATH\n");
++                    return 2;
++                }
++                return strata::deepseek::run(argc, argv);
++            }
++        }
++    }
++#endif
+ #if defined(STRATA_USE_HIP) && !defined(STRATA_HIP_GFX906)
+     prime_hw_queues();
+ #endif
+@@ -3729,6 +3765,7 @@ int main(int argc, char** argv) {
+         else if (a == "--dump-residual") o.dump_residual = next("--dump-residual");
+         else if (a == "--dump-mixed") o.dump_mixed = next("--dump-mixed");
+         else if (a == "--dump-layers") o.dump_layers = next("--dump-layers");
++        else if (a == "--parity-run") o.parity_run = true;
+         else if (a == "--dump-halves") o.dump_halves = next("--dump-halves");
+         else if (a == "--dump-routing") o.dump_routing = next("--dump-routing");
+         else if (a == "--ple-gguf") o.ple_gguf = next("--ple-gguf");
+diff --git a/tests/core/model_family_test.cpp b/tests/core/model_family_test.cpp
+index 3de6f2560..b4eccaa77 100644
+--- a/tests/core/model_family_test.cpp
++++ b/tests/core/model_family_test.cpp
+@@ -16,6 +16,7 @@
+ #include <chrono>
+ #include <cmath>
+ #include <cstdio>
++#include <cstdlib>
+ #include <filesystem>
+ #include <string>
+ #include <vector>
+@@ -343,6 +344,45 @@ int main(int argc, char** argv) {
+         });
+         check(ds_e.find("blk.0.attn_q_norm.weight") != std::string::npos && ds_e.find("not in the") != std::string::npos,
+               "DeepSeek: a tensor the layout does not name is refused");
++
++        // S4a: dense-first-block tensor expectations.
++        {
++            const fs::path meta = d.path / "deepseek_dense_first_meta.gguf";
++            fixture::write(meta, metadata("deepseek", kTinyDeepseek, 16), {});
++            strata::core::ModelGeometry g;
++            int64_t k = 0;
++            std::string err;
++            const bool ok_geom = geometry_of(meta, g, k, err);
++            check(ok_geom, "DeepSeek dense-first-block geometry reads" +
++                           (ok_geom ? std::string() : ": " + err));
++            if (ok_geom) {
++                const fs::path ds_path = d.path / "deepseek_dense_first.gguf";
++                fixture::write(ds_path, metadata("deepseek", kTinyDeepseek, 16), tensors_of(g));
++                auto has_exps = [](const auto& ws) {
++                    for (const auto& w : ws)
++                        if (w.name.find("_exps") != std::string::npos) return true;
++                    return false;
++                };
++                const bool l0_no_exps = !has_exps(strata::core::layer_tensors(g, 0));
++                const bool l1_has_exps = has_exps(strata::core::layer_tensors(g, 1));
++                check(l0_no_exps, "DeepSeek block 0 has no *_exps tensors");
++                check(l1_has_exps, "DeepSeek block 1 has *_exps tensors");
++
++                // S4a: --parity-run requires --dump-layers.
++                const fs::path bin_dir = fs::path(argv[0]).parent_path();
++                const fs::path strata_bin = bin_dir / "strata";
++                if (fs::exists(strata_bin)) {
++                    const std::string cmd = strata_bin.string() +
++                                            " --parity-run --native " + ds_path.string() +
++                                            " --tokens 1,2,3 --max-new 1 --max-context 1024 > /dev/null 2>&1";
++                    const int rc = std::system(cmd.c_str());
++                    check(rc != 0, "--parity-run without --dump-layers is refused");
++                } else {
++                    std::printf("  %-90s skip (strata binary not found at %s)\n",
++                                "--parity-run without --dump-layers test", strata_bin.string().c_str());
++                }
++            }
++        }
+     }
+     std::printf(g_fail ? "FAILED (%d)\n" : "ALL PASSED\n", g_fail);
+     return g_fail ? 1 : 0;

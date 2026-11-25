@@ -1,0 +1,9 @@
+=== AC-7a: Qwen regression (HO-007 32 tokens) ===
+strata-q36: /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: 753 tensors (layout checked), 4.40 GiB on the GPU in 6.1 s (the routed experts are placed after the engine's buffers)
+strata-q36: prompt experts: 0 of 41 layers on the fused int8 kernels, 41 on our int8 kernels, 0 on MMQ (int8)
+strata-q36: context 1024 cells, prompt chunk 4096, MTP block loaded, 27.61 GiB of VRAM free
+strata-q36: every routed expert in VRAM (18.75 GiB) in 40.9 s
+strata-q36: warmed up in 3.5 s (one prompt chunk, a decode step)
+gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+strata-q36: prompt 5 tokens in 90.4 ms (55.3 tok/s), 32 generated in 1641.4 ms (19.5 tok/s)
+qwen_exit=0

@@ -919,3 +919,223 @@ this file did not happen.
   durable part.
 - **Affected:** HO-STRATA-013 (`DONE`), DEC-018, DEC-030, DEC-034, the S4 handoff,
   `workflow/README.md`.
+
+## DEC-042 — S4 is prepared and pre-registered; the support flag waits for S5
+
+- **Date:** 2026-11-23
+- **Context:** S1–S3 (DEC-037) recognised DeepSeek and made the refusal honest, but
+  the pack still does not run, so OT-STRATA-001 checkpoint 4 has no number.
+  `planning/strata-engine/13` §4 makes S4 the next stage, and DEC-034 conditioned
+  the next kernel-touching increment on a fresh review. S4 was not authorised
+  (DEC-016, DEC-037), so the architect prepared the handoff without starting work.
+  Two things had to be fixed **before** any run, or they would be chosen after a
+  measurement: the parity bound, and what "runs" means while the flag is still
+  false.
+- **Options considered:**
+  - (a) flip `model_family_runs()` when S4 layer parity passes — simple, but it
+    would advertise support for a family whose tokens are unproven, which is the
+    silent-wrong-path success the project has refused since DEC-026.
+  - (b) leave the flag false and give the parity work an explicit diagnostic entry
+    point (`--parity-run`, only with `--dump-layers`, prints a "not supported"
+    line) — the refusal stays true, and S5 is the only thing that can flip it.
+  - (c) write HO-STRATA-015/016 now — rejected: their prompt set and KL bound
+    depend on an engine that reaches the last block; a guessed contract is worse
+    than a pending one.
+- **Decision:**
+  1. **`HO-STRATA-014` is written as `PROPOSED`**, one DoR item open: the owner's
+     authorization (lift DEC-016 for S4). No coder is launched before it.
+  2. **Option (b):** S4 adds `--parity-run` as a diagnostic mode. `model_family_runs()`,
+     the refusal text and `--families` are **unchanged in S4**; the flip is S5
+     (HO-STRATA-015) after exact token parity.
+  3. **The layer-parity bound is pre-registered in the handoff** (HO-014 §12):
+     per-cell relative L2, max over 28 blocks × 4 positions ≤ **5e-3**, finite,
+     shape-checked, deterministic, worst cell named. A failed cell is a finding;
+     widening the bound is a deviation, not a rework fix.
+  4. **Arithmetic's source of truth** is the oracle's llama.cpp `deepseek` graph at
+     `78e05298…`, cited file:line into the evidence — not recollection, not the
+     removed V4.1-Flash engine (`docs/DEEPSEEK41.md` is prior art only).
+  5. **DEC-008 relaxation, HO-014 only** (extends DEC-033): Strata edits on branch
+     `strata-014-deepseek-s4` cut from `bac859ef9`, never `main`, patch exported;
+     `build-hip/` is never rebuilt. The relaxation takes effect when the owner
+     authorises S4, and expires with the handoff.
+  6. **T2 is reviewed at the plan, not at the end:** the overlay is 6 files / 234
+     lines; since S4 touches kernels and will pass 300 lines, AC-10 requires the
+     approach, file list and line estimate **before** the code, with the Route 3
+     comparison on the table (DEC-034).
+  7. **DEC-041 is the gate:** `check_bundle.py … --strict` PASS before
+     `CODER_DONE`, capture ordering per DEC-041 §2.
+  8. **Authorised by the owner on 2026-11-23** (this session): DEC-016 is lifted
+     for **HO-STRATA-014 only**, and the DEC-008 relaxation in item 5 is in force
+     for that handoff (Strata branch `strata-014-deepseek-s4` @ `bac859ef9`,
+     exported patch, `build-hip/` never rebuilt). The authorization does **not**
+     cover S5, a support claim, or any other family. HO-014 went
+     `PROPOSED → READY` on that basis.
+- **Consequences:** the cost is bounded and the claim is deferred: S4 can pass and
+  the family still not be supported. This is the first handoff whose gate value is
+  fixed in the handoff text before the run, so a failing number cannot be
+  renegotiated by the role that produced it. HO-STRATA-015 and `-016` stay
+  unwritten until their inputs exist.
+- **Affected:** HO-STRATA-014 (PROPOSED), DEC-016, DEC-033, DEC-034, DEC-037,
+  DEC-038, DEC-041, `workflow/STATUS.md`, `planning/strata-engine/13`.
+
+## DEC-043 — T1/T2 on the DeepSeek forward: dedicated path approved, split into S4a/S4b
+
+- **Date:** 2026-11-23
+- **Context:** HO-STRATA-014's AC-10 checkpoint required the coder to choose the
+  code shape before writing kernel code. It returned `DR-HO-STRATA-014-1`:
+  shape (A) "extend the generic path" is **structurally** impossible —
+  `family_layout.hpp:178-181` makes every layer `Attention` (QSA) or `Gdn`, and
+  QSA requires `attn_q_norm`/`attn_k_norm`/`indexer.*` (`:262-269`) that the
+  DeepSeek layout does not declare (`:196-220`). Shape (B), a dedicated
+  `src/deepseek/` path, is ~4,800–6,200 lines across 6–7 new files: **T1 fires**
+  for (A) and **T2 fires** for (B). DEC-034 left this exact condition open — "the
+  next increment that touches kernels ... starts a fresh review with a Route 3
+  comparison on the table".
+- **Verification:** the architect re-read the three citation sites before
+  deciding. The coder's claim is factual, not a convenience.
+- **Options:**
+  - (a) **Shape A with T1 accepted** — add a standard-MHA layer kind to the
+    generic engine. Rejected: it edits the code path the signed `qwen4exp`
+    evidence depends on, for a feature that path does not need.
+  - (b) **Shape B on Route 2** (approved) — additive new files, dispatched only
+    for `deepseek` under `--parity-run`.
+  - (c) **Route 3 fork + P0–P9** — rejected for now: the ~5k lines are *new
+    files*, so a pin bump rebases the three small upstream-facing hunks
+    (dispatch, build, test), not 5,000 lines; T3's rebase trigger is not at risk.
+    T4 (second hardware class) and T5 (independent machine-gated engine with its
+    own API) — the triggers that would make a fork cheaper — have not fired.
+- **Decision:**
+  1. **DR-HO-STRATA-014-1 APPROVED** on Route 2, shape (B).
+  2. **Split by the oracle's own resolution:** **HO-STRATA-014 = S4a** (skeleton,
+     tensor mapping, geometry, RMSNorm/rope/MHA, block 0 dense FFN, dump plumbing,
+     `--parity-run`, tests, comparison tool) gated on **block 0 × 4 positions = 4
+     cells**; **HO-STRATA-015 = S4b** (MoE: router, top-6 with **no**
+     renormalisation, 2 shared experts) gated on layers 1–27 (108 cells) and then
+     all 112. The bound is the same 5e-3 in both.
+  3. **`dsref.cu` is cut from S4.** llama.cpp's dumps are the reference; an
+     in-repo reference implementation would double the parity surface before any
+     optimisation exists. It returns only if the engine is optimised, as its own
+     work package.
+  4. **The engine stays simple** (no pooling, no expert cache/streaming, no
+     batching, no MTP, no new fast-path kernels) — this is the mitigation for its
+     size, and the reason 5e-3 is achievable without a second implementation.
+  5. **Re-review trigger:** if the path needs edits in shared code
+     (`src/core/**`, shared kernels, `src/qwen35/**`) rather than new files, the
+     Route 3 calculus is re-opened before the work continues.
+  6. **Renumbering:** S5 (token parity + KL + the support flip) becomes
+     **HO-STRATA-016**, S6/S7 becomes **HO-STRATA-017**. DEC-042's "HO-015 = S5"
+     is corrected by this decision, and §13 of HO-014 carries the live map.
+- **Consequences:** the overlay's measured inventory becomes "6 files / 234 lines
+  (S1–S3) + a new engine path", and T2's meaning changes from "insufficient
+  patch size" to "a second engine lives in the tree". That is a real cost and it
+  is recorded as one: every future pin bump carries it. The compensating fact is
+  that the cost is additive and reversible, and the supported Qwen paths are not
+  touched (AC-7 stays bit-identical in both increments).
+- **Affected:** HO-STRATA-014 (now S4a, `IN_PROGRESS`), DR-HO-STRATA-014-1
+  (APPROVED), HO-STRATA-015/016/017 (numbering + scope), DEC-021 (T1/T2),
+  DEC-033, DEC-034, DEC-042, `workflow/STATUS.md`.
+
+## DEC-044 — The layer gate needs an arithmetic-exact reference; the Q4_K dumps stay the token authority
+
+- **Date:** 2026-11-23
+- **Context:** S4a's first AC-5a run failed at 1.83e-2 … 1.23e-1 against the
+  pre-registered 5e-3. The bisection (HO-014 `artifacts/diagnosis.md`) then
+  established, in this order: `attn_norm-0` matches the oracle to **4.0e-8**
+  (embedding + RMSNorm correct); the identity head ordering is best, so no
+  permutation bug; the engine matches **llama.cpp's own** `dequantize_row_q6_K`
+  plus an f32 dot to **6.4e-7**; and, decisively, llama.cpp's
+  **q8_K-activation** dot product reproduces the oracle's `Qcur-0` to **1.2e-7**
+  and `Vcur-0` to **3.3e-7**, while the exact f32 product is 4.4e-3 and **5.8e-2**
+  away respectively.
+- **Finding:** the oracle's per-layer tensors are llama.cpp's **CPU quantized-activation
+  arithmetic**, not the exact product of the dequantised weights. Comparing an
+  exact engine against that reference gives a floor around 1e-1 by the end of
+  block 0 — 20× the gate. AC-5a was therefore measuring the reference's rounding,
+  and to "pass" it the gate would have to be loosened to ~1e-1, which cannot
+  separate a subtle semantic error from noise. **This is the architect's error**:
+  5e-3 was chosen assuming a like-for-like arithmetic that the Q4_K pack does not
+  provide. The pre-registered bound did its job — it produced this evidence
+  instead of being quietly widened.
+- **Options:**
+  - (a) make the engine reproduce llama.cpp's q8_K arithmetic — passes, but makes
+    the engine deliberately **less accurate** than the model in order to match
+    another implementation's rounding, and couples the gate to llama.cpp internals.
+    Rejected.
+  - (b) keep the Q4_K reference and raise the bound to the measured floor
+    (~1e-1) — passes, and destroys the gate's diagnostic power. Rejected.
+  - (c) **gate against an arithmetic-exact reference** — same pack, same weights,
+    converted to f32 so llama.cpp takes its f32 dot path. Approved.
+- **Decision:**
+  1. The S4 **layer** gate compares against an **exact-arithmetic** reference:
+     `llama-quantize --outtype f32` of the same pack, same llama.cpp pin
+     `78e05298…`, same harness, same 4-token prompt. New dump lives in
+     `workflow/evidence/HO-STRATA-014/artifacts/runs/`, hashed, with the
+     conversion command and the resulting pack hash in the manifest. If the f32
+     conversion is refused, `f16` is the fallback **only** with its floor
+     measured and recorded at ≤1e-3.
+  2. **The 5e-3 bound is unchanged.** It now means "our implementation against
+     the model", which is what it was always meant to mean.
+  3. **HO-010's Q4_K dumps remain valid and unedited.** They are the authority for
+     **token** parity (S5, HO-016) on the **shipped** pack — which is what plan
+     A3 and DEC-038 require. The two references have different jobs and are never
+     interchanged.
+  4. The Q4_K per-layer comparison is kept as an **informative floor** in
+     `diagnosis.md`; it is not gating.
+  5. **The engine stays exact f32.** If S5 later shows a token mismatch, the f32
+     reference is the adjudicator: a Q4_K token that differs at a ~1e-3 margin is
+     the reference's rounding, and that is now provable rather than arguable.
+- **Consequences:** one large throwaway artefact (~66 GB at f32; 231 GiB free) and
+  a few minutes of conversion; no engine change, no shared-kernel change, no
+  edit to signed evidence. The gate's ability to catch a 5% semantic error in one
+  layer is preserved — which is the whole reason S4 exists before S5.
+- **Affected:** HO-STRATA-014 (AC-5a, §3 inputs, §12 basis), DEC-038, DEC-041,
+  `planning/strata-engine/13` §3 (tolerance policy), HO-STRATA-016 when written.
+
+## DEC-045 — Repository back to public: the runbook's exit condition is satisfied in code
+
+- **Date:** 2026-11-25 (owner decision, 2026-11-24 session)
+- **Context:** `main` carries the `release-gates` ruleset (id `26990297`) with four
+  required status checks. Three run on GitHub-hosted runners and stopped starting
+  on 2026-11-23 — *"recent account payments have failed or your spending limit
+  needs to be increased"* — so **nothing could merge** (PR #28 and HO-014 stalled;
+  HO-014 is `DONE/SIGNED` but unpublished).
+- **Why the repo was private (found, not guessed):**
+  `PHASE7_7F1_RUNNER_RUNBOOK.md` (2026-11-09) chose Option A — *"the repository is
+  made **private** during the runner phase"* — because *"a self-hosted runner on a
+  public repository can execute arbitrary fork-PR code on this host"*, and this
+  host holds the home directory, SSH keys and the checkout. Its own exit
+  condition: *"Revisit visibility after the release; if you make it public again,
+  remove the runner or enable the fork-approval gate first."*
+- **The exit condition is met in code:** `.github/workflows/ci-gpu.yml` gates the
+  self-hosted job with
+  `if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository`,
+  commented *"Never run untrusted fork code on the host, even if the repository
+  goes public."* Fork PRs cannot reach the GPU host at all — stronger than the
+  runbook's approval-only Option B.
+- **Pre-flight before disclosure:** full-history scan of **1,980 blobs** for
+  credential shapes — only the scanner's own fixtures (`ghp_123456789…`,
+  `github_pat_fake0000…`); repository is **not a fork**, licence **GPL-3.0** (the
+  owner's own work); the exported Strata patches come from an **MIT** upstream
+  with the pin and attribution in every bundle. GitHub secret scanning and push
+  protection are enabled on the repository.
+- **Decision (owner):**
+  1. **Set the repository public** (`PATCH /repos/… {"private": false}`,
+     2026-11-25T00:23Z). Public repositories get unlimited standard
+     GitHub-hosted minutes, which removes the block without touching the gate.
+  2. **Apply the runbook's Option-B hardening** alongside it:
+     `fork-pr-contributor-approval = all_external_contributors`;
+     `default_workflow_permissions = read`;
+     `can_approve_pull_request_reviews = false`.
+  3. **Keep the ruleset unchanged** — all four checks remain required, including
+     the free self-hosted GPU lane. No bypass actor, no disabled rule
+     (DEC-040 §3 holds).
+- **Accepted consequences:** the full history is public, including absolute
+  paths (`/home/kupipi/…`), the username, host details (Ryzen AI 9 HX 370 /
+  Radeon 890M, kernel, ROCm) and the prior project's audit trail; `audit/evidence/`
+  contains derived model outputs (`.logits.f32`), whose redistribution some model
+  licences constrain. Fork PR workflows now need owner approval, and fork code
+  never runs on the GPU host. Reverting to private is possible but cannot recall
+  what has already been fetched.
+- **Affected:** repository settings (visibility, Actions permissions),
+  `PHASE7_7F1_RUNNER_RUNBOOK.md` §2 (exit condition discharged, not amended),
+  DEC-040 (mechanism unchanged), `workflow/STATUS.md`, PR #28, HO-STRATA-014.

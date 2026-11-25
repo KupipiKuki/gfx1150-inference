@@ -20,12 +20,20 @@ row is invisible.
 | HO-STRATA-010 | reference oracle + parity harness (S0) | **DONE (SIGNED 2026-11-19) · MERGED #22** · DEC-030 | Architect | `main` | — | B-1/B-2/B-4 carried to S1 | `workflow/evidence/HO-STRATA-010/` · `workflow/handoffs/HO-STRATA-010-APPROVAL.md` |
 | HO-STRATA-011 | OLMoE oracle extension (S0b) | **DONE (SIGNED 2026-11-19) · MERGED #23** · DEC-032 | Architect | `main` | — | — | `workflow/evidence/HO-STRATA-011/` · `workflow/handoffs/HO-STRATA-011-APPROVAL.md` |
 | HO-STRATA-013 | `check_bundle.py`: evidence-packaging invariants | **DONE (SIGNED 2026-11-23) · MERGED #26** · DEC-041 | Architect | `main` @ `3329e4b` | adopted as the evidence gate; S4 is the first bundle it gates | base `91eac12` not yet on `origin/main` (DEC-040) | `workflow/handoffs/HO-STRATA-013.md` |
+| HO-STRATA-014 | DeepSeek **S4a**: forward skeleton + block-0 layer parity | **DONE (SIGNED 2026-11-24) · MERGE BLOCKED (billing)** · DEC-044 | Architect | `wp/strata-014-deepseek-s4` @ `b7322bf`; Strata `strata-014-deepseek-s4` @ `db087d511` | `merge/*` PR when Actions billing is cleared (DEC-040); next: HO-015 (S4b) | — (billing resolved by DEC-045: repo public, checks re-run) | `workflow/evidence/HO-STRATA-014/` · `reports/qaqc/…` · `reports/audit/…` · `HO-STRATA-014-APPROVAL.md` |
 
 **Project state (2026-11-23):** the signed baseline stands — `qwen35moe` loads
 and generates 32 deterministic tokens on gfx1150 (#15). DeepSeek S1–S3
 (recognition, geometry, `--inspect`, named refusal) is **DONE, SIGNED and merged
-locally** (DEC-037); the model still does **not** run, and **S4 (the forward
-pass) is not authorized**. The oracle chain S0/S0b is merged (#22, #23). HO-002/003/004
+locally** (DEC-037); the model still does **not** run. **S4 is authorised**
+(owner, 2026-11-23; DEC-042) and **S4a is CODER_DONE** (2026-11-24): block 0 +
+attention pass the layer gate at **9.76e-05** against an arithmetic-exact
+reference (max rel L2, 4 cells, bound 5e-3), and the gate caught a real
+NEOX-vs-NORM RoPE bug that the Q4_K reference would have buried (DEC-044).
+Cumulative overlay after S4a: **14 files / +1,073 / −31** against `baf16363`
+(T2 crossed by design, DEC-043). The MoE blocks are **S4b (HO-015)**; the support
+flag stays false until S5 token parity (HO-016). The oracle chain S0/S0b is
+merged (#22, #23). HO-002/003/004
 remain BLOCKED by DEC-016; HO-006 is DEFERRED. QAQC is back on Gemini Argon
 (DEC-039; DEC-036 expired). `check_bundle.py` is merged and is the evidence
 gate for S4 (DEC-041): `--all` is red only on HO-011's two unlisted artifacts,
