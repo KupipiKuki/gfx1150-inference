@@ -27,11 +27,11 @@ bisection (`workflow/evidence/HO-STRATA-015/` findings log):
 | Error at layer 19 | **2.67e-2 at position 1 only**; positions 0/2/3 stay at 1.6e-5 / 8.9e-5 / 1.6e-4 |
 | Drift reaching layer 19 | 6.8e-5 (inherited, ordinary f32 accumulation-order difference) |
 | Router, layer 19 / position 1 | oracle top-6 `[25,2,3,22,5,40]`, engine `[25,2,3,22,5,**33**]` |
-| 6th-vs-7th margin | **2.80e-4 probability** · 6.62e-3 logit |
+| 6th-vs-7th margin | **2.80e-4 probability** · 6.62e-3 logit on the *Q4_K* oracle (**wrong trajectory** — corrected by DEC-046's erratum to **3.36e-6 / 7.95e-5** on the exact-f32 reference, which the gate uses) |
 | **Teacher-forced block 19** (oracle residual + oracle K/V in) | **2.37e-5**, same top-6 |
 | Sub-nodes in the free run | `ffn_inp` 7.1e-5 (matches) · `ffn_out` 1.25e-1 (diverges) |
 
-**Reading:** 7e-5 of inherited drift crosses a 2.8e-4 routing margin; the two
+**Reading:** 7e-5 of inherited drift crosses a routing margin of **3.36e-6** on the exact-f32 trajectory (DEC-046 erratum; the 2.8e-4 figure above is the Q4_K pack's and does not apply to the gate); the two
 experts carry near-equal weight (0.0425 vs 0.0422) but very different outputs, so
 a single swapped expert moves the FFN branch by percent-level and the residual by
 2.7e-2. Given the oracle's own input, the block reproduces to 2.4e-5 — so the

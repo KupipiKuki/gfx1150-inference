@@ -252,7 +252,7 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
   refactor before adding MoE blocks.
 - 2026-11-25 Coder-primary: AC-5b fails at layer 19, position 1 (rel L2 2.67e-2).
   Layers 0–18 stay flat at <2.3e-4, then jump at layer 19.  Router diagnostics
-  show the 6th/7th expert margin is 2.80e-4 probability (6.62e-3 logit); the
+  show the 6th/7th expert margin on the exact-f32 trajectory is **3.36e-6 probability (7.95e-5 logit)** — see DEC-046's erratum, which corrects the initially quoted 2.80e-4/6.62e-3 (those were the Q4_K pack's); the
   engine selects expert 33 while the f32 oracle selects expert 40.  Teacher-forcing
   block 19 with the oracle's pre-block residual and KV cache produces output
   matching the oracle to 2.37e-5.  Verdict: layer 19 is arithmetically correct;
