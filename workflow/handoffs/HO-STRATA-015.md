@@ -327,3 +327,47 @@ Evidence: `workflow/evidence/HO-STRATA-015/`
    - AC-10: `0003-s4b-moe.patch` applies cleanly on `baf16363 + 0001 + 0002`.
 4. Confirm the normal binary rejects `--parity-teacher-force` (`artifacts/diag_unreachable.log`).
 5. Check the diff is in scope (no `src/core/**`, shared kernels, `src/qwen35/**`, tokenizer, support-surface or `--families` changes).
+
+## CODER_TO_QAQC
+
+**Branch:** `wp/strata-015-deepseek-s4b`; **Strata:** `strata-015-deepseek-s4b` @ `e2e7e1b`.
+**Evidence:** `workflow/evidence/HO-STRATA-015/` (`check_bundle.py --strict`, 49 checks, 0 warnings).
+
+What QAQC re-runs (see `manifest.md` §1 for the full list):
+1. Build the **diagnostic** binary (`#define STRATA_DEEPSEEK_DIAG`, per `commands.log`), then
+   `--parity-teacher-force` → `artifacts/runs/teacher_outputs.bin`; compare with
+   `compare_layers.py --oracle HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin --teacher-outputs …`
+   → **112 cells, max 1.569942e-04 at (layer=4, pos=3)**, `RESULT: PASS`.
+2. Regenerate the teacher inputs from the bundle's own `scripts/gen_teacher_inputs.py` and `cmp`
+   (`d386c2d4…`, `62ca264d…`).
+3. A normal build must reject `--parity-teacher-force` (`artifacts/diag_unreachable.log`), and the
+   free-running dump must be byte-identical between the normal and diagnostic builds (the macro
+   changes no arithmetic).
+4. The free-running report is **informational**: first cell above 5e-3 is `(19,1)`, explained by the
+   router margin in DEC-046 (+ erratum).
+5. AC-1…AC-12 per the manifest, `check_bundle --strict`, and the verdict-consistency check.
+
+## 17. QAQC review and RW-1 (2026-11-26)
+
+| Field | Value |
+|---|---|
+| Reviewer | QAQC, `opencode-go/gemini-4-argon#high` (DEC-039) |
+| Verdict | **PASS** — 0 Blockers, 0 Majors, 3 Minors |
+| Report | `workflow/reports/qaqc/HO-STRATA-015-qaqc.md` (committed verbatim) |
+| Independently reproduced | the teacher gate end-to-end (its own `qaqc_teacher_inputs/kv`, byte-identical to the coder's), the 112 cells, both builds' free-running dumps byte-identical, the injection assertion by perturbation (`+2e-6` fails, `+5e-7` passes), the slot trap, and the router near-tie |
+
+QAQC's three findings, all closed or carried:
+
+- **F1** `test-output.txt` predated the `ac5.log` correction → **fixed by RW-1**.
+- **F2** the router margins in DEC-046 came from the Q4_K oracle, not the exact-f32 reference →
+  **architect erratum in DEC-046**: on the correct trajectory the 6th/7th margin is
+  `3.36e-6` prob / `7.95e-5` logit against `7.12e-5` of drift — **80–160× tighter than cited**,
+  which strengthens the decision rather than weakening it.
+- **F3** (i) the input assertion lives in the engine and is a self-comparison for `l == 0`;
+  (ii) the teacher inputs and their generator were in `/tmp` only → **F3(ii) fixed by RW-1**
+  (`scripts/gen_teacher_inputs.py` + both `.bin` committed, regeneration byte-identical);
+  F3(i) carried (block 0's injection is the identity by construction; QAQC verified the token
+  embedding independently, and S4a already proved block 0).
+
+`RW-HO-STRATA-015-1` is **CLOSED** (`f80d775`). The bundle QAQC should now confirm is the
+post-RW one (49 checks), not the one its first pass saw.
