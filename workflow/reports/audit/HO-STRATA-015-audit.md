@@ -563,3 +563,167 @@ but A17 is the one failing item, and it is the item the rework existed to fix.
 | **Required next step** | Issue **RW-HO-STRATA-015-3** exactly as scoped in Delta.5 to `coder-primary`; return to the auditor. Do not sign or merge before it closes. No code, gate, bound, reference, prompt, positions or cell-count changes. |
 | **Carries binding HO-STRATA-016 (S5)** | **A15 (hard gate):** S5 must be a blocking end-to-end gate — 3 prompts × 16 greedy tokens vs the Q4_K oracle, zero mismatches, KL ≤ 1.5× floor — before any support claim; teacher forcing does not cover cross-position state. **A14:** record that the ≤1e-6 injection assertion lives in the engine (DEC-046 condition 2 says `compare_layers.py`) and assert block-0 inputs against `token_embd` in S5. **A10/A11/A12/A13:** correct the environment row, the AC-8 host/GTT wording, the verdict-consistency script/coverage, and the stale labels (`STATUS.md` @ `f80d775`, manifest placeholders, pin count). **A16:** the new `compute_router_margin.py` must default to committed inputs, not `/tmp`. |
 | **Auditor statement** | I did not modify code, tests, docs, handoffs, or configuration beyond appending this delta section to my own report. |
+
+---
+
+## § Delta (RW-3) — final scoped re-check
+
+> This section is the current disposition and supersedes the RW-2 delta verdict.
+> The original audit (§§1–11) and the RW-2 delta are preserved above and are not
+> rewritten.
+
+| Field | Value |
+|---|---|
+| **Delta range** | `667af61..cf42c41` (`13c64c7`, `9742d77`, `db12f19`, `cf42c41`) |
+| **Reviewed commit** | `wp/strata-015-deepseek-s4b` @ `cf42c411b33fa7eb3d11bccd0a6fb8e6959a0a6b` |
+| **Strata** | unchanged @ `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4`; working tree clean; `build-hip/strata` = `d58ee239…` |
+| **Original verdict** | unchanged: the gate and the DEC-046 justification PASS. |
+| **Delta verdict** | **PASS** — A17 is closed on the merits; the sign/label difference is a convention, not a direction error (A18, Minor); all carries bind HO-STRATA-016. |
+
+### RW-3.1 Scope — confirmed
+
+`git diff --stat 667af61..cf42c41` and `git diff --name-status`:
+
+- **Evidence (expected):** `artifacts/router-margin-19-1.txt` (regenerated),
+  `artifacts/runs/engine-ffn_inp-19.bin` (new, 8,192 B),
+  `artifacts/runs/engine-free-diag-19-1.log` (new, 23 lines),
+  `scripts/compute_router_margin.py` (rewritten), `commands.log`,
+  `manifest.md`, `hashes.txt`, `hashes-notes.txt`, `test-output.txt`.
+- **Record (process):** `workflow/STATUS.md`, `workflow/handoffs/HO-STRATA-015.md`
+  (§11 RW-3 log), `workflow/handoffs/RW-HO-STRATA-015-3.md`, and the auditor's
+  RW-2 delta section committed at `13c64c7` (content byte-identical to the
+  `45922d8b…` report I wrote; no alteration).
+- **Red lines:** no `src/**`; Strata `e2e7e1b`; `build-hip/strata` `d58ee239…`;
+  the gate artifacts are byte-identical to the audited set (`ac5.log`
+  `94e52860…`, `teacher_outputs.bin` `e0b6aa02…`, `s4b-free-normal.bin`
+  `4214269e…`, `compare_layers.py` `becd025c…`, oracle `a4c56b9d…`). No change to
+  the 5e-3 bound, the reference, the prompt, the positions or the 108/112 cells.
+  **Scope confirmed.**
+
+### RW-3.2 A17 — CLOSED, reproduced independently
+
+The new engine input is genuine: `artifacts/runs/engine-ffn_inp-19.bin`
+(`9d50d2b2…`) is **byte-identical** to the `ffn_inp-19` dump my own diagnostic
+build produced at the first audit (`cmp` = 0), so the drift is computed from
+matching nodes on both sides. I recomputed every number from the committed
+inputs, the f32 pack and the committed `teacher_run.log`:
+
+| Quantity | Artifact | My independent recompute |
+|---|---|---|
+| Pre-router drift (oracle `ffn_inp-19` vs engine `ffn_inp-19`), rel L2 | `7.123124e-05` | **`7.123124e-05`** |
+| max abs diff | `5.702972e-04` | **`5.702972e-04`** |
+| oracle gap (`logit40 − logit33`) | `7.948442e-05` | **`7.948442e-05`** |
+| drifted gap | `−5.896758e-05` | **`−5.896758e-05`** |
+| shift | `−1.384520e-04` | **`−1.384520e-04`** |
+| \|shift\| / margin | `1.74×` | **`1.74×`** |
+| expert-40 \|Δ\| at identical input | `3.840991e-05` | **`3.840991e-05`** |
+| max over 64 experts (expert) | `4.249582e-05` (expert 57) | **`4.249582e-05` (expert 57)** |
+
+The drift is now the correct `7.12e-5` (not the previous `6.43e-2`), the gap
+shift is derived in-script from the oracle math applied to both inputs, and the
+engine's identical-input movement is derived from the committed teacher log. The
+free-running DIAG log is committed, so the free block is no longer read from
+`/tmp`. **A17 is closed on the merits, not by assertion.**
+
+### RW-3.3 Sign and label — magnitude right; the sign is a convention, not a direction error
+
+The script's explicit convention is `gap = logit(40) − logit(33)` (the oracle's
+6th minus 7th):
+
+| Convention | Oracle | Drifted | Shift |
+|---|---|---|---|
+| `40 − 33` (artifact) | `+7.948442e-05` | `−5.896758e-05` | **`−1.384520e-04`** |
+| `33 − 40` (manifest's "+") | `−7.948442e-05` | `+5.896758e-05` | **`+1.384520e-04`** |
+
+The two rows are the same physical event: expert 40 leads by `7.95e-5` at the
+oracle, expert 33 leads by `5.90e-5` after the drift, so 33 **overtakes** 40
+(matching the reported top-6 sets). The manifest's "moves the 33↔40 logit gap by
+`+1.385e-4` (1.74× the margin)" is the `33 − 40` convention; the artifact's
+`−1.384520e-04` is the `40 − 33` convention; the handoff §11 uses the artifact's
+negative value. The magnitude (`1.3845e-4`) and the ratio (`1.74×`) are exactly
+right, and the direction of the physical effect ("the swap") is correctly stated
+in both. The prose does not define the subtraction order, so the sign is a loose
+label, **not a misstatement of direction**. **A18 (Minor):** state the convention
+in `manifest.md` §4 in one line ("the `33 − 40` difference moves by `+1.3845e-4`,
+equivalently the `40 − 33` gap moves by `−1.3845e-4`"). No number or conclusion
+changes; not a rework.
+
+### RW-3.4 Bundle-only runnability — `cmp` = 0 from a clean tree
+
+From the repository root with a clean tree (`git status --porcelain` empty), no
+arguments:
+
+```bash
+python3 workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py \
+  > /tmp/opencode/audit-015/rw3_bare.txt
+cmp /tmp/opencode/audit-015/rw3_bare.txt \
+  workflow/evidence/HO-STRATA-015/artifacts/router-margin-19-1.txt
+# exit 0
+```
+
+The script now defaults to the committed `engine-ffn_inp-19.bin`,
+`teacher_run.log` and `engine-free-diag-19-1.log`; it still needs the f32 pack
+and `oracle_nodes` (the same allowed inputs as the gate) and the Strata
+`tools/gguf_reader.py`. **A16's reproducibility half is closed**: the artifact is
+reproducible from the bundle's own files with no `/tmp` log.
+
+### RW-3.5 Final counts
+
+| Check | Command | Observed | Verdict |
+|---|---|---|---|
+| Bundle gate | `check_bundle.py … --strict` | **`RESULT: PASS (54 checks, 0 warnings)`** | **PASS** |
+| Pins | `check_bundle` B6 rows | **11** rows, all `PASS`; script pinned at `db12f19` → `e70fa8bb…` | **PASS** |
+| Hashes | fresh `git archive HEAD` + `sha256sum -c hashes.txt` | **34/34 OK** | **PASS** |
+| Verdict consistency | `artifacts/verdict-consistency.txt` | still checks only `ac4`, `ac5`, `ac7`, `test-output`; passes; still effectively vacuous for the transcript | **passes; A12 unchanged** |
+| Transcript | `test-output.txt` | rebuilt at `db12f19`, contains the new artifact once; raw bytes | **postdates the capture** |
+| Gate | `compare_layers.py --teacher-outputs …` | 112 cells, max **`1.569942e-04 at (4,3)`**, `RESULT: PASS`; free `(19,1) = 2.668110e-02` informational | **PASS** |
+
+### RW-3.6 Carries — status and HO-STRATA-016 binding
+
+RW-3 changed no status for **A10–A15**; it **closed A16's reproducibility half**
+(bare-run `cmp` = 0) and introduced **A18** (sign convention).
+
+| # | Status after RW-3 | Binding |
+|---|---|---|
+| **A10** manifest environment row (`Linux 6.x / Python 3.12`) | unchanged (still wrong: `7.0.0-42-generic` / `3.14.10`) | Minor; fix in S5 |
+| **A11** AC-8 "device/host peak" wording | unchanged; substance met (GTT = host on this APU) | Minor; fix in S5 |
+| **A12** verdict-consistency covers 4/12, no recorded command, vacuous for the transcript | unchanged | **Binds S5** — commit the checker and cover every PASS-cited artifact |
+| **A13** stale labels | still: `manifest.md:75-76` `(computed after commit)`, `manifest.md:26` "test-output tail", DoD "9 pin rows" vs 11, handoff `State` still `CODER_DONE`, `STATUS.md` still points at `667af61` with "RW-3 open" while HEAD is `cf42c41` | Minor; fix at signoff/S5 |
+| **A14** injection assertion lives in the engine (`l=0` identity), not `compare_layers.py` as DEC-046 condition 2 literally says | unchanged; non-vacuous for `l≥1` | **Binds S5** — record the deviation and assert block-0 inputs against `token_embd` |
+| **A15** teacher forcing is blind to cross-position state / drift amplification / positions >3 | unchanged; this is why the free-running FAIL is informational only | **Binds S5 as a hard gate** — 3 prompts × 16 greedy tokens vs the Q4_K oracle, zero mismatches, KL ≤ 1.5× floor, before any support claim |
+| **A16** script portability | reproducibility half **closed** (bare run `cmp` = 0); still needs the f32 pack, `oracle_nodes` and the Strata `tools/gguf_reader.py` | Minor; the external inputs are the gate's own |
+| **A18** sign convention (new) | manifest's `+1.385e-4` is the `33−40` order; artifact's `−1.3845e-4` is `40−33`; both right | Minor; one-line clarification in `manifest.md` §4 at signoff/S5 |
+
+**A15 and A12 bind HO-STRATA-016 (S5)** in the strongest sense: S5 must be a
+blocking end-to-end token gate, and its bundle must have a verdict-consistency
+check that actually covers every PASS-cited artifact. A14 also binds S5
+(block-0 injection assertion); A10, A11, A13, A16 and A18 are hygiene.
+
+### RW-3.7 Verdict
+
+**PASS.** The RW-3 delta is clean: A17 is closed by a correct, reproducible
+recomputation (drift `7.123124e-05` / `5.702972e-04` from matching nodes; gap
+shift `−1.384520e-04`, `1.74×`; engine movement `3.840991e-05`, max
+`4.249582e-05` at expert 57); the bare-run `cmp` is 0; the bundle is at
+`check_bundle --strict` **54 checks**, 11 pins, **34/34** hashes; and the gate
+still reproduces `1.569942e-04 at (4,3)` over 112 cells. The only new item is
+A18, a one-line sign-convention clarification in the manifest — Minor, not a
+rework. The architect may sign; the carries above bind HO-STRATA-016.
+
+### AUDITOR_TO_ARCHITECT (final, post-RW-3)
+
+| Field | Value |
+|---|---|
+| **ID** | HO-STRATA-015-AUDIT-FINAL (embedded in `workflow/reports/audit/HO-STRATA-015-audit.md`, "§ Delta (RW-3)") |
+| **Type** | AUDITOR_TO_ARCHITECT |
+| **State** | **PASS** → `ARCHITECT_APPROVAL`; the architect signs |
+| **Date (UTC)** | 2026-11-26 |
+| **From → To** | Auditor (`opencode-go/deepseek-v4.1-flash`, WAIVER-001) → Architect (`opencode-go/deepseek-v4-pro#max`) |
+| **Final commit reviewed** | `wp/strata-015-deepseek-s4b` @ `cf42c411b33fa7eb3d11bccd0a6fb8e6959a0a6b`; Strata unchanged @ `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4`; `build-hip/strata` `d58ee239…` |
+| **Evidence** | `workflow/evidence/HO-STRATA-015/` (`check_bundle --strict` **PASS 54 checks**; 11 `B6-pins`, all resolve; **34/34** hashes from a fresh archive) |
+| **Gate (reproduced)** | 112 cells, max `1.569942e-04 at (4,3)`, `RESULT: PASS`; free-running `(19,1) = 2.668110e-02` informational; exact-f32 margin `3.357e-6 / 7.948e-5`; drift `7.123124e-05`; gap shift `−1.384520e-04` (`1.74×`); engine movement `3.840991e-05`, max `4.249582e-05` at expert 57 |
+| **A17 disposition** | **CLOSED.** Drift from matching nodes, gap shift and engine movement derived in-script; bare invocation reproduces the committed artifact (`cmp` = 0); `engine-ffn_inp-19.bin` byte-identical to the auditor's own diagnostic dump (`9d50d2b2…`). |
+| **A9/A18** | A9 **CLOSED** (prose exact-f32; artifact now correct). A18 **Minor**: the manifest's `+1.385e-4` uses the `33−40` convention while the artifact's `−1.3845e-4` uses `40−33`; same physical event, magnitude and direction correct — add the one-line convention in `manifest.md` §4 at signoff/S5. |
+| **Required next step** | Architect signs `HO-STRATA-015-APPROVAL.md`, updates `STATUS.md` to the signed/merged state, and merges only after QAQC PASS + this audit PASS. No code, gate, bound, reference, prompt, positions or cell-count changes in the merge. |
+| **Carries binding HO-STRATA-016 (S5)** | **A15 (hard gate):** S5 must be a blocking end-to-end gate — 3 prompts × 16 greedy tokens vs the Q4_K oracle, zero mismatches, KL ≤ 1.5× floor — before any support claim; teacher forcing cannot see cross-position state. **A12:** the S5 verdict-consistency check must be committed and cover every PASS-cited artifact (the current check covers 4/12 and is vacuous for the transcript). **A14:** record that the ≤1e-6 injection assertion lives in the engine (DEC-046 condition 2 says `compare_layers.py`) and assert block-0 inputs against `token_embd`. **A10/A11/A13/A16/A18:** fix the environment row, the AC-8 host/GTT wording, the stale labels (`STATUS.md`, manifest placeholders, pin count), the script's external-input defaults, and the sign convention. |
+| **Auditor statement** | I did not modify code, tests, docs, handoffs, or configuration beyond appending this delta section to my own report. |
