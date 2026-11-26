@@ -1,0 +1,262 @@
+=== AC-5b teacher-forced (diagnostic build) command ===
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --parity-run --native <pack> --dump-layers /tmp/opencode/teacher_dummy.bin --parity-teacher-force /tmp/opencode/teacher_inputs.bin,/tmp/opencode/teacher_kv.bin,/tmp/opencode/teacher_outputs.bin,<oracle>
+
+=== AC-5b teacher-forced comparison output (112 cells) ===
+bound = 5.000000e-03  (fixed, not caller-supplied)
+teacher outputs: 28 layers x 4 positions x 2048
+oracle: 4 records, 28 blocks
+non-finite values in kept dump: 0
+stage 1: layers 1-27 (108 cells)
+  cell (layer=1, pos=0): rel L2 = 2.939585e-05
+  cell (layer=1, pos=1): rel L2 = 7.259148e-05
+  cell (layer=1, pos=2): rel L2 = 9.485954e-05
+  cell (layer=1, pos=3): rel L2 = 6.458473e-05
+  cell (layer=2, pos=0): rel L2 = 2.143108e-05
+  cell (layer=2, pos=1): rel L2 = 6.395161e-05
+  cell (layer=2, pos=2): rel L2 = 9.442924e-05
+  cell (layer=2, pos=3): rel L2 = 7.703439e-05
+  cell (layer=3, pos=0): rel L2 = 3.328184e-06
+  cell (layer=3, pos=1): rel L2 = 4.463638e-05
+  cell (layer=3, pos=2): rel L2 = 6.277486e-05
+  cell (layer=3, pos=3): rel L2 = 9.283935e-05
+  cell (layer=4, pos=0): rel L2 = 3.853075e-07
+  cell (layer=4, pos=1): rel L2 = 3.383289e-05
+  cell (layer=4, pos=2): rel L2 = 8.749433e-05
+  cell (layer=4, pos=3): rel L2 = 1.569942e-04
+  cell (layer=5, pos=0): rel L2 = 5.588081e-07
+  cell (layer=5, pos=1): rel L2 = 4.979078e-05
+  cell (layer=5, pos=2): rel L2 = 7.272200e-05
+  cell (layer=5, pos=3): rel L2 = 1.063596e-04
+  cell (layer=6, pos=0): rel L2 = 5.080970e-07
+  cell (layer=6, pos=1): rel L2 = 6.740951e-05
+  cell (layer=6, pos=2): rel L2 = 9.860676e-05
+  cell (layer=6, pos=3): rel L2 = 1.093087e-04
+  cell (layer=7, pos=0): rel L2 = 5.320190e-07
+  cell (layer=7, pos=1): rel L2 = 2.794355e-05
+  cell (layer=7, pos=2): rel L2 = 5.195240e-05
+  cell (layer=7, pos=3): rel L2 = 8.459439e-05
+  cell (layer=8, pos=0): rel L2 = 5.093477e-07
+  cell (layer=8, pos=1): rel L2 = 3.104212e-05
+  cell (layer=8, pos=2): rel L2 = 4.207695e-05
+  cell (layer=8, pos=3): rel L2 = 4.486785e-05
+  cell (layer=9, pos=0): rel L2 = 8.882257e-07
+  cell (layer=9, pos=1): rel L2 = 4.095196e-05
+  cell (layer=9, pos=2): rel L2 = 8.210273e-05
+  cell (layer=9, pos=3): rel L2 = 1.090485e-04
+  cell (layer=10, pos=0): rel L2 = 7.538231e-07
+  cell (layer=10, pos=1): rel L2 = 3.256008e-05
+  cell (layer=10, pos=2): rel L2 = 3.515324e-05
+  cell (layer=10, pos=3): rel L2 = 5.847114e-05
+  cell (layer=11, pos=0): rel L2 = 9.503097e-07
+  cell (layer=11, pos=1): rel L2 = 4.486595e-05
+  cell (layer=11, pos=2): rel L2 = 6.792923e-05
+  cell (layer=11, pos=3): rel L2 = 9.283290e-05
+  cell (layer=12, pos=0): rel L2 = 8.885829e-07
+  cell (layer=12, pos=1): rel L2 = 4.348248e-05
+  cell (layer=12, pos=2): rel L2 = 4.233817e-05
+  cell (layer=12, pos=3): rel L2 = 5.831795e-05
+  cell (layer=13, pos=0): rel L2 = 8.920256e-07
+  cell (layer=13, pos=1): rel L2 = 4.665020e-05
+  cell (layer=13, pos=2): rel L2 = 5.015324e-05
+  cell (layer=13, pos=3): rel L2 = 5.722112e-05
+  cell (layer=14, pos=0): rel L2 = 7.441927e-07
+  cell (layer=14, pos=1): rel L2 = 2.092944e-05
+  cell (layer=14, pos=2): rel L2 = 4.110882e-05
+  cell (layer=14, pos=3): rel L2 = 4.096137e-05
+  cell (layer=15, pos=0): rel L2 = 6.444137e-07
+  cell (layer=15, pos=1): rel L2 = 2.291199e-05
+  cell (layer=15, pos=2): rel L2 = 2.985701e-05
+  cell (layer=15, pos=3): rel L2 = 4.124601e-05
+  cell (layer=16, pos=0): rel L2 = 6.346769e-07
+  cell (layer=16, pos=1): rel L2 = 1.340604e-05
+  cell (layer=16, pos=2): rel L2 = 3.240592e-05
+  cell (layer=16, pos=3): rel L2 = 6.394170e-05
+  cell (layer=17, pos=0): rel L2 = 7.305992e-07
+  cell (layer=17, pos=1): rel L2 = 1.837167e-05
+  cell (layer=17, pos=2): rel L2 = 2.818709e-05
+  cell (layer=17, pos=3): rel L2 = 5.978307e-05
+  cell (layer=18, pos=0): rel L2 = 5.278894e-07
+  cell (layer=18, pos=1): rel L2 = 3.149974e-05
+  cell (layer=18, pos=2): rel L2 = 3.241718e-05
+  cell (layer=18, pos=3): rel L2 = 4.085826e-05
+  cell (layer=19, pos=0): rel L2 = 5.282628e-07
+  cell (layer=19, pos=1): rel L2 = 2.372101e-05
+  cell (layer=19, pos=2): rel L2 = 3.297651e-05
+  cell (layer=19, pos=3): rel L2 = 4.723463e-05
+  cell (layer=20, pos=0): rel L2 = 5.664765e-07
+  cell (layer=20, pos=1): rel L2 = 1.707820e-05
+  cell (layer=20, pos=2): rel L2 = 1.795148e-05
+  cell (layer=20, pos=3): rel L2 = 2.999952e-05
+  cell (layer=21, pos=0): rel L2 = 4.638470e-07
+  cell (layer=21, pos=1): rel L2 = 1.373604e-05
+  cell (layer=21, pos=2): rel L2 = 1.470423e-05
+  cell (layer=21, pos=3): rel L2 = 4.062812e-05
+  cell (layer=22, pos=0): rel L2 = 4.564664e-07
+  cell (layer=22, pos=1): rel L2 = 1.456193e-05
+  cell (layer=22, pos=2): rel L2 = 1.578167e-05
+  cell (layer=22, pos=3): rel L2 = 2.373411e-05
+  cell (layer=23, pos=0): rel L2 = 1.520242e-06
+  cell (layer=23, pos=1): rel L2 = 8.625530e-06
+  cell (layer=23, pos=2): rel L2 = 8.253329e-06
+  cell (layer=23, pos=3): rel L2 = 1.648389e-05
+  cell (layer=24, pos=0): rel L2 = 4.695219e-06
+  cell (layer=24, pos=1): rel L2 = 2.134172e-05
+  cell (layer=24, pos=2): rel L2 = 1.339679e-05
+  cell (layer=24, pos=3): rel L2 = 2.339613e-05
+  cell (layer=25, pos=0): rel L2 = 9.142483e-06
+  cell (layer=25, pos=1): rel L2 = 1.478860e-05
+  cell (layer=25, pos=2): rel L2 = 1.712627e-05
+  cell (layer=25, pos=3): rel L2 = 1.631523e-05
+  cell (layer=26, pos=0): rel L2 = 5.670634e-05
+  cell (layer=26, pos=1): rel L2 = 8.001051e-05
+  cell (layer=26, pos=2): rel L2 = 3.283992e-05
+  cell (layer=26, pos=3): rel L2 = 3.507138e-05
+  cell (layer=27, pos=0): rel L2 = 8.343020e-06
+  cell (layer=27, pos=1): rel L2 = 1.490120e-05
+  cell (layer=27, pos=2): rel L2 = 1.278411e-05
+  cell (layer=27, pos=3): rel L2 = 2.335214e-05
+stage 1 median rel L2 = 3.052082e-05
+stage 1 max rel L2    = 1.569942e-04 at (layer=4, pos=3)
+stage 1: PASS
+stage 2: layers 0-27 (112 cells)
+  cell (layer=0, pos=0): rel L2 = 9.757537e-05
+  cell (layer=0, pos=1): rel L2 = 5.942064e-05
+  cell (layer=0, pos=2): rel L2 = 6.387477e-05
+  cell (layer=0, pos=3): rel L2 = 5.650414e-05
+  cell (layer=1, pos=0): rel L2 = 2.939585e-05
+  cell (layer=1, pos=1): rel L2 = 7.259148e-05
+  cell (layer=1, pos=2): rel L2 = 9.485954e-05
+  cell (layer=1, pos=3): rel L2 = 6.458473e-05
+  cell (layer=2, pos=0): rel L2 = 2.143108e-05
+  cell (layer=2, pos=1): rel L2 = 6.395161e-05
+  cell (layer=2, pos=2): rel L2 = 9.442924e-05
+  cell (layer=2, pos=3): rel L2 = 7.703439e-05
+  cell (layer=3, pos=0): rel L2 = 3.328184e-06
+  cell (layer=3, pos=1): rel L2 = 4.463638e-05
+  cell (layer=3, pos=2): rel L2 = 6.277486e-05
+  cell (layer=3, pos=3): rel L2 = 9.283935e-05
+  cell (layer=4, pos=0): rel L2 = 3.853075e-07
+  cell (layer=4, pos=1): rel L2 = 3.383289e-05
+  cell (layer=4, pos=2): rel L2 = 8.749433e-05
+  cell (layer=4, pos=3): rel L2 = 1.569942e-04
+  cell (layer=5, pos=0): rel L2 = 5.588081e-07
+  cell (layer=5, pos=1): rel L2 = 4.979078e-05
+  cell (layer=5, pos=2): rel L2 = 7.272200e-05
+  cell (layer=5, pos=3): rel L2 = 1.063596e-04
+  cell (layer=6, pos=0): rel L2 = 5.080970e-07
+  cell (layer=6, pos=1): rel L2 = 6.740951e-05
+  cell (layer=6, pos=2): rel L2 = 9.860676e-05
+  cell (layer=6, pos=3): rel L2 = 1.093087e-04
+  cell (layer=7, pos=0): rel L2 = 5.320190e-07
+  cell (layer=7, pos=1): rel L2 = 2.794355e-05
+  cell (layer=7, pos=2): rel L2 = 5.195240e-05
+  cell (layer=7, pos=3): rel L2 = 8.459439e-05
+  cell (layer=8, pos=0): rel L2 = 5.093477e-07
+  cell (layer=8, pos=1): rel L2 = 3.104212e-05
+  cell (layer=8, pos=2): rel L2 = 4.207695e-05
+  cell (layer=8, pos=3): rel L2 = 4.486785e-05
+  cell (layer=9, pos=0): rel L2 = 8.882257e-07
+  cell (layer=9, pos=1): rel L2 = 4.095196e-05
+  cell (layer=9, pos=2): rel L2 = 8.210273e-05
+  cell (layer=9, pos=3): rel L2 = 1.090485e-04
+  cell (layer=10, pos=0): rel L2 = 7.538231e-07
+  cell (layer=10, pos=1): rel L2 = 3.256008e-05
+  cell (layer=10, pos=2): rel L2 = 3.515324e-05
+  cell (layer=10, pos=3): rel L2 = 5.847114e-05
+  cell (layer=11, pos=0): rel L2 = 9.503097e-07
+  cell (layer=11, pos=1): rel L2 = 4.486595e-05
+  cell (layer=11, pos=2): rel L2 = 6.792923e-05
+  cell (layer=11, pos=3): rel L2 = 9.283290e-05
+  cell (layer=12, pos=0): rel L2 = 8.885829e-07
+  cell (layer=12, pos=1): rel L2 = 4.348248e-05
+  cell (layer=12, pos=2): rel L2 = 4.233817e-05
+  cell (layer=12, pos=3): rel L2 = 5.831795e-05
+  cell (layer=13, pos=0): rel L2 = 8.920256e-07
+  cell (layer=13, pos=1): rel L2 = 4.665020e-05
+  cell (layer=13, pos=2): rel L2 = 5.015324e-05
+  cell (layer=13, pos=3): rel L2 = 5.722112e-05
+  cell (layer=14, pos=0): rel L2 = 7.441927e-07
+  cell (layer=14, pos=1): rel L2 = 2.092944e-05
+  cell (layer=14, pos=2): rel L2 = 4.110882e-05
+  cell (layer=14, pos=3): rel L2 = 4.096137e-05
+  cell (layer=15, pos=0): rel L2 = 6.444137e-07
+  cell (layer=15, pos=1): rel L2 = 2.291199e-05
+  cell (layer=15, pos=2): rel L2 = 2.985701e-05
+  cell (layer=15, pos=3): rel L2 = 4.124601e-05
+  cell (layer=16, pos=0): rel L2 = 6.346769e-07
+  cell (layer=16, pos=1): rel L2 = 1.340604e-05
+  cell (layer=16, pos=2): rel L2 = 3.240592e-05
+  cell (layer=16, pos=3): rel L2 = 6.394170e-05
+  cell (layer=17, pos=0): rel L2 = 7.305992e-07
+  cell (layer=17, pos=1): rel L2 = 1.837167e-05
+  cell (layer=17, pos=2): rel L2 = 2.818709e-05
+  cell (layer=17, pos=3): rel L2 = 5.978307e-05
+  cell (layer=18, pos=0): rel L2 = 5.278894e-07
+  cell (layer=18, pos=1): rel L2 = 3.149974e-05
+  cell (layer=18, pos=2): rel L2 = 3.241718e-05
+  cell (layer=18, pos=3): rel L2 = 4.085826e-05
+  cell (layer=19, pos=0): rel L2 = 5.282628e-07
+  cell (layer=19, pos=1): rel L2 = 2.372101e-05
+  cell (layer=19, pos=2): rel L2 = 3.297651e-05
+  cell (layer=19, pos=3): rel L2 = 4.723463e-05
+  cell (layer=20, pos=0): rel L2 = 5.664765e-07
+  cell (layer=20, pos=1): rel L2 = 1.707820e-05
+  cell (layer=20, pos=2): rel L2 = 1.795148e-05
+  cell (layer=20, pos=3): rel L2 = 2.999952e-05
+  cell (layer=21, pos=0): rel L2 = 4.638470e-07
+  cell (layer=21, pos=1): rel L2 = 1.373604e-05
+  cell (layer=21, pos=2): rel L2 = 1.470423e-05
+  cell (layer=21, pos=3): rel L2 = 4.062812e-05
+  cell (layer=22, pos=0): rel L2 = 4.564664e-07
+  cell (layer=22, pos=1): rel L2 = 1.456193e-05
+  cell (layer=22, pos=2): rel L2 = 1.578167e-05
+  cell (layer=22, pos=3): rel L2 = 2.373411e-05
+  cell (layer=23, pos=0): rel L2 = 1.520242e-06
+  cell (layer=23, pos=1): rel L2 = 8.625530e-06
+  cell (layer=23, pos=2): rel L2 = 8.253329e-06
+  cell (layer=23, pos=3): rel L2 = 1.648389e-05
+  cell (layer=24, pos=0): rel L2 = 4.695219e-06
+  cell (layer=24, pos=1): rel L2 = 2.134172e-05
+  cell (layer=24, pos=2): rel L2 = 1.339679e-05
+  cell (layer=24, pos=3): rel L2 = 2.339613e-05
+  cell (layer=25, pos=0): rel L2 = 9.142483e-06
+  cell (layer=25, pos=1): rel L2 = 1.478860e-05
+  cell (layer=25, pos=2): rel L2 = 1.712627e-05
+  cell (layer=25, pos=3): rel L2 = 1.631523e-05
+  cell (layer=26, pos=0): rel L2 = 5.670634e-05
+  cell (layer=26, pos=1): rel L2 = 8.001051e-05
+  cell (layer=26, pos=2): rel L2 = 3.283992e-05
+  cell (layer=26, pos=3): rel L2 = 3.507138e-05
+  cell (layer=27, pos=0): rel L2 = 8.343020e-06
+  cell (layer=27, pos=1): rel L2 = 1.490120e-05
+  cell (layer=27, pos=2): rel L2 = 1.278411e-05
+  cell (layer=27, pos=3): rel L2 = 2.335214e-05
+stage 2 median rel L2 = 3.195283e-05
+stage 2 max rel L2    = 1.569942e-04 at (layer=4, pos=3)
+stage 2: PASS
+RESULT: PASS
+
+=== AC-5b free-running informational (normal build) ===
+--- generate dump ---
+dump exit=0
+strata generate: parity run: architecture 'deepseek' is not supported; this path exists for HO-STRATA-014/015 parity only
+strata-deepseek: geometry assertions:
+  n_layers: 28 (want 28) ok
+  n_embd: 2048 (want 2048) ok
+  n_head: 16 (want 16) ok
+  n_head_kv: 16 (want 16) ok
+  n_expert: 64 (want 64) ok
+  n_expert_used: 6 (want 6) ok
+--- compare ---
+bound = 5.000000e-03  (fixed, not caller-supplied)
+Traceback (most recent call last):
+  File "/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-015/scripts/compare_layers.py", line 169, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-015/scripts/compare_layers.py", line 114, in main
+    dump, dump_n = load(args.dump, "engine dump")
+                   ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-015/scripts/compare_layers.py", line 27, in load
+    with open(path, "rb") as f:
+         ~~~~^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/opencode/s4b-free-normal-bin'

@@ -303,8 +303,18 @@ Evidence: `workflow/evidence/HO-STRATA-015/`
    - AC-2: `--native <pack>` exit 2 with named refusal; `--families` prints `qwen4exp qwen35moe`.
    - AC-3: `--parity-run` without `--dump-layers` refused on DeepSeek and Qwen packs; with `--dump-layers` accepted.
    - AC-4: dump size `1,187,840` B; `compare_layers.py --slots 28 --shape-only` PASS with N=28.
-   - AC-5b teacher-forced: the command in `commands.log` requires temporarily defining `STRATA_DEEPSEEK_DIAG`; expected `RESULT: PASS`, stage 1/2 max `1.569942e-04` at `(layer=4, pos=3)`.
+   - AC-5b teacher-forced: **requires a diagnostic build**. In `src/deepseek/ds_engine.cu`, add `#define STRATA_DEEPSEEK_DIAG` immediately before the existing `#ifdef STRATA_DEEPSEEK_DIAG` block, then `cmake --build build-deepseek --target strata -j$(nproc)`. Run:
+     ```bash
+     LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata \
+       --parity-run --native $PACK \
+       --dump-layers /tmp/opencode/teacher_dummy.bin \
+       --parity-teacher-force /tmp/opencode/teacher_inputs.bin,/tmp/opencode/teacher_kv.bin,/tmp/opencode/teacher_outputs.bin,$ORACLE
+     python3 /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-015/scripts/compare_layers.py \
+       --oracle $ORACLE --teacher-outputs /tmp/opencode/teacher_outputs.bin
+     ```
+     Expected: stage 1/2 max `1.569942e-04` at `(layer=4, pos=3)`, `RESULT: PASS`.
    - AC-5b free-running informational: normal build; expected first cell above bound `(layer=19, pos=1)`.
+   - After the diagnostic run, remove `#define STRATA_DEEPSEEK_DIAG` and rebuild; the normal binary must reject `--parity-teacher-force` (`artifacts/diag_unreachable.log`).
    - AC-6: two normal dumps byte-identical.
    - AC-7: `model_family_test` and `gguf_geometry_test` both exit 0; Qwen regression token IDs match HO-007.
    - AC-8: device memory 23.124 GiB used / 45.970 GiB total; dequant spot-check max abs diff 0.0.

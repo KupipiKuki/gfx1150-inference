@@ -35,6 +35,7 @@ See `commands.log` for the full verbatim list. Key commands:
 | AC-4 | Dump layout, N=28 | `stat -c%s`; `compare_layers.py --slots 28 --shape-only` | 1,187,840 B; 29 slots/record; N=28; 0 non-finite | PASS |
 | AC-5b | **Teacher-forced gate** (DEC-046) | diagnostic build + `compare_layers.py --teacher-outputs` | stage 1 max 1.569942e-04; stage 2 max 1.569942e-04 at (4,3); all ≤ 5e-3; `RESULT: PASS` | PASS |
 | AC-5b-info | Free-running trajectory reported | normal build + `compare_layers.py --slots 28 --dump` | first cell above bound = (19,1); stage 1 max 6.317236e-02; `RESULT: FAIL` (informational) | reported |
+| AC-5b-qc | Verdict consistency check | `grep` each PASS-cited artifact for its verdict | all contain expected PASS / passed line | PASS |
 | AC-6 | Deterministic | two dumps; `cmp` | byte-identical, 1,187,840 B | PASS |
 | AC-7 | Qwen regression + tests green | `model_family_test`; `gguf_geometry_test`; HO-007 command | both tests ALL PASSED; 32 token IDs match HO-007 exactly | PASS |
 | AC-8 | Memory + precision accounting | `cudaMemGetInfo` after alloc; dequant spot-check | 23.124 GiB used / 45.970 GiB total; max abs diff 0.0 | PASS |
@@ -54,8 +55,10 @@ See `commands.log` for the full verbatim list. Key commands:
 | Teacher-forced outputs | `artifacts/runs/teacher_outputs.bin` | `e0b6aa02061ad14ef854ff12988cf3571464de76e117493fca607ff020d79394` |
 | MoE reference notes | `artifacts/llama-ref-moe.md` | `218a828915bfa3642fb7264fd829a7f694e2a506ca2e916450e674f5dd3a3a2c` |
 | Patch apply-check record | `artifacts/apply-check.txt` | `07b81c899d7dfa0bc9c6858d66142ca82762445cae6e1f2541fd1c0f5ff4095d` |
-| AC-5b teacher comparison | `artifacts/ac5.log` | `d334bce97d34547147d009be3628537f5363943fc08d58c065b062e9e03f6b1a` |
+| AC-5b teacher comparison | `artifacts/ac5.log` | `94e52860bf5fd1d12dcfc51f539d2757b84038c5fb08dc6641589a325583a707` |
+| AC-5b stale-path attempt | `artifacts/ac5-stale-attempt.log` | `d334bce97d34547147d009be3628537f5363943fc08d58c065b062e9e03f6b1a` |
 | AC-5b free-running comparison | `artifacts/ac5b_free.log` | `fba216bf0d2462800ab96e6c11bc8c7ef27eaecaf7b987e3c3c4fcd2e66169a7` |
+| Verdict consistency check | `artifacts/verdict-consistency.txt` | `139cec21d3bcc273df2988cb594b221f97ccc24fe4295ac1c4d90b836a615995` |
 | AC-7 tests/regression | `artifacts/ac7.log` | `72eb8fae286593dc2e135ee6adc1262efebac9acde3f18945b690c571cd7d18b` |
 | AC-8 memory/dequant | `artifacts/ac8.log` | `a1ff604d485d8b3aceaa89f042bc7cf3514e469b5b021135a3a6989fd40f7400` |
 | AC-9 geometry | `artifacts/ac9.log` | `60593cb9ef164a1b2a3225bdfcc55cc4615c5b7dddbfda1835696aa2dd15ccb5` |
@@ -67,6 +70,7 @@ See `commands.log` for the full verbatim list. Key commands:
 ## 4. Failures, skips, limits
 
 - The free-running trajectory fails the 5e-3 bound at layer 19 position 1 (rel L2 2.668110e-02). This is **not treated as a handoff failure**: DEC-046 ruled it a router near-tie (6th/7th probability margin 2.80e-4, logit margin 6.62e-3). The teacher-forced run for the same cell is 2.372101e-05, proving the block arithmetic is correct. The free-running result is reported informationally in `artifacts/ac5b_free.log` and `artifacts/llama-ref-moe.md`.
+- `artifacts/ac5-stale-attempt.log` preserves an earlier capture that accidentally used a non-existent dump path; it is **not** the cited gate artifact and is kept only for audit trail.
 - No skips. All 112 teacher-forced cells were evaluated.
 
 ## 5. Environment notes

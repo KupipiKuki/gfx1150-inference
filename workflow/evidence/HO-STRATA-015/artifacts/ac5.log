@@ -1,7 +1,3 @@
-=== AC-5b teacher-forced (diagnostic build) command ===
-LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --parity-run --native <pack> --dump-layers /tmp/opencode/teacher_dummy.bin --parity-teacher-force /tmp/opencode/teacher_inputs.bin,/tmp/opencode/teacher_kv.bin,/tmp/opencode/teacher_outputs.bin,<oracle>
-
-=== AC-5b teacher-forced comparison output (112 cells) ===
 bound = 5.000000e-03  (fixed, not caller-supplied)
 teacher outputs: 28 layers x 4 positions x 2048
 oracle: 4 records, 28 blocks
@@ -235,28 +231,3 @@ stage 2 median rel L2 = 3.195283e-05
 stage 2 max rel L2    = 1.569942e-04 at (layer=4, pos=3)
 stage 2: PASS
 RESULT: PASS
-
-=== AC-5b free-running informational (normal build) ===
---- generate dump ---
-dump exit=0
-strata generate: parity run: architecture 'deepseek' is not supported; this path exists for HO-STRATA-014/015 parity only
-strata-deepseek: geometry assertions:
-  n_layers: 28 (want 28) ok
-  n_embd: 2048 (want 2048) ok
-  n_head: 16 (want 16) ok
-  n_head_kv: 16 (want 16) ok
-  n_expert: 64 (want 64) ok
-  n_expert_used: 6 (want 6) ok
---- compare ---
-bound = 5.000000e-03  (fixed, not caller-supplied)
-Traceback (most recent call last):
-  File "/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-015/scripts/compare_layers.py", line 169, in <module>
-    sys.exit(main())
-             ~~~~^^
-  File "/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-015/scripts/compare_layers.py", line 114, in main
-    dump, dump_n = load(args.dump, "engine dump")
-                   ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-015/scripts/compare_layers.py", line 27, in load
-    with open(path, "rb") as f:
-         ~~~~^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/opencode/s4b-free-normal-bin'
