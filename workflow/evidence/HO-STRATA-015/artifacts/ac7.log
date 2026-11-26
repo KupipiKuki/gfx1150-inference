@@ -1,0 +1,92 @@
+=== AC-7a: model_family_test ===
+model_family_test
+  model_family: qwen35moe, qwen4exp, deepseek, unknown                                       ok
+  the architecture guard accepts qwen35moe                                                   ok
+  the architecture guard accepts qwen4exp                                                    ok
+  the architecture guard accepts deepseek                                                    ok
+  and refuses llama, naming it                                                               ok
+  the engine guard refuses Qwen3.6: recognised, not supported yet                            ok
+  the engine guard refuses DeepSeek: recognised, not supported yet                           ok
+  the engine guard runs qwen4exp                                                             ok
+  a qwen35moe file without ssm.time_step_rank is refused, naming the key                     ok
+  Qwen3.6 geometry reads                                                                     ok
+  Qwen3.6: 40 trunk layers + 1 MTP block, hidden 2048                                        ok
+  Qwen3.6: 10 attention / 30 GDN layers, layer 40 is the MTP block                           ok
+  Qwen3.6 GDN: 16 K groups, 32 V heads, conv 8192, inner 4096                                ok
+  Qwen3.6 attention: 16 Q / 2 KV x 256, no indexer, no hyper-connections                     ok
+  Qwen3.6 MoE: 256 experts top-8, FF 512, shared 512; vocab 248320                           ok
+  Qwen3.6 does not match the compiled kernels                                                ok
+  Flash-Next's metadata gives exactly the compiled geometry                                  ok
+  the Coder's 256 experts are a run-time size, not a kernel mismatch                         ok
+  an inconsistent ssm.inner_size is refused                                                  ok
+  DeepSeek geometry reads                                                                    ok
+  DeepSeek: 28 layers, hidden 2048                                                           ok
+  DeepSeek attention: 16 Q / 16 KV x 128 (MHA)                                               ok
+  DeepSeek MoE: 64 experts top-6, shared 2 x FF 1408 = 2816, dense FF 10944, 1 dense leading block ok
+  DeepSeek rope base and rms epsilon read from metadata                                      ok
+  DeepSeek vocab 102400                                                                      ok
+  a complete qwen35moe file passes its layout (incl. the nextn MTP block)                    ok
+  a complete qwen4exp file passes its layout (hyper-connections, indexer)                    ok
+  a wrong shape is refused, naming the tensor and both shapes                                ok
+  a missing MTP tensor is refused                                                            ok
+  a tensor the qwen35moe table does not name is refused                                      ok
+  Flash-Next: a missing indexer tensor is refused (missing blk.3.indexer.k_proj.weight)      ok
+  a complete deepseek file passes its layout                                                 ok
+  DeepSeek: a missing dense-first-block tensor is refused (missing blk.0.ffn_gate.weight)    ok
+  DeepSeek: a wrong expert shape is refused                                                  ok
+  DeepSeek: a tensor the layout does not name is refused                                     ok
+  DeepSeek dense-first-block geometry reads                                                  ok
+  DeepSeek block 0 has no *_exps tensors                                                     ok
+  DeepSeek block 1 has *_exps tensors                                                        ok
+  --parity-run without --dump-layers is refused (deepseek)                                   ok
+  qwen35moe parity test geometry reads                                                       ok
+  --parity-run without --dump-layers is refused (supported qwen35moe)                        ok
+ALL PASSED
+exit=0
+
+=== AC-7b: gguf_geometry_test ===
+strata: qwen4exp.attention.compress_ratios is all zeros (a converter's placeholder): using the compiled pooling block of 4 cells (#2396)
+gguf_geometry_test
+  the full key set reads                                                                     ok
+    and gives the compiled shape (vocabulary from tokenizer.ggml.tokens)                     ok
+    conv channels derived: 2 x 128 x 16 + 6144 = 10240                                       ok
+    which the kernels run, and the guard passes                                              ok
+  only the six required keys: the rest keeps the compiled values                             ok
+  a file without block_count is refused, naming it                                           ok
+  a file without embedding_length is refused, naming it                                      ok
+  a file without expert_count is refused, naming it                                          ok
+  a file without expert_used_count is refused, naming it                                     ok
+  a file without attention.head_count is refused, naming it                                  ok
+  a file without attention.head_count_kv is refused, naming it                               ok
+  a pruned variant: 384 experts, 8 per token, read and accepted                              ok
+  65 experts per token is refused (the router takes 1..64)                                   ok
+  0 experts per token is refused                                                             ok
+  a value head width other than the key head width is refused                                ok
+  a shared expert wider than the routed ones is refused                                      ok
+  ssm.inner_size other than state_size x time_step_rank is refused                           ok
+  compress_ratios that disagree with full_attention_interval are refused at the first layer  ok
+  compress_ratios of another length are refused                                              ok
+  two pooling blocks in one model are refused                                                ok
+  an all-zero compress_ratios list is treated as absent                                      ok
+  an all-zero list of another length is still refused                                        ok
+  a list with one non-zero entry is checked in full                                          ok
+  a float where a count belongs is refused                                                   ok
+  40 layers read: 10 QSA, 30 GDN                                                             ok
+    and refused: qwen4exp.block_count = 40, the kernels are compiled for 48                  ok
+  head width 128 reads and is refused: qwen4exp.attention.key_length = 128, the kernels are compiled for 256 ok
+  an indexer budget of 1024 is refused                                                       ok
+  an rms epsilon of 1e-5 is refused                                                          ok
+  another vocabulary size is accepted (the head and embedding take their tensors' shapes)    ok
+  another architecture is refused by name, by the reader and the guard                       ok
+  a dense qwen35 file is refused by its architecture: architecture is 'qwen35', this engine requires 'qwen4exp' ok
+  a file without general.architecture says so                                                ok
+gguf_geometry_test: all passed
+exit=0
+
+=== AC-7c: Qwen regression (signed build-hip/strata) ===
+strata-q36: context 1024 cells, prompt chunk 4096, MTP block loaded, 27.61 GiB of VRAM free
+strata-q36: every routed expert in VRAM (18.75 GiB) in 3.2 s
+strata-q36: warmed up in 3.7 s (one prompt chunk, a decode step)
+gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+strata-q36: prompt 5 tokens in 89.9 ms (55.6 tok/s), 32 generated in 1641.0 ms (19.5 tok/s)
+exit=0

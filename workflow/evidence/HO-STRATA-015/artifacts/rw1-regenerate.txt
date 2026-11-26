@@ -1,0 +1,9 @@
+Regenerate teacher gate inputs from bundle script
+===================================================
+Command: python3 workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py --output-dir /tmp/opencode/rw1
+
+d386c2d4344c9181297898e933128fab66d7e3b0046ce0a0b17f84551bda4b52  /tmp/opencode/rw1/teacher_inputs.bin
+62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543  /tmp/opencode/rw1/teacher_kv.bin
+
+teacher_inputs cmp exit=0
+teacher_kv cmp exit=0

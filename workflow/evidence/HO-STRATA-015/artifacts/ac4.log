@@ -1,0 +1,8 @@
+=== AC-4: dump file size ===
+1187840
+=== AC-4: compare_layers.py --slots 28 --shape-only ===
+bound = 5.000000e-03  (fixed, not caller-supplied)
+engine dump: 5 records, 29 slots/record, N=28 blocks computed
+oracle: 4 records, 28 blocks
+non-finite values in kept dump: 0
+RESULT: PASS (shape only)

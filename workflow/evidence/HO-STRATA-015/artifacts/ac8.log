@@ -1,0 +1,7 @@
+=== AC-8: device memory and dequant spot-check ===
+strata-deepseek: device memory after model load + buffer alloc: used=24829116416 bytes (23.124 GiB), total=49359982592 bytes (45.970 GiB)
+strata-deepseek: dequant spot-check:
+  blk.0.ffn_gate.weight (type 12): max abs diff vs direct dequant = 0.000000e+00
+  blk.1.ffn_down_shexp.weight (type 14): max abs diff vs direct dequant = 0.000000e+00
+  blk.0.ffn_down.weight (type 8): max abs diff vs direct dequant = 0.000000e+00
+  blk.10.ffn_down_exps.weight (type 6): max abs diff vs direct dequant = 0.000000e+00
