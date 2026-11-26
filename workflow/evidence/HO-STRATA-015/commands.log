@@ -101,6 +101,19 @@ python3 $COMP --oracle $ORACLE --teacher-outputs /tmp/opencode/teacher_outputs.b
 
 After capture the `#define STRATA_DEEPSEEK_DIAG` was removed and the tree rebuilt; the normal binary refuses `--parity-teacher-force` (see `artifacts/diag_unreachable.log`).
 
+## RW-HO-STRATA-015-2 — Router margin on exact-f32 trajectory
+
+```bash
+python3 workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py \
+  --free-diag-log /tmp/opencode/rw2_free_diag.log \
+  > workflow/evidence/HO-STRATA-015/artifacts/router-margin-19-1.txt
+# exact-f32 oracle top-6: [25, 2, 3, 22, 5, 40]
+# exact-f32 6th-7th margin: prob=3.357388e-06  logit=7.948442e-05
+# teacher-forced engine top-6: [25, 2, 3, 22, 5, 40]
+# free-running engine top-6: [25, 2, 3, 22, 5, 33]
+# 33<->40 logit gap drift: +1.385e-4 (1.74x the margin)
+```
+
 ## AC-5b — Free-running informational comparison (normal build)
 
 ```bash

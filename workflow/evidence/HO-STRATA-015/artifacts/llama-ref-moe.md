@@ -66,7 +66,7 @@ The free-running trajectory first exceeds 5e-3 at **layer 19, position 1** (rel 
 
 - Oracle top-6: `[25, 2, 3, 22, 5, 40]`
 - Engine top-6: `[25, 2, 3, 22, 5, 33]`
-- 6th-vs-7th probability margin: **2.80e-4**
-- Corresponding logit margin: **6.62e-3**
+- Exact-f32 6th-vs-7th probability margin: **3.36e-6**
+- Exact-f32 corresponding logit margin: **7.95e-5**
 
 Because the teacher-forced output matches the reference, the router formula, expert layout, shared-expert placement and FFN arithmetic are correct; the free-running gate was measuring accumulated drift crossing a sharp routing boundary. The gate therefore compares each block in isolation from the reference residual and K/V history, while the free-running profile is reported informationally.

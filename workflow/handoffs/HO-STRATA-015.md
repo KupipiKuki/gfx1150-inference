@@ -269,6 +269,12 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
   `artifacts/runs/teacher_kv.bin`; regenerated both from the bundle script and
   verified byte-identity (`d386c2d4…`, `62ca264d…`). Rebuilt `test-output.txt`
   after the final capture; re-ran `check_bundle.py --strict` PASS.
+- 2026-11-26 Coder-primary: **RW-HO-STRATA-015-2** evidence-only rework. Replaced
+  the Q4_K router margin in `manifest.md` and `artifacts/llama-ref-moe.md` with
+  the exact-f32 trajectory margin (`3.36e-6` prob / `7.95e-5` logit, top-6
+  `[25, 2, 3, 22, 5, 40]`). Added `artifacts/router-margin-19-1.txt` and
+  `scripts/compute_router_margin.py`. Rebuilt `test-output.txt`; re-ran
+  `check_bundle.py --strict` PASS and verdict-consistency PASS.
 
 ## 12. Tolerance (inherited, unchanged — HO-014 §12)
 

@@ -57,7 +57,9 @@ See `commands.log` for the full verbatim list. Key commands:
 | Teacher-forced K/V history | `artifacts/runs/teacher_kv.bin` | `62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543` |
 | Teacher input generator | `scripts/gen_teacher_inputs.py` | `831f56b8ace2cc89ce126a04b185302498b80b3e88931e2ebb2421fec20f481d` |
 | RW-1 regenerate proof | `artifacts/rw1-regenerate.txt` | `260943ebf877ad540e0086dc29bbf21dc76407dc031ea427eddc81296a5c2786` |
-| MoE reference notes | `artifacts/llama-ref-moe.md` | `218a828915bfa3642fb7264fd829a7f694e2a506ca2e916450e674f5dd3a3a2c` |
+| Router margin recomputation script | `scripts/compute_router_margin.py` | `c5ee4ae33af29b5227c16731d30b543bdd2d08fa3c464de1b0042edd63615c78` |
+| Router margin recomputation (layer 19, pos 1) | `artifacts/router-margin-19-1.txt` | `4b160b9ebd6060960699c506fea3842691851b1b24b8dae95e9fdf1899f0cb1b` |
+| MoE reference notes | `artifacts/llama-ref-moe.md` | `8d577566e0cdc7b0d931d0de131d6cca820ffb7a6d7adcb82d591dd83b60ed46` |
 | Patch apply-check record | `artifacts/apply-check.txt` | `07b81c899d7dfa0bc9c6858d66142ca82762445cae6e1f2541fd1c0f5ff4095d` |
 | AC-5b teacher comparison | `artifacts/ac5.log` | `94e52860bf5fd1d12dcfc51f539d2757b84038c5fb08dc6641589a325583a707` |
 | AC-5b stale-path attempt | `artifacts/ac5-stale-attempt.log` | `d334bce97d34547147d009be3628537f5363943fc08d58c065b062e9e03f6b1a` |
@@ -73,7 +75,7 @@ See `commands.log` for the full verbatim list. Key commands:
 
 ## 4. Failures, skips, limits
 
-- The free-running trajectory fails the 5e-3 bound at layer 19 position 1 (rel L2 2.668110e-02). This is **not treated as a handoff failure**: DEC-046 ruled it a router near-tie (6th/7th probability margin 2.80e-4, logit margin 6.62e-3). The teacher-forced run for the same cell is 2.372101e-05, proving the block arithmetic is correct. The free-running result is reported informationally in `artifacts/ac5b_free.log` and `artifacts/llama-ref-moe.md`.
+- The free-running trajectory fails the 5e-3 bound at layer 19 position 1 (rel L2 2.668110e-02). This is **not treated as a handoff failure**: DEC-046 ruled it a router near-tie on the exact-f32 trajectory (6th/7th probability margin 3.36e-6, logit margin 7.95e-5). The observed drift moves the 33↔40 logit gap by +1.385e-4 (1.74× the margin), and even with identical input the engine's f32 arithmetic moves expert 40's logit by 3.84e-5, so the swap is inside the arithmetic noise. The teacher-forced run for the same cell is 2.372101e-05, proving the block arithmetic is correct. The free-running result is reported informationally in `artifacts/ac5b_free.log` and `artifacts/llama-ref-moe.md`.
 - `artifacts/ac5-stale-attempt.log` preserves an earlier capture that accidentally used a non-existent dump path; it is **not** the cited gate artifact and is kept only for audit trail.
 - No skips. All 112 teacher-forced cells were evaluated.
 
