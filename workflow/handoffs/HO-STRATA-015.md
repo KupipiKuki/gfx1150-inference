@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-015 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **IN_PROGRESS** (2026-11-25) — accepted by coder-primary; DoR verified |
+| **State** | **CODER_DONE** (2026-11-26) — evidence bundle complete, `check_bundle.py --strict` PASS |
 | **Created / updated (UTC)** | 2026-11-25 / 2026-11-25 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `deepseek-s4b` |
@@ -224,14 +224,14 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
 
 ## 9. Definition of Done
 
-- [ ] AC-1…AC-12 run; raw output in `test-output.txt`
-- [ ] AC-5b PASS in both stages (108 cells, then 112); worst cell named
-- [ ] Refusal, `--families` and the Qwen regression unchanged
-- [ ] Signed binary unchanged; peak allocation recorded and under budget
-- [ ] Patch exported, measured, applies on `0001`+`0002`
-- [ ] `check_bundle.py … --strict` PASS, including **`B6-pins` actually running**
-- [ ] No secrets, no out-of-scope edits, no new dependencies
-- [ ] `CODER_DONE`; `CODER_TO_QAQC` record attached
+- [x] AC-1…AC-12 run; raw output in `test-output.txt`
+- [x] AC-5b PASS in both stages (108 cells, then 112); worst cell named `(layer=4, pos=3)` max `1.569942e-04`
+- [x] Refusal, `--families` and the Qwen regression unchanged
+- [x] Signed binary unchanged (`build-hip/strata` = `d58ee239…`); peak allocation recorded (23.124 GiB / 45.970 GiB)
+- [x] Patch exported, measured, applies on `0001`+`0002`
+- [x] `check_bundle.py … --strict` PASS, including **`B6-pins` actually running** (9 pin rows PASS)
+- [x] No secrets, no out-of-scope edits, no new dependencies
+- [x] `CODER_DONE`; `CODER_TO_QAQC` record attached
 
 ## 10. Signatures
 
@@ -239,6 +239,7 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
 |---|---|---|---|
 | Sender (Architect) | `architect` (`opencode-go/deepseek-v4-pro#max`) | 2026-11-25 | **READY** |
 | Receiver (Coder) | `coder-primary` (`opencode-go/kimi-k2.7-code`) | 2026-11-25 | **IN_PROGRESS** |
+| Coder sign-off | `coder-primary` | 2026-11-26 | **CODER_DONE** |
 
 ## 11. Log
 
@@ -257,6 +258,12 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
   matching the oracle to 2.37e-5.  Verdict: layer 19 is arithmetically correct;
   the gate failure is inherited drift amplified by a router near-tie, not an
   implementation bug.  No code change or bound widening pursued.
+- 2026-11-26 Coder-primary: DEC-046 implemented. Teacher-forced gate **PASS**
+  (stage 1: 108 cells, max 1.569942e-04 at layer 4 pos 3; stage 2: 112 cells,
+  same max/worst). Free-running profile reported informationally: first cell above
+  5e-3 is layer 19 pos 1. Normal build explicitly rejects `--parity-teacher-force`.
+  AC-1…AC-12 complete; `check_bundle.py --strict` PASS (42 checks, 0 warnings);
+  `CODER_TO_QAQC` attached.
 
 ## 12. Tolerance (inherited, unchanged — HO-014 §12)
 
@@ -278,3 +285,30 @@ engine must not emulate q8_K — applies unchanged.
 | **S4b** MoE 1–27 | **this file** | 108 cells, then 112, ≤ 5e-3 | READY |
 | **S5** token parity + KL + the support flip | **HO-STRATA-016** (on AC-5b PASS) | 3 prompts × 16 greedy tokens **zero** mismatches against the Q4_K oracle; KL ≤ 1.5× the CPU/HIP floor; then `model_family_runs()` → true, `--families` gains `deepseek` | not written |
 | S6/S7 baseline, envelope, regression, signoff | HO-STRATA-017 | GTT/`dmesg` envelope, HO-007 32 IDs bit-identical, QAQC → audit → sign | not written |
+
+## 14. CODER_TO_QAQC
+
+Branch: `wp/strata-015-deepseek-s4b` (workflow)  
+Strata branch: `strata-015-deepseek-s4b`  
+Workflow commit: `12995e1…` (tip after bundle fixes)  
+Strata commit: `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4`  
+Evidence: `workflow/evidence/HO-STRATA-015/`  
+
+### What QAQC must re-run
+
+1. `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-015 --strict` → `RESULT: PASS`.
+2. Verify the nine `B6-pins` rows in `hashes-notes.txt` report `PASS`.
+3. Re-run the acceptance commands in `commands.log` and confirm the observed values:
+   - AC-1: build exit 0; `build-hip/strata` hash `d58ee239…`; oracle hash `a4c56b9d…`.
+   - AC-2: `--native <pack>` exit 2 with named refusal; `--families` prints `qwen4exp qwen35moe`.
+   - AC-3: `--parity-run` without `--dump-layers` refused on DeepSeek and Qwen packs; with `--dump-layers` accepted.
+   - AC-4: dump size `1,187,840` B; `compare_layers.py --slots 28 --shape-only` PASS with N=28.
+   - AC-5b teacher-forced: the command in `commands.log` requires temporarily defining `STRATA_DEEPSEEK_DIAG`; expected `RESULT: PASS`, stage 1/2 max `1.569942e-04` at `(layer=4, pos=3)`.
+   - AC-5b free-running informational: normal build; expected first cell above bound `(layer=19, pos=1)`.
+   - AC-6: two normal dumps byte-identical.
+   - AC-7: `model_family_test` and `gguf_geometry_test` both exit 0; Qwen regression token IDs match HO-007.
+   - AC-8: device memory 23.124 GiB used / 45.970 GiB total; dequant spot-check max abs diff 0.0.
+   - AC-9: geometry assertions all `ok`.
+   - AC-10: `0003-s4b-moe.patch` applies cleanly on `baf16363 + 0001 + 0002`.
+4. Confirm the normal binary rejects `--parity-teacher-force` (`artifacts/diag_unreachable.log`).
+5. Check the diff is in scope (no `src/core/**`, shared kernels, `src/qwen35/**`, tokenizer, support-surface or `--families` changes).
