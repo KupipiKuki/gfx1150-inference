@@ -162,3 +162,69 @@ No Blocker or Major findings.
 ## 6. Statement
 
 I did not modify code, tests, docs, evidence, handoffs, or configuration. This report (`workflow/reports/qaqc/HO-STRATA-015-qaqc.md`) is the only artifact I wrote.
+
+---
+
+## 7. Delta re-check (RW-1)
+
+| Field | Value |
+|---|---|
+| **Rework handoff** | `workflow/handoffs/RW-HO-STRATA-015-1.md` (evidence-only rework: self-contained teacher gate, regenerated transcript) |
+| **Reviewer** | QAQC (`opencode-go/gemini-4-argon`, DEC-039) |
+| **Date (UTC)** | 2026-11-26 |
+| **Delta range reviewed** | Workflow `wp/strata-015-deepseek-s4b`: `9c87e80..f80d775` (coder RW-1 tip `f80d775`, plus architect mirror/closure commit `aa2bd52`); Strata `strata-015-deepseek-s4b`: unchanged @ `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4` |
+| **Delta verdict** | **PASS** (overall handoff verdict remains **PASS**) |
+
+### 7.1 Diff scope verification (`9c87e80..f80d775` and `f80d775..aa2bd52`)
+
+- **Command:**
+  ```bash
+  git log --oneline 9c87e80..HEAD
+  git diff 9c87e80..f80d775 --stat
+  git diff 9fb3866..f80d775 --stat
+  git diff f80d775..aa2bd52 --stat
+  git -C /home/kupipi/Documents/git/strata rev-parse HEAD
+  git -C /home/kupipi/Documents/git/strata status --porcelain
+  ```
+- **Observed:**
+  - Between `9c87e80` (coder evidence tip at first QAQC review) and `f80d775` (coder RW-1 evidence tip), the only commits are:
+    1. Architect status/erratum/rework-issue commits `dfe1533` (`workflow/STATUS.md`) and `9fb3866` (`workflow/DECISIONS.md` DEC-046 erratum for F2, `workflow/handoffs/RW-HO-STRATA-015-1.md`, and committing `workflow/reports/qaqc/HO-STRATA-015-qaqc.md`);
+    2. Coder RW-1 commits `25046b1` and `f80d775` (`9fb3866..f80d775`), which touched **only**:
+       - `workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py` (new, 141 lines, sha256 `831f56b8ace2cc89ce126a04b185302498b80b3e88931e2ebb2421fec20f481d`),
+       - `workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_inputs.bin` (new, 917,504 B, sha256 `d386c2d4344c9181297898e933128fab66d7e3b0046ce0a0b17f84551bda4b52`),
+       - `workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_kv.bin` (new, 1,835,008 B, sha256 `62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543`),
+       - `workflow/evidence/HO-STRATA-015/artifacts/rw1-regenerate.txt` (new, 9 lines, sha256 `260943ebf877ad540e0086dc29bbf21dc76407dc031ea427eddc81296a5c2786`),
+       - `workflow/evidence/HO-STRATA-015/test-output.txt` (regenerated post-`ac5.log` correction, +259/−2 lines, sha256 `44a421dea9c5d83c055f333b8b8228a34d5b2a7d3f956eb79e943273727f3408`),
+       - `workflow/evidence/HO-STRATA-015/commands.log`, `manifest.md`, `hashes-notes.txt`, `hashes.txt`, and the 5-line RW-1 log entry in `workflow/handoffs/HO-STRATA-015.md` §11.
+    3. Architect commit `aa2bd52` (`f80d775..aa2bd52`) updated only `workflow/handoffs/HO-STRATA-015.md` (`CODER_TO_QAQC` and §17, +44 lines) and touched zero files under `workflow/evidence/HO-STRATA-015/`.
+  - **Guard-rail check on diff:** Zero changes in Strata (`HEAD` remains `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4`, working tree clean). Zero changes to `src/**`, the gate value (`1.569942e-04`), the `5e-3` bound, the exact-f32 reference (`a4c56b9d…`), the 4-token prompt (`549,6077,280,7239`), `teacher_outputs.bin` (`e0b6aa0206…`), `s4b-free-normal.bin` (`4214269e…`), `ac5.log` (`94e52860…`), or `ac5b_free.log` (`fba216bf…`).
+
+### 7.2 Scoped confirmation checks (1–6)
+
+| # | Check | Command run by QAQC | Observed result | Pass? |
+|---|---|---|---|---|
+| **1** | Gate is unchanged (112 cells, max `1.569942e-04` at `(4,3)`, `RESULT: PASS`) | `python3 workflow/evidence/HO-STRATA-015/scripts/compare_layers.py --oracle workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin --teacher-outputs workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_outputs.bin > /tmp/opencode/qaqc_rw1_ac5.log && cmp /tmp/opencode/qaqc_rw1_ac5.log workflow/evidence/HO-STRATA-015/artifacts/ac5.log` | Exit `0`; prints `bound = 5.000000e-03  (fixed, not caller-supplied)`, `non-finite values in kept dump: 0`, stage 1 (108 cells) `median rel L2 = 3.052082e-05`, `max rel L2 = 1.569942e-04 at (layer=4, pos=3)`, `stage 1: PASS`; stage 2 (112 cells) `median rel L2 = 3.195283e-05`, **`max rel L2 = 1.569942e-04 at (layer=4, pos=3)`**, `stage 2: PASS`, `RESULT: PASS`. Output is byte-identical (`cmp` exit `0`) to `artifacts/ac5.log` (`94e52860…`). | **PASS** |
+| **2** | Gate is now self-contained: run committed `scripts/gen_teacher_inputs.py` from a clean tree into a fresh temp dir and `cmp` against committed `teacher_inputs.bin` & `teacher_kv.bin` | `git status --porcelain && mkdir -p /tmp/opencode/qaqc-rw1 && python3 workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py --output-dir /tmp/opencode/qaqc-rw1 && sha256sum /tmp/opencode/qaqc-rw1/teacher_inputs.bin /tmp/opencode/qaqc-rw1/teacher_kv.bin && cmp /tmp/opencode/qaqc-rw1/teacher_inputs.bin workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_inputs.bin && cmp /tmp/opencode/qaqc-rw1/teacher_kv.bin workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_kv.bin` | Exit `0` from a clean working tree. The script reads `token_embd.weight` from `/tmp/opencode/deepseek-moe-16b-f32.gguf` (via tracked `strata/tools/gguf_reader.py`), reads layers 1–27 from committed `HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin`, invokes `/tmp/opencode/oracle_nodes --model /tmp/opencode/deepseek-moe-16b-f32.gguf --tokens 549,6077,280,7239 --n 0 --dump-node Kcur-0..27,Vcur-0..27`, and writes:<br>• `/tmp/opencode/qaqc-rw1/teacher_inputs.bin` (917,504 B, sha256 `d386c2d4344c9181297898e933128fab66d7e3b0046ce0a0b17f84551bda4b52`) — `cmp` vs committed `artifacts/runs/teacher_inputs.bin` exits `0`.<br>• `/tmp/opencode/qaqc-rw1/teacher_kv.bin` (1,835,008 B, sha256 `62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543`) — `cmp` vs committed `artifacts/runs/teacher_kv.bin` exits `0`.<br>No external `/tmp/*.py` script or untracked input file is needed beyond the f32 pack and `oracle_nodes`. | **PASS** |
+| **3** | `artifacts/rw1-regenerate.txt` is consistent with QAQC's regeneration | Inspect `workflow/evidence/HO-STRATA-015/artifacts/rw1-regenerate.txt` (`260943eb…`) against Check 2 output | `artifacts/rw1-regenerate.txt` records the exact command `python3 workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py --output-dir /tmp/opencode/rw1`, the identical SHA-256 digests (`d386c2d4344c9181297898e933128fab66d7e3b0046ce0a0b17f84551bda4b52` and `62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543`), and `teacher_inputs cmp exit=0` / `teacher_kv cmp exit=0`, matching QAQC's independent run in Check 2. | **PASS** |
+| **4** | `test-output.txt` postdates the corrected `ac5.log` (DEC-041 §2), matches current artifacts, and is raw | Python verification script reconstructing `test-output.txt` from the 14 section headers and the 14 committed files in `workflow/evidence/HO-STRATA-015/artifacts/` (`ac1.log`..`ac10.log`, `ac5-stale-attempt.log`, `ac5b_free.log`, `verdict-consistency.txt`, `rw1-regenerate.txt`) | **Exact 100% byte-for-byte match (`43,105` B / 861 lines, `reconstructed == transcript: True`)**. In particular, lines 62–295 (`=== AC-5b teacher-forced gate ===`) now contain the clean 233-line `artifacts/ac5.log` (`94e52860…`), lines 297–559 isolate the preserved diagnostic history under `=== AC-5b stale attempt (preserved) ===`, lines 561–679 contain `artifacts/ac5b_free.log`, lines 840–850 contain `artifacts/verdict-consistency.txt`, and lines 852–861 contain `artifacts/rw1-regenerate.txt`. All outputs are raw. | **PASS** |
+| **5** | `check_bundle.py --strict` → PASS (49 checks, 0 warnings); `hashes.txt` verifies from fresh `git archive`; all `B6-pins` rows resolve incl. new script pin; verdict-consistency check passes and is non-vacuous | `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-015 --strict`; `git archive f80d775 \| tar -x -C /tmp/opencode/qaqc-rw1/archive-f80d775 && (cd /tmp/opencode/qaqc-rw1/archive-f80d775 && sha256sum -c workflow/evidence/HO-STRATA-015/hashes.txt)` (and same for `HEAD` @ `aa2bd52`); non-vacuous Python verdict check across all 16 artifact/transcript files | • `check_bundle.py --strict`: exit `0`, **`RESULT: PASS (49 checks, 0 warnings)`**.<br>• Fresh `git archive` `sha256sum -c` (at both `f80d775` and `aa2bd52`): **30/30 OK** (exit `0`).<br>• All **10 `B6-pins` rows** pass, including the new pin `25046b1688fdc5efca309b65e74c8c005e0a1309:workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py` → `831f56b8ace2cc89ce126a04b185302498b80b3e88931e2ebb2421fec20f481d`.<br>• Verdict consistency is non-vacuous: `artifacts/ac4.log`, `artifacts/ac5.log`, `artifacts/ac7.log`, `artifacts/verdict-consistency.txt`, `artifacts/rw1-regenerate.txt`, and `test-output.txt` (at line 295 under `=== AC-5b teacher-forced gate ===`) all contain their exact expected `PASS` / `exit=0` verdicts. | **PASS** |
+| **6** | Disposition of findings F3(ii), F1, and F3(i) | Review RW-1 closure against §4 findings | • **F3(ii): CLOSED on the merits.** `scripts/gen_teacher_inputs.py`, `artifacts/runs/teacher_inputs.bin` (`d386c2d4…`), `artifacts/runs/teacher_kv.bin` (`62ca264d…`), and `artifacts/rw1-regenerate.txt` (`260943eb…`) are committed, hashed, pinned, and verified from a clean tree.<br>• **F1: Primary transcript finding CLOSED on the merits; minor manifest prose notes CARRIED to HO-STRATA-016 (no rework).** `test-output.txt` (`44a421de…`) now postdates `ac5.log` (DEC-041 §2) and matches all 14 artifact files byte-for-byte. The two `(computed after commit)` placeholders in `manifest.md:71-72` (whose authoritative SHA-256s `e14271eb…` and `becd025c…` are in `hashes.txt` and `hashes-notes.txt`) and the `test-output.txt tail` phrasing in `manifest.md:26` are harmless prose notes to carry as bundle hygiene into S5 (`HO-STRATA-016`).<br>• **F3(i): CARRIED (no rework).** The `≤ 1e-6` input assertion in `src/deepseek/ds_engine.cu:779-788` is proven active and non-vacuous across all 108 MoE cells (`l = 1..27`) by QAQC's `+2e-6` fail / `+5e-7` pass perturbation probes; for `l == 0`, `teacher_inputs.bin` is constructed directly from `token_embd.weight` (`scripts/gen_teacher_inputs.py:55-71`, verified by QAQC to match device embeddings with `max abs diff = 0.0`), and block 0 was already proved free-running in S4a (`9.757537e-05`). Because S5 (`HO-STRATA-016`) gates end-to-end free-running token parity and KL divergence without teacher forcing, reworking the diagnostic `#ifdef STRATA_DEEPSEEK_DIAG` block is unnecessary. | **PASS** |
+
+### 7.3 Coverage statement
+
+**QAQC's original PASS now covers the final post-RW-1 evidence bundle and workflow branch state (`wp/strata-015-deepseek-s4b` @ `f80d775`, with handoff mirror `aa2bd52`, and Strata `strata-015-deepseek-s4b` @ `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4`).**
+
+### 7.4 Updated `QAQC_TO_AUDITOR` (post-RW-1, embedded per DEC-018)
+
+| Field | Value |
+|---|---|
+| **ID** | HO-STRATA-015-QAQC (post-`RW-HO-STRATA-015-1` delta re-check, embedded in `workflow/reports/qaqc/HO-STRATA-015-qaqc.md` §7) |
+| **Type** | QAQC_TO_AUDITOR |
+| **State** | AUDIT_REVIEW |
+| **Date (UTC)** | 2026-11-26 |
+| **From → To** | QAQC (`opencode-go/gemini-4-argon`, DEC-039) → Auditor (`opencode-go/deepseek-v4.1-flash`, WAIVER-001) |
+| **Handoff** | `workflow/handoffs/HO-STRATA-015.md` + `workflow/handoffs/RW-HO-STRATA-015-1.md` (with `workflow/handoffs/DR-HO-STRATA-015-1.md`, DEC-043, DEC-044, DEC-046 + F2 erratum) |
+| **Branch / commits** | Workflow: `wp/strata-015-deepseek-s4b` @ `f80d775` (coder RW-1 bundle tip `f80d775355a93bf2ebbfddca1c4959c1d30fb6b9`, architect handoff mirror `aa2bd520e374832b7137e40e5c8241d46e8f1745`, base `b791242e0330b2ae5c560c5e937f51e0372e7014`); Strata: `strata-015-deepseek-s4b` @ `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4` (unchanged; base `db087d5117abd6596fe0609605344bc4cc0ad318`, pin `baf16363b4403ef0ed4f538f5d5ed11c43fb9535`) |
+| **QAQC report** | `workflow/reports/qaqc/HO-STRATA-015-qaqc.md` (§§1–6 initial review + §7 RW-1 delta re-check) |
+| **Evidence bundle** | `workflow/evidence/HO-STRATA-015/` (`check_bundle.py --strict` → `RESULT: PASS (49 checks, 0 warnings)`, including all 10 `B6-pins` rows; `sha256sum -c hashes.txt` → 30/30 OK from working tree and fresh `git archive` at `f80d775`) |
+| **Summary** | Verified that `9c87e80..f80d775` (and `f80d775..aa2bd52`) changed only the RW-1 evidence/handoff files and zero Strata/code/gate/bound/reference/prompt artifacts. Re-ran the gate comparison (`112` cells, max `1.569942e-04` at `(layer=4, pos=3)`, `RESULT: PASS`, byte-identical to `artifacts/ac5.log`), executed the committed `scripts/gen_teacher_inputs.py` from a clean tree into a fresh temp directory and verified `cmp` exit `0` against committed `artifacts/runs/teacher_inputs.bin` (`d386c2d4…`) and `artifacts/runs/teacher_kv.bin` (`62ca264d…`), verified `artifacts/rw1-regenerate.txt`, confirmed `test-output.txt` (`44a421de…`) is an exact 100% raw concatenation of the 14 current artifact files postdating `ac5.log`, and verified `check_bundle.py --strict` (`49 checks, 0 warnings`) and fresh `git archive` hash verification (`30/30 OK`). Findings **F3(ii)** and **F1** (transcript provenance) are **CLOSED** on the merits; **F2** is closed by the architect's DEC-046 erratum (`9fb3866`); **F3(i)** and the minor manifest prose notes in **F1** are **CARRIED** without rework. Overall verdict: **PASS**. |
