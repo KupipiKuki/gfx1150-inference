@@ -1,7 +1,6 @@
-2e0170d6f580f43f6fb0488a6ad7a54a4bc52a1798fd7c0e84f1b6c6dba0bb72  workflow/evidence/HO-STRATA-015/hashes-notes.txt
+ceb64ee45964caddf14a2b79001df579db0a07a3f1c685c83fbd1eda5b1b983d  workflow/evidence/HO-STRATA-015/hashes-notes.txt
 03d526fc386191e06bc79d2a8abc95b92e64acda3d57373646ce257765cbc0da  workflow/evidence/HO-STRATA-015/test-output.txt
 f4e7c9e7c77f85bfb4f1630ceff134c35c7eaa62c71888006b09f6611db4e096  workflow/evidence/HO-STRATA-015/commands.log
-174f59a8d2d195f674ce750a9525cfec6c541c8f6a188b749982b84b97c1c482  workflow/evidence/HO-STRATA-015/hashes.txt
 becd025c780c36bae16fbcdcd839daed9738a99662dd5277bd913d1e9a361e46  workflow/evidence/HO-STRATA-015/scripts/compare_layers.py
 fba216bf0d2462800ab96e6c11bc8c7ef27eaecaf7b987e3c3c4fcd2e66169a7  workflow/evidence/HO-STRATA-015/artifacts/ac5b_free.log
 60593cb9ef164a1b2a3225bdfcc55cc4615c5b7dddbfda1835696aa2dd15ccb5  workflow/evidence/HO-STRATA-015/artifacts/ac9.log
