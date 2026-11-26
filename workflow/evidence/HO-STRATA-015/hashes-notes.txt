@@ -22,3 +22,11 @@ See `hashes.txt` for SHA-256 sums of files not tracked as source (engine dumps, 
 
 - The diagnostic teacher-forcing CLI mode is intentionally unreachable in the committed Strata tree (`STRATA_DEEPSEEK_DIAG` is not defined). It was rebuilt temporarily only to generate `artifacts/runs/teacher_outputs.bin`.
 - The signed `build-hip/strata` (hash `d58ee239…`) was never modified; it is the regression baseline for HO-007.
+
+## External / immutable artifact hashes (not repo-relative)
+
+| Artifact | Path | SHA256 |
+|---|---|---|
+| DeepSeek-MoE-16B Q4_K_M pack | `/home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf` | f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5 |
+| Exact-f32 oracle | `/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin` | a4c56b9d9189468aeaf1b89637ed4f14f9107b5aaaf75cd4b0e324b6d1c3fc49 |
+| f32 pack | `/tmp/opencode/deepseek-moe-16b-f32.gguf` | 8cd778a7fd6a077fe2d64aa7a7d47fe628c044f9e6439e53a258fd4d9e591f27 |
