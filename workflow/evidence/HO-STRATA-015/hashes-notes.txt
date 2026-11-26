@@ -18,7 +18,7 @@ See `hashes.txt` for SHA-256 sums of files not tracked as source (engine dumps, 
 | `src/deepseek/ds_kernels.cu` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_kernels.cu \| sha256sum` | c4339e6a86769e5e029d2615cb7fd328667df710224dedaf72d6863a51e145c9 |
 | `src/deepseek/ds_kernels.cuh` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_kernels.cuh \| sha256sum` | 8b95307fb32ed92be3cc1a74ade966a1dd86317fbbc82c3c08f105b8f3534be6 |
 | `workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py` | gfx1150-inference | 25046b1688fdc5efca309b65e74c8c005e0a1309 | `git show 25046b1688fdc5efca309b65e74c8c005e0a1309:workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py \| sha256sum` | 831f56b8ace2cc89ce126a04b185302498b80b3e88931e2ebb2421fec20f481d |
-| `workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py` | gfx1150-inference | 4eb2badec2cf61ac7e3b0cf5df88decb7f0f4b72 | `git show 4eb2badec2cf61ac7e3b0cf5df88decb7f0f4b72:workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py \| sha256sum` | c5ee4ae33af29b5227c16731d30b543bdd2d08fa3c464de1b0042edd63615c78 |
+| `workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py` | gfx1150-inference | 4eb2bad1aee7bf0d81201ba9e3c0f65d708d2ed8 | `git show 4eb2bad1aee7bf0d81201ba9e3c0f65d708d2ed8:workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py \| sha256sum` | c5ee4ae33af29b5227c16731d30b543bdd2d08fa3c464de1b0042edd63615c78 |
 
 ## Notes
 
