@@ -365,3 +365,201 @@ no prompt, no positions, no cell counts, no DEC-046 record.
 
 I did not modify code, tests, docs, or configuration. This report
 (`workflow/reports/audit/HO-STRATA-015-audit.md`) is the only artifact I wrote.
+
+---
+
+## § Delta (RW-2) — scoped re-check
+
+> This section is the current disposition. The original verdict in §10 is
+> preserved below as the record of the first audit; it is not rewritten.
+
+| Field | Value |
+|---|---|
+| **Delta range** | `workflow/evidence/HO-STRATA-015/**` + record files, `f80d775..667af61` (`4eb2bad`, `62fc571`, `667af61`; the record-only commits `aa2bd52`, `65f8ef4`, `eadddc2` are inside the range) |
+| **Reviewed commit** | `wp/strata-015-deepseek-s4b` @ `667af619ea0d14616462af761290cf189eb8abc3` |
+| **Strata** | unchanged @ `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4`; working tree clean; `build-hip/strata` = `d58ee239…` |
+| **Original verdict** | unchanged: the gate and the DEC-046 justification PASS (see §§3–4). |
+| **Delta verdict** | **REWORK — A9 is closed for the prose, but not for the recomputation evidence (A17).** The new artifact's pre-router "drift" is the wrong quantity by ~900×, and two derived claims are hardcoded rather than computed. The gate itself still reproduces. |
+
+### Delta.1 Scope — confirmed, with the record files itemised
+
+```bash
+git diff --stat f80d775..667af61
+git diff --name-status f80d775..667af61
+git -C /home/kupipi/Documents/git/strata status --porcelain   # empty
+git -C /home/kupipi/Documents/git/strata rev-parse HEAD       # e2e7e1b34…
+sha256sum build-hip/strata                                    # d58ee239…
+```
+
+The evidence side is exactly the six expected edits plus the two new files:
+`artifacts/llama-ref-moe.md`, `manifest.md`, `commands.log`,
+`hashes.txt`, `hashes-notes.txt`, `test-output.txt`,
+`artifacts/router-margin-19-1.txt` (new), `scripts/compute_router_margin.py`
+(new). The range also contains record-only files that the rework process
+necessarily touches: `workflow/STATUS.md`, `workflow/handoffs/DR-HO-STRATA-015-1.md`
+(the erratum's §2 correction), `workflow/handoffs/HO-STRATA-015.md` (§11 log +
+the QAQC-mirror §14/§17 added at `aa2bd52`), `workflow/handoffs/RW-HO-STRATA-015-2.md`,
+`workflow/reports/qaqc/HO-STRATA-015-qaqc.md` (§7 RW-1, pre-existing in the range),
+and this audit report (written by me, committed in `4eb2bad`; its content is
+byte-identical to my `43bef0d4…` file — no alteration). **No `src/**`, no Strata
+change, no change to the gate value, the 5e-3 bound, the reference, the prompt,
+the positions or the cell counts.** The gate artifacts are byte-identical to the
+audited set: `ac5.log` `94e52860…`, `teacher_outputs.bin` `e0b6aa02…`,
+`s4b-free-normal.bin` `4214269e…`, `teacher_inputs.bin` `d386c2d4…`,
+`teacher_kv.bin` `62ca264d…`, `compare_layers.py` `becd025c…`. **Scope confirmed.**
+
+One process note (non-blocking, observation): the coder's `4eb2bad` commit swept
+in the auditor's untracked report (`workflow/reports/audit/HO-STRATA-015-audit.md`).
+The content is unchanged, but auditor-owned files should be committed by the
+auditor/architect, not inside a coder rework commit.
+
+### Delta.2 A9 — the prose is fixed correctly; the evidence is not
+
+**Prose: CLOSED on the merits.** `artifacts/llama-ref-moe.md:69-70` now reads
+"Exact-f32 6th-vs-7th probability margin: **3.36e-6**" / "Exact-f32
+corresponding logit margin: **7.95e-5**"; the Q4_K figures are gone from the
+bundle file. `manifest.md:78` now says "router near-tie on the exact-f32
+trajectory (6th/7th probability margin 3.36e-6, logit margin 7.95e-5)" and adds
+the gap-shift and arithmetic-noise statements. `DR-HO-STRATA-015-1.md` §2 keeps
+the Q4_K figure but explicitly marks it *"wrong trajectory — corrected by
+DEC-046's erratum to 3.36e-6 / 7.95e-5 on the exact-f32 reference, which the gate
+uses"*, and the handoff §11 says the same. That satisfies the requirement "the
+Q4_K figure is gone or explicitly marked as the shipped pack's".
+
+**Artifact: NOT closed (A17).** The new
+`artifacts/router-margin-19-1.txt` is a genuine script output (I reproduced it
+byte-for-byte, `cmp` = 0), and its margin is exactly right:
+
+- oracle `6th-7th margin: prob=3.357388e-06 logit=7.948442e-05` — matches my
+  independent `3.357e-6 / 7.948e-5` to all printed digits;
+- the three top-6 sets are shown and correct (`[25,2,3,22,5,40]` oracle and
+  teacher, `[25,2,3,22,5,33]` free);
+- teacher `1.740000e-06 / 4.100000e-05` and free `2.560000e-06 / 6.000000e-05`
+  are parsed from the 6-digit log text (limited precision, acceptable).
+
+But the **drift line is wrong**:
+
+```text
+Pre-router residual drift (oracle ffn_inp-19 vs engine free-running slot 19):
+  rel L2 = 6.427215e-02
+  max abs diff = 8.231678e-01
+```
+
+That pair is `oracle ffn_inp-19` against the free dump's **slot 19**, which is
+`l_out-18` (the dump stores slot `l+1` = output after block `l`; see
+`compare_layers.py:127`). `ffn_inp-19 = l_out-18 + attn_out-19`, so the artifact
+is measuring the **attention branch's own contribution**, not drift. I
+reproduced its exact pair (`6.427215e-02 / 8.231678e-01`) and the true drift:
+
+| Vector pair at `(19,1)` | rel L2 | max abs |
+|---|---|---|
+| oracle `ffn_inp-19` vs free **slot 19 = `l_out-18`** (what the artifact prints) | **6.427215e-02** | 8.231678e-01 |
+| oracle `ffn_inp-19` vs engine **`ffn_inp-19`** (the drift) | **7.123124e-05** | 5.702972e-04 |
+| oracle `l_out-18` vs free `l_out-18` (the inherited drift reaching block 19) | 6.834e-05 | — |
+
+The artifact's figure is **~902× too large** and contradicts the committed
+free-running profile (`ac5b_free.log:76` gives layer 18 pos 1 = `6.834360e-05`)
+and DEC-046's erratum (`7.12e-5` of inherited drift). A reader would conclude the
+engine was 6.4% wrong *before* the router — the opposite of the near-tie story.
+
+Two derived claims are also **not computed by the script**:
+`artifacts/router-margin-19-1.txt:34-36` prints "the inherited drift-driven logit
+shift (~1.385e-4)" as a hardcoded sentence, and `manifest.md:78`'s "moves expert
+40's logit by 3.84e-5" appears nowhere in the artifact. Those are my measured
+values (33 `+5.246e-5`, 40 `−8.599e-5` → gap change `+1.385e-4`; engine-vs-oracle
+at identical input `3.841e-5`, max `4.250e-5`), and they are correct — but the
+artifact is supposed to derive them, not assert them.
+
+**Reproducibility.** The command printed in the artifact
+(`--free-diag-log /tmp/opencode/rw2_free_diag.log`) reproduces the file
+byte-for-byte *on this machine*, because that log exists here. From a clean
+bundle it fails:
+
+```bash
+python3 …/compute_router_margin.py --free-diag-log /tmp/opencode/does-not-exist.log
+# FileNotFoundError: [Errno 2] No such file or directory: …
+```
+
+and without `--free-diag-log` it runs but omits the entire free-running block
+and the drift line, so it does not produce the committed artifact. The free DIAG
+log (3 KB) or the engine's `ffn_inp-19` dump (8 KB) must be committed, or the
+script must default to a committed path. This extends A16 and is part of A17.
+
+### Delta.3 Gate and bundle — unchanged and green
+
+| Check | Command | Observed | Verdict |
+|---|---|---|---|
+| Teacher gate | `compare_layers.py --oracle …/deepseek_f32_p1_4_layers.bin --teacher-outputs …/teacher_outputs.bin` | stage 1 108 cells, stage 2 112, **max `1.569942e-04 at (4,3)`**, `RESULT: PASS` | **PASS** |
+| Free-running informational | same with `--dump …/s4b-free-normal.bin --slots 28` | first cell above bound `(19,1)`, `RESULT: FAIL` | **reported** |
+| Gate artifacts | `sha256sum` | all six unchanged (see Delta.1) | **PASS** |
+| Bundle gate | `check_bundle.py … --strict` | **`RESULT: PASS (52 checks, 0 warnings)`** | **PASS** |
+| Pins | `check_bundle` B6 rows | **11** rows, all `PASS`, including `compute_router_margin.py` pinned at `4eb2bad` → `c5ee4ae3…` | **PASS** |
+| Hashes | `git archive HEAD` + `sha256sum -c hashes.txt` | **32/32 OK** | **PASS** |
+| Verdict consistency | `artifacts/verdict-consistency.txt` | still checks only `ac4`, `ac5`, `ac7`, `test-output`; still passes; still effectively vacuous for the transcript | **passes; A12 unchanged** |
+| Transcript | `test-output.txt` | rebuilt at `4eb2bad`, contains the new artifact once (lines 681–717); artifacts' bytes appear raw | **postdates the capture** |
+
+### Delta.4 Carried findings A10–A16 — status and blocking assessment
+
+RW-2 did not change A10, A11, A12, A14 or A15; it partially improved A13 (the DR
+§2 and handoff §11 margin text) and extended A16 (the new script's `/tmp`
+inputs). None of the carries is independently blocking now; A15 binds S5, and
+A16's reproducibility half is blocking only through A17.
+
+| # | Status after RW-2 | Blocking now? |
+|---|---|---|
+| **A10** manifest environment row ("Linux 6.x / Python 3.12") | unchanged; still wrong vs `7.0.0-42-generic` / `3.14.10`, still no GCC/HIP | **No** — Minor, carry to S5 |
+| **A11** AC-8 "device/host peak" wording | unchanged | **No** — substance met (GTT = host on this APU) |
+| **A12** verdict-consistency coverage/command | unchanged (4/12, no recorded command) | **No** — I re-checked all 12 independently; fix in S5 |
+| **A13** stale labels | partially improved (DR §2 and handoff §11 corrected); still: `manifest.md:73-74` `(computed after commit)`, `manifest.md:26` "test-output.txt tail", DoD "9 pin rows" vs 11, `STATUS.md` still `AUDIT_REVIEW` @ `f80d775` with no RW-2 | **No** — bookkeeping; fix at signoff/S5 |
+| **A14** injection assertion lives in the engine, not `compare_layers.py` as DEC-046 condition 2 literally says; `l=0` is the identity | unchanged; still non-vacuous for `l≥1` (my `+2e-6` probe fails) | **No** — record the literal deviation in DECISIONS; S5 can assert block 0 |
+| **A15** teacher forcing is blind to cross-position state, drift amplification, positions >3, sub-node cancellation | unchanged; the compensations remain prospective | **No for S4; binding on S5** — HO-STRATA-016 must be a blocking gate (3 prompts × 16 greedy tokens vs Q4_K, zero mismatches, KL), and no support/perf claim may precede it |
+| **A16** generator/script portability | **extended**: `compute_router_margin.py` also needs `/tmp/opencode/oracle_nodes`, the Strata `tools/gguf_reader.py`, and an uncommitted `/tmp` free-DIAG log | **Its reproducibility half is blocking via A17**; the dependency itself is Minor |
+
+### Delta.5 Findings — delta
+
+| # | Severity | Finding | Required action |
+|---|---|---|---|
+| **A17** | **Major (delta-blocking)** | `artifacts/router-margin-19-1.txt:30-32` (and `test-output.txt:711-713`) report the "pre-router residual drift" as `rel L2 = 6.427215e-02`, `max abs = 8.231678e-01`. That is `oracle ffn_inp-19` vs the free dump's **slot 19 = `l_out-18`** — the attention branch, not drift. The true drift is **`7.123e-05` rel L2, `5.703e-04` max abs** (~902× smaller); the inherited drift reaching block 19 is `6.834e-05`, matching `ac5b_free.log:76`. The artifact's derived claims `+1.385e-4` and `3.84e-5` are hardcoded strings, not computed, and the manifest cites `3.84e-5` which is absent from the artifact. The command also requires an uncommitted `/tmp/opencode/rw2_free_diag.log` (fails from a clean bundle) and without it drops the free block/drift entirely. A9's prose is correct; its evidence is not. | **RW-HO-STRATA-015-3** (below), evidence-only. |
+
+**RW-HO-STRATA-015-3 — precise scope (A17 only).**
+
+1. In `scripts/compute_router_margin.py`, take the engine's `ffn_inp-19` from the
+   diagnostic build's dump (`diag_ffn_inp_19_1.bin`, 8,192 B, written by
+   `run_block` for `(19,1)`) or from a committed free-DIAG log; **do not**
+   substitute the dump's slot 19 (`l_out-18`). Commit the small input
+   (`artifacts/runs/free_ffn_inp_19_1.bin` or the ~3 KB DIAG log) and default the
+   script to it, so the command runs from a clean bundle.
+2. Compute and print, in the artifact: true drift `rel L2 = 7.123e-05` (oracle
+   denominator) / `max abs = 5.703e-04`; the 33↔40 logit-gap change between the
+   oracle and free `ffn_inp` (`+1.385e-4`; 33 `+5.246e-5`, 40 `−8.599e-5`); and
+   the engine-vs-oracle logit delta at identical input (`3.841e-5` at expert 40,
+   max `4.250e-5`) from the committed teacher log. Remove or derive the
+   hardcoded interpretation.
+3. Regenerate `artifacts/router-margin-19-1.txt`; rebuild `test-output.txt`
+   **after** the final capture (DEC-041 §2); update `hashes.txt` /
+   `hashes-notes.txt` (pin the new script commit); `check_bundle --strict` PASS
+   (52+ checks); 32+/32 hashes from a fresh archive.
+4. **Do not change**: the gate, the 5e-3 bound, the reference, the prompt, the
+   positions, the cell counts, the already-correct `3.36e-6 / 7.95e-5` prose, or
+   any code. Return to the auditor for a delta re-check.
+
+**Delta verdict: REWORK.** Everything else in the delta is clean — scope, gate
+reproduction, 52-check bundle, 11 pins, 32/32 hashes, and the corrected prose —
+but A17 is the one failing item, and it is the item the rework existed to fix.
+
+### AUDITOR_TO_ARCHITECT (updated, post-RW-2)
+
+| Field | Value |
+|---|---|
+| **ID** | HO-STRATA-015-AUDIT-DELTA (embedded in `workflow/reports/audit/HO-STRATA-015-audit.md`, "Delta (RW-2)") |
+| **Type** | AUDITOR_TO_ARCHITECT |
+| **State** | **REWORK** (evidence-only, A17) — the gate and DEC-046 justification remain PASS |
+| **Date (UTC)** | 2026-11-26 |
+| **From → To** | Auditor (`opencode-go/deepseek-v4.1-flash`, WAIVER-001) → Architect (`opencode-go/deepseek-v4-pro#max`) |
+| **Final commit reviewed** | `wp/strata-015-deepseek-s4b` @ `667af619ea0d14616462af761290cf189eb8abc3`; Strata unchanged @ `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4`; `build-hip/strata` `d58ee239…` |
+| **Evidence** | `workflow/evidence/HO-STRATA-015/` (`check_bundle --strict` **PASS 52 checks**, 11 `B6-pins`, 32/32 hashes from a fresh archive) |
+| **Gate (reproduced)** | 112 cells, max `1.569942e-04 at (4,3)`, `RESULT: PASS`; free-running `(19,1) = 2.668110e-02` informational |
+| **A9 disposition** | **Prose: CLOSED** (exact-f32 `3.36e-6 / 7.95e-5` in `llama-ref-moe.md` and `manifest.md`; Q4_K figure gone/marked). **Evidence: NOT CLOSED (A17)** — the recomputation artifact's drift is `6.427215e-02` (the `l_out-18` attention branch) instead of `7.123e-05`; the `1.385e-4` / `3.84e-5` claims are hardcoded, and the command needs an uncommitted `/tmp` log. |
+| **Required next step** | Issue **RW-HO-STRATA-015-3** exactly as scoped in Delta.5 to `coder-primary`; return to the auditor. Do not sign or merge before it closes. No code, gate, bound, reference, prompt, positions or cell-count changes. |
+| **Carries binding HO-STRATA-016 (S5)** | **A15 (hard gate):** S5 must be a blocking end-to-end gate — 3 prompts × 16 greedy tokens vs the Q4_K oracle, zero mismatches, KL ≤ 1.5× floor — before any support claim; teacher forcing does not cover cross-position state. **A14:** record that the ≤1e-6 injection assertion lives in the engine (DEC-046 condition 2 says `compare_layers.py`) and assert block-0 inputs against `token_embd` in S5. **A10/A11/A12/A13:** correct the environment row, the AC-8 host/GTT wording, the verdict-consistency script/coverage, and the stale labels (`STATUS.md` @ `f80d775`, manifest placeholders, pin count). **A16:** the new `compute_router_margin.py` must default to committed inputs, not `/tmp`. |
+| **Auditor statement** | I did not modify code, tests, docs, handoffs, or configuration beyond appending this delta section to my own report. |
