@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Compare a DeepSeek parity engine dump against the HO-014 exact-f32 oracle.
 
-Engine dump layout: [position][slot][hidden] f32, slot 0 = input residual,
-slot l+1 = after block l.  Oracle dump layout: [position][block][hidden] f32,
-blocks 0..27.  The caller names the number of layers with --slots; this script
-asserts slots == 28 and rejects any dump whose geometry disagrees.
+Two modes:
+* Free-running: --dump is an engine dump with layout [position][slot][hidden],
+  slot 0 = input residual, slot l+1 = after block l.  --slots must be 28.
+* Teacher-forced: --teacher-outputs is a [layer][position][hidden] f32 dump of
+  single-block runs starting from the reference residual/KV.  This is the gate.
+
+Oracle layout in both modes: [position][block][hidden], blocks 0..27.
+The bound is fixed at 5e-3 and is printed on every run.
 """
 
 import argparse
@@ -29,20 +33,59 @@ def load(path, what):
     return floats, n
 
 
+def rel_l2(a, b):
+    num2 = sum((x - y) ** 2 for x, y in zip(a, b))
+    den2 = sum(y ** 2 for y in b)
+    return math.sqrt(num2 / den2) if den2 > 0 else (math.sqrt(num2) if num2 > 0 else 0.0)
+
+
+def compare_cells(dump_cells, oracle_arr):
+    """dump_cells[(l,p)] -> vector; oracle_arr[p] is a flat [layer*hidden] array."""
+    errors = []
+    for (l, p) in sorted(dump_cells):
+        e = dump_cells[(l, p)]
+        o = oracle_arr[p][l * HIDDEN:(l + 1) * HIDDEN]
+        rel = rel_l2(e, o)
+        errors.append(((l, p), rel))
+        print(f"  cell (layer={l}, pos={p}): rel L2 = {rel:.6e}")
+    vals = [e for _, e in errors]
+    max_err = max(vals)
+    worst = max(errors, key=lambda x: x[1])[0]
+    median = sorted(vals)[len(vals) // 2] if len(vals) % 2 else (
+        sorted(vals)[len(vals) // 2 - 1] + sorted(vals)[len(vals) // 2]) / 2
+    first_bad = next((cell for cell, e in errors if e > BOUND), None)
+    return errors, max_err, worst, median, first_bad
+
+
+def stage_report(name, layers, dump_cells, oracle_arr):
+    print(f"{name}: layers {layers[0]}-{layers[-1]} ({len(layers) * 4} cells)")
+    _, max_err, worst, median, first_bad = compare_cells(
+        {(l, p): dump_cells[(l, p)] for l in layers for p in range(4)}, oracle_arr)
+    print(f"{name} median rel L2 = {median:.6e}")
+    print(f"{name} max rel L2    = {max_err:.6e} at (layer={worst[0]}, pos={worst[1]})")
+    if first_bad:
+        print(f"{name} first cell above bound {BOUND}: (layer={first_bad[0]}, pos={first_bad[1]})")
+        return False
+    print(f"{name}: PASS")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description="Compare parity engine dump to exact-f32 oracle")
     parser.add_argument("--oracle", required=True, help="oracle .bin file")
-    parser.add_argument("--dump", required=True, help="engine .bin dump")
-    parser.add_argument("--slots", type=int, required=True, help="number of layers computed (input + N layers total)")
+    parser.add_argument("--dump", help="free-running engine .bin dump")
+    parser.add_argument("--slots", type=int, help="number of layers computed (input + N layers total)")
+    parser.add_argument("--teacher-outputs", help="teacher-forced outputs .bin file [layer][pos][hidden]")
     parser.add_argument("--shape-only", action="store_true", help="only check size and finiteness")
     parser.add_argument("--floor", action="store_true", help="report max without gating (informative Q4_K floor)")
     args = parser.parse_args()
 
     print(f"bound = {BOUND:.6e}  (fixed, not caller-supplied)")
 
-    if args.slots != ORACLE_BLOCKS:
-        raise ValueError(f"--slots must be {ORACLE_BLOCKS} layers, got {args.slots}")
-    slots_per_record = ORACLE_BLOCKS + 1
+    if not args.dump and not args.teacher_outputs:
+        raise ValueError("need either --dump (free-running) or --teacher-outputs (teacher-forced)")
+    if args.dump and args.teacher_outputs:
+        raise ValueError("--dump and --teacher-outputs are mutually exclusive")
 
     oracle, oracle_n = load(args.oracle, "oracle")
     if oracle_n != 4 * ORACLE_BLOCKS * HIDDEN:
@@ -50,31 +93,46 @@ def main():
     oracle_arr = [oracle[i * ORACLE_BLOCKS * HIDDEN:(i + 1) * ORACLE_BLOCKS * HIDDEN]
                   for i in range(4)]
 
-    dump, dump_n = load(args.dump, "engine dump")
-    if dump_n % HIDDEN != 0:
-        raise ValueError(f"dump: {dump_n} floats is not a multiple of hidden={HIDDEN}")
-    R = dump_n // HIDDEN
-    if R % slots_per_record != 0:
-        raise ValueError(f"dump: {R} slots total is not divisible by {slots_per_record} (input + {ORACLE_BLOCKS} layers)")
-    records = R // slots_per_record
-    if records < 4:
-        raise ValueError(f"dump: expected at least 4 records, got {records}")
+    dump_cells = {}  # (layer, pos) -> vector
 
-    print(f"engine dump: {records} records, {slots_per_record} slots/record, N={ORACLE_BLOCKS} blocks computed")
+    if args.teacher_outputs:
+        data, data_n = load(args.teacher_outputs, "teacher outputs")
+        want = ORACLE_BLOCKS * 4 * HIDDEN
+        if data_n != want:
+            raise ValueError(f"teacher outputs: expected {want} floats, got {data_n}")
+        for l in range(ORACLE_BLOCKS):
+            for p in range(4):
+                dump_cells[(l, p)] = data[((l * 4) + p) * HIDDEN:((l * 4) + p + 1) * HIDDEN]
+        print(f"teacher outputs: {ORACLE_BLOCKS} layers x 4 positions x {HIDDEN}")
+    else:
+        if args.slots is None:
+            raise ValueError("--slots is required with --dump")
+        if args.slots != ORACLE_BLOCKS:
+            raise ValueError(f"--slots must be {ORACLE_BLOCKS} layers, got {args.slots}")
+        slots_per_record = ORACLE_BLOCKS + 1
+
+        dump, dump_n = load(args.dump, "engine dump")
+        if dump_n % HIDDEN != 0:
+            raise ValueError(f"dump: {dump_n} floats is not a multiple of hidden={HIDDEN}")
+        R = dump_n // HIDDEN
+        if R % slots_per_record != 0:
+            raise ValueError(f"dump: {R} slots total is not divisible by {slots_per_record}")
+        records = R // slots_per_record
+        if records < 4:
+            raise ValueError(f"dump: expected at least 4 records, got {records}")
+        print(f"engine dump: {records} records, {slots_per_record} slots/record, N={ORACLE_BLOCKS} blocks computed")
+        for p in range(4):
+            base = p * slots_per_record * HIDDEN
+            for l in range(ORACLE_BLOCKS):
+                dump_cells[(l, p)] = dump[base + (l + 1) * HIDDEN:base + (l + 2) * HIDDEN]
+
     print(f"oracle: 4 records, {ORACLE_BLOCKS} blocks")
 
-    dump_arr = []
-    for r in range(4):
-        base = r * slots_per_record * HIDDEN
-        record = [dump[base + s * HIDDEN:base + (s + 1) * HIDDEN] for s in range(slots_per_record)]
-        dump_arr.append(record)
-
     bad = 0
-    for r in dump_arr:
-        for s in r:
-            for v in s:
-                if not math.isfinite(v):
-                    bad += 1
+    for v in dump_cells.values():
+        for x in v:
+            if not math.isfinite(x):
+                bad += 1
     print(f"non-finite values in kept dump: {bad}")
     if bad:
         print("RESULT: FAIL")
@@ -84,52 +142,24 @@ def main():
         print("RESULT: PASS (shape only)")
         return 0
 
-    def compare_cells(layers):
-        errors = []
-        for p in range(4):
-            for l in layers:
-                e = dump_arr[p][l + 1]
-                o = oracle_arr[p][l * HIDDEN:(l + 1) * HIDDEN]
-                num2 = sum((a - b) ** 2 for a, b in zip(e, o))
-                den2 = sum(b ** 2 for b in o)
-                rel = math.sqrt(num2 / den2) if den2 > 0 else (math.sqrt(num2) if num2 > 0 else 0.0)
-                errors.append(((l, p), rel))
-                print(f"  cell (layer={l}, pos={p}): rel L2 = {rel:.6e}")
-        vals = [e for _, e in errors]
-        max_err = max(vals)
-        worst = max(errors, key=lambda x: x[1])[0]
-        median = sorted(vals)[len(vals) // 2] if len(vals) % 2 else (sorted(vals)[len(vals) // 2 - 1] + sorted(vals)[len(vals) // 2]) / 2
-        first_bad = next((cell for cell, e in errors if e > BOUND), None)
-        return errors, max_err, worst, median, first_bad
-
     if args.floor:
-        _, max_err, worst, median, _ = compare_cells(range(ORACLE_BLOCKS))
+        _, max_err, worst, median, _ = compare_cells(dump_cells, oracle_arr)
         print(f"median rel L2 = {median:.6e}")
         print(f"max rel L2    = {max_err:.6e} at (layer={worst[0]}, pos={worst[1]})")
         print("RESULT: FLOOR (not gated)")
         return 0
 
     # Stage 1: layers 1..27 (108 cells)
-    print("stage 1: layers 1-27 (108 cells)")
-    _, max1, worst1, median1, first_bad1 = compare_cells(range(1, ORACLE_BLOCKS))
-    print(f"stage 1 median rel L2 = {median1:.6e}")
-    print(f"stage 1 max rel L2    = {max1:.6e} at (layer={worst1[0]}, pos={worst1[1]})")
-    if first_bad1:
-        print(f"stage 1 first cell above bound {BOUND}: (layer={first_bad1[0]}, pos={first_bad1[1]})")
+    ok1 = stage_report("stage 1", list(range(1, ORACLE_BLOCKS)), dump_cells, oracle_arr)
+    if not ok1:
         print("RESULT: FAIL")
         return 1
-    print("stage 1: PASS")
 
     # Stage 2: layers 0..27 (112 cells)
-    print("stage 2: layers 0-27 (112 cells)")
-    _, max2, worst2, median2, first_bad2 = compare_cells(range(ORACLE_BLOCKS))
-    print(f"stage 2 median rel L2 = {median2:.6e}")
-    print(f"stage 2 max rel L2    = {max2:.6e} at (layer={worst2[0]}, pos={worst2[1]})")
-    if first_bad2:
-        print(f"stage 2 first cell above bound {BOUND}: (layer={first_bad2[0]}, pos={first_bad2[1]})")
+    ok2 = stage_report("stage 2", list(range(ORACLE_BLOCKS)), dump_cells, oracle_arr)
+    if not ok2:
         print("RESULT: FAIL")
         return 1
-    print("stage 2: PASS")
 
     print("RESULT: PASS")
     return 0

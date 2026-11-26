@@ -1,0 +1,19 @@
+=== AC-1: build, binary hash, oracle hash ===
+[ 20%] Built target strata_quant
+[ 16%] Built target strata_core
+[ 16%] Built target strata_spec
+[ 16%] Built target ggml-base
+[ 25%] Built target strata_pf_own
+[ 45%] Built target ggml-cpu
+[ 66%] Built target strata_kernels
+[ 70%] Built target strata_deepseek
+[ 83%] Built target strata_kernels_cpu
+[ 95%] Built target strata_engine
+[100%] Built target strata_prefill
+[100%] Built target strata_qwen35
+[100%] Built target strata
+Built target model_family_test
+Built target gguf_geometry_test
+build exit=0
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+a4c56b9d9189468aeaf1b89637ed4f14f9107b5aaaf75cd4b0e324b6d1c3fc49  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
