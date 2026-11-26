@@ -1,0 +1,24 @@
+# HO-STRATA-015 — hashes notes
+
+## Immutable artifacts
+
+See `hashes.txt` for SHA-256 sums of files not tracked as source (engine dumps, model packs, oracle, log artifacts).
+
+## Commit pins
+
+| File | Repository | Commit | Command | Digest |
+|---|---|---|---|---|
+| `workflow/evidence/HO-STRATA-015/scripts/compare_layers.py` | gfx1150-inference | 3cb90f8a9967c930e8de6c4d3a92d8cd0ffaaad3 | `git show 3cb90f8a9967c930e8de6c4d3a92d8cd0ffaaad3:workflow/evidence/HO-STRATA-015/scripts/compare_layers.py \| sha256sum` | becd025c780c36bae16fbcdcd839daed9738a99662dd5277bd913d1e9a361e46 |
+| `workflow/evidence/HO-STRATA-015/patches/0003-s4b-moe.patch` | gfx1150-inference | 3cb90f8a9967c930e8de6c4d3a92d8cd0ffaaad3 | `git show 3cb90f8a9967c930e8de6c4d3a92d8cd0ffaaad3:workflow/evidence/HO-STRATA-015/patches/0003-s4b-moe.patch \| sha256sum` | e14271eb7574d5c1b48213fecc1c14174312b9d63ea8c6d4676cf30386676f30 |
+| `workflow/evidence/HO-STRATA-015/artifacts/llama-ref-moe.md` | gfx1150-inference | 3cb90f8a9967c930e8de6c4d3a92d8cd0ffaaad3 | `git show 3cb90f8a9967c930e8de6c4d3a92d8cd0ffaaad3:workflow/evidence/HO-STRATA-015/artifacts/llama-ref-moe.md \| sha256sum` | 218a828915bfa3642fb7264fd829a7f694e2a506ca2e916450e674f5dd3a3a2c |
+| `src/deepseek/ds_engine.cu` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_engine.cu \| sha256sum` | d91015906b05056f8505bd2698355c85ff890440fd074810c63cf9a167885c8c |
+| `src/deepseek/ds_f32_matvec.cu` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_f32_matvec.cu \| sha256sum` | 23cfdcd6b380de8280af2757dbdb089120517d37373ae487be2939090c8169e0 |
+| `src/program/generate.cpp` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/program/generate.cpp \| sha256sum` | f13a2707d9599ec3bcc652ad14da90ad144d186b1f38c049341cce6681a67ace |
+| `tests/core/model_family_test.cpp` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:tests/core/model_family_test.cpp \| sha256sum` | 9596b88dfcfcd4b0e52bc57594c07dd02cff3043e890b55bf28d64b509865d51 |
+| `src/deepseek/ds_kernels.cu` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_kernels.cu \| sha256sum` | c4339e6a86769e5e029d2615cb7fd328667df710224dedaf72d6863a51e145c9 |
+| `src/deepseek/ds_kernels.cuh` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_kernels.cuh \| sha256sum` | 8b95307fb32ed92be3cc1a74ade966a1dd86317fbbc82c3c08f105b8f3534be6 |
+
+## Notes
+
+- The diagnostic teacher-forcing CLI mode is intentionally unreachable in the committed Strata tree (`STRATA_DEEPSEEK_DIAG` is not defined). It was rebuilt temporarily only to generate `artifacts/runs/teacher_outputs.bin`.
+- The signed `build-hip/strata` (hash `d58ee239…`) was never modified; it is the regression baseline for HO-007.
