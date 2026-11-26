@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
 """Recompute the router near-tie at DeepSeek layer 19 position 1 on the exact-f32 trajectory.
 
-Usage (from repo root):
+Usage (from repo root, no arguments required):
 
-    python3 workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py \
-      [--free-diag-log /tmp/opencode/rw2_free_diag.log]
+    python3 workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py
 
 The script:
   1. Calls oracle_nodes on the f32 pack to dump the ffn_inp-19 node.
   2. Reads blk.19.ffn_norm.weight and blk.19.ffn_gate_inp.weight from the f32 pack.
   3. Applies RMSNorm and computes the 64 router logits / probabilities.
   4. Reports top-7 probabilities, the exact-f32 top-6, and the 6th/7th margin.
-  5. Parses the committed teacher_run.log for the teacher-forced engine margin.
-  6. If --free-diag-log is given, parses the free-running DIAG capture.
+  5. Reads the committed engine ffn_inp-19 dump and computes the pre-router drift
+     against the oracle ffn_inp-19 (same node on both sides).
+  6. Parses the committed teacher_run.log for the teacher-forced engine margin
+     (identical input, different f32 arithmetic).
+  7. Parses the committed free DIAG log for the free-running engine top-6.
+  8. Derives and prints:
+     - the 33<->40 logit-gap shift caused by the drift;
+     - the engine's expert-40 logit movement at identical input, plus the max
+       over all 64 experts.
 
-The expected exact-f32 oracle margin is ~3.36e-6 probability / ~7.95e-5 logit.
+Expected exact-f32 oracle margin: ~3.36e-6 prob / ~7.95e-5 logit.
+Expected drift: ~7.123e-05 rel L2 (max abs ~5.703e-04).
+Expected drift-driven gap shift: ~+1.385e-4 (~1.74x the margin).
+Expected engine arithmetic movement of expert 40 at identical input: ~3.84e-5
+(max over 64 experts ~4.25e-5).
 """
 
 import argparse
@@ -40,10 +50,12 @@ def parse_args():
     parser.add_argument("--oracle-nodes", default="/tmp/opencode/oracle_nodes")
     parser.add_argument("--ld-library-path", default="/tmp/opencode/llama-ref/build/bin")
     parser.add_argument("--strata-tools", default="/home/kupipi/Documents/git/strata/tools")
+    parser.add_argument("--engine-ffn-inp",
+                        default="workflow/evidence/HO-STRATA-015/artifacts/runs/engine-ffn_inp-19.bin")
     parser.add_argument("--teacher-run-log",
                         default="workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_run.log")
-    parser.add_argument("--free-diag-log", default="",
-                        help="optional DIAG capture from a temporary diagnostic build free run")
+    parser.add_argument("--free-diag-log",
+                        default="workflow/evidence/HO-STRATA-015/artifacts/runs/engine-free-diag-19-1.log")
     return parser.parse_args()
 
 
@@ -120,6 +132,7 @@ def compute_margin(name, vec, norm_w, gate_w):
         "margin_logit": margin_logit,
         "p33": probs[33],
         "p40": probs[40],
+        "logits": logits,
     }
 
 
@@ -143,6 +156,7 @@ def parse_diag_log(path):
         "margin_logit": logits[idx[5]] - logits[idx[6]],
         "p33": probs[33],
         "p40": probs[40],
+        "logits": logits,
     }
 
 
@@ -159,51 +173,74 @@ def print_block(r):
 def main():
     args = parse_args()
 
-    ffn_inp = run_oracle_nodes(args.f32_pack, args.oracle_nodes, args.ld_library_path)
+    ffn_inp_oracle = run_oracle_nodes(args.f32_pack, args.oracle_nodes, args.ld_library_path)
     norm_w, gate_w = read_f32_pack_weights(args.f32_pack, args.strata_tools, LAYER)
 
     print("Router near-tie recomputation at (layer=19, pos=1)")
     print("=" * 60)
     print(f"Command: python3 {' '.join(sys.argv)}")
-    print(f"ffn_inp-19 node dumped from f32 pack: {args.f32_pack}")
+    print(f"oracle ffn_inp-19 node dumped from f32 pack: {args.f32_pack}")
+    print(f"engine ffn_inp-19 dump: {args.engine_ffn_inp}")
     print()
 
-    oracle = compute_margin("exact-f32 oracle", ffn_inp, norm_w, gate_w)
+    oracle = compute_margin("exact-f32 oracle", ffn_inp_oracle, norm_w, gate_w)
     print_block(oracle)
     print()
 
+    # Engine ffn_inp-19 drift (same node both sides)
+    if os.path.exists(args.engine_ffn_inp):
+        with open(args.engine_ffn_inp, "rb") as f:
+            data = struct.unpack(f"<{os.path.getsize(args.engine_ffn_inp)//4}f", f.read())
+        ffn_inp_engine = list(data[:H])
+
+        rel2 = math.sqrt(
+            sum((a - b) ** 2 for a, b in zip(ffn_inp_oracle, ffn_inp_engine))
+            / sum(a * a for a in ffn_inp_oracle)
+        )
+        maxd = max(abs(a - b) for a, b in zip(ffn_inp_oracle, ffn_inp_engine))
+        print("Pre-router residual drift (oracle ffn_inp-19 vs engine ffn_inp-19):")
+        print(f"  rel L2 = {rel2:.6e}")
+        print(f"  max abs diff = {maxd:.6e}")
+        print()
+
+        # Drift-driven 33<->40 gap shift using oracle math on both inputs.
+        drifted = compute_margin("drifted input (oracle math)", ffn_inp_engine, norm_w, gate_w)
+        gap_oracle = oracle["logits"][40] - oracle["logits"][33]
+        gap_drifted = drifted["logits"][40] - drifted["logits"][33]
+        gap_shift = gap_drifted - gap_oracle
+        print("Drift-driven 33<->40 logit-gap shift:")
+        print(f"  oracle gap       = {gap_oracle:.6e}")
+        print(f"  drifted gap      = {gap_drifted:.6e}")
+        print(f"  shift            = {gap_shift:.6e}")
+        print(f"  |shift| / margin = {abs(gap_shift) / oracle['margin_logit']:.2f}x")
+        print()
+
+    # Teacher-forced engine: same input as oracle, engine's own f32 arithmetic.
     teacher = parse_diag_log(args.teacher_run_log)
     if teacher:
         teacher["name"] = "teacher-forced engine (same input, from teacher_run.log DIAG)"
         print_block(teacher)
         print()
 
-    if args.free_diag_log:
+        # Engine's arithmetic movement at identical input.
+        diff = [abs(oracle["logits"][e] - teacher["logits"][e]) for e in range(NE)]
+        expert40_movement = diff[40]
+        max_movement = max(diff)
+        max_expert = int(max(range(NE), key=lambda e: diff[e]))
+        print("Engine f32 arithmetic movement at identical input:")
+        print(f"  expert 40 |logit_oracle - logit_engine| = {expert40_movement:.6e}")
+        print(f"  max over 64 experts = {max_movement:.6e} (expert {max_expert})")
+        print()
+
+    if os.path.exists(args.free_diag_log):
         free = parse_diag_log(args.free_diag_log)
         if free:
             free["name"] = "free-running engine (from temporary diagnostic build DIAG)"
             print_block(free)
             print()
 
-    # Drift: free-running ffn_inp vs exact-f32 ffn_inp
-    if args.free_diag_log:
-        # Need the engine's ffn_inp-19; recover from the diagnostic dump if available.
-        # The script does not currently keep that dump, so report the residual drift
-        # from the committed free-running dump instead.
-        dump_path = "workflow/evidence/HO-STRATA-015/artifacts/runs/s4b-free-normal.bin"
-        LAYERS = 28
-        slots = LAYERS + 1
-        eng = struct.unpack(f"<{os.path.getsize(dump_path)//4}f", open(dump_path, "rb").read())
-        eng_in = list(eng[(POS * slots + LAYER) * H:(POS * slots + LAYER + 1) * H])
-        rel2 = math.sqrt(sum((a - b) ** 2 for a, b in zip(ffn_inp, eng_in)) / sum(b * b for b in eng_in))
-        maxd = max(abs(a - b) for a, b in zip(ffn_inp, eng_in))
-        print(f"Pre-router residual drift (oracle ffn_inp-19 vs engine free-running slot {LAYER}):")
-        print(f"  rel L2 = {rel2:.6e}")
-        print(f"  max abs diff = {maxd:.6e}")
-        print()
-
     print("Interpretation: the exact-f32 6th/7th margin (~3.36e-6 prob / ~7.95e-5 logit)")
-    print("is tighter than the inherited drift-driven logit shift (~1.385e-4), so the")
+    print("is tighter than the drift-driven logit shift (~1.385e-4), so the")
     print("expert swap at (19,1) is a predicted near-tie, not an engine defect.")
 
 

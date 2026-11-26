@@ -1,7 +1,8 @@
 Router near-tie recomputation at (layer=19, pos=1)
 ============================================================
-Command: python3 workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py --free-diag-log /tmp/opencode/rw2_free_diag.log
-ffn_inp-19 node dumped from f32 pack: /tmp/opencode/deepseek-moe-16b-f32.gguf
+Command: python3 workflow/evidence/HO-STRATA-015/scripts/compute_router_margin.py
+oracle ffn_inp-19 node dumped from f32 pack: /tmp/opencode/deepseek-moe-16b-f32.gguf
+engine ffn_inp-19 dump: workflow/evidence/HO-STRATA-015/artifacts/runs/engine-ffn_inp-19.bin
 
 --- exact-f32 oracle ---
 top-7 ids:        [25, 2, 3, 22, 5, 40, 33]
@@ -11,6 +12,16 @@ top-6 ids:        [25, 2, 3, 22, 5, 40]
 p(33) / p(40):    4.223790e-02 / 4.224125e-02
 6th-7th margin:   prob=3.357388e-06  logit=7.948442e-05
 
+Pre-router residual drift (oracle ffn_inp-19 vs engine ffn_inp-19):
+  rel L2 = 7.123124e-05
+  max abs diff = 5.702972e-04
+
+Drift-driven 33<->40 logit-gap shift:
+  oracle gap       = 7.948442e-05
+  drifted gap      = -5.896758e-05
+  shift            = -1.384520e-04
+  |shift| / margin = 1.74x
+
 --- teacher-forced engine (same input, from teacher_run.log DIAG) ---
 top-7 ids:        [25, 2, 3, 22, 5, 40, 33]
 top-7 probs:      ['2.055152e-01', '6.913307e-02', '5.507197e-02', '5.200288e-02', '4.518496e-02', '4.223974e-02', '4.223800e-02']
@@ -18,6 +29,10 @@ top-7 logits:     ['2.847048e+00', '1.757561e+00', '1.530169e+00', '1.472827e+00
 top-6 ids:        [25, 2, 3, 22, 5, 40]
 p(33) / p(40):    4.223800e-02 / 4.223974e-02
 6th-7th margin:   prob=1.740000e-06  logit=4.100000e-05
+
+Engine f32 arithmetic movement at identical input:
+  expert 40 |logit_oracle - logit_engine| = 3.840991e-05
+  max over 64 experts = 4.249582e-05 (expert 57)
 
 --- free-running engine (from temporary diagnostic build DIAG) ---
 top-7 ids:        [25, 2, 3, 22, 5, 33, 40]
@@ -27,10 +42,6 @@ top-6 ids:        [25, 2, 3, 22, 5, 33]
 p(33) / p(40):    4.224070e-02 / 4.223814e-02
 6th-7th margin:   prob=2.560000e-06  logit=6.000000e-05
 
-Pre-router residual drift (oracle ffn_inp-19 vs engine free-running slot 19):
-  rel L2 = 6.427215e-02
-  max abs diff = 8.231678e-01
-
 Interpretation: the exact-f32 6th/7th margin (~3.36e-6 prob / ~7.95e-5 logit)
-is tighter than the inherited drift-driven logit shift (~1.385e-4), so the
+is tighter than the drift-driven logit shift (~1.385e-4), so the
 expert swap at (19,1) is a predicted near-tie, not an engine defect.

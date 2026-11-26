@@ -52,13 +52,15 @@ See `commands.log` for the full verbatim list. Key commands:
 | f32 pack (external) | `/tmp/opencode/deepseek-moe-16b-f32.gguf` | `8cd778a7fd6a077fe2d64aa7a7d47fe628c044f9e6439e53a258fd4d9e591f27` |
 | Exact-f32 oracle (gate) | `workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin` | `a4c56b9d9189468aeaf1b89637ed4f14f9107b5aaaf75cd4b0e324b6d1c3fc49` |
 | Free-running engine dump | `artifacts/runs/s4b-free-normal.bin` | `4214269ecbbfd116c11ad4738f57cd9a04c27ef39b51c210ecb605398b097739` |
+| Engine ffn_inp-19 dump | `artifacts/runs/engine-ffn_inp-19.bin` | `9d50d2b28366369eceaa6f1eb8bbca2012a1bc04bb1d97cf3105af1a98aa9030` |
+| Free-running DIAG log | `artifacts/runs/engine-free-diag-19-1.log` | `166ffc56dc71f56bbc7cfb11813ea0c700c15f63e804aa6c650010a427c3e93a` |
 | Teacher-forced outputs | `artifacts/runs/teacher_outputs.bin` | `e0b6aa02061ad14ef854ff12988cf3571464de76e117493fca607ff020d79394` |
 | Teacher-forced input residuals | `artifacts/runs/teacher_inputs.bin` | `d386c2d4344c9181297898e933128fab66d7e3b0046ce0a0b17f84551bda4b52` |
 | Teacher-forced K/V history | `artifacts/runs/teacher_kv.bin` | `62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543` |
 | Teacher input generator | `scripts/gen_teacher_inputs.py` | `831f56b8ace2cc89ce126a04b185302498b80b3e88931e2ebb2421fec20f481d` |
 | RW-1 regenerate proof | `artifacts/rw1-regenerate.txt` | `260943ebf877ad540e0086dc29bbf21dc76407dc031ea427eddc81296a5c2786` |
-| Router margin recomputation script | `scripts/compute_router_margin.py` | `c5ee4ae33af29b5227c16731d30b543bdd2d08fa3c464de1b0042edd63615c78` |
-| Router margin recomputation (layer 19, pos 1) | `artifacts/router-margin-19-1.txt` | `4b160b9ebd6060960699c506fea3842691851b1b24b8dae95e9fdf1899f0cb1b` |
+| Router margin recomputation script | `scripts/compute_router_margin.py` | `e70fa8bbd83697b3b9f1ccbc1caa4ff9231b074f2a4993d3e6a5190524d172dd` |
+| Router margin recomputation (layer 19, pos 1) | `artifacts/router-margin-19-1.txt` | `5b2c0949f9c4bb00fd16a13a50c6da52c618780544bd1877502ca03c47571c2d` |
 | MoE reference notes | `artifacts/llama-ref-moe.md` | `8d577566e0cdc7b0d931d0de131d6cca820ffb7a6d7adcb82d591dd83b60ed46` |
 | Patch apply-check record | `artifacts/apply-check.txt` | `07b81c899d7dfa0bc9c6858d66142ca82762445cae6e1f2541fd1c0f5ff4095d` |
 | AC-5b teacher comparison | `artifacts/ac5.log` | `94e52860bf5fd1d12dcfc51f539d2757b84038c5fb08dc6641589a325583a707` |

@@ -275,6 +275,15 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
   `[25, 2, 3, 22, 5, 40]`). Added `artifacts/router-margin-19-1.txt` and
   `scripts/compute_router_margin.py`. Rebuilt `test-output.txt`; re-ran
   `check_bundle.py --strict` PASS and verdict-consistency PASS.
+- 2026-11-26 Coder-primary: **RW-HO-STRATA-015-3** evidence-only rework. Committed
+  `artifacts/runs/engine-ffn_inp-19.bin` and `artifacts/runs/engine-free-diag-19-1.log`;
+  rewrote `scripts/compute_router_margin.py` to compute drift from the same node
+  on both sides (`7.123124e-05` rel L2, `5.702972e-04` max abs), derive the
+  drift-driven 33↔40 gap shift (`-1.384520e-04`, 1.74× the margin), and derive the
+  engine's expert-40 logit movement at identical input (`3.840991e-05`, max over
+  64 = `4.249582e-05`). Script is runnable with no arguments; `cmp` of bare
+  invocation against committed artifact is byte-identical. Rebuilt `test-output.txt`;
+  re-ran `check_bundle.py --strict` PASS and verdict-consistency PASS.
 
 ## 12. Tolerance (inherited, unchanged — HO-014 §12)
 
