@@ -249,6 +249,14 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
 - 2026-11-25 Coder-primary: accepted; switched Strata checkout to
   `strata-015-deepseek-s4b` @ `db087d511`. Starting with the tool fix and memory
   refactor before adding MoE blocks.
+- 2026-11-25 Coder-primary: AC-5b fails at layer 19, position 1 (rel L2 2.67e-2).
+  Layers 0–18 stay flat at <2.3e-4, then jump at layer 19.  Router diagnostics
+  show the 6th/7th expert margin is 2.80e-4 probability (6.62e-3 logit); the
+  engine selects expert 33 while the f32 oracle selects expert 40.  Teacher-forcing
+  block 19 with the oracle's pre-block residual and KV cache produces output
+  matching the oracle to 2.37e-5.  Verdict: layer 19 is arithmetically correct;
+  the gate failure is inherited drift amplified by a router near-tie, not an
+  implementation bug.  No code change or bound widening pursued.
 
 ## 12. Tolerance (inherited, unchanged — HO-014 §12)
 
