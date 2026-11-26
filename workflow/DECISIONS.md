@@ -1189,3 +1189,21 @@ this file did not happen.
   regression bit-for-bit.
 - **Affected:** HO-STRATA-015 (AC-5b, §5 evidence), DR-HO-STRATA-015-1, DEC-044,
   HO-STRATA-016 (S5), `workflow/STATUS.md`.
+
+### DEC-046 — erratum (2026-11-26, QAQC finding F2)
+
+The router margins quoted above (`2.80e-4` probability, `6.62e-3` logit between
+experts 40 and 33 at layer 19 / position 1) were read from **`ffn_inp-19` of the
+Q4_K_M oracle**, not from the exact-f32 reference this gate uses. On the correct
+trajectory — the exact-f32 dump and the teacher-forced engine — QAQC measured the
+6th/7th margin at **3.36e-6 probability / 7.95e-5 logit** (oracle) and
+**1.74e-6 / 4.10e-5** (engine), against **7.12e-5** of inherited drift entering
+that FFN.
+
+The conclusion is unchanged and **strengthened**: the tie is 80–160× tighter than
+the numbers originally cited, and it is tighter than the drift itself, so the
+expert swap at that cell is expected for any implementation that is not
+bit-identical to the reference. The DEC-046 decision (teacher-forced gate, same
+5e-3, drift reported) stands; only the quoted margin was wrong, and it was wrong
+in the conservative direction. The same correction applies to
+`DR-HO-STRATA-015-1.md` §2, `HO-STRATA-015.md` §11 and the manifest, which cite it.
