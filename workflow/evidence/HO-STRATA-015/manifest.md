@@ -55,8 +55,8 @@ See `commands.log` for the full verbatim list. Key commands:
 | Teacher-forced outputs | `artifacts/runs/teacher_outputs.bin` | `e0b6aa02061ad14ef854ff12988cf3571464de76e117493fca607ff020d79394` |
 | Teacher-forced input residuals | `artifacts/runs/teacher_inputs.bin` | `d386c2d4344c9181297898e933128fab66d7e3b0046ce0a0b17f84551bda4b52` |
 | Teacher-forced K/V history | `artifacts/runs/teacher_kv.bin` | `62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543` |
-| Teacher input generator | `scripts/gen_teacher_inputs.py` | (computed after commit) |
-| RW-1 regenerate proof | `artifacts/rw1-regenerate.txt` | (computed after commit) |
+| Teacher input generator | `scripts/gen_teacher_inputs.py` | `831f56b8ace2cc89ce126a04b185302498b80b3e88931e2ebb2421fec20f481d` |
+| RW-1 regenerate proof | `artifacts/rw1-regenerate.txt` | `260943ebf877ad540e0086dc29bbf21dc76407dc031ea427eddc81296a5c2786` |
 | MoE reference notes | `artifacts/llama-ref-moe.md` | `218a828915bfa3642fb7264fd829a7f694e2a506ca2e916450e674f5dd3a3a2c` |
 | Patch apply-check record | `artifacts/apply-check.txt` | `07b81c899d7dfa0bc9c6858d66142ca82762445cae6e1f2541fd1c0f5ff4095d` |
 | AC-5b teacher comparison | `artifacts/ac5.log` | `94e52860bf5fd1d12dcfc51f539d2757b84038c5fb08dc6641589a325583a707` |
