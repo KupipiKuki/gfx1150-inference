@@ -81,17 +81,16 @@ python3 $COMP --slots 28 --shape-only --oracle $ORACLE --dump /tmp/opencode/ac3-
 The teacher-forced mode is compiled only when `STRATA_DEEPSEEK_DIAG` is defined. For evidence capture it was built and run as follows:
 
 ```bash
-# 1. Define the macro temporarily (not committed)
+# 1. Generate the teacher inputs from the bundle (defaults write to artifacts/runs/)
+python3 workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py
+# 2. Define the macro temporarily (not committed)
 #    edit src/deepseek/ds_engine.cu: add #define STRATA_DEEPSEEK_DIAG before the #ifdef
 cmake --build build-deepseek --target strata -j$(nproc)
-# 2. Generate reference residuals and K/V (already produced for this run)
-python3 /tmp/gen_teacher_inputs.py                  # writes /tmp/opencode/teacher_inputs.bin
-# (K/V assembled from oracle_node_Kcur-/Vcur-*.bin)  # writes /tmp/opencode/teacher_kv.bin
 # 3. Run the gate
 LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata \
   --parity-run --native $PACK \
   --dump-layers /tmp/opencode/teacher_dummy.bin \
-  --parity-teacher-force /tmp/opencode/teacher_inputs.bin,/tmp/opencode/teacher_kv.bin,/tmp/opencode/teacher_outputs.bin,$ORACLE
+  --parity-teacher-force workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_inputs.bin,workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_kv.bin,/tmp/opencode/teacher_outputs.bin,$ORACLE
 # exit 0
 # 4. Compare
 python3 $COMP --oracle $ORACLE --teacher-outputs /tmp/opencode/teacher_outputs.bin
@@ -172,6 +171,18 @@ git apply /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRA
 git apply /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/patches/0002-s4-forward.patch
 git apply --check /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-015/patches/0003-s4b-moe.patch
 # -> ok
+```
+
+## RW-HO-STRATA-015-1 — Regenerate teacher inputs from the bundle
+
+```bash
+python3 workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py --output-dir /tmp/opencode/rw1
+sha256sum /tmp/opencode/rw1/teacher_inputs.bin /tmp/opencode/rw1/teacher_kv.bin
+cmp /tmp/opencode/rw1/teacher_inputs.bin workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_inputs.bin
+cmp /tmp/opencode/rw1/teacher_kv.bin workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_kv.bin
+# both cmp exit 0
+# teacher_inputs.bin = d386c2d4344c9181297898e933128fab66d7e3b0046ce0a0b17f84551bda4b52
+# teacher_kv.bin     = 62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543
 ```
 
 ## AC-11 — Bundle check

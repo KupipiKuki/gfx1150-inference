@@ -53,6 +53,10 @@ See `commands.log` for the full verbatim list. Key commands:
 | Exact-f32 oracle (gate) | `workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin` | `a4c56b9d9189468aeaf1b89637ed4f14f9107b5aaaf75cd4b0e324b6d1c3fc49` |
 | Free-running engine dump | `artifacts/runs/s4b-free-normal.bin` | `4214269ecbbfd116c11ad4738f57cd9a04c27ef39b51c210ecb605398b097739` |
 | Teacher-forced outputs | `artifacts/runs/teacher_outputs.bin` | `e0b6aa02061ad14ef854ff12988cf3571464de76e117493fca607ff020d79394` |
+| Teacher-forced input residuals | `artifacts/runs/teacher_inputs.bin` | `d386c2d4344c9181297898e933128fab66d7e3b0046ce0a0b17f84551bda4b52` |
+| Teacher-forced K/V history | `artifacts/runs/teacher_kv.bin` | `62ca264d1a6907c8656f22efee78b010bd8a107d69aed074994942ee9261b543` |
+| Teacher input generator | `scripts/gen_teacher_inputs.py` | (computed after commit) |
+| RW-1 regenerate proof | `artifacts/rw1-regenerate.txt` | (computed after commit) |
 | MoE reference notes | `artifacts/llama-ref-moe.md` | `218a828915bfa3642fb7264fd829a7f694e2a506ca2e916450e674f5dd3a3a2c` |
 | Patch apply-check record | `artifacts/apply-check.txt` | `07b81c899d7dfa0bc9c6858d66142ca82762445cae6e1f2541fd1c0f5ff4095d` |
 | AC-5b teacher comparison | `artifacts/ac5.log` | `94e52860bf5fd1d12dcfc51f539d2757b84038c5fb08dc6641589a325583a707` |
@@ -92,3 +96,33 @@ The DeepSeek parity engine lives in the `strata_deepseek` CMake target and the n
 - Strata final state: `e2e7e1b34…` on branch `strata-015-deepseek-s4b`.
 - Workflow bundle: commit recorded in `hashes-notes.txt` `## Commit pins` table.
 - Base commits: Strata `baf16363…` (main), `db087d511…` (S4a).
+
+## 9. AC-5b self-contained reproduction
+
+All inputs needed for the teacher-forced gate are now inside the bundle:
+
+1. Generate `teacher_inputs.bin` and `teacher_kv.bin` (defaults write to
+   `artifacts/runs/`):
+   ```bash
+   python3 workflow/evidence/HO-STRATA-015/scripts/gen_teacher_inputs.py
+   ```
+2. Build the diagnostic Strata binary (add `#define STRATA_DEEPSEEK_DIAG` in
+   `src/deepseek/ds_engine.cu`, then `cmake --build build-deepseek --target strata`).
+3. Run the gate:
+   ```bash
+   LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata \
+     --parity-run --native $PACK \
+     --dump-layers /tmp/opencode/teacher_dummy.bin \
+     --parity-teacher-force workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_inputs.bin,workflow/evidence/HO-STRATA-015/artifacts/runs/teacher_kv.bin,/tmp/opencode/teacher_outputs.bin,$ORACLE
+   ```
+4. Compare:
+   ```bash
+   python3 workflow/evidence/HO-STRATA-015/scripts/compare_layers.py \
+     --oracle $ORACLE --teacher-outputs /tmp/opencode/teacher_outputs.bin
+   ```
+
+Expected: stage 1 and stage 2 max rel L2 `1.569942e-04` at `(layer=4, pos=3)`,
+all 112 cells ≤ 5e-3, `RESULT: PASS`.
+
+The RW-1 proof (`artifacts/rw1-regenerate.txt`) shows the committed script
+reproduces the committed `teacher_inputs.bin` and `teacher_kv.bin` byte-for-byte.

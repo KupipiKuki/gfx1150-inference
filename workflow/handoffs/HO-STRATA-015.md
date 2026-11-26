@@ -264,6 +264,11 @@ DeepSeek-MoE-16B Q4_K_M / 4-token prompt / greedy.
   5e-3 is layer 19 pos 1. Normal build explicitly rejects `--parity-teacher-force`.
   AC-1…AC-12 complete; `check_bundle.py --strict` PASS (42 checks, 0 warnings);
   `CODER_TO_QAQC` attached.
+- 2026-11-26 Coder-primary: **RW-HO-STRATA-015-1** evidence-only rework. Committed
+  `scripts/gen_teacher_inputs.py`, `artifacts/runs/teacher_inputs.bin` and
+  `artifacts/runs/teacher_kv.bin`; regenerated both from the bundle script and
+  verified byte-identity (`d386c2d4…`, `62ca264d…`). Rebuilt `test-output.txt`
+  after the final capture; re-ran `check_bundle.py --strict` PASS.
 
 ## 12. Tolerance (inherited, unchanged — HO-014 §12)
 
