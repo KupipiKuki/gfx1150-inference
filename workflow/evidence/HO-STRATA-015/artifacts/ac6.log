@@ -1,0 +1,5 @@
+=== AC-6 determinism: two normal dumps ===
+run1 exit=0
+run2 exit=0
+cmp exit=0
+1187840

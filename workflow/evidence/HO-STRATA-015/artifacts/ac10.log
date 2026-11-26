@@ -1,0 +1,32 @@
+Apply-check of 0003-s4b-moe.patch on baf16363 + 0001 + 0002
+Worktree: /tmp/opencode/s4b-apply-check
+0001 apply: ok
+0002 apply: ok
+0003 apply --check: ok
+
+S4b diff since S4a:
+ src/deepseek/ds_engine.cu        | 639 ++++++++++++++++++++++++++++++++-------
+ src/deepseek/ds_f32_matvec.cu    | 179 ++++++++---
+ src/deepseek/ds_f32_matvec.cuh   |  36 ++-
+ src/deepseek/ds_kernels.cu       |  14 +-
+ src/deepseek/ds_kernels.cuh      |   8 +-
+ src/program/generate.cpp         |  31 +-
+ tests/core/model_family_test.cpp |  30 +-
+ 7 files changed, 760 insertions(+), 177 deletions(-)
+
+Cumulative diff since baf16363:
+ cmake/strata_gpu_engine.cmake            |  12 +
+ include/strata/artifact/gguf_reader.hpp  |  18 +
+ include/strata/artifact/model_family.hpp |   9 +-
+ include/strata/core/family_layout.hpp    | 121 ++++-
+ include/strata/core/geometry.hpp         |   6 +
+ include/strata/deepseek/engine.hpp       |  10 +
+ src/deepseek/ds_engine.cu                | 907 +++++++++++++++++++++++++++++++
+ src/deepseek/ds_f32_matvec.cu            | 226 ++++++++
+ src/deepseek/ds_f32_matvec.cuh           |  36 ++
+ src/deepseek/ds_kernels.cu               |  93 ++++
+ src/deepseek/ds_kernels.cuh              |  30 +
+ src/deepseek/ds_main.cpp                 |   4 +
+ src/program/generate.cpp                 |  56 ++
+ tests/core/model_family_test.cpp         | 159 +++++-
+ 14 files changed, 1656 insertions(+), 31 deletions(-)

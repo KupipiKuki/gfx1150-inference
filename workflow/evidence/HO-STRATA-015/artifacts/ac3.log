@@ -1,0 +1,20 @@
+=== AC-3a: --parity-run without --dump-layers on DeepSeek pack ===
+status=2
+strata generate: --parity-run requires --dump-layers PATH
+=== AC-3b: --parity-run without --dump-layers on supported qwen pack ===
+status=2
+strata generate: --parity-run requires --dump-layers PATH
+=== AC-3c: accepted --parity-run with --dump-layers ===
+status=0
+strata generate: parity run: architecture 'deepseek' is not supported; this path exists for HO-STRATA-014/015 parity only
+strata-deepseek: geometry assertions:
+  n_layers: 28 (want 28) ok
+  n_embd: 2048 (want 2048) ok
+  n_head: 16 (want 16) ok
+  n_head_kv: 16 (want 16) ok
+  n_expert: 64 (want 64) ok
+  n_expert_used: 6 (want 6) ok
+  n_expert_shared: 2 (want 2) ok
+  n_ff: 1408 (want 1408) ok
+  n_dense_first_blocks: 1 (want 1) ok
+  rope_freq_base*1e6: 10000000000 (want 10000000000) ok

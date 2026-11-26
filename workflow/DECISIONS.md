@@ -1139,3 +1139,71 @@ this file did not happen.
 - **Affected:** repository settings (visibility, Actions permissions),
   `PHASE7_7F1_RUNNER_RUNBOOK.md` §2 (exit condition discharged, not amended),
   DEC-040 (mechanism unchanged), `workflow/STATUS.md`, PR #28, HO-STRATA-014.
+
+## DEC-046 — Layer parity is teacher-forced; drift-driven routing flips are reported, not gated
+
+- **Date:** 2026-11-25
+- **Context:** HO-STRATA-015's free-running layer gate failed at 2.4e-2 … 6.3e-2,
+  first cell **layer 19, position 1**. The bisection is unambiguous: error is flat
+  at **≤2.3e-4 through layer 18**, jumps 100× at layer 19 *at position 1 only*,
+  and **teacher-forcing block 19 with the reference's own residual and K/V
+  reproduces it to 2.37e-5 with the same top-6**. The router's 6th-vs-7th margin
+  there is **2.80e-4 probability / 6.62e-3 logit**, and the inherited difference
+  at that point is 6.8e-5; the two experts carry near-equal weight (0.0425 vs
+  0.0422) but different outputs, so one swapped expert moves the FFN branch by
+  percent-level and the residual by 2.7e-2.
+- **Finding:** a free-running comparison conflates **layer arithmetic** (what S4
+  must prove) with **accumulated drift crossing a sharp top-k boundary** (a
+  property of any implementation that is not bit-identical to the reference).
+  No bound between 5e-3 and ~1e-1 both admits this flip and still catches a 5%
+  semantic error, so the problem is *what is compared*, not the number.
+- **Options:**
+  - (a) raise the bound to ~1e-1 — destroys the gate's diagnostic power. Rejected.
+  - (b) exclude cells "near a tie" — unpoliceable; near-ties would be claimed
+    wherever convenient. Rejected.
+  - (c) **teacher-force the layer comparison** — approved.
+- **Decision:**
+  1. **AC-5b is teacher-forced**: each cell `(l, p)` starts from the reference's
+     residual at block `l`'s input (and its K/V for positions `< p`), runs block
+     `l` alone, and is compared to the reference's `l_out-l`.
+  2. **The bound (5e-3), the reference, the prompt, the positions and the cell
+     count (108 → 112) are unchanged.**
+  3. **The free-running trajectory is still produced and reported as
+     informational**, with the per-layer table, the first divergent cell, both
+     top-6 sets and the 6th/7th margin at every divergence. Drift is measured and
+     shown, not excluded.
+  4. **S5 (HO-STRATA-016) remains the end-to-end gate** — 3 prompts × 16 greedy
+     tokens against the Q4_K oracle, zero mismatches, plus KL. A drift-driven
+     expert swap is acceptable only if it does not change a token.
+  5. **S4a is unaffected**: block 0's input is the exactly-matching embedding, so
+     teacher-forced and free-running coincide; its signed 9.76e-05 stands.
+  6. The teacher-forced path lives behind `STRATA_DEEPSEEK_DIAG` (unreachable in a
+     normal build), the comparison tool **asserts the injected residual matches the
+     reference slot** (≤1e-6), and any teacher-forced cell above 5e-3 stops the
+     handoff.
+  7. **The auditor reviews this change specifically** — a gate change made after a
+     failed gate must be justified by measurement, not by the wish to pass.
+- **Acknowledged risk:** teacher forcing cannot catch errors that appear only in
+  the engine's own KV/state management. Compensations: the free-running profile is
+  in the evidence, S5's token gate is unchanged, and S6 re-runs the HO-007
+  regression bit-for-bit.
+- **Affected:** HO-STRATA-015 (AC-5b, §5 evidence), DR-HO-STRATA-015-1, DEC-044,
+  HO-STRATA-016 (S5), `workflow/STATUS.md`.
+
+### DEC-046 — erratum (2026-11-26, QAQC finding F2)
+
+The router margins quoted above (`2.80e-4` probability, `6.62e-3` logit between
+experts 40 and 33 at layer 19 / position 1) were read from **`ffn_inp-19` of the
+Q4_K_M oracle**, not from the exact-f32 reference this gate uses. On the correct
+trajectory — the exact-f32 dump and the teacher-forced engine — QAQC measured the
+6th/7th margin at **3.36e-6 probability / 7.95e-5 logit** (oracle) and
+**1.74e-6 / 4.10e-5** (engine), against **7.12e-5** of inherited drift entering
+that FFN.
+
+The conclusion is unchanged and **strengthened**: the tie is 80–160× tighter than
+the numbers originally cited, and it is tighter than the drift itself, so the
+expert swap at that cell is expected for any implementation that is not
+bit-identical to the reference. The DEC-046 decision (teacher-forced gate, same
+5e-3, drift reported) stands; only the quoted margin was wrong, and it was wrong
+in the conservative direction. The same correction applies to
+`DR-HO-STRATA-015-1.md` §2, `HO-STRATA-015.md` §11 and the manifest, which cite it.

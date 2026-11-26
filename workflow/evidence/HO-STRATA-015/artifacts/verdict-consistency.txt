@@ -1,0 +1,10 @@
+Verdict consistency check
+=========================
+Artifacts cited as PASS in manifest.md:
+
+PASS artifacts/ac4.log contains expected verdict
+PASS artifacts/ac5.log contains expected verdict
+PASS artifacts/ac7.log contains expected verdict
+PASS test-output.txt contains expected verdict
+
+RESULT: PASS
