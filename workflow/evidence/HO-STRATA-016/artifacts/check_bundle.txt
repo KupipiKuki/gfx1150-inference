@@ -1,1 +1,74 @@
-placeholder: replaced by the converged check_bundle --strict output (DEC-041 §2 fixed point).
+PASS B1-structure manifest.md exists
+PASS B1-structure hashes.txt exists
+PASS B1-structure commands.log exists
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/ac1-build.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/ac7-nodump.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/check_bundle.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/determinism.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/flip.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/gguf_geometry_test.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/kl_summary.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/margins.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/model_family_test.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/patch-stat.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/qwen_regression.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/engine_p1_nodump_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/engine_p1_run2_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/engine_p1_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/engine_p2_run2_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/engine_p2_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/engine_p3_run2_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/engine_p3_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/f32_p1_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/f32_p2_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/f32_p3_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/kl_p1.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/kl_p2.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/kl_p3.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/q4k_p1_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/q4k_p2_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/runs/q4k_p3_tokens.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/token_parity.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/artifacts/verdict-consistency.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/commands.log
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/hashes-notes.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/manifest.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/patches/0004-s5-tokens.patch
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/patches/apply-check.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/scripts/compute_kl.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/scripts/oracle_s5.cpp
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/scripts/top2_margin.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/scripts/verdict_check.py
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-016/test-output.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/runs/run1.txt
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-010/artifacts/tokenizer_parity_table.md
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-014/scripts/oracle_nodes.cpp
+PASS B2-hash-verify ok: workflow/evidence/HO-STRATA-007/artifacts/generated-token-ids.txt
+PASS B3-hash-coverage all files listed
+PASS B4-tracked all files tracked
+PASS B4-tracked git status clean
+PASS B5-not-ignored no bundle file ignored
+PASS B6-pins pin ok: 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/scripts/oracle_s5.cpp
+PASS B6-pins pin ok: 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/scripts/compute_kl.py
+PASS B6-pins pin ok: 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/scripts/top2_margin.py
+PASS B6-pins pin ok: 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/scripts/verdict_check.py
+PASS B6-pins pin ok: 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/patches/0004-s5-tokens.patch
+PASS B6-pins pin ok: 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/commands.log
+PASS B6-pins pin ok: 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/tools/check_bundle.py
+PASS B6-pins pin ok: 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_engine.cu
+PASS B6-pins pin ok: 59c83e2e8b5b24903dd087924f7bd47dcc297817:CMakeLists.txt
+PASS B6-pins pin ok: 59c83e2e8b5b24903dd087924f7bd47dcc297817:include/strata/artifact/model_family.hpp
+PASS B6-pins pin ok: 59c83e2e8b5b24903dd087924f7bd47dcc297817:src/program/generate.cpp
+PASS B6-pins pin ok: 59c83e2e8b5b24903dd087924f7bd47dcc297817:tests/core/model_family_test.cpp
+PASS B6-pins pin ok: e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_f32_matvec.cu
+PASS B6-pins pin ok: e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_f32_matvec.cuh
+PASS B6-pins pin ok: e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_kernels.cu
+PASS B6-pins pin ok: e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_kernels.cuh
+PASS B6-pins pin ok: 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_f32_matvec.cu
+PASS B6-pins pin ok: 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_f32_matvec.cuh
+PASS B6-pins pin ok: 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_kernels.cu
+PASS B6-pins pin ok: 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_kernels.cuh
+PASS B7-secrets no credential-shaped strings
+PASS B8-read-only git status unchanged
+RESULT: PASS (73 checks, 0 warnings)

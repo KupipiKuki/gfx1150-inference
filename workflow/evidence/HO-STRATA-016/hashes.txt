@@ -1,6 +1,6 @@
 d7a421a7bd75c1438f3810802c3790818b7dd912544dafbb27ad72a68939839b  workflow/evidence/HO-STRATA-016/artifacts/ac1-build.txt
 9b679b71e6052ad484e411dee7cf64933842590e6e1d4f6db84db1789305cba8  workflow/evidence/HO-STRATA-016/artifacts/ac7-nodump.txt
-26f17149f0d7ae9d8a1570900855d785c70a4f4bb1035719b3205aa82bf1da3c  workflow/evidence/HO-STRATA-016/artifacts/check_bundle.txt
+f9e3f940b37394eaa61c08dfaf5fa5d7263da0a1e33a172f672f8e3d0a27fc75  workflow/evidence/HO-STRATA-016/artifacts/check_bundle.txt
 e75b9c1bf502ac45b2d4f38974f3e4b49b2903300d0726de7633f3d71ef2afec  workflow/evidence/HO-STRATA-016/artifacts/determinism.txt
 ef5f4951be42b7fcae7dc3ae9db79d0714d0a8e762abfc94558f251ddb08c22f  workflow/evidence/HO-STRATA-016/artifacts/flip.txt
 6d146c4af94f32cf1576800bd65716ea898eae178c0dbc6469d96b7d5add2d98  workflow/evidence/HO-STRATA-016/artifacts/gguf_geometry_test.txt
