@@ -4,7 +4,7 @@
 |---|---|
 | **ID** | HO-STRATA-016 |
 | **Type** | ARCHITECT_TO_CODER |
-| **State** | **READY** (2026-11-27) — part of the owner-authorised S4/S5 chain (DEC-042 §8) |
+| **State** | **CODER_DONE** (2026-11-27) — implemented on Strata `strata-016-deepseek-s5` @ `3c2f89555`; bundle `workflow/evidence/HO-STRATA-016/`; see §11 and the CODER_TO_QAQC record |
 | **Created / updated (UTC)** | 2026-11-27 / 2026-11-27 |
 | **From → To** | Architect → Primary Coder (`coder-primary`) |
 | **Work package** | `deepseek-s5` |
@@ -195,21 +195,21 @@ DeepSeek-MoE-16B Q4_K_M / greedy / 16 tokens / 3 prompts.
 
 ## 9. Definition of Done
 
-- [ ] AC-1…AC-13 run; raw output in `test-output.txt`
-- [ ] 3 × 16 tokens identical to the Q4_K oracle (or a reported finding, not a pass)
-- [ ] KL within the DEC-047 ceilings, with both context curves reported
-- [ ] The flip verified in **both** directions (with and without the engine)
-- [ ] Qwen regression exact; tests green; signed binary untouched
-- [ ] Patch exported, measured, applies on `0001…0003`
-- [ ] `check_bundle --strict` PASS, verdict-consistency covering every PASS claim
-- [ ] `CODER_DONE`; `CODER_TO_QAQC` record attached
+- [x] AC-1…AC-13 run; raw output in `test-output.txt`
+- [x] 3 × 16 tokens identical to the Q4_K oracle (0/48 mismatches; f32 oracle agrees 3/3)
+- [x] KL within the DEC-047 ceilings, with both context curves reported
+- [x] The flip verified in **both** directions (with and without the engine)
+- [x] Qwen regression exact; tests green; signed binary untouched (`d58ee239…`)
+- [x] Patch exported, measured, applies on `0001…0003`
+- [x] `check_bundle --strict` PASS (73 checks, 0 warnings; fixed point proven), verdict-consistency covering every PASS claim (21/21)
+- [x] `CODER_DONE`; `CODER_TO_QAQC` record attached (§13)
 
 ## 10. Signatures
 
 | Role | Name/agent | Date | Decision |
 |---|---|---|---|
 | Sender (Architect) | `architect` (`opencode-go/deepseek-v4-pro#max`) | 2026-11-27 | **READY** |
-| Receiver (Coder) | `coder-primary` (`opencode-go/kimi-k2.7-code`) | | |
+| Receiver (Coder) | `coder-primary` (`opencode-go/kimi-k2.7-code`) | 2026-11-27 | **CODER_DONE** |
 
 ## 11. Log
 
@@ -218,11 +218,65 @@ DeepSeek-MoE-16B Q4_K_M / greedy / 16 tokens / 3 prompts.
   could not perform, and the flip is verified in both directions (DEC-048). KL is
   an absolute ceiling against the exact model rather than a ratio to a floor that
   cannot exist for two different arithmetics (DEC-047).
+- 2026-11-27 Coder: accepted `READY`; DoR items all present; set `IN_PROGRESS`.
+  Note: `STATUS.md` not updated — §6 guard rails forbid this handoff from editing
+  it; the architect/auditor keep the board.
+- 2026-11-27 Coder: **CODER_DONE**. Strata branch `strata-016-deepseek-s5` =
+  `59c83e2e8` (greedy + `--dump-logits-full` + optional `--dump-layers`, dispatch
+  without `--parity-run`, `--families`/`model_family_runs` scoped to the engine
+  build) + `3c2f89555` (block-0 input assertion vs direct `token_embd` row
+  dequant — audit A14; read-only: all six engine logits dumps re-captured
+  byte-identical, kernel digests unchanged base→head). Results: token gate
+  **0/48 mismatches** (P2/P3 reference generated this handoff, §1.2); KL
+  engine‖f32 P1 6.423478e-07 / P2 2.939280e-09 / P3 1.190731e-08 mean — all
+  inside 1e-2 / 1e-1 (DEC-047), context curves reported not gated; flip proven
+  both directions (AC-6/7); Qwen 32 IDs bit-identical; tests green; signed
+  `build-hip` untouched. Bundle: `workflow/evidence/HO-STRATA-016/` (commits
+  `69fff7f`/`9cc12fe`/`9e3e6e1` + this file's commit on
+  `wp/strata-016-deepseek-s5`); logits dumps (~78.6 MB, 12 files) kept external
+  per §5 with digests + regeneration commands in `hashes-notes.txt`;
+  `check_bundle --strict` PASS 73/0 with the DEC-041 fixed point proven;
+  verdict-consistency 21/21 via committed `scripts/verdict_check.py`.
+  No AC failed; no ceiling widened; no guard rail crossed (§13).
 
 ## 12. Task map after this handoff
 
 | Stage | Handoff | Gate | State |
 |---|---|---|---|
-| **S5** | **this file** | 3×16 exact tokens; KL ≤ DEC-047; the flip | READY |
+| **S5** | **this file** | 3×16 exact tokens; KL ≤ DEC-047; the flip | **CODER_DONE** |
 | S6/S7 | HO-STRATA-017 (on S5 PASS) | baseline + GTT/`dmesg` envelope + HO-007 regression bit-identical; QAQC → audit → sign | not written |
 | OLMoE | HO-STRATA-018 (needs owner scope) | tokenizer pre-tokenizer + family path (DEC-032: two gaps, not one) | held |
+
+## 13. CODER_TO_QAQC record
+
+| Field | Value |
+|---|---|
+| From → To | Primary Coder (`coder-primary`) → QAQC (`qaqc`) |
+| Date (UTC) | 2026-11-27 |
+| Branch (Strata) | `strata-016-deepseek-s5` @ **`3c2f89555ad5723e4ecfa8e1995fc8921d93b556`** (base `e2e7e1b34…`; `59c83e2e8…` is the feature commit) — patch: `workflow/evidence/HO-STRATA-016/patches/0004-s5-tokens.patch` (2-mail series for both commits) |
+| Branch (workflow) | `wp/strata-016-deepseek-s5` — bundle commits `69fff7f2186eb1e47916fb4c1d2c6dcf0351155c` (captures, C1 — the pin target), `9cc12fe` (hashes), `9e3e6e1` (converged strict output); handoff state commit follows |
+| Evidence | `workflow/evidence/HO-STRATA-016/` (`manifest.md`, `commands.log`, `test-output.txt`, `artifacts/`, `patches/`, `scripts/`, `hashes.txt`, `hashes-notes.txt`) |
+| Gate results | 0/48 token mismatches; KL engine‖f32 ≤ 5.986760e-06 max step; flip both directions; Qwen 32 IDs bit-identical to HO-007; cumulative T2 `baf16363..3c2f89555` = 15 files / +1,782 / −33 |
+
+**QAQC must re-run** (raw commands + cwd + env in `commands.log`; do not trust stored digests without re-hashing):
+
+1. `sha256sum build-hip/strata` → `d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858` (and confirm `build-hip/` was not rebuilt).
+2. `cmake --build build-deepseek --target strata model_family_test gguf_geometry_test -j$(nproc)` in `/home/kupipi/Documents/git/strata` (at `3c2f89555`); `./build-deepseek/model_family_test`; `./build-deepseek/gguf_geometry_test` → exit 0.
+3. Oracle references — **needs `LD_LIBRARY_PATH=/tmp/opencode/llama-ref/build/bin`** (without it, exit 127):
+   `/tmp/opencode/oracle_s5 --model $PACK --tokens 549,6077,280,7239,317 --n 16 --dump-logits-full <out>` (P2/P3 likewise; f32 via `--model /tmp/opencode/deepseek-moe-16b-f32.gguf`) → gen lines equal `artifacts/token_parity.txt`, dumps `cmp` to the external digests.
+4. Engine token gate: `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native $PACK --tokens <T> --max-new 16 --dump-logits-full <out>` ×3 → zero mismatches vs Q4_K oracle; block-0 assertion line present; second run `cmp` byte-identical.
+5. KL: `python3 workflow/evidence/HO-STRATA-016/scripts/compute_kl.py …` ×3 → tables reproduce `artifacts/kl_summary.txt` (`cmp`), all ceilings PASS.
+6. Flip: the four commands in `commands.log` §AC-6 (`build-deepseek --families` lists `deepseek`; `build-hip --families` does not; `build-hip --native` refuses, exit 2; engine `--native` runs **without** `--parity-run`).
+7. AC-7 no-dump run (exit 0, no files written); Qwen regression: `LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native $QWEN --tokens 760,6511,314,9338,369 --n 32 --max-context 1024` → `diff` vs HO-007 `generated-token-ids.txt` exit 0.
+8. `git worktree add --detach /tmp/<wt> baf16363… ; git apply 0001 ; git apply 0002 ; git apply 0003 ; git apply --check patches/0004-s5-tokens.patch` → all exit 0.
+9. `python3 workflow/evidence/HO-STRATA-016/scripts/verdict_check.py` → 21/21, RESULT: PASS.
+10. `python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-016 --strict` → `RESULT: PASS (73 checks, 0 warnings)` — byte-identical to `artifacts/check_bundle.txt` (fixed point already proven once; re-run confirms).
+
+**What QAQC must know:** the 12 full-logits dumps are external
+(`/tmp/opencode/HO-STRATA-016-dumps/`, digests + regenerate commands in
+`hashes-notes.txt` / `commands.log`) — that is the §5 size decision, recorded in
+manifest §3, and re-verifiable by regeneration. `hashes.txt` also pins the
+HO-010/HO-007/HO-014 reference files it cites. The A14 closure lives in the
+engine (`ds_engine.cu` @ `3c2f89555`) — the kernel digests being identical
+`e2e7e1b → 3c2f89555` in `hashes-notes.txt` is the arithmetic-untouched proof.
+No AC failed; no failure or skip was dropped from `test-output.txt`.
