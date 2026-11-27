@@ -1,0 +1,44 @@
+model_family_test
+  model_family: qwen35moe, qwen4exp, deepseek, unknown                                       ok
+  the architecture guard accepts qwen35moe                                                   ok
+  the architecture guard accepts qwen4exp                                                    ok
+  the architecture guard accepts deepseek                                                    ok
+  and refuses llama, naming it                                                               ok
+  the engine guard refuses Qwen3.6: recognised, not supported yet                            ok
+  the engine guard runs DeepSeek                                                             ok
+  the engine guard runs qwen4exp                                                             ok
+  a qwen35moe file without ssm.time_step_rank is refused, naming the key                     ok
+  Qwen3.6 geometry reads                                                                     ok
+  Qwen3.6: 40 trunk layers + 1 MTP block, hidden 2048                                        ok
+  Qwen3.6: 10 attention / 30 GDN layers, layer 40 is the MTP block                           ok
+  Qwen3.6 GDN: 16 K groups, 32 V heads, conv 8192, inner 4096                                ok
+  Qwen3.6 attention: 16 Q / 2 KV x 256, no indexer, no hyper-connections                     ok
+  Qwen3.6 MoE: 256 experts top-8, FF 512, shared 512; vocab 248320                           ok
+  Qwen3.6 does not match the compiled kernels                                                ok
+  Flash-Next's metadata gives exactly the compiled geometry                                  ok
+  the Coder's 256 experts are a run-time size, not a kernel mismatch                         ok
+  an inconsistent ssm.inner_size is refused                                                  ok
+  DeepSeek geometry reads                                                                    ok
+  DeepSeek: 28 layers, hidden 2048                                                           ok
+  DeepSeek attention: 16 Q / 16 KV x 128 (MHA)                                               ok
+  DeepSeek MoE: 64 experts top-6, shared 2 x FF 1408 = 2816, dense FF 10944, 1 dense leading block ok
+  DeepSeek rope base and rms epsilon read from metadata                                      ok
+  DeepSeek vocab 102400                                                                      ok
+  a complete qwen35moe file passes its layout (incl. the nextn MTP block)                    ok
+  a complete qwen4exp file passes its layout (hyper-connections, indexer)                    ok
+  a wrong shape is refused, naming the tensor and both shapes                                ok
+  a missing MTP tensor is refused                                                            ok
+  a tensor the qwen35moe table does not name is refused                                      ok
+  Flash-Next: a missing indexer tensor is refused (missing blk.3.indexer.k_proj.weight)      ok
+  a complete deepseek file passes its layout                                                 ok
+  DeepSeek: a missing dense-first-block tensor is refused (missing blk.0.ffn_gate.weight)    ok
+  DeepSeek: a wrong expert shape is refused                                                  ok
+  DeepSeek: a tensor the layout does not name is refused                                     ok
+  DeepSeek dense-first-block geometry reads                                                  ok
+  DeepSeek block 0 has no *_exps tensors                                                     ok
+  DeepSeek block 1 has *_exps tensors                                                        ok
+  --parity-run without --dump-layers is refused (deepseek)                                   ok
+  qwen35moe parity test geometry reads                                                       ok
+  --parity-run without --dump-layers is refused (supported qwen35moe)                        ok
+ALL PASSED
+mft exit: 0

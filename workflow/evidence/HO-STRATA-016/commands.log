@@ -1,0 +1,167 @@
+# commands.log — HO-STRATA-016 (S5 token gate, KL, the flip)
+
+All engine commands run from `/home/kupipi/Documents/git/strata` with
+`LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib`. Bundle commands run from
+`/home/kupipi/Documents/git/gfx1150-inference`. Captures write to `/tmp`, then
+are copied into the bundle (DEC-041 §2). Non-zero-exit commands are joined with
+`;`, never `&&`.
+
+Strata branch `strata-016-deepseek-s5`, commits `59c83e2e8b5b24903dd087924f7bd47dcc297817`
+(greedy + dumps + flip + optional --dump-layers) and
+`3c2f89555` (block-0 input assertion), on base `e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4`.
+
+```bash
+# ---------------------------------------------------------------- environment
+uname -r                 # 7.0.0-42-generic
+python3 --version        # Python 3.14.10
+hipcc --version          # HIP 7.16.26385-0000000, AMD clang 24.0.0git
+cmake --version          # 3.28.3
+gcc --version            # 13.3.0
+
+# ---------------------------------------------------------------- paths
+PACK=/home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf
+F32=/tmp/opencode/deepseek-moe-16b-f32.gguf
+QWEN=/home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+ORACLE=/tmp/opencode/oracle_s5            # built from scripts/oracle_s5.cpp against
+LIBORACLE=/tmp/opencode/llama-ref/build/bin  # llama.cpp pin 78e05298 in /tmp/opencode/llama-ref
+
+# ---------------------------------------------------------------- AC-1 build + integrity
+cmake --build build-deepseek --target strata model_family_test gguf_geometry_test -j$(nproc)   # exit 0
+sha256sum build-hip/strata build-deepseek/strata build-deepseek/model_family_test build-deepseek/gguf_geometry_test
+#   d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata   (signed, never rebuilt)
+#   8b84f55a8332be1340decb94f85fcc49ad6f483ceb9e1889b8d6826b986ae432  build-deepseek/strata
+sha256sum workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
+#   a4c56b9d9189468aeaf1b89637ed4f14f9107b5aaaf75cd4b0e324b6d1c3fc49  (oracle f32 dump — untouched)
+sha256sum /tmp/opencode/oracle_s5
+#   a9575ffd3ae6bde3126b39c1e17b72264dff3169b23c8a1070976d57f691d169
+# -> artifacts/ac1-build.txt
+
+# ---------------------------------------------------------------- AC-2 references (Q4_K + f32 oracles, full logits)
+for i in 1 2 3; do
+  case $i in
+    1) T=549,6077,280,7239,317 ;;
+    2) T=1558,962,7,64,11,270,1780,185,300,972 ;;
+    3) T=21477,6663,8247,418 ;;
+  esac
+  LD_LIBRARY_PATH=$LIBORACLE $ORACLE --model $PACK --tokens $T --n 16 \
+      --dump-logits-full /tmp/opencode/s5-final/q4k_p${i}_logits_full.bin \
+      > /tmp/opencode/s5-final/q4k_p${i}_tokens.txt 2>&1            # exit 0 each
+  LD_LIBRARY_PATH=$LIBORACLE $ORACLE --model $F32  --tokens $T --n 16 \
+      --dump-logits-full /tmp/opencode/s5-final/f32_p${i}_logits_full.bin \
+      > /tmp/opencode/s5-final/f32_p${i}_tokens.txt 2>&1            # exit 0 each
+done
+# Fresh re-runs of the 16:38 originals: gen lines identical, dumps byte-identical
+# (cmp exit 0 ×6).  Original capture: same day 16:38, same binary (hash above).
+# P1 reproduces HO-STRATA-010 run1.txt: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280.
+
+# ---------------------------------------------------------------- AC-3 engine runs (token gate)
+for i in 1 2 3; do
+  case $i in
+    1) T=549,6077,280,7239,317 ;;
+    2) T=1558,962,7,64,11,270,1780,185,300,972 ;;
+    3) T=21477,6663,8247,418 ;;
+  esac
+  LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native $PACK --tokens $T --max-new 16 \
+      --dump-logits-full /tmp/opencode/s5-final/engine_p${i}_logits_full.bin \
+      > /tmp/opencode/s5-final/engine_p${i}_transcript.txt 2>&1     # exit 0 each
+done
+# -> artifacts/runs/engine_p{1,2,3}_tokens.txt (transcripts incl. gen: lines)
+# Token gate verdict -> artifacts/token_parity.txt (0 mismatches; f32 oracle agrees 3/3)
+# Dumps byte-identical to the pre-assertion capture of the same tree (cmp ×3) → the
+# block-0 assertion is provably read-only (guard rail: no arithmetic change).
+
+# ---------------------------------------------------------------- AC-4 KL (DEC-047 ceilings)
+for i in 1 2 3; do
+  python3 workflow/evidence/HO-STRATA-016/scripts/compute_kl.py \
+    --engine /tmp/opencode/s5-final/engine_p${i}_logits_full.bin \
+    --q4k    /tmp/opencode/s5-final/q4k_p${i}_logits_full.bin \
+    --f32    /tmp/opencode/s5-final/f32_p${i}_logits_full.bin \
+    --prompt P${i} > /tmp/opencode/s5-final/kl_p${i}.txt 2>&1      # exit 0 each
+done
+# -> artifacts/runs/kl_p{1,2,3}.txt, artifacts/kl_summary.txt (identical to the 16:50 originals)
+
+# ---------------------------------------------------------------- AC-5 determinism (second runs)
+for i in 1 2 3; do
+  case $i in
+    1) T=549,6077,280,7239,317 ;;
+    2) T=1558,962,7,64,11,270,1780,185,300,972 ;;
+    3) T=21477,6663,8247,418 ;;
+  esac
+  LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native $PACK --tokens $T --max-new 16 \
+      --dump-logits-full /tmp/opencode/s5-final/engine_p${i}_run2_logits_full.bin \
+      > /tmp/opencode/s5-final/engine_p${i}_run2_transcript.txt 2>&1  # exit 0 each
+  cmp /tmp/opencode/s5-final/engine_p${i}_logits_full.bin /tmp/opencode/s5-final/engine_p${i}_run2_logits_full.bin
+done
+# all cmp exit 0; gen lines identical -> artifacts/determinism.txt
+
+# ---------------------------------------------------------------- AC-6 the flip (both directions)
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --families
+# qwen4exp qwen35moe deepseek          exit 0
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native $PACK --tokens 549,6077,280,7239,317 --max-new 16
+# runs without --parity-run; gen: = AC-3 P1; block-0 assertion ok; exit 0
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --families
+# qwen4exp qwen35moe                   exit 0 (deepseek absent — engine not compiled in)
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native $PACK --tokens 549,6077,280,7239,317 --max-new 16
+# named refusal (no shard holds per_layer_token_embd.weight); exit 2
+# -> artifacts/flip.txt
+
+# ---------------------------------------------------------------- AC-7 --dump-layers optional
+ls /tmp/opencode/s5-final | sort > /tmp/opencode/s5-final/before-nodump.lst
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-deepseek/strata --native $PACK --tokens 549,6077,280,7239,317 --max-new 16 \
+    > /tmp/opencode/s5-final/engine_p1_nodump.txt 2>&1 ; echo exit $?
+ls /tmp/opencode/s5-final | sort > /tmp/opencode/s5-final/after-nodump.lst
+diff /tmp/opencode/s5-final/before-nodump.lst /tmp/opencode/s5-final/after-nodump.lst
+# only the two capture files themselves; no .bin written; exit 0
+ls *.bin 2>/dev/null                  # exit 2 = no match (nothing written in the engine cwd)
+# -> artifacts/ac7-nodump.txt
+
+# ---------------------------------------------------------------- AC-8 tests + Qwen regression
+./build-deepseek/model_family_test      # ALL PASSED, exit 0 -> artifacts/model_family_test.txt
+./build-deepseek/gguf_geometry_test     # all passed, exit 0 -> artifacts/gguf_geometry_test.txt
+LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib ./build-hip/strata --native $QWEN --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
+# exit 0; gen line == HO-007 (32 IDs, bit-identical)
+grep "^gen:" /tmp/opencode/s5-final/qwen_regression.txt | sed 's/^gen: //' > /tmp/opencode/s5-final/qwen_ids.txt
+diff /tmp/opencode/s5-final/qwen_ids.txt workflow/evidence/HO-STRATA-007/artifacts/generated-token-ids.txt
+# diff exit 0 -> artifacts/qwen_regression.txt (transcript + diff proof)
+
+# ---------------------------------------------------------------- AC-10 patch export, stats, apply-check
+git -C /home/kupipi/Documents/git/strata diff --stat e2e7e1b..HEAD
+# 5 files changed, 181 insertions(+), 57 deletions(-)
+git -C /home/kupipi/Documents/git/strata diff --stat baf16363..HEAD
+# 15 files changed, 1782 insertions(+), 33 deletions(-)   (cumulative T2 through S4a+S4b+S5)
+git -C /home/kupipi/Documents/git/strata format-patch e2e7e1b..HEAD --stdout > /tmp/opencode/s5-final/0004-s5-tokens.patch
+git -C /home/kupipi/Documents/git/strata worktree add --detach /tmp/opencode/s5-apply-check baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+cd /tmp/opencode/s5-apply-check
+WF=/home/kupipi/Documents/git/gfx1150-inference
+git apply $WF/workflow/evidence/HO-STRATA-012/patches/0001-deepseek-family.patch ; echo exit $?   # 0
+git apply $WF/workflow/evidence/HO-STRATA-014/patches/0002-s4-forward.patch      ; echo exit $?   # 0
+git apply $WF/workflow/evidence/HO-STRATA-015/patches/0003-s4b-moe.patch         ; echo exit $?   # 0
+git apply --check /tmp/opencode/s5-final/0004-s5-tokens.patch                    ; echo exit $?   # 0
+git worktree remove --force /tmp/opencode/s5-apply-check   # run from the strata checkout
+# -> patches/0004-s5-tokens.patch, patches/apply-check.txt, artifacts/patch-stat.txt
+
+# ---------------------------------------------------------------- margins (context, not gated)
+for i in 1 2 3; do
+  python3 workflow/evidence/HO-STRATA-016/scripts/top2_margin.py \
+    /tmp/opencode/HO-STRATA-016-dumps/q4k_p${i}_logits_full.bin --label "Q4_K oracle P${i}"
+done   # (first computed against artifacts/runs/*.bin before the move; byte-identical files)
+for i in 1 2 3; do
+  python3 workflow/evidence/HO-STRATA-016/scripts/top2_margin.py \
+    /tmp/opencode/HO-STRATA-016-dumps/engine_p${i}_logits_full.bin --label "engine P${i}"
+done
+# -> artifacts/margins.txt (min Q4_K margin 1.151543e-01, min engine margin 3.090096e-02)
+
+# ---------------------------------------------------------------- AC-12 verdict consistency
+python3 workflow/evidence/HO-STRATA-016/scripts/verdict_check.py
+# 21 checks, 0 failures, RESULT: PASS, exit 0 -> artifacts/verdict-consistency.txt
+
+# ---------------------------------------------------------------- logits dumps (external, regenerable)
+mv /tmp/opencode/s5-final/engine_p{1,2,3}_logits_full.bin /tmp/opencode/s5-final/engine_p{1,2,3}_run2_logits_full.bin \
+   /tmp/opencode/s5-final/q4k_p{1,2,3}_logits_full.bin /tmp/opencode/s5-final/f32_p{1,2,3}_logits_full.bin \
+   /tmp/opencode/HO-STRATA-016-dumps/
+sha256sum /tmp/opencode/HO-STRATA-016-dumps/*.bin     # digests -> hashes-notes.txt (§5 decision)
+
+# ---------------------------------------------------------------- bundle gates
+python3 workflow/tools/check_bundle.py workflow/evidence/HO-STRATA-016 --strict
+# -> artifacts/check_bundle.txt (fixed-point content; see manifest §1 note)
+```

@@ -1,0 +1,31 @@
+Verdict-consistency check — every artifact cited as PASS must contain its own verdict (audit A12).
+
+Command:
+  $ python3 workflow/evidence/HO-STRATA-016/scripts/verdict_check.py
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+
+PASS  AC-1  build exit 0 + signed binary + oracle dump intact  (artifacts/ac1-build.txt)
+PASS  AC-2  reference set exists, P1 reproduces the signed run1 IDs  (artifacts/token_parity.txt)
+PASS  AC-3  token parity zero mismatches  (artifacts/token_parity.txt)
+PASS  AC-4  KL ceiling PASS on all three prompts  (artifacts/kl_summary.txt)
+PASS  AC-5  two runs per prompt byte-identical  (artifacts/determinism.txt)
+PASS  AC-6  build-deepseek --families lists deepseek  (artifacts/flip.txt)
+PASS  AC-6  native run without --parity-run emits AC-3 tokens  (artifacts/flip.txt)
+PASS  AC-6  build-hip --families does NOT list deepseek  (artifacts/flip.txt)
+PASS  AC-6  build-hip --native refuses (exit 2, named)  (artifacts/flip.txt)
+PASS  AC-7  no-dump run exits 0 and writes no dump file  (artifacts/ac7-nodump.txt)
+PASS  AC-8  Qwen regression: 32 IDs bit-identical to HO-007  (artifacts/qwen_regression.txt)
+PASS  AC-8  model_family_test ALL PASSED, exit 0  (artifacts/model_family_test.txt)
+PASS  AC-8  gguf_geometry_test all passed, exit 0  (artifacts/gguf_geometry_test.txt)
+PASS  AC-9  geometry assertions: 11 fields, none FAIL  (artifacts/flip.txt)
+PASS  AC-12  block-0 input assertion vs token_embd present and ok  (artifacts/flip.txt)
+PASS  AC-12  block-0 assertion in every engine run  (artifacts/runs/engine_p1_tokens.txt)
+PASS  AC-12  block-0 assertion P2  (artifacts/runs/engine_p2_tokens.txt)
+PASS  AC-12  block-0 assertion P3  (artifacts/runs/engine_p3_tokens.txt)
+PASS  AC-10  patch applies on baf16363 + 0001 + 0002 + 0003  (patches/apply-check.txt)
+PASS  AC-10  cumulative stat recorded  (artifacts/patch-stat.txt)
+PASS  AC-2  oracle context: margins table covers 3x16 steps  (artifacts/margins.txt)
+
+checks: 21, failures: 0
+RESULT: PASS
+verdict_check exit: 0

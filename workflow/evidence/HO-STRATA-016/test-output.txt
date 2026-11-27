@@ -1,0 +1,392 @@
+# test-output.txt — HO-STRATA-016 — raw outputs, rebuilt after the final capture (DEC-041 §2)
+
+################ AC-1 build + integrity ################
+# AC-1 build + integrity — 2026-11-27T23:32:26Z
+$ cmake --build build-deepseek --target strata model_family_test gguf_geometry_test -j24
+[100%] Linking HIP executable strata
+[100%] Built target strata
+Built target model_family_test
+Built target gguf_geometry_test
+exit: 0
+
+$ sha256sum build-hip/strata build-deepseek/strata build-deepseek/model_family_test build-deepseek/gguf_geometry_test
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+8b84f55a8332be1340decb94f85fcc49ad6f483ceb9e1889b8d6826b986ae432  build-deepseek/strata
+e12fa2273f80e5bbf459fe616dfbfe2fe12474f458fec045ce4e1f19866046cb  build-deepseek/model_family_test
+af8a8360478c9badc07d1b3d79afbde6fb6907ca92e1dffa0fba9c1e7d35235e  build-deepseek/gguf_geometry_test
+
+$ sha256sum /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
+a4c56b9d9189468aeaf1b89637ed4f14f9107b5aaaf75cd4b0e324b6d1c3fc49  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
+
+$ sha256sum /tmp/opencode/oracle_s5
+a9575ffd3ae6bde3126b39c1e17b72264dff3169b23c8a1070976d57f691d169  /tmp/opencode/oracle_s5
+
+$ git -C /home/kupipi/Documents/git/strata log --oneline -3
+3c2f89555 HO-STRATA-016: block-0 input assertion vs direct token_embd row dequant (audit A14)
+59c83e2e8 HO-STRATA-016: greedy generation + --dump-logits-full + optional --dump-layers; dispatch without --parity-run; --families/model_family_runs scoped to engine build; token gate 3x16 zero mismatches; KL not yet computed
+e2e7e1b34 HO-STRATA-015: remove temporary STRATA_DEEPSEEK_DIAG define and reject diag options in normal builds
+
+################ AC-3 token parity ################
+| Prompt | Engine | Q4_K oracle | f32 oracle | Mismatches |
+|---|---|---|---|---|
+| P1 | 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280 | 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280 | 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280 | 0 |
+| P2 | 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972 | 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972 | 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972 | 0 |
+| P3 | 3074 11 5501 11 285 10421 13 185 549 6663 8247 418 254 8247 344 2977 | 3074 11 5501 11 285 10421 13 185 549 6663 8247 418 254 8247 344 2977 | 3074 11 5501 11 285 10421 13 185 549 6663 8247 418 254 8247 344 2977 | 0 |
+
+Mismatches total: 0  (engine vs Q4_K oracle, 3 prompts x 16 greedy tokens)
+f32-oracle agreement: 3/3 prompts identical to the Q4_K oracle
+P1 reproduces the signed HO-STRATA-010 run1.txt: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+
+################ AC-4 KL (DEC-047) ################
+# KL table — P1 — vocab=102400, steps=16
+| step | KL(engine‖f32) | KL(engine‖Q4_K) | KL(Q4_K‖f32) |
+|---|---|---|---|
+| 0 | 1.917666e-06 | 4.647698e-03 | 4.727537e-03 |
+| 1 | 2.537703e-07 | 8.994970e-03 | 9.479389e-03 |
+| 2 | 5.165679e-07 | 1.703144e-03 | 1.701596e-03 |
+| 3 | 5.986760e-06 | 3.195585e-01 | 2.392387e-01 |
+| 4 | 2.672685e-07 | 1.577335e-03 | 1.625105e-03 |
+| 5 | 8.077316e-08 | 2.503483e-03 | 2.589609e-03 |
+| 6 | 3.608123e-07 | 1.107447e-02 | 1.099154e-02 |
+| 7 | 8.241774e-08 | 4.292227e-03 | 4.098437e-03 |
+| 8 | 7.740338e-08 | 3.780792e-04 | 3.739007e-04 |
+| 9 | 5.156230e-08 | 1.518457e-03 | 1.558623e-03 |
+| 10 | 7.528340e-08 | 3.044842e-03 | 3.056351e-03 |
+| 11 | 3.588196e-07 | 1.504562e-03 | 1.501160e-03 |
+| 12 | 5.715760e-08 | 1.453091e-03 | 1.428497e-03 |
+| 13 | 7.134704e-08 | 6.410122e-04 | 6.449475e-04 |
+| 14 | 1.039073e-07 | 4.053774e-04 | 4.113740e-04 |
+| 15 | 1.604840e-08 | 4.545221e-04 | 4.421068e-04 |
+
+P1 mean KL(engine‖f32) = 6.423478e-07  max step = 5.986760e-06
+P1 mean KL(engine‖Q4_K) = 2.273449e-02  max step = 3.195585e-01
+P1 mean KL(Q4_K‖f32)   = 1.774180e-02  max step = 2.392387e-01
+
+DEC-047 ceiling: mean <= 1e-2 and no step > 1e-1 -> PASS
+# KL table — P2 — vocab=102400, steps=16
+| step | KL(engine‖f32) | KL(engine‖Q4_K) | KL(Q4_K‖f32) |
+|---|---|---|---|
+| 0 | 5.269403e-09 | 3.384847e-03 | 3.690637e-03 |
+| 1 | 3.170168e-09 | 1.263432e-03 | 1.311861e-03 |
+| 2 | 6.059142e-10 | 5.247372e-05 | 5.185426e-05 |
+| 3 | 9.618119e-10 | 2.098568e-04 | 2.020917e-04 |
+| 4 | 6.361910e-09 | 2.932775e-03 | 3.083250e-03 |
+| 5 | 5.343592e-09 | 5.928064e-03 | 5.669164e-03 |
+| 6 | 4.779037e-09 | 2.881138e-03 | 2.808978e-03 |
+| 7 | 1.749473e-08 | 4.671907e-03 | 4.752104e-03 |
+| 8 | 6.446499e-10 | 1.959209e-04 | 1.821767e-04 |
+| 9 | 6.647296e-10 | 1.151741e-04 | 1.092776e-04 |
+| 10 | 1.889216e-10 | 4.028054e-05 | 3.697447e-05 |
+| 11 | 3.083469e-10 | 8.995029e-06 | 8.832031e-06 |
+| 12 | 1.049675e-10 | 4.753477e-05 | 4.408339e-05 |
+| 13 | 1.336142e-10 | 3.232597e-05 | 2.948758e-05 |
+| 14 | 7.138061e-11 | 1.232360e-05 | 1.311088e-05 |
+| 15 | 9.253054e-10 | 6.006819e-04 | 6.668613e-04 |
+
+P2 mean KL(engine‖f32) = 2.939280e-09  max step = 1.749473e-08
+P2 mean KL(engine‖Q4_K) = 1.398608e-03  max step = 5.928064e-03
+P2 mean KL(Q4_K‖f32)   = 1.416297e-03  max step = 5.669164e-03
+
+DEC-047 ceiling: mean <= 1e-2 and no step > 1e-1 -> PASS
+# KL table — P3 — vocab=102400, steps=16
+| step | KL(engine‖f32) | KL(engine‖Q4_K) | KL(Q4_K‖f32) |
+|---|---|---|---|
+| 0 | 3.725756e-08 | 3.835098e-03 | 3.888074e-03 |
+| 1 | 9.887282e-10 | 7.866396e-04 | 8.764626e-04 |
+| 2 | 2.279510e-08 | 3.320389e-01 | 4.624820e-01 |
+| 3 | 2.526004e-10 | 1.011167e-03 | 1.009247e-03 |
+| 4 | 6.612178e-09 | 6.071341e-04 | 5.762080e-04 |
+| 5 | 1.101962e-08 | 3.834067e-03 | 4.127561e-03 |
+| 6 | 1.447345e-08 | 1.580316e-03 | 1.624099e-03 |
+| 7 | 1.125833e-08 | 2.270727e-03 | 2.276688e-03 |
+| 8 | 1.105612e-08 | 4.106213e-03 | 4.119688e-03 |
+| 9 | 1.467833e-08 | 4.355669e-03 | 4.276191e-03 |
+| 10 | 2.493844e-09 | 1.138111e-03 | 1.087208e-03 |
+| 11 | 1.328995e-08 | 2.475055e-03 | 2.503487e-03 |
+| 12 | 1.751423e-08 | 4.302452e-03 | 4.219052e-03 |
+| 13 | 1.837582e-08 | 1.059997e-02 | 1.059437e-02 |
+| 14 | 3.106440e-09 | 2.066466e-03 | 2.001842e-03 |
+| 15 | 5.344675e-09 | 8.580382e-04 | 8.386863e-04 |
+
+P3 mean KL(engine‖f32) = 1.190731e-08  max step = 3.725756e-08
+P3 mean KL(engine‖Q4_K) = 2.349162e-02  max step = 3.320389e-01
+P3 mean KL(Q4_K‖f32)   = 3.165630e-02  max step = 4.624820e-01
+
+DEC-047 ceiling: mean <= 1e-2 and no step > 1e-1 -> PASS
+
+################ AC-5 determinism ################
+=== p1 ===
+$ cmp engine_p1_logits_full.bin engine_p1_run2_logits_full.bin  (both external, digests in hashes-notes.txt)
+cmp exit: 0  -> logits dumps byte-identical
+run1 token line: gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+run2 token line: gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+token line identical
+
+=== p2 ===
+$ cmp engine_p2_logits_full.bin engine_p2_run2_logits_full.bin  (both external, digests in hashes-notes.txt)
+cmp exit: 0  -> logits dumps byte-identical
+run1 token line: gen: 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972
+run2 token line: gen: 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972
+token line identical
+
+=== p3 ===
+$ cmp engine_p3_logits_full.bin engine_p3_run2_logits_full.bin  (both external, digests in hashes-notes.txt)
+cmp exit: 0  -> logits dumps byte-identical
+run1 token line: gen: 3074 11 5501 11 285 10421 13 185 549 6663 8247 418 254 8247 344 2977
+run2 token line: gen: 3074 11 5501 11 285 10421 13 185 549 6663 8247 418 254 8247 344 2977
+token line identical
+
+
+################ AC-6/AC-9/AC-12 flip (both directions, geometry, block-0) ################
+=== build-deepseek --families ===
+qwen4exp qwen35moe deepseek
+exit: 0
+
+=== build-deepseek --native <pack> --tokens P1 --max-new 16 (no --parity-run) ===
+strata-deepseek: geometry assertions:
+  n_layers: 28 (want 28) ok
+  n_embd: 2048 (want 2048) ok
+  n_head: 16 (want 16) ok
+  n_head_kv: 16 (want 16) ok
+  n_expert: 64 (want 64) ok
+  n_expert_used: 6 (want 6) ok
+  n_expert_shared: 2 (want 2) ok
+  n_ff: 1408 (want 1408) ok
+  n_dense_first_blocks: 1 (want 1) ok
+  rope_freq_base*1e6: 10000000000 (want 10000000000) ok
+  rms_eps*1e9: 1000 (want 1000) ok
+strata-deepseek: device memory after model load + buffer alloc: used=25577799680 bytes (23.821 GiB), total=49359982592 bytes (45.970 GiB)
+strata-deepseek: dequant spot-check:
+  blk.0.ffn_gate.weight (type 12): max abs diff vs direct dequant = 0.000000e+00
+  blk.1.ffn_down_shexp.weight (type 14): max abs diff vs direct dequant = 0.000000e+00
+  blk.0.ffn_down.weight (type 8): max abs diff vs direct dequant = 0.000000e+00
+  blk.10.ffn_down_exps.weight (type 6): max abs diff vs direct dequant = 0.000000e+00
+strata-deepseek: block-0 input assertion: 21 positions, residual vs direct token_embd row dequant (type 12): max abs diff 0.000000e+00 ok
+gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+exit: 0
+
+=== build-hip --families ===
+qwen4exp qwen35moe
+exit: 0
+
+=== build-hip --native <pack> --tokens P1 --max-new 16 (refusal expected) ===
+strata generate: --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight
+exit: 2
+
+################ AC-7 dump-layers optional ################
+=== AC-7 normal run, no dump flags (DEC-048 §5: --dump-layers optional) ===
+cwd: /home/kupipi/Documents/git/strata
+env: LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib
+$ ls /tmp/opencode/s5-final | sort > before.lst   # capture dir snapshot
+$ ./build-deepseek/strata --native $PACK --tokens 549,6077,280,7239,317 --max-new 16 > /tmp/opencode/s5-final/engine_p1_nodump.txt 2>&1; echo exit
+$ ls /tmp/opencode/s5-final | sort > after.lst; diff before.lst after.lst
+diff output: only 'after-nodump.lst' and 'engine_p1_nodump.txt' — the two files this check itself created. No engine-written files.
+nodump exit: 0
+no unexpected files written by the no-dump run
+$ ls *.bin /tmp/opencode/s5-final/*dump*.bin 2>/dev/null
+stray .bin check: none (exit 2 = no match)
+
+--- transcript ---
+strata-deepseek: geometry assertions:
+  n_layers: 28 (want 28) ok
+  n_embd: 2048 (want 2048) ok
+  n_head: 16 (want 16) ok
+  n_head_kv: 16 (want 16) ok
+  n_expert: 64 (want 64) ok
+  n_expert_used: 6 (want 6) ok
+  n_expert_shared: 2 (want 2) ok
+  n_ff: 1408 (want 1408) ok
+  n_dense_first_blocks: 1 (want 1) ok
+  rope_freq_base*1e6: 10000000000 (want 10000000000) ok
+  rms_eps*1e9: 1000 (want 1000) ok
+strata-deepseek: device memory after model load + buffer alloc: used=25577799680 bytes (23.821 GiB), total=49359982592 bytes (45.970 GiB)
+strata-deepseek: dequant spot-check:
+  blk.0.ffn_gate.weight (type 12): max abs diff vs direct dequant = 0.000000e+00
+  blk.1.ffn_down_shexp.weight (type 14): max abs diff vs direct dequant = 0.000000e+00
+  blk.0.ffn_down.weight (type 8): max abs diff vs direct dequant = 0.000000e+00
+  blk.10.ffn_down_exps.weight (type 6): max abs diff vs direct dequant = 0.000000e+00
+strata-deepseek: block-0 input assertion: 21 positions, residual vs direct token_embd row dequant (type 12): max abs diff 0.000000e+00 ok
+gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+
+################ AC-8 model_family_test ################
+model_family_test
+  model_family: qwen35moe, qwen4exp, deepseek, unknown                                       ok
+  the architecture guard accepts qwen35moe                                                   ok
+  the architecture guard accepts qwen4exp                                                    ok
+  the architecture guard accepts deepseek                                                    ok
+  and refuses llama, naming it                                                               ok
+  the engine guard refuses Qwen3.6: recognised, not supported yet                            ok
+  the engine guard runs DeepSeek                                                             ok
+  the engine guard runs qwen4exp                                                             ok
+  a qwen35moe file without ssm.time_step_rank is refused, naming the key                     ok
+  Qwen3.6 geometry reads                                                                     ok
+  Qwen3.6: 40 trunk layers + 1 MTP block, hidden 2048                                        ok
+  Qwen3.6: 10 attention / 30 GDN layers, layer 40 is the MTP block                           ok
+  Qwen3.6 GDN: 16 K groups, 32 V heads, conv 8192, inner 4096                                ok
+  Qwen3.6 attention: 16 Q / 2 KV x 256, no indexer, no hyper-connections                     ok
+  Qwen3.6 MoE: 256 experts top-8, FF 512, shared 512; vocab 248320                           ok
+  Qwen3.6 does not match the compiled kernels                                                ok
+  Flash-Next's metadata gives exactly the compiled geometry                                  ok
+  the Coder's 256 experts are a run-time size, not a kernel mismatch                         ok
+  an inconsistent ssm.inner_size is refused                                                  ok
+  DeepSeek geometry reads                                                                    ok
+  DeepSeek: 28 layers, hidden 2048                                                           ok
+  DeepSeek attention: 16 Q / 16 KV x 128 (MHA)                                               ok
+  DeepSeek MoE: 64 experts top-6, shared 2 x FF 1408 = 2816, dense FF 10944, 1 dense leading block ok
+  DeepSeek rope base and rms epsilon read from metadata                                      ok
+  DeepSeek vocab 102400                                                                      ok
+  a complete qwen35moe file passes its layout (incl. the nextn MTP block)                    ok
+  a complete qwen4exp file passes its layout (hyper-connections, indexer)                    ok
+  a wrong shape is refused, naming the tensor and both shapes                                ok
+  a missing MTP tensor is refused                                                            ok
+  a tensor the qwen35moe table does not name is refused                                      ok
+  Flash-Next: a missing indexer tensor is refused (missing blk.3.indexer.k_proj.weight)      ok
+  a complete deepseek file passes its layout                                                 ok
+  DeepSeek: a missing dense-first-block tensor is refused (missing blk.0.ffn_gate.weight)    ok
+  DeepSeek: a wrong expert shape is refused                                                  ok
+  DeepSeek: a tensor the layout does not name is refused                                     ok
+  DeepSeek dense-first-block geometry reads                                                  ok
+  DeepSeek block 0 has no *_exps tensors                                                     ok
+  DeepSeek block 1 has *_exps tensors                                                        ok
+  --parity-run without --dump-layers is refused (deepseek)                                   ok
+  qwen35moe parity test geometry reads                                                       ok
+  --parity-run without --dump-layers is refused (supported qwen35moe)                        ok
+ALL PASSED
+mft exit: 0
+
+################ AC-8 gguf_geometry_test ################
+strata: qwen4exp.attention.compress_ratios is all zeros (a converter's placeholder): using the compiled pooling block of 4 cells (#2396)
+gguf_geometry_test
+  the full key set reads                                                                     ok
+    and gives the compiled shape (vocabulary from tokenizer.ggml.tokens)                     ok
+    conv channels derived: 2 x 128 x 16 + 6144 = 10240                                       ok
+    which the kernels run, and the guard passes                                              ok
+  only the six required keys: the rest keeps the compiled values                             ok
+  a file without block_count is refused, naming it                                           ok
+  a file without embedding_length is refused, naming it                                      ok
+  a file without expert_count is refused, naming it                                          ok
+  a file without expert_used_count is refused, naming it                                     ok
+  a file without attention.head_count is refused, naming it                                  ok
+  a file without attention.head_count_kv is refused, naming it                               ok
+  a pruned variant: 384 experts, 8 per token, read and accepted                              ok
+  65 experts per token is refused (the router takes 1..64)                                   ok
+  0 experts per token is refused                                                             ok
+  a value head width other than the key head width is refused                                ok
+  a shared expert wider than the routed ones is refused                                      ok
+  ssm.inner_size other than state_size x time_step_rank is refused                           ok
+  compress_ratios that disagree with full_attention_interval are refused at the first layer  ok
+  compress_ratios of another length are refused                                              ok
+  two pooling blocks in one model are refused                                                ok
+  an all-zero compress_ratios list is treated as absent                                      ok
+  an all-zero list of another length is still refused                                        ok
+  a list with one non-zero entry is checked in full                                          ok
+  a float where a count belongs is refused                                                   ok
+  40 layers read: 10 QSA, 30 GDN                                                             ok
+    and refused: qwen4exp.block_count = 40, the kernels are compiled for 48                  ok
+  head width 128 reads and is refused: qwen4exp.attention.key_length = 128, the kernels are compiled for 256 ok
+  an indexer budget of 1024 is refused                                                       ok
+  an rms epsilon of 1e-5 is refused                                                          ok
+  another vocabulary size is accepted (the head and embedding take their tensors' shapes)    ok
+  another architecture is refused by name, by the reader and the guard                       ok
+  a dense qwen35 file is refused by its architecture: architecture is 'qwen35', this engine requires 'qwen4exp' ok
+  a file without general.architecture says so                                                ok
+gguf_geometry_test: all passed
+ggt exit: 0
+
+################ AC-8 Qwen regression ################
+=== AC-8 Qwen regression — signed build-hip/strata (d58ee239…), never rebuilt ===
+cwd: /home/kupipi/Documents/git/strata
+env: LD_LIBRARY_PATH=/opt/rocm/core-10.1/lib
+$ ./build-hip/strata --native /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --tokens 760,6511,314,9338,369 --n 32 --max-context 1024
+strata-q36: /home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf: 753 tensors (layout checked), 4.40 GiB on the GPU in 6.2 s (the routed experts are placed after the engine's buffers)
+strata-q36: prompt experts: 0 of 41 layers on the fused int8 kernels, 41 on our int8 kernels, 0 on MMQ (int8)
+strata-q36: context 1024 cells, prompt chunk 4096, MTP block loaded, 27.61 GiB of VRAM free
+strata-q36: every routed expert in VRAM (18.75 GiB) in 40.7 s
+strata-q36: warmed up in 3.7 s (one prompt chunk, a decode step)
+gen: 11751 11 264 3177 34756 364 1141 25438 57902 1680 430 279 242476 300 21262 11 279 9440 46890 15849 11 321 279 42027 9141 368 54832 13 11751 369 1048 10919
+strata-q36: prompt 5 tokens in 90.8 ms (55.1 tok/s), 32 generated in 1643.4 ms (19.5 tok/s)
+qwen exit: 0
+
+=== HO-007 C8 comparison ===
+$ diff <(grep '^gen:' qwen_regression.txt | sed 's/^gen: //') workflow/evidence/HO-STRATA-007/artifacts/generated-token-ids.txt
+diff exit: 0
+RESULT: 32 IDs bit-identical to HO-007 generated-token-ids.txt
+
+################ AC-10 patch stats ################
+=== git diff --stat e2e7e1b..HEAD (S5 branch delta) ===
+ CMakeLists.txt                           |   1 +
+ include/strata/artifact/model_family.hpp |   8 +-
+ src/deepseek/ds_engine.cu                | 190 ++++++++++++++++++++++++-------
+ src/program/generate.cpp                 |  35 +++---
+ tests/core/model_family_test.cpp         |   4 +
+ 5 files changed, 181 insertions(+), 57 deletions(-)
+
+=== git diff --stat baf16363..HEAD (cumulative family + S4a + S4b + S5, T2) ===
+ CMakeLists.txt                           |    1 +
+ cmake/strata_gpu_engine.cmake            |   12 +
+ include/strata/artifact/gguf_reader.hpp  |   18 +
+ include/strata/artifact/model_family.hpp |   17 +-
+ include/strata/core/family_layout.hpp    |  121 +++-
+ include/strata/core/geometry.hpp         |    6 +
+ include/strata/deepseek/engine.hpp       |   10 +
+ src/deepseek/ds_engine.cu                | 1021 ++++++++++++++++++++++++++++++
+ src/deepseek/ds_f32_matvec.cu            |  226 +++++++
+ src/deepseek/ds_f32_matvec.cuh           |   36 ++
+ src/deepseek/ds_kernels.cu               |   93 +++
+ src/deepseek/ds_kernels.cuh              |   30 +
+ src/deepseek/ds_main.cpp                 |    4 +
+ src/program/generate.cpp                 |   57 +-
+ tests/core/model_family_test.cpp         |  163 ++++-
+ 15 files changed, 1782 insertions(+), 33 deletions(-)
+
+commits:
+3c2f89555 HO-STRATA-016: block-0 input assertion vs direct token_embd row dequant (audit A14)
+59c83e2e8 HO-STRATA-016: greedy generation + --dump-logits-full + optional --dump-layers; dispatch without --parity-run; --families/model_family_runs scoped to engine build; token gate 3x16 zero mismatches; KL not yet computed
+
+################ AC-10 apply-check ################
+Apply-check for 0004-s5-tokens.patch on baf16363 + 0001 + 0002 + 0003:
+
+  git worktree add --detach /tmp/opencode/s5-apply-check baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+  cd /tmp/opencode/s5-apply-check
+0001 apply exit: 0
+0002 apply exit: 0
+0003 apply exit: 0
+  git apply --check 0004-s5-tokens.patch
+0004 apply --check exit: 0
+
+################ margins (context) — summary ################
+Q4_K oracle min margin over 48 steps:  1.151543e-01  (unitless logit nats; compare S4b near-tie margin 7.95e-05)
+engine min margin over 48 steps:  3.090096e-02 
+
+################ AC-12 verdict consistency ################
+Verdict-consistency check — every artifact cited as PASS must contain its own verdict (audit A12).
+
+Command:
+  $ python3 workflow/evidence/HO-STRATA-016/scripts/verdict_check.py
+cwd: /home/kupipi/Documents/git/gfx1150-inference
+
+PASS  AC-1  build exit 0 + signed binary + oracle dump intact  (artifacts/ac1-build.txt)
+PASS  AC-2  reference set exists, P1 reproduces the signed run1 IDs  (artifacts/token_parity.txt)
+PASS  AC-3  token parity zero mismatches  (artifacts/token_parity.txt)
+PASS  AC-4  KL ceiling PASS on all three prompts  (artifacts/kl_summary.txt)
+PASS  AC-5  two runs per prompt byte-identical  (artifacts/determinism.txt)
+PASS  AC-6  build-deepseek --families lists deepseek  (artifacts/flip.txt)
+PASS  AC-6  native run without --parity-run emits AC-3 tokens  (artifacts/flip.txt)
+PASS  AC-6  build-hip --families does NOT list deepseek  (artifacts/flip.txt)
+PASS  AC-6  build-hip --native refuses (exit 2, named)  (artifacts/flip.txt)
+PASS  AC-7  no-dump run exits 0 and writes no dump file  (artifacts/ac7-nodump.txt)
+PASS  AC-8  Qwen regression: 32 IDs bit-identical to HO-007  (artifacts/qwen_regression.txt)
+PASS  AC-8  model_family_test ALL PASSED, exit 0  (artifacts/model_family_test.txt)
+PASS  AC-8  gguf_geometry_test all passed, exit 0  (artifacts/gguf_geometry_test.txt)
+PASS  AC-9  geometry assertions: 11 fields, none FAIL  (artifacts/flip.txt)
+PASS  AC-12  block-0 input assertion vs token_embd present and ok  (artifacts/flip.txt)
+PASS  AC-12  block-0 assertion in every engine run  (artifacts/runs/engine_p1_tokens.txt)
+PASS  AC-12  block-0 assertion P2  (artifacts/runs/engine_p2_tokens.txt)
+PASS  AC-12  block-0 assertion P3  (artifacts/runs/engine_p3_tokens.txt)
+PASS  AC-10  patch applies on baf16363 + 0001 + 0002 + 0003  (patches/apply-check.txt)
+PASS  AC-10  cumulative stat recorded  (artifacts/patch-stat.txt)
+PASS  AC-2  oracle context: margins table covers 3x16 steps  (artifacts/margins.txt)
+
+checks: 21, failures: 0
+RESULT: PASS
+verdict_check exit: 0

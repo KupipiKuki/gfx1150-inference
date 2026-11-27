@@ -1,0 +1,24 @@
+# AC-1 build + integrity — 2026-11-27T23:32:26Z
+$ cmake --build build-deepseek --target strata model_family_test gguf_geometry_test -j24
+[100%] Linking HIP executable strata
+[100%] Built target strata
+Built target model_family_test
+Built target gguf_geometry_test
+exit: 0
+
+$ sha256sum build-hip/strata build-deepseek/strata build-deepseek/model_family_test build-deepseek/gguf_geometry_test
+d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858  build-hip/strata
+8b84f55a8332be1340decb94f85fcc49ad6f483ceb9e1889b8d6826b986ae432  build-deepseek/strata
+e12fa2273f80e5bbf459fe616dfbfe2fe12474f458fec045ce4e1f19866046cb  build-deepseek/model_family_test
+af8a8360478c9badc07d1b3d79afbde6fb6907ca92e1dffa0fba9c1e7d35235e  build-deepseek/gguf_geometry_test
+
+$ sha256sum /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
+a4c56b9d9189468aeaf1b89637ed4f14f9107b5aaaf75cd4b0e324b6d1c3fc49  /home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin
+
+$ sha256sum /tmp/opencode/oracle_s5
+a9575ffd3ae6bde3126b39c1e17b72264dff3169b23c8a1070976d57f691d169  /tmp/opencode/oracle_s5
+
+$ git -C /home/kupipi/Documents/git/strata log --oneline -3
+3c2f89555 HO-STRATA-016: block-0 input assertion vs direct token_embd row dequant (audit A14)
+59c83e2e8 HO-STRATA-016: greedy generation + --dump-logits-full + optional --dump-layers; dispatch without --parity-run; --families/model_family_runs scoped to engine build; token gate 3x16 zero mismatches; KL not yet computed
+e2e7e1b34 HO-STRATA-015: remove temporary STRATA_DEEPSEEK_DIAG define and reject diag options in normal builds

@@ -1,0 +1,4 @@
+gen: 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972
+wall_s: 3.412
+logits_full shape: [16][102400]  file: /tmp/opencode/s5-final/f32_p2_logits_full.bin
+logits_full layout: [step][vocab_index] f32, vocab_size=102400

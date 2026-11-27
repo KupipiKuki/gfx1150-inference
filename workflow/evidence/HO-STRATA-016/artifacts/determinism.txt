@@ -1,0 +1,21 @@
+=== p1 ===
+$ cmp engine_p1_logits_full.bin engine_p1_run2_logits_full.bin  (both external, digests in hashes-notes.txt)
+cmp exit: 0  -> logits dumps byte-identical
+run1 token line: gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+run2 token line: gen: 8913 13 185 40619 317 254 6077 280 7239 13 185 40619 317 254 6077 280
+token line identical
+
+=== p2 ===
+$ cmp engine_p2_logits_full.bin engine_p2_run2_logits_full.bin  (both external, digests in hashes-notes.txt)
+cmp exit: 0  -> logits dumps byte-identical
+run1 token line: gen: 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972
+run2 token line: gen: 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972
+token line identical
+
+=== p3 ===
+$ cmp engine_p3_logits_full.bin engine_p3_run2_logits_full.bin  (both external, digests in hashes-notes.txt)
+cmp exit: 0  -> logits dumps byte-identical
+run1 token line: gen: 3074 11 5501 11 285 10421 13 185 549 6663 8247 418 254 8247 344 2977
+run2 token line: gen: 3074 11 5501 11 285 10421 13 185 549 6663 8247 418 254 8247 344 2977
+token line identical
+

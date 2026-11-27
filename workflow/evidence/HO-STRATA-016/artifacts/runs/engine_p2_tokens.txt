@@ -1,0 +1,22 @@
+strata-deepseek: geometry assertions:
+  n_layers: 28 (want 28) ok
+  n_embd: 2048 (want 2048) ok
+  n_head: 16 (want 16) ok
+  n_head_kv: 16 (want 16) ok
+  n_expert: 64 (want 64) ok
+  n_expert_used: 6 (want 6) ok
+  n_expert_shared: 2 (want 2) ok
+  n_ff: 1408 (want 1408) ok
+  n_dense_first_blocks: 1 (want 1) ok
+  rope_freq_base*1e6: 10000000000 (want 10000000000) ok
+  rms_eps*1e9: 1000 (want 1000) ok
+strata-deepseek: device memory after model load + buffer alloc: used=25577799680 bytes (23.821 GiB), total=49359982592 bytes (45.970 GiB)
+strata-deepseek: dequant spot-check:
+  blk.0.ffn_gate.weight (type 12): max abs diff vs direct dequant = 0.000000e+00
+  blk.1.ffn_down_shexp.weight (type 14): max abs diff vs direct dequant = 0.000000e+00
+  blk.0.ffn_down.weight (type 8): max abs diff vs direct dequant = 0.000000e+00
+  blk.10.ffn_down_exps.weight (type 6): max abs diff vs direct dequant = 0.000000e+00
+logits_full shape: [16][102400]  file: /tmp/opencode/s5-final/engine_p2_logits_full.bin
+logits_full layout: [step][vocab_index] f32, vocab_size=102400
+strata-deepseek: block-0 input assertion: 26 positions, residual vs direct token_embd row dequant (type 12): max abs diff 0.000000e+00 ok
+gen: 245 919 270 185 185 185 1558 1097 7 64 11 270 1780 185 300 972

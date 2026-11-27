@@ -1,0 +1,4 @@
+gen: 3074 11 5501 11 285 10421 13 185 549 6663 8247 418 254 8247 344 2977
+wall_s: 0.663
+logits_full shape: [16][102400]  file: /tmp/opencode/s5-final/q4k_p3_logits_full.bin
+logits_full layout: [step][vocab_index] f32, vocab_size=102400

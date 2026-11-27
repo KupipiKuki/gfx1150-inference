@@ -1,0 +1,29 @@
+=== git diff --stat e2e7e1b..HEAD (S5 branch delta) ===
+ CMakeLists.txt                           |   1 +
+ include/strata/artifact/model_family.hpp |   8 +-
+ src/deepseek/ds_engine.cu                | 190 ++++++++++++++++++++++++-------
+ src/program/generate.cpp                 |  35 +++---
+ tests/core/model_family_test.cpp         |   4 +
+ 5 files changed, 181 insertions(+), 57 deletions(-)
+
+=== git diff --stat baf16363..HEAD (cumulative family + S4a + S4b + S5, T2) ===
+ CMakeLists.txt                           |    1 +
+ cmake/strata_gpu_engine.cmake            |   12 +
+ include/strata/artifact/gguf_reader.hpp  |   18 +
+ include/strata/artifact/model_family.hpp |   17 +-
+ include/strata/core/family_layout.hpp    |  121 +++-
+ include/strata/core/geometry.hpp         |    6 +
+ include/strata/deepseek/engine.hpp       |   10 +
+ src/deepseek/ds_engine.cu                | 1021 ++++++++++++++++++++++++++++++
+ src/deepseek/ds_f32_matvec.cu            |  226 +++++++
+ src/deepseek/ds_f32_matvec.cuh           |   36 ++
+ src/deepseek/ds_kernels.cu               |   93 +++
+ src/deepseek/ds_kernels.cuh              |   30 +
+ src/deepseek/ds_main.cpp                 |    4 +
+ src/program/generate.cpp                 |   57 +-
+ tests/core/model_family_test.cpp         |  163 ++++-
+ 15 files changed, 1782 insertions(+), 33 deletions(-)
+
+commits:
+3c2f89555 HO-STRATA-016: block-0 input assertion vs direct token_embd row dequant (audit A14)
+59c83e2e8 HO-STRATA-016: greedy generation + --dump-logits-full + optional --dump-layers; dispatch without --parity-run; --families/model_family_runs scoped to engine build; token gate 3x16 zero mismatches; KL not yet computed

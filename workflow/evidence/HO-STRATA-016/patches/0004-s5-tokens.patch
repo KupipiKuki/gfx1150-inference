@@ -1,0 +1,439 @@
+From 59c83e2e8b5b24903dd087924f7bd47dcc297817 Mon Sep 17 00:00:00 2001
+From: KupipiKuki <masterkookus@gmail.com>
+Date: Fri, 27 Nov 2026 16:49:48 -0500
+Subject: [PATCH 1/2] HO-STRATA-016: greedy generation + --dump-logits-full +
+ optional --dump-layers; dispatch without --parity-run;
+ --families/model_family_runs scoped to engine build; token gate 3x16 zero
+ mismatches; KL not yet computed
+
+---
+ CMakeLists.txt                           |   1 +
+ include/strata/artifact/model_family.hpp |   8 +-
+ src/deepseek/ds_engine.cu                | 138 ++++++++++++++++-------
+ src/program/generate.cpp                 |  35 +++---
+ tests/core/model_family_test.cpp         |   4 +
+ 5 files changed, 129 insertions(+), 57 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1adbdc508..b159926ce 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -354,6 +354,7 @@ if(STRATA_BUILD_TESTS)
+   # the model families (qwen4exp, qwen35moe): the guards, the geometry from metadata, the layout tables (synthetic)
+   add_executable(model_family_test tests/core/model_family_test.cpp)
+   target_link_libraries(model_family_test PRIVATE strata_artifact)
++  target_compile_definitions(model_family_test PRIVATE $<$<TARGET_EXISTS:strata_deepseek>:STRATA_HAVE_DEEPSEEK=1>)
+   add_test(NAME model_family_test COMMAND model_family_test)
+   # how --batch cuts a prompt read into pieces (a layer split with no slot decoding must still reach a BYIELD)
+   add_executable(batch_read_test tests/program/batch_read_test.cpp)
+diff --git a/include/strata/artifact/model_family.hpp b/include/strata/artifact/model_family.hpp
+index 6961c7b98..5a8cb2427 100644
+--- a/include/strata/artifact/model_family.hpp
++++ b/include/strata/artifact/model_family.hpp
+@@ -57,7 +57,13 @@ inline const char* model_family_title(ModelFamily f) {
+ /// Whether Flash-Next's engine path runs the family.  Qwen3.6 has an engine path of its own (src/qwen35), which the
+ /// CUDA and HIP builds of `strata` switch to at the top of main(); the Intel Arc (SYCL) build has none yet, so there
+ /// (and on Flash-Next's path) the family is refused with `model_family_not_supported`.
+-inline bool model_family_runs(ModelFamily f) { return f == ModelFamily::Qwen4Exp; }
++inline bool model_family_runs(ModelFamily f) {
++    if (f == ModelFamily::Qwen4Exp) return true;
++#if defined(STRATA_HAVE_DEEPSEEK)
++    if (f == ModelFamily::DeepseekMoe) return true;
++#endif
++    return false;
++}
+ 
+ /// The refusal for a recognised family the engine does not run (empty when it runs it).
+ inline std::string model_family_not_supported(ModelFamily f) {
+diff --git a/src/deepseek/ds_engine.cu b/src/deepseek/ds_engine.cu
+index 3e2928789..ea1b122c7 100644
+--- a/src/deepseek/ds_engine.cu
++++ b/src/deepseek/ds_engine.cu
+@@ -211,6 +211,7 @@ struct Buffers {
+     int* topk_idx = nullptr;      // 6
+     float* topk_w = nullptr;      // 6
+     float* router_logits = nullptr; // n_expert
++    float* logits = nullptr;      // n_vocab
+ };
+ 
+ // ------------------------------------------------------------------------------------------------ load
+@@ -322,12 +323,14 @@ static void alloc_buffers(const Model& m, Buffers& b, int max_context) {
+     CK(cudaMalloc(&b.topk_idx, 6 * sizeof(int)));
+     CK(cudaMalloc(&b.topk_w, 6 * sizeof(float)));
+     CK(cudaMalloc(&b.router_logits, (size_t) m.g.n_expert * sizeof(float)));
++    CK(cudaMalloc(&b.logits, (size_t) m.g.n_vocab * sizeof(float)));
+ 
+     // Largest 2-D weight slice we ever dequantize per matvec.
+-    const int64_t max_2d = std::max<int64_t>(N * m.g.n_ff_dense,
+-                                              std::max<int64_t>(N * m.g.n_ff_shexp,
+-                                                                std::max<int64_t>(N * m.g.n_ff,
+-                                                                                  m.g.n_ff * N)));
++    const int64_t max_2d = std::max<int64_t>(N * m.g.n_vocab,
++                                              std::max<int64_t>(N * m.g.n_ff_dense,
++                                                                std::max<int64_t>(N * m.g.n_ff_shexp,
++                                                                                  std::max<int64_t>(N * m.g.n_ff,
++                                                                                                    m.g.n_ff * N))));
+     CK(cudaMalloc(&b.weight_scratch, (size_t) max_2d * 4));
+ 
+     // dump: 29 slots (input + 28 layers) per position
+@@ -534,6 +537,27 @@ static void run_moe_ffn(const Model& m, Buffers& b, int layer_idx, int pos, cons
+     }
+ }
+ 
++static void compute_logits(const Model& m, Buffers& b, float* logits, void* stream) {
++    const int64_t N = m.g.n_embd;
++    CK(cudaMemcpyAsync(b.norm_out, b.residual, N * 4, cudaMemcpyDeviceToDevice, (cudaStream_t) stream));
++    K::rms_norm_weighted(b.norm_out, m.output_norm, 1, N, (float) m.g.rms_eps, stream);
++    Weight out_w = m.output_tied ? Weight{0, (int) N, (int) m.g.n_vocab, m.token_embd} : m.output;
++    matvec(out_w, b.norm_out, logits, b.weight_scratch, stream);
++}
++
++// Deterministic greedy: highest logit; ties -> lowest token id.
++static int argmax_lowest_id(const float* logits, int n) {
++    int best_id = 0;
++    float best = logits[0];
++    for (int i = 1; i < n; ++i) {
++        if (logits[i] > best) {
++            best = logits[i];
++            best_id = i;
++        }
++    }
++    return best_id;
++}
++
+ static void run_block(const Model& m, Buffers& b, int layer_idx, int pos, int n_kv,
+                       const float* cos_tab, const float* sin_tab, void* stream) {
+     const Layer& layer = m.layers[layer_idx];
+@@ -561,6 +585,7 @@ static void run_block(const Model& m, Buffers& b, int layer_idx, int pos, int n_
+ struct Options {
+     std::string native;
+     std::string dump_layers;
++    std::string dump_logits_full;
+     std::vector<int64_t> tokens;
+     int64_t max_new = 1;
+     int64_t max_context = 1024;
+@@ -619,6 +644,7 @@ int run(int argc, char** argv) {
+         } else if (a == "--max-new") o.max_new = std::atoll(next("--max-new"));
+         else if (a == "--max-context") o.max_context = std::atoll(next("--max-context"));
+         else if (a == "--dump-layers") o.dump_layers = next("--dump-layers");
++        else if (a == "--dump-logits-full") o.dump_logits_full = next("--dump-logits-full");
+ #ifdef STRATA_DEEPSEEK_DIAG
+         else if (a == "--parity-inject") {
+             std::string v = next("--parity-inject");
+@@ -648,12 +674,13 @@ int run(int argc, char** argv) {
+         std::fprintf(stderr, "strata-deepseek: --native / --model is required\n");
+         return 2;
+     }
+-    if (o.dump_layers.empty()
++    const bool has_output = o.max_new > 0 || !o.dump_logits_full.empty() || !o.dump_layers.empty();
++    if (!has_output
+ #ifdef STRATA_DEEPSEEK_DIAG
+-        && o.teacher_force.empty()
++        && o.teacher_force.empty() && o.inject_path.empty()
+ #endif
+         ) {
+-        std::fprintf(stderr, "strata-deepseek: --dump-layers is required\n");
++        std::fprintf(stderr, "strata-deepseek: nothing to do (provide --dump-layers, --dump-logits-full, or --max-new > 0)\n");
+         return 2;
+     }
+     if (o.tokens.empty()
+@@ -665,10 +692,6 @@ int run(int argc, char** argv) {
+         return 2;
+     }
+ 
+-    std::fprintf(stderr,
+-                 "strata generate: parity run: architecture 'deepseek' is not supported; this path exists for "
+-                 "HO-STRATA-014/015 parity only\n");
+-
+     K::RopeScaling rs;
+     rs.type = K::RopeScalingType::None;
+     rs.freq_base = 10000.0;
+@@ -859,47 +882,86 @@ int run(int argc, char** argv) {
+     } else
+ #endif
+     {
+-        for (int pos = 0; pos < n_total; ++pos) {
+-            if (pos < n_prompt) {
+-                const int tok_id = (int) o.tokens[pos];
+-                CK(cudaMemcpyAsync(b.residual, m.token_embd + (size_t) tok_id * N, N * 4,
+-                                   cudaMemcpyDeviceToDevice, stream));
++        const bool do_layer_dump = !o.dump_layers.empty();
++        const bool do_logits_full = !o.dump_logits_full.empty();
++        std::vector<int> generated;
++        generated.reserve((size_t) o.max_new);
++        std::vector<float> h_logits((size_t) m.g.n_vocab);
++        std::FILE* logits_full_f = nullptr;
++        if (do_logits_full) {
++            logits_full_f = std::fopen(o.dump_logits_full.c_str(), "wb");
++            if (!logits_full_f) {
++                std::fprintf(stderr, "strata-deepseek: cannot write %s\n", o.dump_logits_full.c_str());
++                return 1;
+             }
++        }
+ 
+-            // dump slot 0 = input residual
+-            CK(cudaMemcpyAsync(b.dump + (size_t) pos * (n_layers + 1) * N, b.residual, N * 4,
++        for (int pos = 0; pos < n_total; ++pos) {
++            const int tok_id = (pos < n_prompt) ? (int) o.tokens[pos] : generated[pos - n_prompt];
++            CK(cudaMemcpyAsync(b.residual, m.token_embd + (size_t) tok_id * N, N * 4,
+                                cudaMemcpyDeviceToDevice, stream));
+ 
++            if (do_layer_dump) {
++                CK(cudaMemcpyAsync(b.dump + (size_t) pos * (n_layers + 1) * N, b.residual, N * 4,
++                                   cudaMemcpyDeviceToDevice, stream));
++            }
++
+             for (int l = 0; l < n_layers; ++l) {
+                 run_block(m, b, l, pos, pos + 1, d_cos, d_sin, stream);
+-                // dump slot l+1 = after block l
+-                CK(cudaMemcpyAsync(b.dump + ((size_t) pos * (n_layers + 1) + l + 1) * N, b.residual, N * 4,
+-                                   cudaMemcpyDeviceToDevice, stream));
++                if (do_layer_dump) {
++                    CK(cudaMemcpyAsync(b.dump + ((size_t) pos * (n_layers + 1) + l + 1) * N, b.residual, N * 4,
++                                       cudaMemcpyDeviceToDevice, stream));
++                }
+             }
+-        }
+-    }
+ 
+-    CK(cudaStreamSynchronize(stream));
++            if (pos >= n_prompt - 1 && (int) generated.size() < (int) o.max_new) {
++                compute_logits(m, b, b.logits, stream);
++                CK(cudaStreamSynchronize(stream));
++                CK(cudaMemcpy(h_logits.data(), b.logits, h_logits.size() * 4, cudaMemcpyDeviceToHost));
++                if (logits_full_f) {
++                    if (std::fwrite(h_logits.data(), 4, h_logits.size(), logits_full_f) != h_logits.size()) {
++                        std::fprintf(stderr, "strata-deepseek: short write on %s\n", o.dump_logits_full.c_str());
++                        std::fclose(logits_full_f);
++                        return 1;
++                    }
++                }
++                int next_id = argmax_lowest_id(h_logits.data(), (int) h_logits.size());
++                generated.push_back(next_id);
++            }
++        }
+ 
+-    // write dump file (free-running / injection modes only)
+-    if (!teacher_mode) {
+-        std::FILE* f = std::fopen(o.dump_layers.c_str(), "wb");
+-        if (!f) {
+-            std::fprintf(stderr, "strata-deepseek: cannot write %s\n", o.dump_layers.c_str());
+-            return 1;
++        if (logits_full_f) {
++            std::fclose(logits_full_f);
++            std::printf("logits_full shape: [%zu][%lld]  file: %s\n",
++                        generated.size(), (long long) m.g.n_vocab, o.dump_logits_full.c_str());
++            std::printf("logits_full layout: [step][vocab_index] f32, vocab_size=%lld\n", (long long) m.g.n_vocab);
+         }
+-        std::vector<float> h((size_t) n_total * (n_layers + 1) * N);
+-        CK(cudaMemcpy(h.data(), b.dump, h.size() * 4, cudaMemcpyDeviceToHost));
+-        if (std::fwrite(h.data(), 4, h.size(), f) != h.size()) {
+-            std::fprintf(stderr, "strata-deepseek: short write on %s\n", o.dump_layers.c_str());
++
++        std::printf("gen:");
++        for (int id : generated) std::printf(" %d", id);
++        std::printf("\n");
++
++        if (do_layer_dump) {
++            std::FILE* f = std::fopen(o.dump_layers.c_str(), "wb");
++            if (!f) {
++                std::fprintf(stderr, "strata-deepseek: cannot write %s\n", o.dump_layers.c_str());
++                return 1;
++            }
++            std::vector<float> h((size_t) n_total * (n_layers + 1) * N);
++            CK(cudaMemcpy(h.data(), b.dump, h.size() * 4, cudaMemcpyDeviceToHost));
++            if (std::fwrite(h.data(), 4, h.size(), f) != h.size()) {
++                std::fprintf(stderr, "strata-deepseek: short write on %s\n", o.dump_layers.c_str());
++                std::fclose(f);
++                return 1;
++            }
+             std::fclose(f);
+-            return 1;
++            std::printf("layers dumped: %s (%d positions x %d layers + the input x %lld)\n",
++                        o.dump_layers.c_str(), n_total, n_layers, (long long) N);
+         }
+-        std::fclose(f);
+-        std::printf("layers dumped: %s (%d layers + the input x 1 streams x %lld)\n",
+-                    o.dump_layers.c_str(), n_layers, (long long) N);
+     }
+ 
++    CK(cudaStreamSynchronize(stream));
++
+     CK(cudaStreamDestroy(stream));
+     return 0;
+ }
+diff --git a/src/program/generate.cpp b/src/program/generate.cpp
+index e5a0df66a..385c2ee7a 100644
+--- a/src/program/generate.cpp
++++ b/src/program/generate.cpp
+@@ -3569,8 +3569,12 @@ int main(int argc, char** argv) {
+         }
+         // `strata --families`: the GGUF architectures this build runs (setup asks before it installs one)
+         if (std::strcmp(argv[i], "--families") == 0) {
+-#if defined(STRATA_HAVE_QWEN35)
++#if defined(STRATA_HAVE_QWEN35) && defined(STRATA_HAVE_DEEPSEEK)
++            std::printf("qwen4exp qwen35moe deepseek\n");
++#elif defined(STRATA_HAVE_QWEN35)
+             std::printf("qwen4exp qwen35moe\n");
++#elif defined(STRATA_HAVE_DEEPSEEK)
++            std::printf("qwen4exp deepseek\n");
+ #else
+             std::printf("qwen4exp\n");
+ #endif
+@@ -3690,26 +3694,21 @@ int main(int argc, char** argv) {
+     }
+ #endif
+ #if defined(STRATA_HAVE_DEEPSEEK)
+-    // HO-STRATA-014/015: DeepSeek-MoE-16B is recognised but not supported for normal runs; --parity-run
+-    // (already verified to come with --dump-layers above) reaches its dedicated parity engine here.
++    // HO-STRATA-016: DeepSeek-MoE-16B runs on its own dedicated engine path.  --parity-run and the
++    // diagnostic teacher-forced modes are still accepted (S4 evidence), but they are no longer required.
+     {
+-        bool parity_run = false;
+-        for (int j = 1; j < argc; ++j)
+-            if (std::strcmp(argv[j], "--parity-run") == 0) parity_run = true;
+-        if (parity_run) {
+-            bool deepseek = false;
+-            for (int j = 1; j + 1 < argc; ++j) {
+-                if (std::strcmp(argv[j], "--native") != 0 && std::strcmp(argv[j], "--model") != 0) continue;
+-                try {
+-                    const strata::GgufFile meta(strata::gguf_split_paths(argv[j + 1]).front());
+-                    deepseek = strata::model_family(meta) == strata::ModelFamily::DeepseekMoe;
+-                } catch (const std::exception&) {
+-                    // not readable here: the normal path below reports it
+-                }
+-                break;
++        bool deepseek = false;
++        for (int j = 1; j + 1 < argc; ++j) {
++            if (std::strcmp(argv[j], "--native") != 0 && std::strcmp(argv[j], "--model") != 0) continue;
++            try {
++                const strata::GgufFile meta(strata::gguf_split_paths(argv[j + 1]).front());
++                deepseek = strata::model_family(meta) == strata::ModelFamily::DeepseekMoe;
++            } catch (const std::exception&) {
++                // not readable here: the normal path below reports it
+             }
+-            if (deepseek) return strata::deepseek::run(argc, argv);
++            break;
+         }
++        if (deepseek) return strata::deepseek::run(argc, argv);
+     }
+ #endif
+ #if defined(STRATA_USE_HIP) && !defined(STRATA_HIP_GFX906)
+diff --git a/tests/core/model_family_test.cpp b/tests/core/model_family_test.cpp
+index 9e5c3aaca..f306cc1a3 100644
+--- a/tests/core/model_family_test.cpp
++++ b/tests/core/model_family_test.cpp
+@@ -228,8 +228,12 @@ int main(int argc, char** argv) {
+         check(e.find("Qwen3.6-35B-A3B") != std::string::npos && e.find("does not run it yet") != std::string::npos,
+               "the engine guard refuses Qwen3.6: recognised, not supported yet");
+         const std::string ds_e = strata::check_engine_architecture(c);
++#if defined(STRATA_HAVE_DEEPSEEK)
++        check(ds_e.empty(), "the engine guard runs DeepSeek");
++#else
+         check(ds_e.find("DeepSeek-MoE-16B-base") != std::string::npos && ds_e.find("does not run it yet") != std::string::npos,
+               "the engine guard refuses DeepSeek: recognised, not supported yet");
++#endif
+         check(strata::check_engine_architecture(b).empty(), "the engine guard runs qwen4exp");
+         std::vector<Kv> kv = metadata("qwen35moe", kQwen36, 8);
+         for (auto it = kv.begin(); it != kv.end(); ++it)
+-- 
+2.43.0
+
+
+From 3c2f89555ad5723e4ecfa8e1995fc8921d93b556 Mon Sep 17 00:00:00 2001
+From: KupipiKuki <masterkookus@gmail.com>
+Date: Fri, 27 Nov 2026 18:32:03 -0500
+Subject: [PATCH 2/2] HO-STRATA-016: block-0 input assertion vs direct
+ token_embd row dequant (audit A14)
+
+Every free-run position now checks b.residual (the block-0 input) against an
+independent dequant of the fed token's row straight from the GGUF payload
+(second GgufModel reader, same pattern as the dequant spot-check; not the
+whole-table dequant the gather reads from). Bit-exactness required.
+
+Read-only verification: no engine state is written, arithmetic unchanged.
+Verified: P1 tokens identical to the pre-change run; 21 positions pass.
+
+Limits: normal-run path only; teacher/inject diagnostic paths untouched.
+---
+ src/deepseek/ds_engine.cu | 52 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/src/deepseek/ds_engine.cu b/src/deepseek/ds_engine.cu
+index ea1b122c7..6d578d1e5 100644
+--- a/src/deepseek/ds_engine.cu
++++ b/src/deepseek/ds_engine.cu
+@@ -896,11 +896,58 @@ int run(int argc, char** argv) {
+             }
+         }
+ 
++        // Block-0 input assertion (HO-STRATA-015 audit A14, carried into S5).  The
++        // residual every position feeds into block 0 is the embedding row of its
++        // token; here that row is re-dequantised INDEPENDENTLY from the GGUF's
++        // on-disk payload (a second reader — the same pattern as the dequant
++        // spot-check above, and not the whole-table dequant the gather reads from)
++        // and required to be bit-exact against b.residual.  Read-only: it never
++        // writes engine state, so the arithmetic and the dumps are unchanged.
++        strata::GgufModel em = strata::GgufModel::open(o.native);
++        size_t eshard = 0;
++        const strata::TensorInfo* et = em.find("token_embd.weight", &eshard);
++        if (!et) {
++            std::fprintf(stderr, "strata-deepseek: block-0 input assertion: token_embd.weight not found\n");
++            return 1;
++        }
++        const int etype = (int) et->type;
++        const size_t erow = K::iq_row_bytes(etype, N);
++        if (erow == 0) {
++            std::fprintf(stderr, "strata-deepseek: block-0 input assertion: no row geometry for token_embd type %d\n", etype);
++            return 1;
++        }
++        const uint8_t* eraw = em.shard(eshard).tensor_data(*et);
++        uint8_t* d_erow = nullptr;
++        float* d_eexp = nullptr;
++        CK(cudaMalloc(&d_erow, erow));
++        CK(cudaMalloc(&d_eexp, (size_t) N * 4));
++        std::vector<float> h_act((size_t) N), h_exp((size_t) N);
++        int block0_checked = 0;
++
+         for (int pos = 0; pos < n_total; ++pos) {
+             const int tok_id = (pos < n_prompt) ? (int) o.tokens[pos] : generated[pos - n_prompt];
+             CK(cudaMemcpyAsync(b.residual, m.token_embd + (size_t) tok_id * N, N * 4,
+                                cudaMemcpyDeviceToDevice, stream));
+ 
++            {
++                CK(cudaMemcpyAsync(d_erow, eraw + (size_t) tok_id * erow, erow, cudaMemcpyHostToDevice, stream));
++                D::dequant_to_f32(etype, d_erow, 0, 1, (int) N, d_eexp, stream);
++                CK(cudaMemcpyAsync(h_act.data(), b.residual, N * 4, cudaMemcpyDeviceToHost, stream));
++                CK(cudaMemcpyAsync(h_exp.data(), d_eexp, N * 4, cudaMemcpyDeviceToHost, stream));
++                CK(cudaStreamSynchronize(stream));
++                double maxd = 0.0;
++                for (int64_t i = 0; i < N; ++i) {
++                    const double d = std::fabs((double) h_act[i] - (double) h_exp[i]);
++                    if (d > maxd) maxd = d;
++                }
++                if (maxd != 0.0) {
++                    std::fprintf(stderr, "strata-deepseek: block-0 input assertion FAIL: pos %d tok %d, residual vs direct token_embd row: max abs diff %.6e\n",
++                                 pos, tok_id, maxd);
++                    return 1;
++                }
++                ++block0_checked;
++            }
++
+             if (do_layer_dump) {
+                 CK(cudaMemcpyAsync(b.dump + (size_t) pos * (n_layers + 1) * N, b.residual, N * 4,
+                                    cudaMemcpyDeviceToDevice, stream));
+@@ -937,6 +984,11 @@ int run(int argc, char** argv) {
+             std::printf("logits_full layout: [step][vocab_index] f32, vocab_size=%lld\n", (long long) m.g.n_vocab);
+         }
+ 
++        std::fprintf(stderr, "strata-deepseek: block-0 input assertion: %d positions, residual vs direct token_embd row dequant (type %d): max abs diff 0.000000e+00 ok\n",
++                     block0_checked, etype);
++        CK(cudaFree(d_erow));
++        CK(cudaFree(d_eexp));
++
+         std::printf("gen:");
+         for (int id : generated) std::printf(" %d", id);
+         std::printf("\n");
+-- 
+2.43.0
+

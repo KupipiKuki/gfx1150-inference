@@ -1,0 +1,9 @@
+Apply-check for 0004-s5-tokens.patch on baf16363 + 0001 + 0002 + 0003:
+
+  git worktree add --detach /tmp/opencode/s5-apply-check baf16363b4403ef0ed4f538f5d5ed11c43fb9535
+  cd /tmp/opencode/s5-apply-check
+0001 apply exit: 0
+0002 apply exit: 0
+0003 apply exit: 0
+  git apply --check 0004-s5-tokens.patch
+0004 apply --check exit: 0
