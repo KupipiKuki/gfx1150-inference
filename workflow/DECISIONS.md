@@ -1278,3 +1278,45 @@ in the conservative direction. The same correction applies to
 - **Affected:** HO-STRATA-016, `src/program/generate.cpp`,
   `include/strata/artifact/model_family.hpp`, `src/deepseek/**`, `--families`
   consumers (`strata_control`), DEC-037, DEC-042.
+
+## DEC-049 — Coder seat: provider migration, disclosed substitution for HO-016
+
+- **Date:** 2026-11-27
+- **Context:** mid-S5, `coder-primary` failed to launch:
+  `Model unavailable: opencode-go/kimi-k2.7-code`. The `opencode-go` catalogue no
+  longer lists `kimi-k2.7-code`, `deepseek-v4-pro`, or `gemini-4-argon`; the same
+  models are served by **`alibaba-token-plan`** (`kimi-k2.7-code`,
+  `qwen3.8-flash`, `deepseek-v4-pro-0813`, `deepseek-v4.1-flash-1017`, …), all
+  active. `.opencode/agents/coder-primary.md` was pointed at
+  `alibaba-token-plan/qwen3.8-flash` to keep the work package moving, and the
+  change was left uncommitted.
+- **Finding:** this is a **provider** migration, not a family change, for the seats
+  whose models still exist under the new provider. But the substitution actually
+  used (`qwen3.8-flash`) is **not** the recorded seat: `MODEL_POLICY.md` §3 records
+  `coder-primary` = **kimi** (DEC-022 era). Leaving it undocumented would be a
+  silent model change (DEC-013).
+- **Decision:**
+  1. **HO-016 is completed on `alibaba-token-plan/qwen3.8-flash`** as a
+     **disclosed temporary substitution** — the DEC-036 pattern. R4/R5 still hold:
+     QAQC is `gemini`, the coder is `qwen3.8`.
+  2. It is recorded that `coder-primary` and `coder-secondary` now share a family
+     (`qwen3.8`). R4 constrains only coder vs **QAQC**, so this is permitted, but it
+     is a design drift from §3 and must not become permanent by accident.
+  3. **Preferred closure (before S6):** point `coder-primary` at
+     **`alibaba-token-plan/kimi-k2.7-code`** — the recorded family, available on the
+     new provider — commit the agent file, update `MODEL_POLICY.md` §3 and
+     `workflow/model_policy.json` if the provider id is recorded there, and run
+     `check_model_policy.py --strict`. That closes this note.
+  4. **The architect and QAQC seats are also absent from `opencode-go`'s current
+     listing.** R1 (architect family exclusive) and R5 (no self-review) depend on
+     them continuing to be served (they are, in this session) — if either fails to
+     launch in a future session, it is an **owner/policy escalation**, not something
+     to paper over with a substitute, because a substitute for the auditor or QAQC
+     breaks the independence the whole workflow rests on.
+- **Consequences:** S5's review is valid (QAQC on gemini, auditor on deepseek, coder
+  on qwen3.8 — all distinct), and the drift is on record with a closure step rather
+  than discovered later. The agent-file change is committed with this decision so
+  the tree is clean and the reason travels with it.
+- **Affected:** `.opencode/agents/coder-primary.md`, `workflow/MODEL_POLICY.md` §3
+  (closure), `workflow/model_policy.json`, HO-STRATA-016 (disclosure in its
+  evidence), DEC-006, DEC-013, DEC-036, DEC-039.
