@@ -1207,3 +1207,74 @@ bit-identical to the reference. The DEC-046 decision (teacher-forced gate, same
 5e-3, drift reported) stands; only the quoted margin was wrong, and it was wrong
 in the conservative direction. The same correction applies to
 `DR-HO-STRATA-015-1.md` §2, `HO-STRATA-015.md` §11 and the manifest, which cite it.
+
+## DEC-047 — S5's KL is an absolute ceiling against the exact model, not a ratio to a floor that cannot exist
+
+- **Date:** 2026-11-27
+- **Context:** the family plan (13 §4, S5) gates "teacher-forced KL over 16 steps
+  below the pre-registered bound", and the project's precedent (`tools/qwen35/kl.py`)
+  is *"Strata's KL within 1.5× of the floor"*, where the floor is **llama.cpp CPU
+  vs llama.cpp GPU** — two runs of the *same arithmetic*. DEC-044 established that
+  this engine deliberately does **not** reproduce llama.cpp's CPU arithmetic: it
+  dequantises to f32 and computes exactly, while the Q4_K oracle quantises
+  activations to q8_K. A CPU-vs-GPU floor of the oracle measures accumulation-order
+  noise inside a *different* arithmetic and would make an exact engine fail by
+  construction — the same mistake as the 5e-3 layer gate against the Q4_K dump.
+- **Decision:**
+  1. **Token parity is the gate, against the shipped pack** — 3 prompts × 16
+     greedy tokens vs the Q4_K oracle at pin `78e05298…`, **zero mismatches**
+     (plan A3, DEC-038: the CLI oracle is the authority). The exact-f32 oracle is
+     the **adjudicator** if a token differs, with the per-step top-2 margins
+     recorded; a mismatch is a **finding for the architect**, never an
+     auto-accepted outcome.
+  2. **KL is an absolute, pre-registered ceiling against the exact-f32 model**:
+     mean KL(engine ‖ f32-oracle) ≤ **1e-2 nats** per prompt and no single step
+     > **1e-1**, over the 16 steps on the oracle's token sequence. Basis: per-layer
+     parity is 1.569942e-04 (S4b), so the distributions should be near-identical;
+     the ceilings are the level at which a greedy token could plausibly flip, and
+     they are stated before the run.
+  3. **Two context curves are reported, not gated**: KL(engine ‖ Q4_K oracle) —
+     the shipment difference, expected to be larger by design — and
+     KL(Q4_K ‖ f32) — the quantization gap itself. They explain the numbers; they
+     do not decide the handoff.
+  4. **No floor ratio is claimed.** The plan's "1.5× floor" is superseded here for
+     the same reason DEC-044 superseded the layer reference. The q36 ratio remains
+     the right gate for same-arithmetic comparisons (GPU vs ref), not this one.
+- **Consequences:** S5 can pass on its own terms without an unmeasurable ratio, and
+  a suspiciously tight KL cannot be manufactured by comparing against a lossy
+  reference. If the KL ceiling proves too tight on real data, that is a deviation
+  with the measured values, decided by the architect — not a silent widening.
+- **Affected:** HO-STRATA-016, `planning/strata-engine/13` §4 (S5), DEC-038,
+  DEC-044, DEC-046.
+
+## DEC-048 — What "the family runs" means for DeepSeek, and how the flag is scoped
+
+- **Date:** 2026-11-27
+- **Context:** S5 flips the support claim, and `model_family_runs()` /
+  `--families` are not the same thing in this engine. `--families` prints a
+  **compile-time** list (`generate.cpp:3571-3577`: `qwen4exp qwen35moe` under
+  `STRATA_HAVE_QWEN35`), while `model_family_runs()` is used **only** by
+  `model_family_not_supported()` — the generic engine's refusal. `qwen35moe`
+  demonstrates the pattern: it *runs* (its own engine, dispatched at the top of
+  `main`) while `model_family_runs()` returns **false** for it, so a build without
+  that engine still refuses honestly.
+- **Decision:**
+  1. **The flip is: dispatch, not a lie about the generic engine.** With the
+     deepseek engine compiled, `--native <deepseek>` routes to `src/deepseek`
+     **without** requiring `--parity-run`, and `--families` lists `deepseek`.
+  2. **It is compile-time honest:** in a build where the deepseek engine is not
+     compiled, `--families` does not list it and the named refusal still fires. A
+     build must never advertise a family it cannot run.
+  3. **`model_family_runs()` follows the same rule**: true for `DeepseekMoe`
+     **only when that engine is compiled**. A header constant that is true in every
+     build would make the SYCL/CUDA-only builds claim support they lack.
+  4. `--parity-run` and the teacher-forced diagnostics stay (they are how S4 was
+     evidenced and remain useful for regression); they simply stop being required.
+  5. `--dump-layers` becomes **optional** for normal runs (it is currently
+     mandatory, which is a parity-mode artefact, not a product behaviour).
+- **Consequences:** the support claim is testable in both directions — a build with
+  the engine runs the pack and says so; a build without it refuses by name. The
+  AC set must prove both, not just the happy path.
+- **Affected:** HO-STRATA-016, `src/program/generate.cpp`,
+  `include/strata/artifact/model_family.hpp`, `src/deepseek/**`, `--families`
+  consumers (`strata_control`), DEC-037, DEC-042.
