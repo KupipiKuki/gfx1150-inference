@@ -1,0 +1,1 @@
+placeholder: replaced by the converged check_bundle --strict output (DEC-041 §2 fixed point).

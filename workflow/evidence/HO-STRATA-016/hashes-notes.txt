@@ -1,0 +1,91 @@
+# HO-STRATA-016 — hashes notes
+
+## Immutable artifacts
+
+`hashes.txt` carries SHA-256 of every repo-tracked bundle file and the repo
+reference files cited below. Machine-external paths (packs, binaries, logits
+dumps) are recorded here, never in `hashes.txt` (they are not repo-relative
+and the strict gate treats them as findings).
+
+## Commit pins
+
+| File | Repository | Commit | Command | Digest |
+|---|---|---|---|---|
+| `workflow/evidence/HO-STRATA-016/scripts/oracle_s5.cpp` | gfx1150-inference | 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c | `git show 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/scripts/oracle_s5.cpp \| sha256sum` | a4851532dc2abc5091fa5f312cc4171a854aec0729a2cdc524a8cb117b699eb2 |
+| `workflow/evidence/HO-STRATA-016/scripts/compute_kl.py` | gfx1150-inference | 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c | `git show 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/scripts/compute_kl.py \| sha256sum` | 9631fd1b68cbdf1b7307236195a719790773682dac6dc7995287aed6814ce46a |
+| `workflow/evidence/HO-STRATA-016/scripts/top2_margin.py` | gfx1150-inference | 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c | `git show 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/scripts/top2_margin.py \| sha256sum` | 01e451b5cdb4854015db36858d2b6d173418226068419fcaf7f4a36ba9ad1715 |
+| `workflow/evidence/HO-STRATA-016/scripts/verdict_check.py` | gfx1150-inference | 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c | `git show 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/scripts/verdict_check.py \| sha256sum` | 5199d974e2dc5791379124a63b76d4c130778a5044945a09afc77cbf251f4d77 |
+| `workflow/evidence/HO-STRATA-016/patches/0004-s5-tokens.patch` | gfx1150-inference | 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c | `git show 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/patches/0004-s5-tokens.patch \| sha256sum` | cc47072134fefbac99397fa2ffb5fc9de9316be228ec2698762368c32484ea08 |
+| `workflow/evidence/HO-STRATA-016/commands.log` | gfx1150-inference | 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c | `git show 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/evidence/HO-STRATA-016/commands.log \| sha256sum` | 832b6f2df94f80c20a2de9b0ac506131aa15bf212bb74b27f8fc953bcfb35796 |
+| `workflow/tools/check_bundle.py` | gfx1150-inference | 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c | `git show 69fff7f2186eb1e47916fb4c1d2c6dcf0351155c:workflow/tools/check_bundle.py \| sha256sum` | f81e51da27ca813df81190c120371bb4d8f1e829174de4ea6e364846e8c9addc |
+| `src/deepseek/ds_engine.cu` | strata | 3c2f89555ad5723e4ecfa8e1995fc8921d93b556 | `git -C /home/kupipi/Documents/git/strata show 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_engine.cu \| sha256sum` | 9f49e0b23e9ed155550ad36ec7f9faafc87cd70f02e759dd104faee2a6d458dd |
+| `CMakeLists.txt` | strata | 59c83e2e8b5b24903dd087924f7bd47dcc297817 | `git -C /home/kupipi/Documents/git/strata show 59c83e2e8b5b24903dd087924f7bd47dcc297817:CMakeLists.txt \| sha256sum` | 7eb8872d959d7c662ef9ea0cb3c65f68107bdd3ff0c43d618bbab9bc7e427997 |
+| `include/strata/artifact/model_family.hpp` | strata | 59c83e2e8b5b24903dd087924f7bd47dcc297817 | `git -C /home/kupipi/Documents/git/strata show 59c83e2e8b5b24903dd087924f7bd47dcc297817:include/strata/artifact/model_family.hpp \| sha256sum` | dfe184664f3ca8f2d1200b2b79e4bc1d3b58961a3066edc4f344a13295688046 |
+| `src/program/generate.cpp` | strata | 59c83e2e8b5b24903dd087924f7bd47dcc297817 | `git -C /home/kupipi/Documents/git/strata show 59c83e2e8b5b24903dd087924f7bd47dcc297817:src/program/generate.cpp \| sha256sum` | dfabb97ab76c897d3ed8d0e9e27ec8b976378a9ac991754ec188fd23df4a713f |
+| `tests/core/model_family_test.cpp` | strata | 59c83e2e8b5b24903dd087924f7bd47dcc297817 | `git -C /home/kupipi/Documents/git/strata show 59c83e2e8b5b24903dd087924f7bd47dcc297817:tests/core/model_family_test.cpp \| sha256sum` | 695693a48cda6c91c79a646b29f5414befbafc33114c7fa2f900d2d635a080b3 |
+| `src/deepseek/ds_f32_matvec.cu` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_f32_matvec.cu \| sha256sum` | 23cfdcd6b380de8280af2757dbdb089120517d37373ae487be2939090c8169e0 |
+| `src/deepseek/ds_f32_matvec.cuh` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_f32_matvec.cuh \| sha256sum` | 13e8b3a6c8a95e0ac2ed66263dcddb06cf23f05bc70c201ad50b0f9b4a5e5c71 |
+| `src/deepseek/ds_kernels.cu` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_kernels.cu \| sha256sum` | c4339e6a86769e5e029d2615cb7fd328667df710224dedaf72d6863a51e145c9 |
+| `src/deepseek/ds_kernels.cuh` | strata | e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4 | `git -C /home/kupipi/Documents/git/strata show e2e7e1b347b4ac39cf51e7bf3eecaaf771a933f4:src/deepseek/ds_kernels.cuh \| sha256sum` | 8b95307fb32ed92be3cc1a74ade966a1dd86317fbbc82c3c08f105b8f3534be6 |
+| `src/deepseek/ds_f32_matvec.cu` | strata | 3c2f89555ad5723e4ecfa8e1995fc8921d93b556 | `git -C /home/kupipi/Documents/git/strata show 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_f32_matvec.cu \| sha256sum` | 23cfdcd6b380de8280af2757dbdb089120517d37373ae487be2939090c8169e0 |
+| `src/deepseek/ds_f32_matvec.cuh` | strata | 3c2f89555ad5723e4ecfa8e1995fc8921d93b556 | `git -C /home/kupipi/Documents/git/strata show 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_f32_matvec.cuh \| sha256sum` | 13e8b3a6c8a95e0ac2ed66263dcddb06cf23f05bc70c201ad50b0f9b4a5e5c71 |
+| `src/deepseek/ds_kernels.cu` | strata | 3c2f89555ad5723e4ecfa8e1995fc8921d93b556 | `git -C /home/kupipi/Documents/git/strata show 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_kernels.cu \| sha256sum` | c4339e6a86769e5e029d2615cb7fd328667df710224dedaf72d6863a51e145c9 |
+| `src/deepseek/ds_kernels.cuh` | strata | 3c2f89555ad5723e4ecfa8e1995fc8921d93b556 | `git -C /home/kupipi/Documents/git/strata show 3c2f89555ad5723e4ecfa8e1995fc8921d93b556:src/deepseek/ds_kernels.cuh \| sha256sum` | 8b95307fb32ed92be3cc1a74ade966a1dd86317fbbc82c3c08f105b8f3534be6 |
+
+## Notes
+
+- **No-arithmetic-change proof:** `ds_f32_matvec.cu/.cuh`, `ds_kernels.cu/.cuh`
+  carry **identical digests** at the base `e2e7e1b347…` and the final
+  `3c2f89555a…` — the kernels that produced S4's 1.569942e-04 were not touched.
+  Independently, all six engine logits dumps re-captured after the block-0
+  assertion (`3c2f89555`) are byte-identical to the pre-assertion captures.
+- The signed `build-hip/strata` (`d58ee239…`) was never rebuilt or modified; it
+  is the regression baseline for HO-007 and the AC-8 host (guard rail).
+- Greedy sampling is deterministic (argmax; ties → lowest token id), documented
+  in `src/deepseek/ds_engine.cu:548` at the pinned commit (AC-5 evidence).
+- `scripts/oracle_s5.cpp` is derived from the committed
+  `HO-STRATA-014/scripts/oracle_nodes.cpp` (parent SHA256
+  `25fe94526644c24bed527c02b25c1cff30247e3ceeafc741b7f6eaaa733942ca`,
+  recorded in the source header). The harness never detokenizes;
+  `--tokens` are raw ids from the HO-010 parity table.
+- The oracle binary and the llama-ref library tree are environment, not repo
+  state; rebuild is pinned by the llama.cpp commit
+  `78e05298f0d68abff41d08d79fa7469264b2aff0` (`/tmp/opencode/llama-ref`) plus
+  the committed source above.
+
+## External / machine-local artifact hashes (not repo-relative)
+
+| Artifact | Path | SHA256 |
+|---|---|---|
+| DeepSeek-MoE-16B Q4_K_M pack | `/home/kupipi/.cache/huggingface/hub/models--Lucy-in-the-Sky--deepseek-moe-16b-base-Q4_K_M-GGUF/snapshots/1f2b397cdb560ffb519aa8371d2f9eebae50d34d/deepseek-moe-16b-base-q4_k_m.gguf` | f00ecd83d2fc4f28d1d5531c9583ed9c07452263c84590167bbe014f65c330f5 |
+| Exact-f32 pack (reference) | `/tmp/opencode/deepseek-moe-16b-f32.gguf` | 8cd778a7fd6a077fe2d64aa7a7d47fe628c044f9e6439e53a258fd4d9e591f27 |
+| Qwen3.6 pack (regression) | `/home/kupipi/Documents/models/gguf/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` | environment input of HO-007/HO-012 (unchanged path since; IDs verified bit-identical, `artifacts/qwen_regression.txt`) |
+| Oracle harness binary | `/tmp/opencode/oracle_s5` | a9575ffd3ae6bde3126b39c1e17b72264dff3169b23c8a1070976d57f691d169 |
+| Engine binary (S5 build) | `/home/kupipi/Documents/git/strata/build-deepseek/strata` | 8b84f55a8332be1340decb94f85fcc49ad6f483ceb9e1889b8d6826b986ae432 |
+| Signed binary (untouched) | `/home/kupipi/Documents/git/strata/build-hip/strata` | d58ee2398596d1a100c15d5b9459e24bd86854cb5e5fb7ce88dbc6c7ed9f5858 |
+| HO-014 exact-f32 oracle dump (intact) | `/home/kupipi/Documents/git/gfx1150-inference/workflow/evidence/HO-STRATA-014/artifacts/runs/deepseek_f32_p1_4_layers.bin` | a4c56b9d9189468aeaf1b89637ed4f14f9107b5aaaf75cd4b0e324b6d1c3fc49 |
+
+### Full-logits dumps (external, regenerable — §5 decision)
+
+Each 6,553,600 bytes = [16 steps][102400 vocab] f32. Location:
+`/tmp/opencode/HO-STRATA-016-dumps/`. Regenerate with the commands in
+`commands.log` (§AC-2 oracle, §AC-3 engine, §AC-5 run2); every dump re-run this
+session `cmp`-ed byte-identical to the digests below.
+
+| Dump | SHA256 |
+|---|---|
+| engine_p1_logits_full.bin | a5f06c6afb3394253b64caa75101d68d74e777f2ea7009cfab19b79727406518 |
+| engine_p1_run2_logits_full.bin | a5f06c6afb3394253b64caa75101d68d74e777f2ea7009cfab19b79727406518 |
+| engine_p2_logits_full.bin | e9a9352c64b679092ae60904230d0211e4ac4db2f024b43045fc2f0964759f45 |
+| engine_p2_run2_logits_full.bin | e9a9352c64b679092ae60904230d0211e4ac4db2f024b43045fc2f0964759f45 |
+| engine_p3_logits_full.bin | 341c5157924e3fc96aacf562bd9faeb9918f1ce779eb58b21a3681f1143663f3 |
+| engine_p3_run2_logits_full.bin | 341c5157924e3fc96aacf562bd9faeb9918f1ce779eb58b21a3681f1143663f3 |
+| q4k_p1_logits_full.bin | d7093c663fc67a51b7ff92cf6f8fd3ab8d8f5d7adf957f0bfc15f982d6eb8398 |
+| q4k_p2_logits_full.bin | 119a619f23632120e683cc6bf79ab9c816ed9afaa4e4c68bdcb0d2bb28ac71c5 |
+| q4k_p3_logits_full.bin | 12b38fddbbe8eecf64097eeb69044ab7ec206d477d362f103c2a1192ab8cc3eb |
+| f32_p1_logits_full.bin | 3bd6f724209527c01240da6e8d61dbea7e8abc7e9bc1e8144a9153026d9371d0 |
+| f32_p2_logits_full.bin | 64e0904724898bd43a1227a14fde9ffc7b85b3308c7d881b2e75b18def3602f8 |
+| f32_p3_logits_full.bin | 127e781ca0d3d699a3b018ab08fcdbc8872c8ed510d55579921b16a4ed79f883 |
+
+(engine run1 == run2 per prompt is the AC-5 determinism result, not a copy:
+both files exist independently with these digests.)
