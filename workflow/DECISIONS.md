@@ -1355,3 +1355,35 @@ in the conservative direction. The same correction applies to
   next session, the question returns to the owner — do not substitute silently.
 - **Affected:** HO-STRATA-016, DEC-036 (precedent), DEC-039, DEC-049,
   `workflow/STATUS.md`, `workflow/MODEL_POLICY.md` (QAQC seat unchanged).
+
+## DEC-050 — S5 parks at CODER_DONE: the QAQC seat is unavailable and no substitute is accepted
+
+- **Date:** 2026-11-27
+- **Context:** HO-STRATA-016 reached `CODER_DONE` — token gate **0/48**, the KL
+  ceiling met (gated curve max 5.99e-06 against 1e-2), the flip verified in both
+  builds, bundle PASS (73 checks). Its QAQC review could not start:
+  `Model unavailable: opencode-go/gemini-4-argon` — the provider change in DEC-049
+  removed it, and the replacement provider does not serve Gemini.
+- **Options put to the owner:** `grok-4.7` (distinct family from both coder and
+  auditor — the strongest independent option), `glm-5.3` (same), `qwen4-max`
+  (permitted by R7 but reviews a qwen coder with another qwen), or **wait**.
+- **Decision (owner):** **wait**. No substitution. HO-STRATA-016 stays
+  `CODER_DONE` until the Gemini seat is restored.
+- **Why:** QAQC is the first independent layer, and the support claim is the one
+  claim a user can act on. DEC-036 substituted during a **billing** cap with a
+  known restoration; this is a **catalogue change with none**, so a substitution
+  would quietly become the steady state. The owner prefers a correctly staffed gate
+  to a fast one.
+- **State while parked:** everything is committed and reproducible — workflow
+  `wp/strata-016-deepseek-s5` @ `6adab78`, Strata `strata-016-deepseek-s5` @
+  `3c2f89555`, evidence `workflow/evidence/HO-STRATA-016/` (73 checks, 44 hashes,
+  20 pin rows), 12 external logits dumps in `/tmp/opencode/HO-STRATA-016-dumps/`
+  with digests and regeneration commands. **Nothing is recorded as verified**, and
+  the support claim is **not in force** — the flip lives only on the unmerged
+  branch.
+- **Resume:** when `gemini-4-argon` (or an owner-approved equivalent) is available,
+  run QAQC on HO-STRATA-016 at `6adab78`, then audit, then signoff and merge. If it
+  is still unavailable next session, the question returns to the owner — do not
+  substitute silently.
+- **Affected:** HO-STRATA-016, DEC-036 (precedent), DEC-039, DEC-049,
+  `workflow/STATUS.md`, `workflow/MODEL_POLICY.md` (QAQC seat unchanged).
