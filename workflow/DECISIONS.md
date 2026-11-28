@@ -1320,3 +1320,38 @@ in the conservative direction. The same correction applies to
 - **Affected:** `.opencode/agents/coder-primary.md`, `workflow/MODEL_POLICY.md` §3
   (closure), `workflow/model_policy.json`, HO-STRATA-016 (disclosure in its
   evidence), DEC-006, DEC-013, DEC-036, DEC-039.
+
+## DEC-050 — S5 parks at CODER_DONE: the QAQC seat is unavailable and no substitute is accepted
+
+- **Date:** 2026-11-27
+- **Context:** HO-STRATA-016 reached `CODER_DONE` — token gate **0/48**, the KL
+  ceiling met (gated curve max 5.99e-06 against 1e-2), the flip verified in both
+  builds, bundle PASS (73 checks). Its QAQC review could not start:
+  `Model unavailable: opencode-go/gemini-4-argon` (the provider change described in
+  DEC-049; `opencode-go` no longer lists Gemini Argon, and it is not offered by the
+  provider that replaced the others).
+- **Options put to the owner:** substitute `grok-4.7` (distinct family from both the
+  coder and the auditor — the strongest genuinely independent option),
+  `glm-5.3` (same), `qwen4-max` (permitted by R7 but reviews a qwen coder with
+  another qwen — the proximity R4 exists to avoid), or **wait**.
+- **Decision (owner):** **wait**. No substitution. HO-STRATA-016 stays
+  `CODER_DONE` until the Gemini seat is restored.
+- **Why this is the right call, not merely a delay:** QAQC is the first independent
+  layer and the support claim is the one claim in this project a user can act on.
+  DEC-036 substituted Claude during a *billing* cap that had an end date and a known
+  restoration; this is a **catalogue change with no announced restoration**, so a
+  substitution would become the steady state by default. The owner prefers a
+  correctly staffed gate to a fast one.
+- **State while parked:** everything is committed and reproducible — workflow
+  `wp/strata-016-deepseek-s5` @ `6adab78`, Strata `strata-016-deepseek-s5` @
+  `3c2f89555`, evidence `workflow/evidence/HO-STRATA-016/` (73 checks, 44 hashes,
+  20 pin rows), 12 external logits dumps in `/tmp/opencode/HO-STRATA-016-dumps/`
+  with digests and regeneration commands on record. **Nothing is claimed as
+  verified** — no PASS is recorded, and the support claim is *not* in force
+  (`model_family_runs()` change is in the branch only, unmerged).
+- **Resume:** when `gemini-4-argon` (or an owner-approved equivalent) is available,
+  start QAQC on HO-STRATA-016 at `6adab78` with the brief already prepared, then
+  audit, then signoff and merge. If the Gemini seat is still unavailable at the
+  next session, the question returns to the owner — do not substitute silently.
+- **Affected:** HO-STRATA-016, DEC-036 (precedent), DEC-039, DEC-049,
+  `workflow/STATUS.md`, `workflow/MODEL_POLICY.md` (QAQC seat unchanged).
